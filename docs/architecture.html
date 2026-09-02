@@ -1,0 +1,965 @@
+<title>King Juan Soccer Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F7F7F1;
+    --surface:#FFFFFF;
+    --surface-2:#EEEEE6;
+    --ink:#1B2419;
+    --ink-2:#4B5247;
+    --ink-3:#727869;
+    --line:#DBDBCF;
+    --accent:#2F7D46;
+    --accent-soft:#E4EFE5;
+    --amber:#A96A1B;
+    --clay:#AE4230;
+    --radius:7px;
+    --measure:68ch;
+    --maxw:1140px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#111310;
+      --surface:#1A1D17;
+      --surface-2:#23271D;
+      --ink:#E9EBE1;
+      --ink-2:#B3B8AA;
+      --ink-3:#868C7C;
+      --line:#333829;
+      --accent:#67C083;
+      --accent-soft:#1E2A20;
+      --amber:#E0A54A;
+      --clay:#E08268;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#111310;
+    --surface:#1A1D17;
+    --surface-2:#23271D;
+    --ink:#E9EBE1;
+    --ink-2:#B3B8AA;
+    --ink-3:#868C7C;
+    --line:#333829;
+    --accent:#67C083;
+    --accent-soft:#1E2A20;
+    --amber:#E0A54A;
+    --clay:#E08268;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,"Times New Roman",serif;
+    font-size:18px;
+    line-height:1.62;
+    margin:0;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  h1,h2,h3,h4{font-family:"Archivo",system-ui,sans-serif;line-height:1.15;text-wrap:balance;margin:0}
+  h2{font-size:1.9rem;font-weight:700;letter-spacing:-0.01em}
+  h3{font-size:1.24rem;font-weight:600;margin-top:2.2em}
+  h4{font-size:1rem;font-weight:600;letter-spacing:0.01em}
+  p{margin:1em 0}
+  a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+  strong{font-weight:600}
+  .eyebrow{
+    font-family:"Archivo",sans-serif;font-size:.72rem;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--accent);
+  }
+  code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+  :not(pre)>code{background:var(--surface-2);padding:.1em .38em;border-radius:4px;color:var(--ink)}
+
+  header.hero{
+    border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(var(--bg),var(--bg)) padding-box,
+      repeating-linear-gradient(90deg,transparent 0 38px,color-mix(in srgb,var(--accent) 22%,transparent) 38px 39px);
+  }
+  header.hero .wrap{padding-top:64px;padding-bottom:52px}
+  header.hero h1{
+    font-family:"Archivo",sans-serif;font-weight:700;
+    font-size:clamp(2.3rem,6vw,3.7rem);letter-spacing:-0.025em;line-height:1.02;
+    margin:.28em 0 .1em;
+  }
+  header.hero .tag{
+    font-size:clamp(1.05rem,2.4vw,1.3rem);color:var(--ink-2);font-style:italic;
+    max-width:34ch;
+  }
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;
+    font-family:"Archivo",sans-serif;font-size:.8rem;letter-spacing:.02em;color:var(--ink-3);
+  }
+  .metaline span{display:inline-flex;gap:7px;align-items:center}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+
+  .shell{display:block}
+  @media (min-width:1000px){
+    .shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start}
+    nav.toc{position:sticky;top:28px;font-family:"Archivo",sans-serif}
+  }
+  nav.toc{padding-top:44px;font-size:.82rem}
+  nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+  nav.toc li{counter-increment:toc;margin:.15em 0}
+  nav.toc a{
+    display:flex;gap:.6em;padding:.34em 0;color:var(--ink-2);text-decoration:none;
+    border-bottom:1px solid transparent;
+  }
+  nav.toc a:hover{color:var(--accent)}
+  nav.toc a::before{content:counter(toc,decimal-leading-zero);color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+  main{padding-top:44px;padding-bottom:96px;max-width:calc(var(--measure) + 4ch)}
+  section{padding-top:26px;margin-top:34px;border-top:1px solid var(--line)}
+  section:first-child{border-top:0;margin-top:0}
+  section>.eyebrow{display:block;margin-bottom:.5em}
+
+  .scroll{overflow-x:auto;margin:1.6em 0;border:1px solid var(--line);border-radius:var(--radius)}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;font-family:"Archivo",sans-serif}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{
+    font-weight:600;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);background:var(--surface-2);position:sticky;top:0;
+  }
+  tr:last-child td{border-bottom:0}
+  td.mono,th.mono{font-family:"JetBrains Mono",monospace;font-size:.8rem}
+  td em{color:var(--ink-3);font-style:normal}
+
+  .note{
+    border-left:3px solid var(--accent);background:var(--accent-soft);
+    padding:14px 18px;border-radius:0 var(--radius) var(--radius) 0;margin:1.6em 0;
+    font-size:.96rem;
+  }
+  .note.amber{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--bg))}
+  .grid{display:grid;gap:16px;margin:1.7em 0}
+  @media (min-width:620px){.grid.two{grid-template-columns:1fr 1fr}}
+  .card{
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+    padding:16px 18px;
+  }
+  .card h4{margin-bottom:.3em}
+  .card p{margin:.35em 0;font-size:.92rem;color:var(--ink-2)}
+  .card .k{font-family:"Archivo",sans-serif;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+
+  ul,ol{padding-left:1.3em}
+  li{margin:.4em 0}
+  ul.tight li{margin:.15em 0}
+
+  figure{margin:2em 0;padding:0}
+  figure svg{
+    display:block;width:100%;height:auto;
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);
+    color:var(--ink);
+  }
+  figcaption{
+    margin-top:.7em;font-size:.82rem;color:var(--ink-3);font-family:"Archivo",sans-serif;
+    text-wrap:pretty;
+  }
+  .di-accent{color:var(--accent)}
+
+  .phases{display:grid;gap:14px;margin:1.8em 0}
+  @media (min-width:820px){.phases{grid-template-columns:repeat(4,1fr)}}
+  .phase{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:14px 15px}
+  .phase .ph{font-family:"Archivo",sans-serif;font-weight:700;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .phase h4{margin:.35em 0 .5em;font-size:1.02rem}
+  .phase ul{padding-left:1.05em;font-family:"Archivo",sans-serif;font-size:.82rem;color:var(--ink-2)}
+  .phase li{margin:.3em 0}
+  .phase .when{margin-top:.7em;font-family:"Archivo",sans-serif;font-size:.72rem;color:var(--ink-3);letter-spacing:.03em}
+
+  pre.tree{
+    background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;overflow-x:auto;font-size:.8rem;line-height:1.6;
+    font-family:"JetBrains Mono",monospace;
+  }
+  hr{border:0;border-top:1px solid var(--line);margin:2.4em 0}
+  .lede{font-size:1.12rem;color:var(--ink-2)}
+  footer{border-top:1px solid var(--line);padding:26px 0 60px;font-family:"Archivo",sans-serif;font-size:.8rem;color:var(--ink-3)}
+  ::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Platform Architecture &middot; Working Draft</span>
+    <h1>King Juan Soccer</h1>
+    <p class="tag">A Seattle youth soccer <em>events</em> platform. More soccer, less logistics.</p>
+    <div class="metaline">
+      <span><span class="dot"></span>Next.js + TypeScript</span>
+      <span><span class="dot"></span>Vercel &middot; Neon Postgres</span>
+      <span><span class="dot"></span>Prepared 2 Sep 2026</span>
+      <span><span class="dot"></span>First move: bring King Juan Cup onto the platform</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap shell">
+  <nav class="toc" aria-label="Contents">
+    <ol>
+      <li><a href="#shape">The shape of it</a></li>
+      <li><a href="#model">Event is a generic container</a></li>
+      <li><a href="#data">Data model</a></li>
+      <li><a href="#discussion">Event discussion</a></li>
+      <li><a href="#stack">Component choices</a></li>
+      <li><a href="#hosting">Hosting &amp; cost</a></li>
+      <li><a href="#services">Services to build</a></li>
+      <li><a href="#auth">Auth &amp; identity</a></li>
+      <li><a href="#migration">King Juan Cup: spreadsheet &rarr; platform</a></li>
+      <li><a href="#roadmap">Phased roadmap</a></li>
+      <li><a href="#repo">Repo &amp; first week</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="shape">
+      <span class="eyebrow">01 &mdash; Overview</span>
+      <h2>The shape of it</h2>
+      <p class="lede">One Next.js application, one Postgres database, deployed on managed infrastructure with
+      near-zero DevOps. Not microservices &mdash; a <strong>modular monolith</strong> where each product area
+      (events, teams, scrimmages, tournament ops, discussion, weekly, social) is a self-contained feature folder
+      that shares one schema.</p>
+
+      <p>The product thesis from the discussion doc holds up technically: <strong>Event is the core object</strong>
+      &mdash; a generic container, not a fixed list of types. A game, scrimmage, pickup run, tournament, watch
+      party, meetup, or tryout is the same row with different modules switched on. That keeps the data model
+      small and the surface area open-ended. King Juan Cup is the flagship Event, and moving it onto the
+      platform is the forcing function that makes the tournament-ops features real rather than hypothetical.</p>
+
+      <p>The website is the <em>event and community layer</em> (browse, join, host, manage). Instagram is the
+      <em>discovery and distribution layer</em>. The platform's job at the seam between them is to turn event
+      data into shareable graphics and captions automatically &mdash; that pipeline is a first-class service,
+      not an afterthought.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 560" role="img" aria-label="System architecture: browsers reach a Next.js app on Vercel, which talks to Neon Postgres via Drizzle and to Auth.js/Google, Vercel Blob, Resend and Mapbox. Vercel Cron drives background jobs that generate the Weekly roundup and social image packs. Instagram is the discovery layer feeding traffic in and receiving content packs out.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+            </marker>
+            <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+          <g font-family="Archivo, sans-serif" font-size="12.5" fill="currentColor">
+            <rect x="330" y="24" width="240" height="52" rx="7" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+            <text x="450" y="45" text-anchor="middle" font-weight="700" fill="var(--accent)">Instagram</text>
+            <text x="450" y="63" text-anchor="middle" font-size="11" fill="var(--ink-3)">discovery &amp; distribution layer</text>
+
+            <line x1="405" y1="76" x2="405" y2="150" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arA)"/>
+            <text x="398" y="118" text-anchor="end" font-size="10.5" fill="var(--accent)">discover &rarr; visit</text>
+            <line x1="495" y1="150" x2="495" y2="76" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arA)"/>
+            <text x="502" y="118" font-size="10.5" fill="var(--accent)">content pack</text>
+
+            <rect x="24" y="212" width="120" height="78" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="84" y="243" text-anchor="middle" font-weight="600">Browsers</text>
+            <text x="84" y="260" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">public site</text>
+            <text x="84" y="274" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">coach dashboard</text>
+
+            <rect x="300" y="150" width="210" height="200" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="405" y="175" text-anchor="middle" font-weight="700">Next.js app</text>
+            <text x="405" y="196" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">App Router &middot; RSC pages</text>
+            <text x="405" y="211" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">Route Handlers (API)</text>
+            <text x="405" y="226" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">Server Actions</text>
+            <text x="405" y="330" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">on Vercel (edge CDN)</text>
+
+            <line x1="144" y1="251" x2="298" y2="251" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+            <text x="221" y="244" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">HTTPS</text>
+
+            <rect x="720" y="212" width="156" height="78" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="798" y="243" text-anchor="middle" font-weight="600">Neon Postgres</text>
+            <text x="798" y="260" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">serverless, branched</text>
+            <text x="798" y="274" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">per preview deploy</text>
+
+            <line x1="510" y1="251" x2="718" y2="251" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+            <text x="614" y="244" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">Drizzle ORM / SQL</text>
+
+            <g font-size="11">
+              <rect x="556" y="120" width="150" height="30" rx="5" fill="var(--surface)" stroke="var(--line)"/>
+              <text x="631" y="139" text-anchor="middle">Auth.js + Google</text>
+              <rect x="556" y="160" width="150" height="30" rx="5" fill="var(--surface)" stroke="var(--line)"/>
+              <text x="631" y="179" text-anchor="middle">Vercel Blob &mdash; media</text>
+              <rect x="556" y="360" width="150" height="30" rx="5" fill="var(--surface)" stroke="var(--line)"/>
+              <text x="631" y="379" text-anchor="middle">Resend &mdash; email</text>
+              <rect x="556" y="400" width="150" height="30" rx="5" fill="var(--surface)" stroke="var(--line)"/>
+              <text x="631" y="419" text-anchor="middle">Mapbox &mdash; geocode</text>
+            </g>
+            <line x1="510" y1="200" x2="554" y2="150" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+            <line x1="510" y1="215" x2="554" y2="177" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+            <line x1="510" y1="300" x2="554" y2="372" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+            <line x1="510" y1="315" x2="554" y2="410" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+
+            <rect x="24" y="462" width="120" height="60" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+            <text x="84" y="489" text-anchor="middle" font-weight="600">Vercel Cron</text>
+            <text x="84" y="505" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">scheduled</text>
+
+            <rect x="220" y="452" width="260" height="80" rx="7" fill="none" stroke="currentColor"/>
+            <text x="350" y="476" text-anchor="middle" font-weight="600">Background jobs</text>
+            <text x="350" y="494" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">Weekly roundup draft</text>
+            <text x="350" y="508" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">social image packs (Satori/OG)</text>
+            <text x="350" y="522" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">match &amp; opponent reminders</text>
+
+            <line x1="144" y1="492" x2="218" y2="492" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+            <path d="M420 452 C 440 410, 440 380, 430 352" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+            <text x="452" y="410" font-size="10.5" fill="var(--ink-3)">writes posts,</text>
+            <text x="452" y="424" font-size="10.5" fill="var(--ink-3)">media, notifs</text>
+
+            <text x="876" y="520" text-anchor="end" font-size="10.5" fill="var(--ink-3)">Observability: Sentry &middot; Plausible</text>
+          </g>
+        </svg>
+        <figcaption>The whole system. Solid arrows are request/data paths; the <span class="di-accent">green dashed arrow</span>
+        is the content the platform pushes back out to Instagram. Nothing here needs a container, a load balancer, or a
+        server you patch.</figcaption>
+      </figure>
+    </section>
+
+    <section id="model">
+      <span class="eyebrow">02 &mdash; Product model</span>
+      <h2>Event is a generic container</h2>
+      <p class="lede">A game, a scrimmage, a pickup run, a tournament, a watch party, a coaches' meetup, a club
+      tryout, or something nobody has named yet &mdash; each is one row in <code>events</code>. The row does not
+      hard-code behavior by type. It carries a <strong>kind</strong> (a label, editable without a deploy) and a
+      set of <strong>modules</strong> it switches on.</p>
+
+      <p>Code branches on modules, never on the kind string. A new kind is a row in <code>event_kinds</code>
+      (slug, label, icon, default modules) &mdash; the discovery UI gets a new filter and icon; the code paths
+      stay finite.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Kind</th><th>Modules it turns on</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">game</td><td>fixture, result</td><td>Team A vs Team B, competitive</td></tr>
+            <tr><td class="mono">scrimmage</td><td>fixture, needs&#8209;opponent, result</td><td>U11 A vs B (or opponent TBD)</td></tr>
+            <tr><td class="mono">pickup</td><td>attendance, skill&#8209;level</td><td>Open 5v5 Saturday</td></tr>
+            <tr><td class="mono">tournament&nbsp;/&nbsp;league&nbsp;/&nbsp;series</td><td>competition (divisions, schedule, standings), registration, roster</td><td>King Juan Cup</td></tr>
+            <tr><td class="mono">jamboree</td><td>competition without standings</td><td>Multi-team friendlies</td></tr>
+            <tr><td class="mono">showcase</td><td>competition, registration, audience</td><td>College / club showcase</td></tr>
+            <tr><td class="mono">camp&nbsp;/&nbsp;clinic</td><td>registration, sessions</td><td>Week-long skills camp</td></tr>
+            <tr><td class="mono">tryout</td><td>registration, private results</td><td>Club selection day</td></tr>
+            <tr><td class="mono">watch&#8209;party</td><td>attendance, broadcast (external match ref)</td><td>World Cup at the pub</td></tr>
+            <tr><td class="mono">meetup&nbsp;/&nbsp;community</td><td>attendance</td><td>Coaches' social, parent info night</td></tr>
+            <tr><td class="mono">custom</td><td>attendance (base only)</td><td>Whatever an organizer needs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The modules</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="mono">module</th><th>adds</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">fixture</td><td>one match between two sides &rarr; a single <code>matches</code> row</td></tr>
+            <tr><td class="mono">competition</td><td>divisions, a schedule, and standings with a configurable tiebreaker order &rarr; many <code>matches</code></td></tr>
+            <tr><td class="mono">roster</td><td>a player list per team per event (name, birth year, gender), with min/max and eligibility rules</td></tr>
+            <tr><td class="mono">needs&#8209;opponent</td><td>the Team&nbsp;&rarr;&nbsp;Opponent wedge &mdash; an open slot other teams answer via <code>event_offers</code></td></tr>
+            <tr><td class="mono">attendance</td><td>an RSVP list at the person <em>or</em> team level &rarr; <code>rsvps</code></td></tr>
+            <tr><td class="mono">registration</td><td>structured signup: capacity, questions, optional fee &rarr; <code>registrations</code></td></tr>
+            <tr><td class="mono">sessions</td><td>multiple dated parts under one event (a week of camp)</td></tr>
+            <tr><td class="mono">broadcast</td><td>a reference to an external match / stream being watched together</td></tr>
+            <tr><td class="mono">recurring</td><td>a parent event with child <code>event_occurrences</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Two things cut across every kind:</p>
+      <ul>
+        <li><strong>Place &amp; time</strong> &mdash; a venue with lat/lng, <em>or</em> <code>location_type =
+        online</code> with a URL. Plus a start time. "This weekend near Bellevue" stays one indexed query for
+        both the site and the Instagram pipeline.</li>
+        <li><strong>Audience filters</strong> &mdash; <code>age_group</code>, <code>gender</code>,
+        <code>level</code>, all optional, because a coaches' meetup has no age group and a watch party has no
+        level.</li>
+      </ul>
+    </section>
+
+    <section id="data">
+      <span class="eyebrow">03 &mdash; Schema</span>
+      <h2>Data model</h2>
+      <p>Around fifteen tables. Auth.js owns its own four (<code>users</code>, <code>accounts</code>,
+      <code>sessions</code>, <code>verification_tokens</code>); everything below is ours.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 620" role="img" aria-label="Entity relationship diagram centered on Event. Venue has many events. User creates events and manages teams. Event has many divisions, many matches, many media, many RSVPs, many registrations and many opponent offers. A match belongs to an event and references two teams. Teams link to events through event_teams; each event_teams row has a roster of players. Discussion attaches polymorphically to events, teams and posts. Posts feature many events.">
+          <defs>
+            <marker id="er" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g font-family="Archivo, sans-serif" font-size="12" fill="currentColor">
+            <rect x="352" y="262" width="196" height="86" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.75"/>
+            <text x="450" y="286" text-anchor="middle" font-weight="700" fill="var(--accent)">event</text>
+            <text x="450" y="304" text-anchor="middle" font-size="10" fill="var(--ink-2)">kind &middot; modules[] &middot; status</text>
+            <text x="450" y="318" text-anchor="middle" font-size="10" fill="var(--ink-2)">age_group &middot; gender &middot; format</text>
+            <text x="450" y="332" text-anchor="middle" font-size="10" fill="var(--ink-2)">starts_at &middot; needs_opponent</text>
+
+            <rect x="210" y="88" width="150" height="44" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="285" y="108" text-anchor="middle" font-weight="600">event_kind</text>
+            <text x="285" y="122" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">label + default modules</text>
+            <path d="M300 132 C 320 185, 355 230, 388 260" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#er)"/>
+
+            <rect x="40" y="80" width="150" height="52" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="115" y="102" text-anchor="middle" font-weight="600">venue</text>
+            <text x="115" y="118" text-anchor="middle" font-size="10" fill="var(--ink-3)">lat/lng &middot; parking &middot; nullable</text>
+            <path d="M150 132 C 220 190, 300 235, 351 270" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="232" y="212" font-size="10" fill="var(--ink-3)">1 &rarr; many</text>
+
+            <rect x="40" y="270" width="150" height="52" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="115" y="292" text-anchor="middle" font-weight="600">user</text>
+            <text x="115" y="308" text-anchor="middle" font-size="10" fill="var(--ink-3)">Google identity</text>
+            <path d="M190 298 L 350 301" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="270" y="292" text-anchor="middle" font-size="10" fill="var(--ink-3)">organizes</text>
+
+            <rect x="40" y="452" width="150" height="56" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="115" y="474" text-anchor="middle" font-weight="600">team</text>
+            <text x="115" y="490" text-anchor="middle" font-size="10" fill="var(--ink-3)">club &middot; age &middot; crest</text>
+            <text x="115" y="503" text-anchor="middle" font-size="10" fill="var(--ink-3)">claimed_by &rarr; user</text>
+            <path d="M115 322 L 115 450" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="122" y="392" font-size="10" fill="var(--ink-3)">manages</text>
+
+            <rect x="250" y="452" width="150" height="38" rx="7" fill="none" stroke="currentColor" stroke-dasharray="3 3"/>
+            <text x="325" y="469" text-anchor="middle" font-size="11" font-style="italic">event_teams</text>
+            <text x="325" y="482" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">seed &middot; group &middot; standing</text>
+            <line x1="190" y1="474" x2="248" y2="472" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <path d="M372 452 C 388 412, 408 372, 438 350" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="330" y="420" font-size="10" fill="var(--ink-3)">M : N</text>
+
+            <rect x="250" y="512" width="150" height="42" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="325" y="531" text-anchor="middle" font-weight="600">roster</text>
+            <text x="325" y="545" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">players: name &middot; birth yr &middot; gender</text>
+            <line x1="325" y1="490" x2="325" y2="510" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+
+            <rect x="375" y="120" width="150" height="46" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="450" y="140" text-anchor="middle" font-weight="600">division</text>
+            <text x="450" y="155" text-anchor="middle" font-size="10" fill="var(--ink-3)">name &middot; birth years</text>
+            <line x1="450" y1="166" x2="450" y2="260" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="458" y="216" font-size="10" fill="var(--ink-3)">tournament &rarr; many</text>
+
+            <rect x="712" y="118" width="158" height="60" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="791" y="140" text-anchor="middle" font-weight="600">match</text>
+            <text x="791" y="155" text-anchor="middle" font-size="10" fill="var(--ink-3)">field &middot; kickoff &middot; round</text>
+            <text x="791" y="168" text-anchor="middle" font-size="10" fill="var(--ink-3)">home_score &middot; away_score</text>
+            <path d="M548 284 C 640 252, 712 210, 762 180" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="652" y="230" font-size="10" fill="var(--ink-3)">1 &rarr; many</text>
+            <path d="M712 162 C 520 210, 400 380, 300 500" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#er)"/>
+            <text x="486" y="300" font-size="10" fill="var(--ink-3)" transform="rotate(30 486 300)">2 &times; team</text>
+
+            <rect x="712" y="258" width="158" height="56" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="791" y="280" text-anchor="middle" font-weight="600">event_offer</text>
+            <text x="791" y="296" text-anchor="middle" font-size="10" fill="var(--ink-3)">from_team &middot; message</text>
+            <text x="791" y="309" text-anchor="middle" font-size="10" fill="var(--ink-3)">status</text>
+            <line x1="710" y1="290" x2="550" y2="298" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="628" y="284" text-anchor="middle" font-size="10" fill="var(--ink-3)">scrimmage &larr;</text>
+
+            <rect x="712" y="392" width="158" height="54" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="791" y="413" text-anchor="middle" font-weight="600">rsvp / registration</text>
+            <text x="791" y="429" text-anchor="middle" font-size="10" fill="var(--ink-3)">user or team &middot; status</text>
+            <path d="M548 324 C 640 356, 700 384, 730 390" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+
+            <rect x="712" y="486" width="158" height="52" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="791" y="507" text-anchor="middle" font-weight="600">discussion</text>
+            <text x="791" y="523" text-anchor="middle" font-size="10" fill="var(--ink-3)">event / team / post</text>
+            <path d="M540 350 C 620 430, 670 470, 712 496" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#er)"/>
+
+            <rect x="430" y="450" width="150" height="46" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="505" y="470" text-anchor="middle" font-weight="600">media</text>
+            <text x="505" y="485" text-anchor="middle" font-size="10" fill="var(--ink-3)">photo &middot; credit</text>
+            <line x1="470" y1="348" x2="490" y2="448" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#er)"/>
+            <text x="500" y="404" font-size="10" fill="var(--ink-3)">event / match / team</text>
+
+            <rect x="590" y="556" width="150" height="48" rx="7" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="665" y="577" text-anchor="middle" font-weight="600">post</text>
+            <text x="665" y="592" text-anchor="middle" font-size="10" fill="var(--ink-3)">Youth Soccer Weekly</text>
+            <path d="M590 570 C 540 500, 510 410, 500 350" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#er)"/>
+            <text x="520" y="470" font-size="10" fill="var(--ink-3)">features many</text>
+          </g>
+        </svg>
+        <figcaption>Everything hangs off <span class="di-accent">event</span>. Dashed lines are reference-only
+        links (a match names two teams; a post cites events; discussion and media attach to any subject).
+        <code>event_teams</code> is the junction that lets one Team model serve tournaments and scrimmages
+        alike, and it carries the per-event <code>roster</code>.</figcaption>
+      </figure>
+
+      <h3>Key tables</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="mono">table</th><th>purpose</th><th>notable columns</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">events</td><td>the core object</td><td class="mono">kind_id, modules[], slug, status, visibility, organizer_id, location_type, venue_id, online_url, starts_at, ends_at, tz, age_group, gender, format, level, capacity, needs_opponent, home_team_id, away_team_id, result jsonb, cover_media_id, discussion_locked</td></tr>
+            <tr><td class="mono">event_kinds</td><td>editable kind catalog</td><td class="mono">slug, label, icon, default_modules[], sort, description</td></tr>
+            <tr><td class="mono">venues</td><td>where (null for online)</td><td class="mono">name, address, city, lat, lng, parking_notes, map_url</td></tr>
+            <tr><td class="mono">teams</td><td>team-centric identity</td><td class="mono">slug, name, club, age_group, gender, city, crest_media_id, bio, claimed_by, verified_at</td></tr>
+            <tr><td class="mono">team_members</td><td>who can act for a team</td><td class="mono">team_id, user_id, role (manager/coach/staff), invited_by</td></tr>
+            <tr><td class="mono">event_teams</td><td>roster slot + standings</td><td class="mono">event_id, team_id, division_id, seed, group_label, played, won, drawn, lost, gf, ga, points</td></tr>
+            <tr><td class="mono">rosters</td><td>players for an event_teams row</td><td class="mono">event_team_id, player_name, birth_year, gender, note (e.g. play-up exception)</td></tr>
+            <tr><td class="mono">event_divisions</td><td>brackets within a tournament</td><td class="mono">event_id, name, birth_years, format, roster_min, roster_max</td></tr>
+            <tr><td class="mono">event_occurrences</td><td>child dates of a recurring event</td><td class="mono">parent_event_id, starts_at, ends_at, status, overrides jsonb</td></tr>
+            <tr><td class="mono">matches</td><td>one game</td><td class="mono">event_id, division_id, stage (group/ko), round, field, kickoff_at, home_team_id, away_team_id, home_placeholder, away_placeholder, home_score, away_score, status</td></tr>
+            <tr><td class="mono">event_offers</td><td>opponent responses</td><td class="mono">event_id, from_team_id, message, status (pending/accepted/declined)</td></tr>
+            <tr><td class="mono">rsvps</td><td>lightweight "we're in"</td><td class="mono">event_id, user_id, team_id, status, party_size</td></tr>
+            <tr><td class="mono">registrations</td><td>structured signup (camp, tryout, tournament)</td><td class="mono">event_id, team_id, user_id, answers jsonb, status, fee_cents, paid_at</td></tr>
+            <tr><td class="mono">media</td><td>images</td><td class="mono">owner_type, owner_id, blob_url, width, height, credit, kind</td></tr>
+            <tr><td class="mono">event_sponsors</td><td>logos on pages &amp; in comms</td><td class="mono">event_id, name, logo_media_id, tier, url, blurb</td></tr>
+            <tr><td class="mono">posts</td><td>Youth Soccer Weekly</td><td class="mono">slug, title, body_mdx, status, published_at, featured_event_ids[]</td></tr>
+            <tr><td class="mono">follows</td><td>favorites / notify me</td><td class="mono">user_id, target_type (team/event/organizer), target_id</td></tr>
+            <tr><td class="mono">discussions</td><td>one thread per subject</td><td class="mono">subject_type (event/team/post), subject_id, locked, pinned_comment_id</td></tr>
+            <tr><td class="mono">comments</td><td>posts within a thread</td><td class="mono">discussion_id, parent_id, author_id, body_md, edited_at, hidden_at, hidden_by, report_count</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <strong>Submissions and claims aren't separate tables.</strong> A community-submitted event is an
+        <code>events</code> row with <code>status = 'pending'</code> until a moderator publishes it. A knockout
+        fixture whose team isn't decided yet stores a <code>home_placeholder</code> like "Group A winner" until
+        results resolve it &mdash; exactly what the current King Juan Cup schedule sheet does by hand.
+      </div>
+    </section>
+
+    <section id="discussion">
+      <span class="eyebrow">04 &mdash; Community</span>
+      <h2>Event discussion</h2>
+      <p class="lede">Every event has a thread. Reading is public; posting takes a Google login. It is the
+      coordination surface &mdash; "can we push kickoff to 4?", "still on in this rain?", "where do we park?",
+      "great games today, are photos up?".</p>
+
+      <figure>
+        <svg viewBox="0 0 760 250" role="img" aria-label="One discussion system attaches polymorphically to events, teams, Weekly posts, and a future community forum, and feeds a batched notification digest.">
+          <defs>
+            <marker id="dc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor">
+            <rect x="24" y="24" width="150" height="32" rx="6" fill="var(--surface-2)" stroke="var(--line)"/><text x="99" y="44" text-anchor="middle">event</text>
+            <rect x="24" y="72" width="150" height="32" rx="6" fill="var(--surface-2)" stroke="var(--line)"/><text x="99" y="92" text-anchor="middle">team page</text>
+            <rect x="24" y="120" width="150" height="32" rx="6" fill="var(--surface-2)" stroke="var(--line)"/><text x="99" y="140" text-anchor="middle">Weekly post</text>
+            <rect x="24" y="168" width="150" height="32" rx="6" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/><text x="99" y="188" text-anchor="middle" fill="var(--ink-3)">forum (later)</text>
+
+            <rect x="278" y="78" width="196" height="70" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"/>
+            <text x="376" y="104" text-anchor="middle" font-weight="700" fill="var(--accent)">discussions</text>
+            <text x="376" y="122" text-anchor="middle" font-size="10" fill="var(--ink-2)">+ comments, shallow threads</text>
+            <text x="376" y="136" text-anchor="middle" font-size="10" fill="var(--ink-2)">lock &middot; pin &middot; hide &middot; report</text>
+
+            <line x1="174" y1="40" x2="276" y2="96" stroke="currentColor" stroke-width="1.2" marker-end="url(#dc)"/>
+            <line x1="174" y1="88" x2="276" y2="106" stroke="currentColor" stroke-width="1.2" marker-end="url(#dc)"/>
+            <line x1="174" y1="136" x2="276" y2="120" stroke="currentColor" stroke-width="1.2" marker-end="url(#dc)"/>
+            <line x1="174" y1="184" x2="276" y2="134" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#dc)"/>
+            <text x="225" y="70" text-anchor="middle" font-size="10" fill="var(--ink-3)">subject_type + id</text>
+
+            <rect x="560" y="78" width="176" height="70" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="648" y="104" text-anchor="middle" font-weight="600">notifications</text>
+            <text x="648" y="122" text-anchor="middle" font-size="10" fill="var(--ink-3)">daily digest: organizer,</text>
+            <text x="648" y="136" text-anchor="middle" font-size="10" fill="var(--ink-3)">commenters, RSVPs, followers</text>
+            <line x1="474" y1="113" x2="558" y2="113" stroke="currentColor" stroke-width="1.2" marker-end="url(#dc)"/>
+          </g>
+        </svg>
+        <figcaption>One system, many hosts. The same component and tables serve an event, a team page, and a
+        Weekly post; a standalone community forum is later just a discussion with no parent subject.</figcaption>
+      </figure>
+
+      <h3>How it works</h3>
+      <ul>
+        <li><strong>Polymorphic, one implementation.</strong> A <code>discussions</code> row attaches by
+        <code>(subject_type, subject_id)</code>. The event thread, team-page thread, and post comments are the
+        same code.</li>
+        <li><strong>Shallow threading.</strong> Top-level comments plus one level of replies. This is
+        coordination, not a message board.</li>
+        <li><strong>Organizer controls.</strong> The event's organizer can pin one comment (a field change, a
+        weather call), lock the thread, and hide individual comments. Platform admins can do this anywhere.</li>
+        <li><strong>Batched notifications.</strong> A new comment notifies the organizer immediately; everyone
+        who commented, RSVP'd, or follows the event gets a once-a-day digest, opt-out per thread. No
+        per-message email.</li>
+        <li><strong>Public thread &ne; private negotiation.</strong> Accepting an opponent offer opens a
+        private thread scoped to the two teams (Phase 2 messaging). The public event thread stays for parents
+        and players.</li>
+        <li><strong>Youth-safety by default.</strong> Real-identity accounts only (Google, no anonymous
+        posts), an optional per-event "verified coaches only" mode, rate limiting, a report button, and an
+        admin review queue.</li>
+        <li><strong>No realtime yet.</strong> Server-render and revalidate on post. Add live updates only if
+        match-day threads get busy enough to need them.</li>
+      </ul>
+    </section>
+
+    <section id="stack">
+      <span class="eyebrow">05 &mdash; Components</span>
+      <h2>Component choices</h2>
+      <p>Bias: managed services with real free tiers, each replaceable in isolation. The column that matters
+      most is the last one &mdash; nothing here is a one-way door.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Concern</th><th>Pick</th><th>Why</th><th>When to reconsider</th></tr></thead>
+          <tbody>
+            <tr><td>Framework</td><td>Next.js 15, App Router, TypeScript</td><td>SSR for SEO on public event pages, Server Actions for the coach dashboard, one deploy target, clean PWA path later</td><td>Never expected &mdash; this is the anchor decision</td></tr>
+            <tr><td>UI</td><td>Tailwind v4 + shadcn/ui</td><td>Own the components (copied in, not a dependency); fast to build the filter-heavy list UIs</td><td>If design needs outgrow it &mdash; unlikely</td></tr>
+            <tr><td>Database</td><td>Postgres on <strong>Neon</strong></td><td>Serverless, scales to zero, <em>database branching</em> gives every preview deploy its own copy</td><td>Supabase instead if you want auth + storage + realtime bundled from day one</td></tr>
+            <tr><td>ORM / migrations</td><td>Drizzle</td><td>SQL-first, tiny runtime, typed schema, migrations you can read; works well with Neon's HTTP driver</td><td>Prisma if the team prefers its DX and studio</td></tr>
+            <tr><td>Auth</td><td>Auth.js (NextAuth v5), Google only</td><td>Free, you own the user table, matches the "Google login is enough for MVP" call</td><td>Clerk if you want zero-maintenance and org/team primitives out of the box</td></tr>
+            <tr><td>i18n</td><td>next-intl, English + &#20013;&#25991; from day one</td><td>The King Juan Cup audience is bilingual and the current site already ships EN/ZH; retrofitting i18n later is painful</td><td>Add locales as the community grows</td></tr>
+            <tr><td>Media storage</td><td>Vercel Blob &rarr; Cloudflare R2</td><td>Blob is one line to start; move to R2 (zero egress) once tournament photo volume grows</td><td>At ~50&nbsp;GB or the first big photo day</td></tr>
+            <tr><td>Social graphics</td><td>Satori / <code>@vercel/og</code></td><td>Render "This Weekend", "Looking for Opponent", schedule and champion cards from event data as PNGs, server-side &mdash; replaces the current hand-run Pillow skill</td><td>Add a template editor only if a human needs per-post control</td></tr>
+            <tr><td>Background &amp; scheduled</td><td>Vercel Cron &rarr; Inngest</td><td>Cron covers the weekly digest and reminders; add Inngest for durable multi-step flows (opponent-found, registration &rarr; invoice &rarr; confirm)</td><td>When a job needs steps, retries, or fan-out</td></tr>
+            <tr><td>Transactional email</td><td>Resend + React Email</td><td>One system for the whole event comms lifecycle (see &sect;7); 3k/mo free</td><td>Postmark if deliverability becomes critical</td></tr>
+            <tr><td>Payments</td><td>Stripe &mdash; deferred</td><td>Not needed until an event charges a fee; King Juan Cup's $50/team registration is the first real use, and it can stay invoice-by-email until then</td><td>Turn on when the first paid event is real</td></tr>
+            <tr><td>Search &amp; filters</td><td>Postgres indexes + <code>pg_trgm</code></td><td>Filtering by kind/date/age/geo is just <code>WHERE</code> on indexed columns; full-text for team/venue names</td><td>Meilisearch/Typesense when free-text discovery matters more than filters</td></tr>
+            <tr><td>Geo</td><td>lat/lng + Haversine; Mapbox for geocoding + maps</td><td>"Near Bellevue" = bounding-box prefilter then distance sort; no PostGIS at this scale</td><td>PostGIS if you add routing or polygons</td></tr>
+            <tr><td>Analytics</td><td>Plausible (or Vercel Web Analytics)</td><td>Privacy-friendly, no cookie banner, cheap</td><td>PostHog when you need funnels</td></tr>
+            <tr><td>Errors</td><td>Sentry</td><td>Free tier covers an MVP; source maps from Vercel builds</td><td>&mdash;</td></tr>
+            <tr><td>Instagram publishing</td><td>Manual post from generated pack &rarr; Instagram Graph API</td><td>No reliable auto-post without a Business/Creator account on a Facebook Page; export image + caption first, automate once that's set up</td><td>Once the IG account is Business-tier</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="hosting">
+      <span class="eyebrow">06 &mdash; Hosting</span>
+      <h2>Hosting &amp; cost</h2>
+      <p>Three environments, all managed:</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Env</th><th>App</th><th>Database</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Local</td><td><code>next dev</code></td><td>Neon branch <em>or</em> Postgres in Docker</td><td>Seed script loads the King Juan Cup fixture</td></tr>
+            <tr><td>Preview</td><td>Vercel preview deploy per PR</td><td>Neon branch per PR (auto, torn down on merge)</td><td>Every pull request is a full working copy with its own data</td></tr>
+            <tr><td>Production</td><td>Vercel, custom domain</td><td>Neon primary + read replica later</td><td><code>kingjuansoccer.com</code>; Cloudflare for DNS. Point <code>kingjuancup.org</code> at the event page.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Monthly cost</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Service</th><th>MVP (free tier)</th><th>Growing (paid)</th></tr></thead>
+          <tbody>
+            <tr><td>Vercel</td><td>$0 (Hobby)</td><td>$20 (Pro)</td></tr>
+            <tr><td>Neon</td><td>$0</td><td>$19 (Launch)</td></tr>
+            <tr><td>Resend</td><td>$0 (3k emails)</td><td>$20</td></tr>
+            <tr><td>Blob / R2</td><td>$0</td><td>~$5</td></tr>
+            <tr><td>Plausible</td><td>$0 (self-host) / $9</td><td>$9</td></tr>
+            <tr><td>Sentry</td><td>$0</td><td>$0&ndash;26</td></tr>
+            <tr><td>Mapbox</td><td>$0 (50k loads)</td><td>usage</td></tr>
+            <tr><td>Domain</td><td colspan="2">~$15 / year</td></tr>
+            <tr><td><strong>Total</strong></td><td><strong>~$0&ndash;10 / mo</strong></td><td><strong>~$70&ndash;95 / mo</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note amber">
+        You do not pay the "growing" column until real usage forces it. King Juan Cup weekend traffic fits
+        comfortably in the free tiers &mdash; and the current stack (Netlify + Google Workspace + a GitHub
+        assets repo) costs about the same, so this is roughly cost-neutral while removing all the glue.
+      </div>
+    </section>
+
+    <section id="services">
+      <span class="eyebrow">07 &mdash; Modules</span>
+      <h2>Services to build</h2>
+      <p>Not separate deployments &mdash; feature folders in one app (<code>/features/events</code>,
+      <code>/features/tournaments</code>, &hellip;), each owning its routes, components, queries, and jobs.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <span class="k">P0</span>
+          <h4>Event catalog &amp; discovery</h4>
+          <p>List + filter (kind, date, age, gender, level, format, location), event detail page, map view,
+          "submit an event" form. The public heart of the site.</p>
+        </div>
+        <div class="card">
+          <span class="k">P0</span>
+          <h4>Team directory &amp; claim</h4>
+          <p>Team pages, search, "this is my team" claim flow with lightweight verification, team member roles.
+          Team is the long-term identity anchor.</p>
+        </div>
+        <div class="card">
+          <span class="k">P0</span>
+          <h4>Scrimmage &amp; opponent matching</h4>
+          <p>Create an event with <code>needs_opponent</code>, browse open requests, send/accept offers.
+          Coach-to-coach messaging comes later (P1).</p>
+        </div>
+        <div class="card">
+          <span class="k">P0</span>
+          <h4>Tournament ops</h4>
+          <p>Divisions, registration + roster (5&ndash;8 players, birth-year rules), schedule builder, standings
+          with the exact King Juan Cup tiebreaker order, live score entry, knockout placeholders, printable
+          check-in sheets and referee score cards, bracket.</p>
+        </div>
+        <div class="card">
+          <span class="k">P0</span>
+          <h4>Event comms</h4>
+          <p>The lifecycle emails the current tournament runs by hand as 11 Apps Scripts &mdash; registration
+          received, invoice, payment reminder, team confirmed, roster request/received, info packet, schedule
+          &amp; scores posted, announcement, see-you-today, thank-you, photos. Editable templates + rotating
+          sponsor block, fired by event state changes.</p>
+        </div>
+        <div class="card">
+          <span class="k">P1</span>
+          <h4>Youth Soccer Weekly</h4>
+          <p>A job queries events in a date window and drafts a roundup post; you edit and publish. Turns event
+          density into recurring content with almost no writing.</p>
+        </div>
+        <div class="card">
+          <span class="k">P1</span>
+          <h4>Social content pipeline</h4>
+          <p>Generate Event of the Week / This Weekend / Looking for Opponent / Team Feature / schedule /
+          champion graphics + captions from event data. Export a pack; later post via Graph API.</p>
+        </div>
+        <div class="card">
+          <span class="k">P1</span>
+          <h4>Event discussion</h4>
+          <p>Polymorphic threaded comments on events, teams, and posts. Organizer pin/lock/hide, report button,
+          batched digest notifications. Basic version ships in Phase 1.</p>
+        </div>
+        <div class="card">
+          <span class="k">P0-lite</span>
+          <h4>Admin &amp; moderation</h4>
+          <p>Approve pending events, verify team claims, feature events, work the comment report queue. A
+          protected route with a few tables &mdash; not a framework, just enough to run the platform.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="auth">
+      <span class="eyebrow">08 &mdash; Identity</span>
+      <h2>Auth &amp; identity</h2>
+      <p><strong>Progressive login.</strong> Everything readable is public and needs no account. Login gates
+      only actions, and the only provider is Google.</p>
+      <div class="grid two">
+        <div class="card">
+          <h4>No login</h4>
+          <ul class="tight">
+            <li>Browse &amp; filter events</li>
+            <li>View event, team, match pages</li>
+            <li>Read Youth Soccer Weekly &amp; discussion threads</li>
+            <li>See who's looking for an opponent</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Login required</h4>
+          <ul class="tight">
+            <li>Submit / create an event</li>
+            <li>Create a scrimmage, send/accept offers</li>
+            <li>RSVP, register a team, submit a roster</li>
+            <li>Claim &amp; manage a team, upload results/photos</li>
+            <li>Post in a discussion, follow / favorite</li>
+          </ul>
+        </div>
+      </div>
+      <p>Identity centers on <strong>Team, not user profile</strong>: <code>user</code> &rarr;
+      <code>team_members</code> &rarr; <code>team</code> &rarr; its events, matches, results, photos. A user is
+      just a login; the team is what has a page, a history, and a following. One user can manage several teams
+      (a club coordinator), and a team can have several managers.</p>
+    </section>
+
+    <section id="migration">
+      <span class="eyebrow">09 &mdash; First move</span>
+      <h2>King Juan Cup: spreadsheet &rarr; platform</h2>
+      <p class="lede">King Juan Cup 2026 runs today on a static site, a Google Sheet, and eleven Apps Scripts
+      that publish JSON to a GitHub repo. Every one of those moving parts is a feature the platform should own.
+      Moving the event onto the platform is both the migration and the proof that the model works.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 430" role="img" aria-label="Before and after. Today: Google Forms feeds a Google Sheet with roster and schedule tabs, read by eleven Apps Scripts that publish teams.json and schedule.json to a GitHub repo consumed by a static site, and separately send eleven lifecycle Gmail templates. After: one hosted Event on King Juan Soccer owns registration, roster, schedule and scores, standings, comms, sponsors, discussion and archive.">
+          <defs>
+            <marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor">
+            <text x="215" y="34" text-anchor="middle" font-weight="700" font-size="13">Today &mdash; a spreadsheet and a pile of scripts</text>
+            <text x="670" y="34" text-anchor="middle" font-weight="700" font-size="13" fill="var(--accent)">On the platform &mdash; one hosted Event</text>
+            <line x1="452" y1="20" x2="452" y2="414" stroke="var(--line)" stroke-width="1"/>
+
+            <rect x="120" y="54" width="220" height="30" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="230" y="73" text-anchor="middle">Google Forms &mdash; register, roster</text>
+            <line x1="230" y1="84" x2="230" y2="104" stroke="currentColor" stroke-width="1.2" marker-end="url(#mg)"/>
+
+            <rect x="110" y="104" width="240" height="44" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="230" y="123" text-anchor="middle">Google Sheet</text>
+            <text x="230" y="138" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">Venti &middot; Grande &middot; Tall &middot; Schedule tabs</text>
+            <line x1="230" y1="148" x2="230" y2="168" stroke="currentColor" stroke-width="1.2" marker-end="url(#mg)"/>
+
+            <rect x="120" y="168" width="220" height="34" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="230" y="189" text-anchor="middle">Apps Script &times; 11</text>
+
+            <path d="M175 202 C 150 240, 145 260, 150 280" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#mg)"/>
+            <path d="M285 202 C 320 240, 330 300, 330 330" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#mg)"/>
+
+            <rect x="40" y="280" width="215" height="44" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="147" y="299" text-anchor="middle">GitHub: kingjuan-assets</text>
+            <text x="147" y="314" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">teams.json &middot; schedule.json</text>
+            <line x1="147" y1="324" x2="147" y2="344" stroke="currentColor" stroke-width="1.2" marker-end="url(#mg)"/>
+            <rect x="40" y="344" width="215" height="34" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="147" y="365" text-anchor="middle">Static site &middot; kingjuancup.org</text>
+
+            <rect x="270" y="330" width="165" height="48" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+            <text x="352" y="349" text-anchor="middle">Gmail templates &times; 11</text>
+            <text x="352" y="364" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">lifecycle emails to coaches</text>
+
+            <rect x="500" y="66" width="170" height="30" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+            <text x="585" y="85" text-anchor="middle">Organizer</text>
+            <line x1="585" y1="96" x2="585" y2="120" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#mg)"/>
+
+            <rect x="500" y="120" width="360" height="228" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.75"/>
+            <text x="680" y="146" text-anchor="middle" font-weight="700" fill="var(--accent)" font-size="13">King Juan Cup 2026 &mdash; one Event</text>
+            <g font-size="11" fill="var(--ink-2)">
+              <text x="520" y="172">&bull; Registration &amp; payment</text>
+              <text x="520" y="192">&bull; Roster (5&ndash;8 players, rules enforced)</text>
+              <text x="520" y="212">&bull; Schedule &amp; live scores</text>
+              <text x="520" y="232">&bull; Standings + tiebreakers</text>
+              <text x="520" y="252">&bull; Lifecycle comms + sponsor block</text>
+              <text x="520" y="272">&bull; Sponsors on the page</text>
+              <text x="520" y="292">&bull; Discussion thread</text>
+              <text x="520" y="312">&bull; Archived automatically when done</text>
+            </g>
+            <line x1="680" y1="348" x2="680" y2="372" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#mg)"/>
+            <text x="680" y="392" text-anchor="middle" font-size="10.5" fill="var(--ink-3)">public event page &middot; Weekly &middot; Instagram packs</text>
+          </g>
+        </svg>
+        <figcaption>The left column is what "hosting an event" costs today. The right column is the same event
+        as one row plus its modules &mdash; the organizer edits it in one place, and the public page, comms,
+        and social content fall out of the data.</figcaption>
+      </figure>
+
+      <h3>What the platform absorbs</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Today</th><th>On the platform</th></tr></thead>
+          <tbody>
+            <tr><td>Google Form &rarr; Sheet row for registration</td><td><code>registrations</code> via the registration module</td></tr>
+            <tr><td>Roster Google Form with 8 player blocks</td><td>Roster module on <code>event_teams</code>, min/max + play-up rule enforced</td></tr>
+            <tr><td>Venti / Grande / Tall sheet tabs</td><td><code>event_divisions</code> with birth-year ranges</td></tr>
+            <tr><td>Schedule tab with "Group 1 Winner" placeholders</td><td><code>matches</code> with <code>home_placeholder</code> / <code>away_placeholder</code></td></tr>
+            <tr><td>Apps Script <code>publishSchedule()</code> &rarr; GitHub JSON &rarr; static fetch</td><td>Just rows; the event page renders them directly</td></tr>
+            <tr><td>11 hand-run Gmail templates</td><td>Event comms module, fired by state changes</td></tr>
+            <tr><td>Rotating sponsor paragraph in emails</td><td><code>event_sponsors</code> + a sponsor slot in the comms template</td></tr>
+            <tr><td>Per-year <code>archive/2026.html</code> pages</td><td>Past events with <code>status = 'completed'</code>; champions from final standings</td></tr>
+            <tr><td>Pillow "kjc-instagram-graphics" skill</td><td>Satori templates in the social pipeline</td></tr>
+            <tr><td>EN / &#20013;&#25991; toggle hand-maintained per page</td><td>next-intl message catalogs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Import path</h3>
+      <ol>
+        <li>The structured data already exists: <code>teams.json</code> and <code>schedule.json</code> in
+        <code>github.com/sidbai/kingjuan-assets</code>, plus the Google Sheet and the handbook / check-in /
+        score-card PDFs. Copy them into <code>data/king-juan-cup-2026/</code> in the repo.</li>
+        <li>Write <code>scripts/seed-kjc.ts</code> that maps those files onto the schema &mdash; 1 event, 1
+        venue, 3 divisions, 20 teams + <code>event_teams</code>, rosters where known, matches with scores and
+        placeholders, 3 sponsors, the 5v5 ruleset, champions/finalists into standings.</li>
+        <li>Run it against a Neon branch, review the rendered event page and archive entry, then promote.</li>
+        <li>Point <code>kingjuancup.org</code> at the King Juan Soccer event page (or embed it).</li>
+        <li>For 2027: "Clone event" copies the ruleset, divisions, sponsors, comms templates, and venue into a
+        new <code>draft</code> &mdash; the payoff for modeling it properly.</li>
+      </ol>
+      <div class="note">
+        This migration is what makes <strong>tournament ops</strong> and <strong>event comms</strong> concrete.
+        The check-in sheet, referee score card, tiebreaker order, roster rules, and the eleven email templates
+        are a precise spec &mdash; build against real King Juan Cup data, not invented data.
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <span class="eyebrow">10 &mdash; Sequence</span>
+      <h2>Phased roadmap</h2>
+      <p>Straight from the discussion doc's priorities. The gate between each phase is behavioral, not
+      calendar-based.</p>
+      <div class="phases">
+        <div class="phase">
+          <span class="ph">Phase 1</span>
+          <h4>Web MVP</h4>
+          <ul>
+            <li>Event model (kinds + modules): list, filters, detail, submit</li>
+            <li>Team directory + claim</li>
+            <li>Scrimmage / looking-for-opponent</li>
+            <li>Tournament ops + comms for King Juan Cup</li>
+            <li>Event discussion (threaded)</li>
+            <li>Google login, EN/&#20013;&#25991;</li>
+          </ul>
+          <div class="when">Now &rarr; King Juan Cup 2027</div>
+        </div>
+        <div class="phase">
+          <span class="ph">Phase 1.5</span>
+          <h4>Content loop</h4>
+          <ul>
+            <li>Youth Soccer Weekly generator</li>
+            <li>Instagram content packs</li>
+            <li>Follow / favorite + digest notifications</li>
+            <li>Discussion moderation + report queue</li>
+          </ul>
+          <div class="when">Once event density is real</div>
+        </div>
+        <div class="phase">
+          <span class="ph">Phase 2</span>
+          <h4>Mobile-first / PWA</h4>
+          <ul>
+            <li>Installable PWA, push notifications</li>
+            <li>Fast event posting &amp; RSVP on mobile</li>
+            <li>Coach-to-coach messaging</li>
+            <li>Opponent matching by age/level/geo</li>
+          </ul>
+          <div class="when">When coaches open it weekly</div>
+        </div>
+        <div class="phase">
+          <span class="ph">Phase 3</span>
+          <h4>Native app</h4>
+          <ul>
+            <li>iOS / Android (Expo, reusing the API)</li>
+            <li>Only once mobile convenience is clear utility</li>
+          </ul>
+          <div class="when">When the behavior is proven</div>
+        </div>
+      </div>
+      <div class="note amber">
+        Add the web manifest and an installable shell in Phase 1 so the PWA step is a small increment, not a
+        rebuild. Defer push notifications &mdash; they need the mobile habit to exist first.
+      </div>
+    </section>
+
+    <section id="repo">
+      <span class="eyebrow">11 &mdash; Start</span>
+      <h2>Repo &amp; first week</h2>
+      <pre class="tree">event-platform/
+&#9500;&#9472; app/                    # Next.js App Router
+&#9474;  &#9500;&#9472; (public)/            # events, teams, weekly &mdash; no auth
+&#9474;  &#9500;&#9472; (app)/               # dashboard &mdash; auth required
+&#9474;  &#9500;&#9472; admin/               # moderation
+&#9474;  &#9492;&#9472; api/                 # route handlers, cron, og image routes
+&#9500;&#9472; features/
+&#9474;  &#9500;&#9472; events/              # queries, components, actions, schema slice
+&#9474;  &#9500;&#9472; teams/
+&#9474;  &#9500;&#9472; tournaments/         # divisions, rosters, standings, schedule, printables
+&#9474;  &#9500;&#9472; scrimmages/
+&#9474;  &#9500;&#9472; discussion/          # polymorphic threads: events, teams, posts
+&#9474;  &#9500;&#9472; comms/               # lifecycle email templates + triggers
+&#9474;  &#9500;&#9472; weekly/
+&#9474;  &#9492;&#9472; social/              # Satori templates + caption builders
+&#9500;&#9472; db/
+&#9474;  &#9500;&#9472; schema.ts            # Drizzle schema (single source of truth)
+&#9474;  &#9492;&#9472; migrations/
+&#9500;&#9472; data/king-juan-cup-2026/ # teams.json, schedule.json, rosters, PDFs
+&#9500;&#9472; scripts/seed-kjc.ts
+&#9492;&#9472; lib/                    # auth, mail, blob, geo, i18n</pre>
+
+      <h4 style="margin-top:1.8em">Week one, in order</h4>
+      <ol>
+        <li><code>create-next-app</code> (TS, Tailwind, App Router). Deploy the empty shell to Vercel + register the domain.</li>
+        <li>Neon project + Drizzle wired up; first migration: <code>events</code>, <code>event_kinds</code>,
+        <code>venues</code>, <code>teams</code>, <code>event_divisions</code>, <code>event_teams</code>,
+        <code>rosters</code>, <code>matches</code>.</li>
+        <li>Pull <code>teams.json</code> / <code>schedule.json</code> from the assets repo into the fixture;
+        write and run <code>seed-kjc.ts</code>.</li>
+        <li>Build the read-only event detail + archive pages against that data. Nothing interactive yet.</li>
+        <li>Add Auth.js + Google. Gate one action ("submit an event") to prove the pattern.</li>
+      </ol>
+      <p>By the end of that week the King Juan Cup 2026 page is live on the real domain, and the schema and
+      auth pattern that everything else builds on are settled.</p>
+    </section>
+
+    <footer>
+      King Juan Soccer &mdash; platform architecture working draft &middot; 2 September 2026 &middot;
+      More soccer. Less logistics.
+    </footer>
+  </main>
+</div>
