@@ -174,10 +174,16 @@ function DivisionBlock({
   division: EventDetail["divisions"][number];
   event: EventDetail;
 }) {
-  const table = event.eventTeams.filter((et) => et.divisionId === division.id);
+  const teams = event.eventTeams.filter((et) => et.divisionId === division.id);
   const knockouts = event.matches.filter(
     (m) => m.divisionId === division.id && m.stage === "ko",
   );
+
+  const groupLabels = [...new Set(teams.map((et) => et.groupLabel ?? ""))].sort();
+  const grouped = groupLabels.map((label) => ({
+    label,
+    rows: teams.filter((et) => (et.groupLabel ?? "") === label),
+  }));
 
   return (
     <section className="mt-10">
@@ -190,47 +196,21 @@ function DivisionBlock({
         )}
       </h2>
 
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm tabular-nums">
-          <thead>
-            <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800">
-              <th className="py-1.5 pr-2 font-medium">#</th>
-              <th className="py-1.5 pr-2 font-medium">Team</th>
-              <th className="px-2 py-1.5 text-right font-medium">P</th>
-              <th className="px-2 py-1.5 text-right font-medium">W</th>
-              <th className="px-2 py-1.5 text-right font-medium">D</th>
-              <th className="px-2 py-1.5 text-right font-medium">L</th>
-              <th className="px-2 py-1.5 text-right font-medium">GF</th>
-              <th className="px-2 py-1.5 text-right font-medium">GA</th>
-              <th className="pl-2 py-1.5 text-right font-medium">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {table.map((et, i) => (
-              <tr key={et.id} className="border-b border-neutral-100 dark:border-neutral-900">
-                <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
-                <td className="py-1.5 pr-2">
-                  {et.seed === 1 && "🏆 "}
-                  {et.team.name}
-                  {et.groupLabel && (
-                    <span className="ml-1.5 text-xs text-neutral-400">grp {et.groupLabel}</span>
-                  )}
-                </td>
-                <td className="px-2 py-1.5 text-right">{et.played}</td>
-                <td className="px-2 py-1.5 text-right">{et.won}</td>
-                <td className="px-2 py-1.5 text-right">{et.drawn}</td>
-                <td className="px-2 py-1.5 text-right">{et.lost}</td>
-                <td className="px-2 py-1.5 text-right">{et.gf}</td>
-                <td className="px-2 py-1.5 text-right">{et.ga}</td>
-                <td className="pl-2 py-1.5 text-right font-semibold">{et.points}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-3 space-y-4">
+        {grouped.map((group) => (
+          <div key={group.label}>
+            {groupLabels.length > 1 && (
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                Group {group.label}
+              </div>
+            )}
+            <StandingsTable rows={group.rows} />
+          </div>
+        ))}
       </div>
 
       {knockouts.length > 0 && (
-        <div className="mt-3 space-y-1 text-sm">
+        <div className="mt-4 space-y-1 text-sm">
           {knockouts.map((m) => (
             <div key={m.id} className="flex items-center gap-2">
               <span className="w-14 text-xs uppercase tracking-wide text-neutral-400">
@@ -246,5 +226,45 @@ function DivisionBlock({
         </div>
       )}
     </section>
+  );
+}
+
+function StandingsTable({ rows }: { rows: EventDetail["eventTeams"] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm tabular-nums">
+        <thead>
+          <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800">
+            <th className="py-1.5 pr-2 font-medium">#</th>
+            <th className="py-1.5 pr-2 font-medium">Team</th>
+            <th className="px-2 py-1.5 text-right font-medium">P</th>
+            <th className="px-2 py-1.5 text-right font-medium">W</th>
+            <th className="px-2 py-1.5 text-right font-medium">D</th>
+            <th className="px-2 py-1.5 text-right font-medium">L</th>
+            <th className="px-2 py-1.5 text-right font-medium">GF</th>
+            <th className="px-2 py-1.5 text-right font-medium">GA</th>
+            <th className="py-1.5 pl-2 text-right font-medium">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((et, i) => (
+            <tr key={et.id} className="border-b border-neutral-100 dark:border-neutral-900">
+              <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
+              <td className="py-1.5 pr-2">
+                {et.seed === 1 && "🏆 "}
+                {et.team.name}
+              </td>
+              <td className="px-2 py-1.5 text-right">{et.played}</td>
+              <td className="px-2 py-1.5 text-right">{et.won}</td>
+              <td className="px-2 py-1.5 text-right">{et.drawn}</td>
+              <td className="px-2 py-1.5 text-right">{et.lost}</td>
+              <td className="px-2 py-1.5 text-right">{et.gf}</td>
+              <td className="px-2 py-1.5 text-right">{et.ga}</td>
+              <td className="py-1.5 pl-2 text-right font-semibold">{et.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
