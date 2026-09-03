@@ -7,7 +7,7 @@ export async function SiteHeader() {
   const user = session?.user;
 
   return (
-    <header className="border-b border-neutral-200 dark:border-neutral-800">
+    <header className="border-b border-neutral-200 print:hidden dark:border-neutral-800">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
         <Link href="/" className="font-semibold tracking-tight">
           King Juan Soccer

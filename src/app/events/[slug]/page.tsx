@@ -118,6 +118,25 @@ export default async function EventPage({
         </section>
       )}
 
+      {event.divisions.length > 0 && (
+        <p className="mt-8 text-sm text-neutral-500">
+          Organizer tools:{" "}
+          <Link
+            href={`/events/${event.slug}/print/check-in`}
+            className="text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            check-in sheet
+          </Link>{" "}
+          ·{" "}
+          <Link
+            href={`/events/${event.slug}/print/score-cards`}
+            className="text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            referee score cards
+          </Link>
+        </p>
+      )}
+
       {event.divisions.map((division) => (
         <DivisionBlock key={division.id} division={division} event={event} />
       ))}
