@@ -1,0 +1,56 @@
+{
+  "event": {
+    "slug": "king-juan-cup-2026",
+    "title": "5th Annual King Juan Cup",
+    "titleZh": "第五届卷王杯",
+    "kind": "tournament",
+    "format": "5v5",
+    "startsAt": "2026-08-29T09:00:00-07:00",
+    "endsAt": "2026-08-29T18:00:00-07:00",
+    "timezone": "America/Los_Angeles",
+    "status": "completed",
+    "host": "Warriors Sports Academy",
+    "summary": "A one-day 5v5 co-ed youth soccer tournament in Bellevue, WA. Founded 2022 by soccer dads in Sammamish."
+  },
+  "venue": {
+    "name": "Cherry Crest Elementary School",
+    "address": "12400 NE 32nd St",
+    "city": "Bellevue",
+    "region": "WA",
+    "postalCode": "98005",
+    "lat": 47.6386,
+    "lng": -122.1607,
+    "notes": "Main field divided into 4 game fields. Main lot ~40 spots; carpool. Check in at the Warriors (LW) tent.",
+    "mapUrl": "https://maps.google.com/?q=Cherry+Crest+Elementary+School+Bellevue+WA"
+  },
+  "divisions": [
+    { "name": "Venti", "label": "Venti (2013/14)", "birthYears": [2013, 2014], "rosterMin": 5, "rosterMax": 8 },
+    { "name": "Grande", "label": "Grande (2015/16)", "birthYears": [2015, 2016], "rosterMin": 5, "rosterMax": 8 },
+    { "name": "Tall", "label": "Tall (2017/18)", "birthYears": [2017, 2018], "rosterMin": 5, "rosterMax": 8 }
+  ],
+  "sponsors": [
+    { "name": "FixerUp", "url": "https://www.fixerupus.com/", "tier": "presenting" },
+    { "name": "Eyas Global Montessori School", "url": "http://www.eyasmontessori.com/", "tier": "presenting" },
+    { "name": "Hootie Hoo", "url": null, "tier": "presenting" }
+  ],
+  "rules": {
+    "gameFormat": "5v5 co-ed, no goalkeeper, small POD goals. 15-minute halves, running clock, unlimited substitutions.",
+    "points": { "win": 3, "draw": 1, "loss": 0 },
+    "goalCapPerGame": 6,
+    "tiebreakers": ["head_to_head", "goal_difference", "most_wins", "goals_for", "goals_against", "coin_toss"],
+    "advancement": "Top 2 teams in each group advance.",
+    "roster": "5 players minimum, 8 maximum. One play-up player from the older age group allowed for friendship only.",
+    "conduct": "No cards. Repeated unsportsmanlike conduct means sitting out the rest of that game. No slide tackles. No blocking the goal within 3 ft / 1 m."
+  },
+  "champions": [
+    { "division": "Venti", "champion": "Lightning", "finalist": "Top Ballers", "finalScore": "15-6" },
+    { "division": "Grande", "champion": "喂饼FC", "finalist": "Green Devils", "finalScore": "4-0" },
+    { "division": "Tall", "champion": "Yummy Pancakes", "finalist": "Storm Breakers", "finalScore": "4-3" }
+  ],
+  "source": {
+    "teams": "github.com/sidbai/kingjuan-assets/archive/2026/teams.json",
+    "schedule": "github.com/sidbai/kingjuan-assets/archive/2026/schedule.json",
+    "docs": "Team Handbook, Team Check-In Sheet, Referee Score Card (King Juan Cup 2026)",
+    "note": "lat/lng approximate; verify before using for geo features."
+  }
+}
