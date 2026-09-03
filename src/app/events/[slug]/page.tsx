@@ -6,6 +6,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
+import { managedEntry } from "@/features/tournaments/roster-queries";
 import {
   computeStandings,
   rankStandings,
@@ -56,6 +57,9 @@ export default async function EventPage({
   const meta = event.metadata as { sponsors?: Sponsor[]; rules?: Rules } | null;
   const sponsors = meta?.sponsors ?? [];
   const rules = meta?.rules;
+  const hasRoster = event.modules.includes("roster");
+  const myEntry =
+    user && hasRoster ? await managedEntry(event.id, user.id) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -143,6 +147,17 @@ export default async function EventPage({
             ))}
           </div>
         </section>
+      )}
+
+      {myEntry && (
+        <p className="mt-8 text-sm">
+          <Link
+            href={`/events/${event.slug}/roster`}
+            className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            Submit {myEntry.teamName}&rsquo;s roster →
+          </Link>
+        </p>
       )}
 
       {event.divisions.length > 0 && (
