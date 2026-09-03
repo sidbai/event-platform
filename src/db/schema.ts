@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   doublePrecision,
   index,
@@ -333,4 +334,66 @@ export const matchesRelations = relations(matches, ({ one }) => ({
 
 export const teamsRelations = relations(teams, ({ many }) => ({
   eventTeams: many(eventTeams),
+}));
+
+// --- discussion: polymorphic threads on events / teams / posts ---------
+
+export const discussionSubject = pgEnum("discussion_subject", [
+  "event",
+  "team",
+  "post",
+]);
+
+export const discussions = pgTable(
+  "discussions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectType: discussionSubject("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    locked: boolean("locked").notNull().default(false),
+    pinnedCommentId: uuid("pinned_comment_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("discussions_subject_uq").on(t.subjectType, t.subjectId)],
+);
+
+export const comments = pgTable(
+  "comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    discussionId: uuid("discussion_id")
+      .notNull()
+      .references(() => discussions.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => comments.id, {
+      onDelete: "cascade",
+    }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id),
+    body: text("body").notNull(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    hiddenBy: uuid("hidden_by").references(() => users.id),
+    reportCount: integer("report_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("comments_discussion_idx").on(t.discussionId)],
+);
+
+export const discussionsRelations = relations(discussions, ({ many }) => ({
+  comments: many(comments),
+}));
+
+export const commentsRelations = relations(comments, ({ one, many }) => ({
+  discussion: one(discussions, {
+    fields: [comments.discussionId],
+    references: [discussions.id],
+  }),
+  author: one(users, { fields: [comments.authorId], references: [users.id] }),
+  parent: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.id],
+    relationName: "comment_replies",
+  }),
+  replies: many(comments, { relationName: "comment_replies" }),
 }));

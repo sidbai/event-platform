@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DiscussionThread } from "@/features/discussion/thread";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 
 export const dynamic = "force-dynamic";
@@ -163,6 +164,12 @@ export default async function EventPage({
           </ul>
         </section>
       )}
+
+      <DiscussionThread
+        subjectType="event"
+        subjectId={event.id}
+        revalidate={`/events/${event.slug}`}
+      />
     </div>
   );
 }
