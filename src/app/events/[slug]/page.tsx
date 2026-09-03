@@ -6,6 +6,12 @@ import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
+import {
+  computeStandings,
+  rankStandings,
+  type StandingRow,
+  type StandingsConfig,
+} from "@/features/tournaments/standings";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +22,10 @@ type Rules = {
   advancement: string;
   roster: string;
   tiebreakers: string[];
+  goalCapPerGame?: number;
 };
+
+type TeamMeta = Map<string, { name: string; seed: number | null }>;
 
 function fmtDate(d: Date | null, tz: string | null) {
   if (!d) return null;
@@ -156,7 +165,15 @@ export default async function EventPage({
       )}
 
       {event.divisions.map((division) => (
-        <DivisionBlock key={division.id} division={division} event={event} />
+        <DivisionBlock
+          key={division.id}
+          division={division}
+          event={event}
+          config={{
+            goalCap: rules?.goalCapPerGame,
+            tiebreakers: rules?.tiebreakers,
+          }}
+        />
       ))}
 
       {rules && (
@@ -215,20 +232,44 @@ export default async function EventPage({
 function DivisionBlock({
   division,
   event,
+  config,
 }: {
   division: EventDetail["divisions"][number];
   event: EventDetail;
+  config: StandingsConfig;
 }) {
-  const teams = event.eventTeams.filter((et) => et.divisionId === division.id);
+  const teamsInDiv = event.eventTeams.filter((et) => et.divisionId === division.id);
   const knockouts = event.matches.filter(
     (m) => m.divisionId === division.id && m.stage === "ko",
   );
 
-  const groupLabels = [...new Set(teams.map((et) => et.groupLabel ?? ""))].sort();
-  const grouped = groupLabels.map((label) => ({
-    label,
-    rows: teams.filter((et) => (et.groupLabel ?? "") === label),
-  }));
+  const teamMeta: TeamMeta = new Map(
+    teamsInDiv.map((et) => [et.team.id, { name: et.team.name, seed: et.seed }]),
+  );
+
+  const groupLabels = [...new Set(teamsInDiv.map((et) => et.groupLabel ?? ""))].sort();
+  const groups = groupLabels.map((label) => {
+    const ids = teamsInDiv
+      .filter((et) => (et.groupLabel ?? "") === label)
+      .map((et) => et.team.id);
+    const groupMatches = event.matches
+      .filter(
+        (m) =>
+          m.divisionId === division.id &&
+          m.stage === "group" &&
+          (m.groupLabel ?? "") === label &&
+          m.homeTeamId != null &&
+          m.awayTeamId != null,
+      )
+      .map((m) => ({
+        homeTeamId: m.homeTeamId,
+        awayTeamId: m.awayTeamId,
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+      }));
+    const table = computeStandings(groupMatches, ids, config);
+    return { label, ranked: rankStandings([...table.values()], groupMatches, config) };
+  });
 
   return (
     <section className="mt-10">
@@ -242,14 +283,14 @@ function DivisionBlock({
       </h2>
 
       <div className="mt-3 space-y-4">
-        {grouped.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             {groupLabels.length > 1 && (
               <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
                 Group {group.label}
               </div>
             )}
-            <StandingsTable rows={group.rows} />
+            <StandingsTable rows={group.ranked} teamMeta={teamMeta} />
           </div>
         ))}
       </div>
@@ -274,7 +315,13 @@ function DivisionBlock({
   );
 }
 
-function StandingsTable({ rows }: { rows: EventDetail["eventTeams"] }) {
+function StandingsTable({
+  rows,
+  teamMeta,
+}: {
+  rows: StandingRow[];
+  teamMeta: TeamMeta;
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm tabular-nums">
@@ -292,22 +339,25 @@ function StandingsTable({ rows }: { rows: EventDetail["eventTeams"] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((et, i) => (
-            <tr key={et.id} className="border-b border-neutral-100 dark:border-neutral-900">
-              <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
-              <td className="py-1.5 pr-2">
-                {et.seed === 1 && "🏆 "}
-                {et.team.name}
-              </td>
-              <td className="px-2 py-1.5 text-right">{et.played}</td>
-              <td className="px-2 py-1.5 text-right">{et.won}</td>
-              <td className="px-2 py-1.5 text-right">{et.drawn}</td>
-              <td className="px-2 py-1.5 text-right">{et.lost}</td>
-              <td className="px-2 py-1.5 text-right">{et.gf}</td>
-              <td className="px-2 py-1.5 text-right">{et.ga}</td>
-              <td className="py-1.5 pl-2 text-right font-semibold">{et.points}</td>
-            </tr>
-          ))}
+          {rows.map((row, i) => {
+            const meta = teamMeta.get(row.teamId);
+            return (
+              <tr key={row.teamId} className="border-b border-neutral-100 dark:border-neutral-900">
+                <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
+                <td className="py-1.5 pr-2">
+                  {meta?.seed === 1 && "🏆 "}
+                  {meta?.name ?? "—"}
+                </td>
+                <td className="px-2 py-1.5 text-right">{row.played}</td>
+                <td className="px-2 py-1.5 text-right">{row.won}</td>
+                <td className="px-2 py-1.5 text-right">{row.drawn}</td>
+                <td className="px-2 py-1.5 text-right">{row.lost}</td>
+                <td className="px-2 py-1.5 text-right">{row.gf}</td>
+                <td className="px-2 py-1.5 text-right">{row.ga}</td>
+                <td className="py-1.5 pl-2 text-right font-semibold">{row.points}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

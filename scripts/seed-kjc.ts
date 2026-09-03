@@ -13,6 +13,12 @@ import { join } from "node:path";
 import { config } from "dotenv";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
+import { slugify as baseSlugify } from "../src/lib/slug";
+import {
+  computeStandings,
+  type MatchResult,
+} from "../src/features/tournaments/standings";
+
 config({ path: ".env.local" });
 
 const DIR = join(process.cwd(), "data", "king-juan-cup-2026");
@@ -74,12 +80,7 @@ const SLUG_OVERRIDES: Record<string, string> = {
   "烙饼FC": "laobing-fc",
 };
 
-const slugify = (name: string) =>
-  SLUG_OVERRIDES[name] ??
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+const slugify = (name: string) => SLUG_OVERRIDES[name] ?? baseSlugify(name);
 
 const EVENT_KINDS = [
   { slug: "game", label: "Game", defaultModules: ["fixture", "result"], sort: 10 },
@@ -245,19 +246,7 @@ async function main() {
   }
 
   // matches
-  type Standing = { p: number; w: number; d: number; l: number; gf: number; ga: number };
-  const standings = new Map<string, Standing>();
-  const bump = (name: string, gf: number, ga: number) => {
-    const cur = standings.get(name) ?? { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0 };
-    cur.p += 1;
-    cur.gf += gf;
-    cur.ga += ga;
-    if (gf > ga) cur.w += 1;
-    else if (gf < ga) cur.l += 1;
-    else cur.d += 1;
-    standings.set(name, cur);
-  };
-
+  const groupMatchesByName: MatchResult[] = [];
   let matchCount = 0;
   for (const g of schedule.games) {
     const isKo = g.group === "Semi" || g.group === "Final";
@@ -282,26 +271,32 @@ async function main() {
     });
     matchCount += 1;
 
-    if (!isKo && g.home_score != null && g.away_score != null) {
-      bump(g.home_team, g.home_score, g.away_score);
-      bump(g.away_team, g.away_score, g.home_score);
+    if (!isKo) {
+      groupMatchesByName.push({
+        homeTeamId: g.home_team,
+        awayTeamId: g.away_team,
+        homeScore: g.home_score,
+        awayScore: g.away_score,
+      });
     }
   }
 
-  // write group-stage standings back onto event_teams
-  for (const [name, st] of standings) {
+  // group-stage standings (shared logic) written back onto event_teams
+  const cap = (meta.rules as { goalCapPerGame?: number }).goalCapPerGame ?? 6;
+  const standings = computeStandings(groupMatchesByName, undefined, { goalCap: cap });
+  for (const [name, row] of standings) {
     const teamId = teamIdByName.get(name);
     if (!teamId) continue;
     await db
       .update(s.eventTeams)
       .set({
-        played: st.p,
-        won: st.w,
-        drawn: st.d,
-        lost: st.l,
-        gf: st.gf,
-        ga: st.ga,
-        points: st.w * 3 + st.d,
+        played: row.played,
+        won: row.won,
+        drawn: row.drawn,
+        lost: row.lost,
+        gf: row.gf,
+        ga: row.ga,
+        points: row.points,
       })
       .where(and(eq(s.eventTeams.eventId, event.id), eq(s.eventTeams.teamId, teamId)));
   }

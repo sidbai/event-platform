@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gte, ilike, inArray, lte, or, type SQL } from "driz
 
 import { db } from "@/db";
 import { events } from "@/db/schema";
+import { weekendRange } from "@/lib/dates";
 
 export type EventFilters = {
   kind?: string;
@@ -11,17 +12,6 @@ export type EventFilters = {
   needsOpponent?: boolean;
   q?: string;
 };
-
-function weekendRange(now = new Date()) {
-  const day = now.getDay(); // 0 Sun … 6 Sat
-  const daysUntilSat = (6 - day + 7) % 7;
-  const sat = new Date(now);
-  sat.setDate(now.getDate() + daysUntilSat);
-  sat.setHours(0, 0, 0, 0);
-  const mon = new Date(sat);
-  mon.setDate(sat.getDate() + 2);
-  return { start: sat, end: mon };
-}
 
 export async function listEvents(filters: EventFilters = {}) {
   const where: SQL[] = [inArray(events.status, ["published", "completed"])];
