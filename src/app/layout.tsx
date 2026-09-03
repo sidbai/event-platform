@@ -18,7 +18,11 @@ export const metadata: Metadata = {
   description: "Seattle youth soccer events. More soccer, less logistics.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
