@@ -19,7 +19,15 @@ export default async function EventsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
+        <Link
+          href="/events/new"
+          className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+        >
+          Submit an event →
+        </Link>
+      </div>
 
       {events.length === 0 ? (
         <p className="mt-6 text-neutral-500">No events yet.</p>

@@ -380,6 +380,21 @@ export const comments = pgTable(
   (t) => [index("comments_discussion_idx").on(t.discussionId)],
 );
 
+export const commentReports = pgTable(
+  "comment_reports",
+  {
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId] })],
+);
+
 export const discussionsRelations = relations(discussions, ({ many }) => ({
   comments: many(comments),
 }));

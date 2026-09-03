@@ -27,7 +27,12 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
   });
 
   if (!discussion) {
-    return { discussion: null, comments: [] as ThreadComment[], count: 0 };
+    return {
+      discussion: null,
+      comments: [] as ThreadComment[],
+      count: 0,
+      pinnedId: null as string | null,
+    };
   }
 
   const rows = await db.query.comments.findMany({
@@ -58,5 +63,10 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
     else roots.push(node);
   }
 
-  return { discussion, comments: roots, count: rows.length };
+  return {
+    discussion,
+    comments: roots,
+    count: rows.length,
+    pinnedId: discussion.pinnedCommentId,
+  };
 }

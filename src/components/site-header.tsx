@@ -1,10 +1,12 @@
 import Link from "next/link";
 
 import { auth, signOut } from "@/auth";
+import { isAdmin } from "@/features/auth/admin";
 
 export async function SiteHeader() {
   const session = await auth();
   const user = session?.user;
+  const admin = isAdmin(user);
 
   return (
     <header className="border-b border-neutral-200 print:hidden dark:border-neutral-800">
@@ -19,6 +21,11 @@ export async function SiteHeader() {
           <Link href="/teams" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
             Teams
           </Link>
+          {admin && (
+            <Link href="/admin" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
+              Admin
+            </Link>
+          )}
           {user ? (
             <form
               action={async () => {

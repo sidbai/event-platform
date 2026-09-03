@@ -1,15 +1,22 @@
-import { getCurrentUser } from "@/features/auth";
 import type { discussionSubject } from "@/db/schema";
+import { getCurrentUser } from "@/features/auth";
 
-import { hideComment, postComment } from "./actions";
+import {
+  hideComment,
+  postComment,
+  reportComment,
+  setPinnedComment,
+  setThreadLocked,
+} from "./actions";
 import { CommentForm } from "./comment-form";
 import { getThread, type ThreadComment } from "./queries";
 
 type SubjectType = (typeof discussionSubject.enumValues)[number];
+type Ctx = { subjectType: SubjectType; subjectId: string; revalidate: string };
 
 function timeAgo(date: Date) {
   const s = Math.round((Date.now() - date.getTime()) / 1000);
-  const units: [number, Intl.RelativeTimeFormatUnit][] = [
+  const steps: [number, Intl.RelativeTimeFormatUnit][] = [
     [60, "second"],
     [60, "minute"],
     [24, "hour"],
@@ -20,7 +27,7 @@ function timeAgo(date: Date) {
   ];
   let value = s;
   let unit: Intl.RelativeTimeFormatUnit = "second";
-  for (const [size, u] of units) {
+  for (const [size, u] of steps) {
     if (Math.abs(value) < size) {
       unit = u;
       break;
@@ -33,31 +40,62 @@ function timeAgo(date: Date) {
   );
 }
 
+function findComment(nodes: ThreadComment[], id: string): ThreadComment | null {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const inReplies = findComment(n.replies, id);
+    if (inReplies) return inReplies;
+  }
+  return null;
+}
+
 export async function DiscussionThread({
   subjectType,
   subjectId,
   revalidate,
+  canModerate = false,
 }: {
   subjectType: SubjectType;
   subjectId: string;
   revalidate: string;
+  canModerate?: boolean;
 }) {
-  const [{ comments, count, discussion }, user] = await Promise.all([
+  const [{ comments, count, discussion, pinnedId }, user] = await Promise.all([
     getThread(subjectType, subjectId),
     getCurrentUser(),
   ]);
 
-  const ctx = { subjectType, subjectId, revalidate };
+  const ctx: Ctx = { subjectType, subjectId, revalidate };
   const locked = discussion?.locked ?? false;
+  const pinned = pinnedId ? findComment(comments, pinnedId) : null;
 
   return (
     <section className="mt-10 border-t border-neutral-200 pt-6 dark:border-neutral-800">
-      <h2 className="text-lg font-semibold">
-        Discussion {count > 0 && <span className="text-neutral-400">({count})</span>}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">
+          Discussion {count > 0 && <span className="text-neutral-400">({count})</span>}
+        </h2>
+        {canModerate && (
+          <form action={setThreadLocked.bind(null, ctx, !locked)}>
+            <button
+              type="submit"
+              className="text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+            >
+              {locked ? "Unlock thread" : "Lock thread"}
+            </button>
+          </form>
+        )}
+      </div>
 
-      {locked && (
-        <p className="mt-2 text-sm text-neutral-500">This thread is locked.</p>
+      {locked && <p className="mt-2 text-sm text-neutral-500">This thread is locked.</p>}
+
+      {pinned && !pinned.hiddenAt && (
+        <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+          <div className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+            📌 Pinned · {pinned.authorName ?? "Someone"}
+          </div>
+          <p className="mt-1 whitespace-pre-wrap">{pinned.body}</p>
+        </div>
       )}
 
       {!locked &&
@@ -84,6 +122,8 @@ export async function DiscussionThread({
               comment={c}
               currentUserId={user?.id ?? null}
               canReply={!locked && Boolean(user)}
+              canModerate={canModerate}
+              isPinned={c.id === pinnedId}
               ctx={ctx}
             />
           ))
@@ -97,13 +137,17 @@ function CommentItem({
   comment,
   currentUserId,
   canReply,
+  canModerate,
+  isPinned,
   ctx,
   isReply = false,
 }: {
   comment: ThreadComment;
   currentUserId: string | null;
   canReply: boolean;
-  ctx: { subjectType: SubjectType; subjectId: string; revalidate: string };
+  canModerate: boolean;
+  isPinned?: boolean;
+  ctx: Ctx;
   isReply?: boolean;
 }) {
   const hidden = Boolean(comment.hiddenAt);
@@ -123,28 +167,46 @@ function CommentItem({
         </p>
       )}
 
-      <div className="mt-1 flex gap-3 text-xs text-neutral-400">
-        {mine && !hidden && (
-          <form action={hideComment.bind(null, ctx.revalidate, comment.id)}>
-            <button type="submit" className="hover:text-red-600 dark:hover:text-red-400">
-              Remove
-            </button>
-          </form>
-        )}
-        {canReply && !isReply && (
-          <details className="[&_summary]:cursor-pointer">
-            <summary className="hover:text-neutral-600 dark:hover:text-neutral-300">Reply</summary>
-            <div className="mt-2">
-              <CommentForm
-                action={postComment.bind(null, ctx)}
-                parentId={comment.id}
-                compact
-                placeholder="Write a reply…"
-              />
-            </div>
-          </details>
-        )}
-      </div>
+      {!hidden && (
+        <div className="mt-1 flex flex-wrap gap-3 text-xs text-neutral-400">
+          {(mine || canModerate) && (
+            <form action={hideComment.bind(null, ctx.revalidate, comment.id)}>
+              <button type="submit" className="hover:text-red-600 dark:hover:text-red-400">
+                Remove
+              </button>
+            </form>
+          )}
+          {currentUserId && !mine && (
+            <form action={reportComment.bind(null, ctx.revalidate, comment.id)}>
+              <button type="submit" className="hover:text-neutral-600 dark:hover:text-neutral-300">
+                Report
+              </button>
+            </form>
+          )}
+          {canModerate && !isReply && (
+            <form
+              action={setPinnedComment.bind(null, ctx, isPinned ? null : comment.id)}
+            >
+              <button type="submit" className="hover:text-emerald-700 dark:hover:text-emerald-400">
+                {isPinned ? "Unpin" : "Pin"}
+              </button>
+            </form>
+          )}
+          {canReply && !isReply && (
+            <details className="[&_summary]:cursor-pointer">
+              <summary className="hover:text-neutral-600 dark:hover:text-neutral-300">Reply</summary>
+              <div className="mt-2">
+                <CommentForm
+                  action={postComment.bind(null, ctx)}
+                  parentId={comment.id}
+                  compact
+                  placeholder="Write a reply…"
+                />
+              </div>
+            </details>
+          )}
+        </div>
+      )}
 
       {comment.replies.length > 0 && (
         <div className="mt-4 space-y-4">
@@ -154,6 +216,7 @@ function CommentItem({
               comment={r}
               currentUserId={currentUserId}
               canReply={canReply}
+              canModerate={canModerate}
               ctx={ctx}
               isReply
             />

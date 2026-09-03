@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getCurrentUser } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 
@@ -32,8 +34,13 @@ export default async function EventPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const [event, user] = await Promise.all([getEventBySlug(slug), getCurrentUser()]);
   if (!event) notFound();
+
+  const canManage =
+    !!user && (event.organizerId === user.id || isAdmin(user));
+  const notPublic = event.status === "pending" || event.status === "cancelled";
+  if (notPublic && !canManage) notFound();
 
   const champions = (event.result as { champions?: Champion[] } | null)?.champions ?? [];
   const meta = event.metadata as { sponsors?: Sponsor[]; rules?: Rules } | null;
@@ -45,6 +52,14 @@ export default async function EventPage({
       <Link href="/events" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
         ← All events
       </Link>
+
+      {notPublic && canManage && (
+        <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+          {event.status === "pending"
+            ? "This event is awaiting review — only you can see it."
+            : "This event was declined."}
+        </p>
+      )}
 
       <header className="mt-4">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
@@ -188,6 +203,7 @@ export default async function EventPage({
         subjectType="event"
         subjectId={event.id}
         revalidate={`/events/${event.slug}`}
+        canModerate={canManage}
       />
     </div>
   );
