@@ -14,7 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "King Juan Soccer",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
+  title: {
+    default: "King Juan Soccer",
+    template: "%s — King Juan Soccer",
+  },
   description: "Seattle youth soccer events. More soccer, less logistics.",
 };
 

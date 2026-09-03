@@ -16,6 +16,24 @@ import {
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
+  if (!event) return { title: "Event not found" };
+  const desc =
+    event.summary ??
+    [event.kind, event.ageGroup, event.venue?.name].filter(Boolean).join(" · ");
+  return {
+    title: event.title,
+    description: desc,
+    openGraph: { title: event.title, description: desc },
+  };
+}
+
 type Champion = { division: string; champion: string; finalist: string; finalScore: string };
 type Sponsor = { name: string; url: string | null; tier: string };
 type Rules = {
