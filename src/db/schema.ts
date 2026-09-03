@@ -44,6 +44,13 @@ export const locationType = pgEnum("location_type", [
 
 export const matchStage = pgEnum("match_stage", ["group", "ko"]);
 
+export const offerStatus = pgEnum("offer_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "withdrawn",
+]);
+
 export const matchStatus = pgEnum("match_status", [
   "scheduled",
   "live",
@@ -334,6 +341,33 @@ export const matchesRelations = relations(matches, ({ one }) => ({
 
 export const teamsRelations = relations(teams, ({ many }) => ({
   eventTeams: many(eventTeams),
+}));
+
+// --- event_offers: responses to "looking for opponent" -----------------
+
+export const eventOffers = pgTable(
+  "event_offers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    fromTeamId: uuid("from_team_id")
+      .notNull()
+      .references(() => teams.id),
+    byUserId: uuid("by_user_id")
+      .notNull()
+      .references(() => users.id),
+    message: text("message"),
+    status: offerStatus("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("event_offers_event_team_uq").on(t.eventId, t.fromTeamId)],
+);
+
+export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
+  event: one(events, { fields: [eventOffers.eventId], references: [events.id] }),
+  fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
 }));
 
 // --- discussion: polymorphic threads on events / teams / posts ---------

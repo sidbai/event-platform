@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
+import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 
 export const dynamic = "force-dynamic";
@@ -115,6 +116,8 @@ export default async function EventPage({
           </p>
         )}
       </header>
+
+      <OpponentSection event={event} />
 
       {champions.length > 0 && (
         <section className="mt-10">
