@@ -17,8 +17,33 @@ data model, component choices, hosting, and the King Juan Cup migration plan.
 
 ```bash
 pnpm install
+cp .env.example .env.local   # then set DATABASE_URL
+pnpm db:migrate
+pnpm db:seed                 # loads King Juan Cup 2026
 pnpm dev
 ```
 
-Requires a `DATABASE_URL` in `.env.local` (Neon connection string) once the
-data layer lands.
+`DATABASE_URL` is a Neon pooled connection string, or a local Postgres.
+
+### Local Postgres (Homebrew)
+
+```bash
+brew install postgresql@17
+LC_ALL=en_US.UTF-8 /opt/homebrew/opt/postgresql@17/bin/pg_ctl \
+  -D /opt/homebrew/var/postgresql@17 -o "-p 54329" -l /tmp/pg.log start
+/opt/homebrew/opt/postgresql@17/bin/createdb -p 54329 king_juan_soccer
+# DATABASE_URL="postgresql://<you>@127.0.0.1:54329/king_juan_soccer"
+```
+
+Stop it with `pg_ctl -D /opt/homebrew/var/postgresql@17 stop`.
+
+## Scripts
+
+| | |
+|---|---|
+| `pnpm dev` / `build` / `start` | Next.js |
+| `pnpm db:generate` | generate a migration from `src/db/schema.ts` |
+| `pnpm db:migrate` | apply migrations |
+| `pnpm db:push` | push schema without a migration (dev only) |
+| `pnpm db:studio` | Drizzle Studio |
+| `pnpm db:seed` | seed King Juan Cup 2026 |
