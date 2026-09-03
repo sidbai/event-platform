@@ -7,6 +7,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -14,9 +15,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Tournament-core slice of the schema (week one). Users, media, discussion,
- * registrations and sponsors get their own tables later — for now the event
- * ruleset, sponsor list and champions ride in `events.metadata`.
+ * Schema so far: auth (Auth.js), tournament core (events, teams, matches …).
+ * Media, discussion, registrations and sponsors get their own tables later —
+ * for now the event ruleset, sponsor list and champions ride in
+ * `events.metadata`.
  */
 
 export const eventStatus = pgEnum("event_status", [
@@ -52,6 +54,63 @@ const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 };
+
+// --- auth (Auth.js / @auth/drizzle-adapter) -----------------------------
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name"),
+  email: text("email").notNull().unique(),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
+  image: text("image"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
+);
+
+export const sessions = pgTable("sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { withTimezone: true }).notNull(),
+});
+
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.identifier, t.token] })],
+);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
 
 // --- event_kinds: editable catalog of event kinds -------------------------
 
@@ -111,6 +170,7 @@ export const events = pgTable(
     level: text("level"),
     capacity: integer("capacity"),
 
+    organizerId: uuid("organizer_id").references(() => users.id),
     needsOpponent: boolean("needs_opponent").notNull().default(false),
     homeTeamId: uuid("home_team_id"),
     awayTeamId: uuid("away_team_id"),
@@ -139,7 +199,7 @@ export const teams = pgTable("teams", {
   city: text("city"),
   crestUrl: text("crest_url"),
   bio: text("bio"),
-  claimedBy: uuid("claimed_by"),
+  claimedBy: uuid("claimed_by").references(() => users.id),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   ...timestamps,
 });

@@ -8,6 +8,13 @@
       "when": 1788448872577,
       "tag": "0000_elite_silk_fever",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788453508567,
+      "tag": "0001_known_black_knight",
+      "breakpoints": true
     }
   ]
 }

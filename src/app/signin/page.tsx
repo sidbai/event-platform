@@ -1,0 +1,86 @@
+import { redirect } from "next/navigation";
+
+import { auth, devLoginEnabled, googleEnabled, signIn } from "@/auth";
+
+export const dynamic = "force-dynamic";
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const redirectTo = next && next.startsWith("/") ? next : "/";
+
+  const session = await auth();
+  if (session?.user) redirect(redirectTo);
+
+  return (
+    <div className="mx-auto max-w-sm px-5 py-16">
+      <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+      <p className="mt-1 text-sm text-neutral-500">
+        You only need an account to post, RSVP, or manage a team. Browsing is open.
+      </p>
+
+      <div className="mt-6 space-y-4">
+        {googleEnabled && (
+          <form
+            action={async () => {
+              "use server";
+              await signIn("google", { redirectTo });
+            }}
+          >
+            <button
+              type="submit"
+              className="w-full rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            >
+              Continue with Google
+            </button>
+          </form>
+        )}
+
+        {devLoginEnabled && (
+          <form
+            action={async (formData: FormData) => {
+              "use server";
+              await signIn("dev", {
+                email: String(formData.get("email") ?? ""),
+                redirectTo,
+              });
+            }}
+            className="space-y-2"
+          >
+            {googleEnabled && (
+              <div className="text-center text-xs uppercase tracking-wide text-neutral-400">
+                or dev login
+              </div>
+            )}
+            <input
+              type="email"
+              name="email"
+              required
+              placeholder="you@example.com"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            />
+            <button
+              type="submit"
+              className="w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              Sign in
+            </button>
+            <p className="text-xs text-neutral-400">
+              Dev only — any email signs you in without a password.
+            </p>
+          </form>
+        )}
+
+        {!googleEnabled && !devLoginEnabled && (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+            No sign-in method is configured. Set <code>AUTH_GOOGLE_ID</code> /{" "}
+            <code>AUTH_GOOGLE_SECRET</code>, or <code>AUTH_DEV_LOGIN=true</code> for local dev.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
