@@ -36,6 +36,13 @@
       "when": 1788454810453,
       "tag": "0004_high_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788478745822,
+      "tag": "0005_swift_snowbird",
+      "breakpoints": true
     }
   ]
 }

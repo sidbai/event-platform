@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -11,22 +11,65 @@ import {
 import { hideComment } from "@/features/discussion/actions";
 import { approveEvent, rejectEvent } from "@/features/events/actions";
 import { rejectClaim, verifyTeam } from "@/features/teams/actions";
+import { generateWeeklyDraft } from "@/features/weekly/actions";
+import { listDraftPosts } from "@/features/weekly/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ weekly?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, claims, reports] = await Promise.all([
+  const { weekly } = await searchParams;
+  const [events, claims, reports, drafts] = await Promise.all([
     pendingEvents(),
     unverifiedClaims(),
     reportedComments(),
+    listDraftPosts(),
   ]);
+
+  async function runWeeklyGenerate() {
+    "use server";
+    const result = await generateWeeklyDraft();
+    redirect(result.slug ? `/weekly/${result.slug}/edit` : "/admin?weekly=none");
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold">Youth Soccer Weekly</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+          <form action={runWeeklyGenerate}>
+            <button className="rounded-md bg-emerald-700 px-3 py-1.5 font-medium text-white hover:bg-emerald-800">
+              Generate this week&rsquo;s draft
+            </button>
+          </form>
+          {weekly === "none" && (
+            <span className="text-neutral-500">No upcoming events to feature.</span>
+          )}
+        </div>
+        {drafts.length > 0 && (
+          <ul className="mt-3 space-y-1 text-sm">
+            {drafts.map((post) => (
+              <li key={post.id}>
+                <Link
+                  href={`/weekly/${post.slug}`}
+                  className="text-emerald-700 hover:underline dark:text-emerald-400"
+                >
+                  {post.title}
+                </Link>{" "}
+                <span className="text-neutral-400">draft</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">

@@ -21,6 +21,9 @@ export async function SiteHeader() {
           <Link href="/teams" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
             Teams
           </Link>
+          <Link href="/weekly" className="hidden text-neutral-600 hover:text-neutral-900 sm:inline dark:text-neutral-300 dark:hover:text-white">
+            Weekly
+          </Link>
           {admin && (
             <Link href="/admin" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
               Admin

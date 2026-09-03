@@ -370,6 +370,23 @@ export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
   fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
 }));
 
+// --- posts: Youth Soccer Weekly ---------------------------------------
+
+export const postStatus = pgEnum("post_status", ["draft", "published"]);
+
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  intro: text("intro").notNull().default(""),
+  status: postStatus("status").notNull().default("draft"),
+  featuredEventIds: uuid("featured_event_ids").array().notNull().default([]),
+  authorId: uuid("author_id").references(() => users.id),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // --- discussion: polymorphic threads on events / teams / posts ---------
 
 export const discussionSubject = pgEnum("discussion_subject", [
