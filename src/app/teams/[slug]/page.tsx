@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getCurrentUser } from "@/features/auth";
+import { claimTeam, unclaimTeam } from "@/features/teams/actions";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +22,11 @@ export default async function TeamPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const team = await getTeamBySlug(slug);
+  const [team, user] = await Promise.all([getTeamBySlug(slug), getCurrentUser()]);
   if (!team) notFound();
+
+  const mine = user && team.claimedBy === user.id;
+  const claimable = user && !team.claimedBy;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -45,6 +50,38 @@ export default async function TeamPage({
       </header>
 
       {team.bio && <p className="mt-4 text-neutral-600 dark:text-neutral-300">{team.bio}</p>}
+
+      <div className="mt-4 text-sm">
+        {mine ? (
+          <div className="flex items-center gap-3">
+            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+              {team.verifiedAt ? "You manage this team · verified" : "You manage this team · pending verification"}
+            </span>
+            <form action={unclaimTeam.bind(null, team.slug)}>
+              <button type="submit" className="text-neutral-500 hover:text-red-600 dark:hover:text-red-400">
+                Release
+              </button>
+            </form>
+          </div>
+        ) : team.claimedBy ? (
+          <span className="text-neutral-500">
+            {team.verifiedAt ? "Managed by a verified coach" : "Claimed by a coach"}
+          </span>
+        ) : claimable ? (
+          <form action={claimTeam.bind(null, team.slug)}>
+            <button
+              type="submit"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            >
+              Claim this team
+            </button>
+          </form>
+        ) : (
+          <Link href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
+            Sign in to claim this team
+          </Link>
+        )}
+      </div>
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Events</h2>
