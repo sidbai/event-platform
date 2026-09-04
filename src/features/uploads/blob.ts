@@ -45,7 +45,9 @@ export type UploadTarget =
   /** A club's logo. Editing a club is gated on creator-or-admin. */
   | { kind: "club"; clubSlug: string }
   /** A club logo chosen while adding the club, before it exists. */
-  | { kind: "new-club" };
+  | { kind: "new-club" }
+  /** Cover image for a news article. Admin-only, checked at token time. */
+  | { kind: "news" };
 
 /** Staging folders for images uploaded before their subject exists. */
 export const PENDING_CREST_PREFIX = "crests/_pending";
@@ -63,6 +65,7 @@ export function uploadPrefix(target: UploadTarget): string {
   if (target.kind === "new-crest") return PENDING_CREST_PREFIX;
   if (target.kind === "new-club") return PENDING_CLUB_PREFIX;
   if (target.kind === "club") return `clubs/${target.clubSlug}`;
+  if (target.kind === "news") return "news";
   return `crests/${target.teamSlug}`;
 }
 
@@ -113,6 +116,7 @@ export function parseUploadTarget(raw: string | null): UploadTarget | null {
   if (v.kind === "avatar") return { kind: "avatar" };
   if (v.kind === "new-crest") return { kind: "new-crest" };
   if (v.kind === "new-club") return { kind: "new-club" };
+  if (v.kind === "news") return { kind: "news" };
   if (v.kind === "club" && typeof v.clubSlug === "string")
     return { kind: "club", clubSlug: v.clubSlug };
   if (v.kind === "crest" && typeof v.teamSlug === "string")
