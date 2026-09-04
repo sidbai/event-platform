@@ -66,12 +66,11 @@ const SEATTLE_CLUBS: {
     website: "https://www.pacificnorthwestsoccerclub.org",
     logo: `${B}/pacnw/logo-jHGHMTfseW78RDlfEtWHzTegbQGvZO.png`,
   },
-  // Site is up but renders client-side, so no logo could be taken from it.
   {
     name: "Snohomish United",
-    city: null,
+    city: "Snohomish",
     website: "https://www.snohomishunited.com",
-    logo: null,
+    logo: `${B}/snohomish-united/logo-Kx4tsB2L34XohwA5Kl6czWO93UyXkN.png`,
   },
 ];
 
