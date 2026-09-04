@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { TeamCrest } from "@/components/team-crest";
 import { listTeams } from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,16 +20,7 @@ export default async function TeamsPage() {
               href={`/teams/${team.slug}`}
               className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
             >
-              {team.crestUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={team.crestUrl}
-                  alt=""
-                  className="h-9 w-9 shrink-0 rounded object-contain"
-                />
-              ) : (
-                <div className="h-9 w-9 shrink-0 rounded bg-neutral-100 dark:bg-neutral-800" />
-              )}
+              <TeamCrest src={team.crestUrl} size={36} />
               <div className="min-w-0">
                 <div className="truncate font-medium">{team.name}</div>
                 <div className="text-xs text-neutral-500">

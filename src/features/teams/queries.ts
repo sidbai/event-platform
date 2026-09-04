@@ -32,8 +32,8 @@ export async function getTeamBySlug(slug: string) {
     with: {
       event: { columns: { slug: true, title: true } },
       division: { columns: { name: true } },
-      homeTeam: { columns: { name: true, slug: true } },
-      awayTeam: { columns: { name: true, slug: true } },
+      homeTeam: { columns: { name: true, slug: true, crestUrl: true } },
+      awayTeam: { columns: { name: true, slug: true, crestUrl: true } },
     },
   });
 

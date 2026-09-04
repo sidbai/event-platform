@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
@@ -44,7 +45,10 @@ type Rules = {
   goalCapPerGame?: number;
 };
 
-type TeamMeta = Map<string, { name: string; seed: number | null }>;
+type TeamMeta = Map<
+  string,
+  { name: string; seed: number | null; crestUrl: string | null }
+>;
 
 function fmtDate(d: Date | null, tz: string | null) {
   if (!d) return null;
@@ -72,6 +76,9 @@ export default async function EventPage({
   if (notPublic && !canManage) notFound();
 
   const champions = (event.result as { champions?: Champion[] } | null)?.champions ?? [];
+  const crestByName = new Map(
+    event.eventTeams.map((et) => [et.team.name, et.team.crestUrl]),
+  );
   const meta = event.metadata as { sponsors?: Sponsor[]; rules?: Rules } | null;
   const sponsors = meta?.sponsors ?? [];
   const rules = meta?.rules;
@@ -157,7 +164,10 @@ export default async function EventPage({
             {champions.map((c) => (
               <div key={c.division} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
                 <div className="text-xs uppercase tracking-wide text-neutral-500">{c.division}</div>
-                <div className="mt-1 font-semibold">🏆 {c.champion}</div>
+                <div className="mt-1 flex items-center gap-2 font-semibold">
+                  <TeamCrest src={crestByName.get(c.champion)} size={24} />
+                  🏆 {c.champion}
+                </div>
                 <div className="text-sm text-neutral-500">
                   def. {c.finalist} ({c.finalScore})
                 </div>
@@ -277,7 +287,10 @@ function DivisionBlock({
   );
 
   const teamMeta: TeamMeta = new Map(
-    teamsInDiv.map((et) => [et.team.id, { name: et.team.name, seed: et.seed }]),
+    teamsInDiv.map((et) => [
+      et.team.id,
+      { name: et.team.name, seed: et.seed, crestUrl: et.team.crestUrl },
+    ]),
   );
 
   const groupLabels = [...new Set(teamsInDiv.map((et) => et.groupLabel ?? ""))].sort();
@@ -329,17 +342,23 @@ function DivisionBlock({
       </div>
 
       {knockouts.length > 0 && (
-        <div className="mt-4 space-y-1 text-sm">
+        <div className="mt-4 space-y-1.5 text-sm">
           {knockouts.map((m) => (
             <div key={m.id} className="flex items-center gap-2">
-              <span className="w-14 text-xs uppercase tracking-wide text-neutral-400">
+              <span className="w-14 shrink-0 text-xs uppercase tracking-wide text-neutral-400">
                 {m.round}
               </span>
-              <span className="flex-1 text-right">{m.homeTeam?.name ?? m.homePlaceholder}</span>
+              <span className="flex flex-1 items-center justify-end gap-1.5 text-right">
+                {m.homeTeam?.name ?? m.homePlaceholder}
+                <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
+              </span>
               <span className="font-semibold tabular-nums">
                 {m.homeScore}–{m.awayScore}
               </span>
-              <span className="flex-1">{m.awayTeam?.name ?? m.awayPlaceholder}</span>
+              <span className="flex flex-1 items-center gap-1.5">
+                <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
+                {m.awayTeam?.name ?? m.awayPlaceholder}
+              </span>
             </div>
           ))}
         </div>
@@ -378,8 +397,13 @@ function StandingsTable({
               <tr key={row.teamId} className="border-b border-neutral-100 dark:border-neutral-900">
                 <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
                 <td className="py-1.5 pr-2">
-                  {meta?.seed === 1 && "🏆 "}
-                  {meta?.name ?? "—"}
+                  <span className="flex items-center gap-2">
+                    <TeamCrest src={meta?.crestUrl} size={20} />
+                    <span>
+                      {meta?.seed === 1 && "🏆 "}
+                      {meta?.name ?? "—"}
+                    </span>
+                  </span>
                 </td>
                 <td className="px-2 py-1.5 text-right">{row.played}</td>
                 <td className="px-2 py-1.5 text-right">{row.won}</td>
