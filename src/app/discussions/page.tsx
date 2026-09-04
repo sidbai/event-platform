@@ -56,7 +56,7 @@ export default async function DiscussionsPage({
           className={`rounded-full px-2.5 py-1 ${
             !active
               ? "bg-ink text-page"
-              : "bg-elevated text-muted hover:bg-line dark:text-muted"
+              : "bg-elevated text-muted hover:bg-line"
           }`}
         >
           All
@@ -68,7 +68,7 @@ export default async function DiscussionsPage({
             className={`rounded-full px-2.5 py-1 ${
               active === cat
                 ? "bg-ink text-page"
-                : "bg-elevated text-muted hover:bg-line dark:text-muted"
+                : "bg-elevated text-muted hover:bg-line"
             }`}
           >
             {CATEGORY_LABELS[cat]}

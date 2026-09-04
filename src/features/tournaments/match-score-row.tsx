@@ -112,14 +112,14 @@ export function MatchScoreRow({
       <button
         type="submit"
         formAction={deleteAction}
-        className="text-xs text-muted hover:text-red-600 dark:hover:text-red-400"
+        className="text-xs text-muted hover:text-red-600"
         aria-label="delete match"
       >
         ×
       </button>
 
       {state.error && (
-        <span className="w-full text-xs text-red-600 dark:text-red-400">{state.error}</span>
+        <span className="w-full text-xs text-red-600">{state.error}</span>
       )}
       {state.ok && (
         <span className="w-full text-xs text-brand-text">Saved.</span>

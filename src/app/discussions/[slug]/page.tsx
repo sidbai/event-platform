@@ -102,7 +102,7 @@ export default async function ForumPostPage({
               </>
             )}
             <form action={deleteForumPost.bind(null, slug)}>
-              <button className="hover:text-red-600 dark:hover:text-red-400">Delete</button>
+              <button className="hover:text-red-600">Delete</button>
             </form>
           </div>
         )}

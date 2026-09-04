@@ -50,7 +50,7 @@ export function CommentForm({
         >
           {pending ? "Posting…" : compact ? "Reply" : "Post"}
         </button>
-        {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+        {state.error && <span className="text-sm text-red-600">{state.error}</span>}
       </div>
     </form>
   );

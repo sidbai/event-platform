@@ -94,7 +94,7 @@ export function RosterForm({
         >
           {pending ? "Saving…" : "Save roster"}
         </button>
-        {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+        {state.error && <span className="text-sm text-red-600">{state.error}</span>}
         {state.ok && <span className="text-sm text-brand-text">Saved.</span>}
       </div>
     </form>

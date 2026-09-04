@@ -121,7 +121,7 @@ export default async function EventsPage({
                   <span className="capitalize">{event.kind}</span>
                   {event.venue && <span> · {event.venue.name}</span>}
                   {event.needsOpponent && (
-                    <span className="text-amber-700 dark:text-amber-500"> · looking for opponent</span>
+                    <span className="text-amber-700"> · looking for opponent</span>
                   )}
                   {event.status === "completed" && <span> · final results</span>}
                 </div>

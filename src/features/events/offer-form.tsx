@@ -57,7 +57,7 @@ export function OfferForm({
           {pending ? "Sending…" : "Offer to play"}
         </button>
         {state.error && (
-          <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>
+          <span className="text-sm text-red-600">{state.error}</span>
         )}
       </div>
     </form>
