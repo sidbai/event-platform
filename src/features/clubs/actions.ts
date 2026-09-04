@@ -7,9 +7,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import {
   clubEdits,
-  clubReviewReports,
-  clubReviewVotes,
-  clubReviews,
+  reviewReports,
+  reviewVotes,
+  reviews,
   clubs,
   users,
 } from "@/db/schema";
@@ -143,18 +143,19 @@ export async function saveReview(
 
   // One review per person per club: writing again edits the one you have.
   await db
-    .insert(clubReviews)
+    .insert(reviews)
     .values({
-      clubId: club.id,
+      subjectType: "club",
+      subjectId: club.id,
       authorId: user.id,
-      ...ratings,
+      ratings,
       reviewerRole: reviewerRole!,
       title,
       body,
     })
     .onConflictDoUpdate({
-      target: [clubReviews.clubId, clubReviews.authorId],
-      set: { ...ratings, reviewerRole: reviewerRole!, title, body, updatedAt: new Date() },
+      target: [reviews.subjectType, reviews.subjectId, reviews.authorId],
+      set: { ratings, reviewerRole: reviewerRole!, title, body, updatedAt: new Date() },
     });
 
   revalidatePath(`/clubs/${slug}`);
@@ -166,25 +167,25 @@ export async function toggleHelpful(slug: string, reviewId: string): Promise<voi
   const user = await getCurrentUser();
   if (!user) return;
 
-  const existing = await db.query.clubReviewVotes.findFirst({
+  const existing = await db.query.reviewVotes.findFirst({
     where: and(
-      eq(clubReviewVotes.reviewId, reviewId),
-      eq(clubReviewVotes.userId, user.id),
+      eq(reviewVotes.reviewId, reviewId),
+      eq(reviewVotes.userId, user.id),
     ),
   });
 
   if (existing) {
     await db
-      .delete(clubReviewVotes)
+      .delete(reviewVotes)
       .where(
         and(
-          eq(clubReviewVotes.reviewId, reviewId),
-          eq(clubReviewVotes.userId, user.id),
+          eq(reviewVotes.reviewId, reviewId),
+          eq(reviewVotes.userId, user.id),
         ),
       );
   } else {
     await db
-      .insert(clubReviewVotes)
+      .insert(reviewVotes)
       .values({ reviewId, userId: user.id })
       .onConflictDoNothing();
   }
@@ -204,7 +205,7 @@ export async function reportReview(
   const reason = (REPORT_REASONS as readonly string[]).includes(raw) ? raw : null;
 
   await db
-    .insert(clubReviewReports)
+    .insert(reviewReports)
     .values({ reviewId, reporterId: user.id, reason })
     .onConflictDoNothing();
 
@@ -216,9 +217,9 @@ export async function hideReview(reviewId: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) return;
   await db
-    .update(clubReviews)
+    .update(reviews)
     .set({ hiddenAt: new Date() })
-    .where(eq(clubReviews.id, reviewId));
+    .where(eq(reviews.id, reviewId));
   revalidatePath("/admin");
 }
 
@@ -226,7 +227,7 @@ export async function hideReview(reviewId: string): Promise<void> {
 export async function dismissReviewReports(reviewId: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) return;
-  await db.delete(clubReviewReports).where(eq(clubReviewReports.reviewId, reviewId));
+  await db.delete(reviewReports).where(eq(reviewReports.reviewId, reviewId));
   revalidatePath("/admin");
 }
 

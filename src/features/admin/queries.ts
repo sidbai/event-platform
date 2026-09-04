@@ -5,10 +5,11 @@ import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubEdits,
-  clubReviewReports,
-  clubReviews,
+  clubs,
   comments,
   events,
+  reviewReports,
+  reviews,
 } from "@/db/schema";
 
 export async function pendingEvents() {
@@ -41,21 +42,32 @@ export async function reportedComments() {
 export async function reportedReviews() {
   const counts = await db
     .select({
-      reviewId: clubReviewReports.reviewId,
+      reviewId: reviewReports.reviewId,
       n: sql<number>`count(*)::int`,
-      reasons: sql<string[]>`array_agg(distinct ${clubReviewReports.reason})`,
+      reasons: sql<string[]>`array_agg(distinct ${reviewReports.reason})`,
     })
-    .from(clubReviewReports)
-    .groupBy(clubReviewReports.reviewId);
+    .from(reviewReports)
+    .groupBy(reviewReports.reviewId);
   if (counts.length === 0) return [];
 
-  const rows = await db.query.clubReviews.findMany({
+  const rows = await db.query.reviews.findMany({
     where: and(
-      inArray(clubReviews.id, counts.map((c) => c.reviewId)),
-      isNull(clubReviews.hiddenAt),
+      inArray(reviews.id, counts.map((c) => c.reviewId)),
+      isNull(reviews.hiddenAt),
     ),
-    with: { club: { columns: { name: true, slug: true } } },
   });
+
+  // Reviews are polymorphic, so the subject is resolved by hand. Only club
+  // reviews exist today; a coach review would simply have no club here.
+  const clubIds = rows.filter((r) => r.subjectType === "club").map((r) => r.subjectId);
+  const clubRows =
+    clubIds.length > 0
+      ? await db.query.clubs.findMany({
+          where: inArray(clubs.id, clubIds),
+          columns: { id: true, name: true, slug: true },
+        })
+      : [];
+  const clubById = new Map(clubRows.map((c) => [c.id, { name: c.name, slug: c.slug }]));
 
   const byId = new Map(counts.map((c) => [c.reviewId, c]));
   return rows
@@ -63,7 +75,7 @@ export async function reportedReviews() {
       id: r.id,
       title: r.title,
       body: r.body,
-      club: r.club,
+      club: r.subjectType === "club" ? (clubById.get(r.subjectId) ?? null) : null,
       reportCount: byId.get(r.id)?.n ?? 0,
       reasons: (byId.get(r.id)?.reasons ?? []).filter(Boolean),
     }))
