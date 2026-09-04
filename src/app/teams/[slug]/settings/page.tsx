@@ -75,7 +75,7 @@ export default async function TeamSettingsPage({
               </span>
               {isOwner && (
                 <form action={removeManager.bind(null, slug, m.userId)}>
-                  <button className="text-xs text-muted hover:text-red-600 dark:hover:text-red-400">
+                  <button className="text-xs text-muted hover:text-red-600">
                     remove
                   </button>
                 </form>

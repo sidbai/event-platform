@@ -4,8 +4,17 @@
  * Design tokens. Semantic names map to Tailwind utilities via @theme below,
  * e.g. bg-page, bg-card, border-line, text-ink, text-muted, text-brand,
  * bg-brand / hover:bg-brand-strong.
+ *
+ * The site is light-only by design. `color-scheme: light` keeps native
+ * controls (selects, date pickers, scrollbars) light even when the OS is in
+ * dark mode, and the `dark` variant below is rewired to a class that is never
+ * applied, so a stray `dark:` utility can never take effect.
  */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
+
   --page: #fafafa;
   --card: #ffffff;
   --elevated: #f4f4f5;
@@ -19,21 +28,6 @@
 
   --background: var(--page);
   --foreground: var(--ink);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #0a0a0a;
-    --card: #131314;
-    --elevated: #1d1d1f;
-    --ink: #ededed;
-    --muted: #8b8b90;
-    --line: #272729;
-    --brand: #059669;
-    --brand-strong: #10b981;
-    --brand-text: #34d399;
-    --on-brand: #ffffff;
-  }
 }
 
 @theme inline {

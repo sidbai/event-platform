@@ -93,7 +93,7 @@ export default async function EventPage({
       </Link>
 
       {notPublic && canManage && (
-        <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+        <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {event.status === "pending"
             ? "This event is awaiting review — only you can see it."
             : "This event was declined."}
@@ -102,7 +102,7 @@ export default async function EventPage({
 
       <header className="mt-4">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
             {event.kind}
           </span>
           <span>{event.status}</span>

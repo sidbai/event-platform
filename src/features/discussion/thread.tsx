@@ -93,7 +93,7 @@ export async function DiscussionThread({
       {locked && <p className="mt-2 text-sm text-muted">This thread is locked.</p>}
 
       {pinned && !pinned.hiddenAt && (
-        <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+        <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-brand-text">
             📌 Pinned · {pinned.authorName ?? "Someone"}
           </div>
@@ -184,7 +184,7 @@ function CommentItem({
         <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted">
           {(mine || canModerate) && (
             <form action={hideComment.bind(null, ctx.revalidate, comment.id)}>
-              <button type="submit" className="hover:text-red-600 dark:hover:text-red-400">
+              <button type="submit" className="hover:text-red-600">
                 Remove
               </button>
             </form>

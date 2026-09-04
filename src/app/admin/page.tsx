@@ -135,7 +135,7 @@ export default async function AdminPage() {
                   action={hideComment.bind(null, "/admin", comment.id)}
                   className="mt-2"
                 >
-                  <button className="text-sm text-red-600 hover:underline dark:text-red-400">
+                  <button className="text-sm text-red-600 hover:underline">
                     Remove comment
                   </button>
                 </form>

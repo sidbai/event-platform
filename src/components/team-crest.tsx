@@ -14,7 +14,7 @@ export function TeamCrest({
       <span
         aria-hidden
         style={{ width: size, height: size }}
-        className={`inline-block shrink-0 rounded bg-line dark:bg-line ${className}`}
+        className={`inline-block shrink-0 rounded bg-line ${className}`}
       />
     );
   }

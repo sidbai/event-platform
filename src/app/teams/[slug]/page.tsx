@@ -78,7 +78,7 @@ export default async function TeamPage({
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         {mine ? (
           <>
-            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
               {team.verifiedAt ? "You own this team · verified" : "You own this team · pending verification"}
             </span>
             <Link
@@ -88,7 +88,7 @@ export default async function TeamPage({
               Team settings
             </Link>
             <form action={unclaimTeam.bind(null, team.slug)}>
-              <button type="submit" className="text-muted hover:text-red-600 dark:hover:text-red-400">
+              <button type="submit" className="text-muted hover:text-red-600">
                 Release
               </button>
             </form>
@@ -190,7 +190,7 @@ function MatchRow({
     result === "W"
       ? "text-brand-text"
       : result === "L"
-        ? "text-red-600 dark:text-red-400"
+        ? "text-red-600"
         : "text-muted";
 
   return (

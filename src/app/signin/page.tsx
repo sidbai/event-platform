@@ -76,7 +76,7 @@ export default async function SignInPage({
         )}
 
         {!googleEnabled && !devLoginEnabled && (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
             No sign-in method is configured. Set <code>AUTH_GOOGLE_ID</code> /{" "}
             <code>AUTH_GOOGLE_SECRET</code>, or <code>AUTH_DEV_LOGIN=true</code> for local dev.
           </p>

@@ -21,7 +21,7 @@ export async function OpponentSection({ event }: { event: EventDetail }) {
   if (!event.needsOpponent && offers.length === 0 && !event.awayTeamId) return null;
 
   return (
-    <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+    <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
       <h2 className="text-lg font-semibold">
         {event.needsOpponent ? "Looking for an opponent" : "Opponent"}
       </h2>
