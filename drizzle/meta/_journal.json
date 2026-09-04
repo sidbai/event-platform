@@ -71,6 +71,13 @@
       "when": 1788506523732,
       "tag": "0009_sticky_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788507411344,
+      "tag": "0010_careful_tombstone",
+      "breakpoints": true
     }
   ]
 }

@@ -414,6 +414,43 @@ export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
   fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
 }));
 
+// --- attendance: the `attendance` module ------------------------------
+
+export const attendanceStatus = pgEnum("attendance_status", ["going", "maybe"]);
+
+/**
+ * Who is coming to an event. Backs the `attendance` module (pickup, meetup,
+ * watch-party, custom). One row per person per event; clearing an RSVP deletes
+ * the row rather than storing a "not going" state.
+ */
+export const eventAttendees = pgTable(
+  "event_attendees",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: attendanceStatus("status").notNull().default("going"),
+    guests: integer("guests").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.userId] }),
+    index("event_attendees_event_idx").on(t.eventId, t.status),
+  ],
+);
+
+export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
+  event: one(events, {
+    fields: [eventAttendees.eventId],
+    references: [events.id],
+  }),
+  user: one(users, { fields: [eventAttendees.userId], references: [users.id] }),
+}));
+
 // --- posts: Youth Soccer Weekly ---------------------------------------
 
 export const postStatus = pgEnum("post_status", ["draft", "published"]);
