@@ -28,11 +28,11 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-12">
-      {/* The header already carries the mark, so the brand name would just be
-          saying it twice — the tagline does the work as the page heading. */}
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-        A community platform for Seattle-area youth soccer. More soccer, less
-        effort.
+      {/* Kept a step above the section headings below it so the page outline
+          still reads, but small enough not to shout over the feeds. */}
+      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+        King Juan Soccer: A community platform for Seattle-area youth soccer.
+        More soccer, less effort!
       </h1>
 
       <div className="mt-6 flex flex-wrap gap-3">
