@@ -93,7 +93,7 @@ export async function DiscussionThread({
       {locked && <p className="mt-2 text-sm text-muted">This thread is locked.</p>}
 
       {pinned && !pinned.hiddenAt && (
-        <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">
+        <div className="mt-4 rounded-md border border-brand/40 bg-brand-soft p-3 text-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-brand-text">
             📌 Pinned · {pinned.authorName ?? "Someone"}
           </div>

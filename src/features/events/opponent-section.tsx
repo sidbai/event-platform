@@ -84,7 +84,7 @@ export async function OpponentSection({ event }: { event: EventDetail }) {
                 {offer.status === "pending" && (
                   <div className="mt-2 flex gap-2">
                     <form action={respondToOffer.bind(null, event.slug, offer.id, true)}>
-                      <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
+                      <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
                         Accept
                       </button>
                     </form>

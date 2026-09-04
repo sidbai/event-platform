@@ -62,7 +62,7 @@ export function PostForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Posting…" : "Post"}
         </button>

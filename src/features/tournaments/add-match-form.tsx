@@ -105,7 +105,7 @@ export function AddMatchForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+          className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>

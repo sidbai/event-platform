@@ -102,7 +102,7 @@ export default async function EventPage({
 
       <header className="mt-4">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
+          <span className="rounded bg-brand-soft px-1.5 py-0.5 text-brand-soft-text">
             {event.kind}
           </span>
           <span>{event.status}</span>

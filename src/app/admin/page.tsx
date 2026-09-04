@@ -57,7 +57,7 @@ export default async function AdminPage() {
                 </div>
                 <div className="flex gap-2 text-sm">
                   <form action={approveEvent.bind(null, event.slug)}>
-                    <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
                       Approve
                     </button>
                   </form>
@@ -95,7 +95,7 @@ export default async function AdminPage() {
                 </Link>
                 <div className="flex gap-2 text-sm">
                   <form action={verifyTeam.bind(null, team.id)}>
-                    <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
                       Verify
                     </button>
                   </form>
