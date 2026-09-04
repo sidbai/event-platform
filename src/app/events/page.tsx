@@ -90,7 +90,7 @@ export default async function EventsPage({
         </label>
         <button
           type="submit"
-          className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong"
+          className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
           Filter
         </button>

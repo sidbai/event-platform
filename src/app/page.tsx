@@ -12,7 +12,7 @@ export default function Home() {
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/events"
-          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
           Browse events
         </Link>

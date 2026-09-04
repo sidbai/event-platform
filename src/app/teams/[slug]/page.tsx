@@ -78,7 +78,7 @@ export default async function TeamPage({
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         {mine ? (
           <>
-            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
+            <span className="rounded bg-brand-soft px-1.5 py-0.5 text-brand-soft-text">
               {team.verifiedAt ? "You own this team · verified" : "You own this team · pending verification"}
             </span>
             <Link

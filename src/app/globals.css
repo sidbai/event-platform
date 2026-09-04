@@ -18,13 +18,21 @@
   --page: #fafafa;
   --card: #ffffff;
   --elevated: #f4f4f5;
-  --ink: #18181b;
-  --muted: #6b7280;
+  --ink: #1f2020;
+  --muted: #5c5c5c;
   --line: #e7e7e9;
-  --brand: #047857;
-  --brand-strong: #065f46;
-  --brand-text: #047857;
-  --on-brand: #ffffff;
+
+  /* King Juan Cup identity: black and gold (kingjuancup.org). */
+  --header: #131313;
+  --header-fg: #ffffff;
+  --gold: #d4af37;
+
+  --brand: #d4af37; /* filled buttons */
+  --brand-strong: #c29c26; /* button hover */
+  --on-brand: #131313; /* text on gold */
+  --brand-text: #8a6a15; /* links — a gold dark enough to read on white */
+  --brand-soft: #faf3da; /* gold tint for badges */
+  --brand-soft-text: #6b520f;
 
   --background: var(--page);
   --foreground: var(--ink);
@@ -41,9 +49,16 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-text: var(--brand-text);
   --color-on-brand: var(--on-brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-text: var(--brand-soft-text);
+  --color-header: var(--header);
+  --color-header-fg: var(--header-fg);
+  --color-gold: var(--gold);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --font-display: var(--font-oswald), var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,

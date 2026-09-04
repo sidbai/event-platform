@@ -105,7 +105,7 @@ export function MatchScoreRow({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+        className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
       >
         {pending ? "…" : "Save"}
       </button>

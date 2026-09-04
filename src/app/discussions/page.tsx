@@ -44,7 +44,7 @@ export default async function DiscussionsPage({
         <h1 className="text-2xl font-semibold tracking-tight">Discussions</h1>
         <Link
           href="/discussions/new"
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong"
+          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
           New post
         </Link>
