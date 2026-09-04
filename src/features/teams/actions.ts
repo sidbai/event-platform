@@ -1,12 +1,14 @@
 "use server";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { teamMembers, teams, users } from "@/db/schema";
+import { teamMembers, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
-import { isAdmin, normalizeEmail } from "@/features/auth/admin";
+import { isAdmin } from "@/features/auth/admin";
+
+import { canManageTeam } from "./access";
 
 export type TeamFormResult = { error?: string; ok?: boolean };
 
@@ -93,38 +95,7 @@ async function ownerOnly(slug: string) {
   return { user, team };
 }
 
-export async function addManager(
-  slug: string,
-  _prev: TeamFormResult,
-  formData: FormData,
-): Promise<TeamFormResult> {
-  const ctx = await ownerOnly(slug);
-  if (!ctx) return { error: "Only the team owner can add managers." };
-
-  const email = normalizeEmail(String(formData.get("email") ?? ""));
-  if (!email.includes("@")) return { error: "Enter a valid email." };
-
-  const target = await db.query.users.findFirst({ where: eq(users.email, email) });
-  if (!target) {
-    return { error: "No account with that email. Ask them to sign in once first." };
-  }
-  if (target.id === ctx.team.claimedBy) return { error: "They already own this team." };
-
-  await db
-    .insert(teamMembers)
-    .values({
-      teamId: ctx.team.id,
-      userId: target.id,
-      role: "manager",
-      addedBy: ctx.user.id,
-    })
-    .onConflictDoNothing();
-
-  revalidatePath(`/teams/${slug}/settings`);
-  return { ok: true };
-}
-
-export async function removeManager(slug: string, userId: string): Promise<void> {
+export async function removeMember(slug: string, userId: string): Promise<void> {
   const ctx = await ownerOnly(slug);
   if (!ctx) return;
   await db
@@ -133,7 +104,7 @@ export async function removeManager(slug: string, userId: string): Promise<void>
       and(
         eq(teamMembers.teamId, ctx.team.id),
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, "manager"),
+        ne(teamMembers.role, "owner"),
       ),
     );
   revalidatePath(`/teams/${slug}/settings`);
@@ -149,15 +120,12 @@ export async function updateTeam(
 
   const team = await db.query.teams.findFirst({
     where: eq(teams.slug, slug),
-    columns: { id: true, claimedBy: true },
-    with: { members: { columns: { userId: true } } },
+    columns: { id: true },
   });
   if (!team) return { error: "Not found." };
-  const allowed =
-    isAdmin(user) ||
-    team.claimedBy === user.id ||
-    team.members.some((m) => m.userId === user.id);
-  if (!allowed) return { error: "You don't manage this team." };
+  // Owner/manager only — being on the roster is not the same as running it.
+  if (!(await canManageTeam(team.id)))
+    return { error: "You don't manage this team." };
 
   const get = (k: string) => {
     const v = String(formData.get(k) ?? "").trim();

@@ -1,9 +1,9 @@
 import "server-only";
 
-import { asc, desc, eq, or } from "drizzle-orm";
+import { and, asc, desc, eq, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { matches, teams } from "@/db/schema";
+import { events, matches, teams } from "@/db/schema";
 
 /** The public team directory — event-only teams are excluded. */
 export async function listTeams() {
@@ -57,3 +57,25 @@ export async function getTeamBySlug(slug: string) {
 }
 
 export type TeamDetail = NonNullable<Awaited<ReturnType<typeof getTeamBySlug>>>;
+
+/**
+ * Events this team hosts. Private ones are only included for members — the
+ * whole point of a private team event is that outsiders can't see it.
+ */
+export async function hostedEvents(teamId: string, includePrivate: boolean) {
+  return db.query.events.findMany({
+    where: includePrivate
+      ? eq(events.hostTeamId, teamId)
+      : and(eq(events.hostTeamId, teamId), eq(events.visibility, "public")),
+    orderBy: [desc(events.startsAt)],
+    limit: 20,
+    columns: {
+      id: true,
+      slug: true,
+      title: true,
+      kind: true,
+      startsAt: true,
+      visibility: true,
+    },
+  });
+}

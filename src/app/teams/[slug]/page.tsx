@@ -4,7 +4,14 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canManageTeam, canScheduleForTeam, isTeamMember } from "@/features/teams/access";
 import { claimTeam, promoteTeam, unclaimTeam } from "@/features/teams/actions";
+import {
+  acceptTeamInvite,
+  declineTeamInvite,
+} from "@/features/teams/invite-actions";
+import { myPendingTeamInvite } from "@/features/teams/invite-queries";
+import { hostedEvents } from "@/features/teams/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +38,12 @@ export default async function TeamPage({
   const claimable = user && !team.claimedBy;
   const isPrivate = team.visibility === "private";
   const admin = isAdmin(user);
-  const canEdit =
-    admin ||
-    Boolean(mine) ||
-    Boolean(user && team.members.some((m) => m.userId === user.id));
+  // Owner/manager only. Being on the roster is not permission to edit.
+  const canEdit = await canManageTeam(team.id);
+  const canSchedule = await canScheduleForTeam(team.id);
+  const member = user ? await isTeamMember(team.id, user.id) : false;
+  const pendingInvite = await myPendingTeamInvite(team.id, user);
+  const events = await hostedEvents(team.id, member || admin);
 
   const back = isPrivate && team.originEvent
     ? { href: `/events/${team.originEvent.slug}`, label: `← ${team.originEvent.title}` }
@@ -45,6 +54,25 @@ export default async function TeamPage({
       <Link href={back.href} className="text-sm text-brand-text hover:underline">
         {back.label}
       </Link>
+
+      {pendingInvite && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-brand/40 bg-brand-soft px-3 py-2 text-sm">
+          <span>
+            You&rsquo;ve been invited to join as{" "}
+            <span className="font-medium">{pendingInvite.role}</span>.
+          </span>
+          <form action={acceptTeamInvite.bind(null, slug)}>
+            <button className="rounded-md bg-brand px-3 py-1 text-xs font-semibold text-on-brand hover:bg-brand-strong">
+              Join the team
+            </button>
+          </form>
+          <form action={declineTeamInvite.bind(null, slug)}>
+            <button className="text-xs text-muted hover:text-red-600">
+              No thanks
+            </button>
+          </form>
+        </div>
+      )}
 
       {isPrivate && (
         <div className="mt-4 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
@@ -123,8 +151,56 @@ export default async function TeamPage({
         )}
       </div>
 
+      {(events.length > 0 || canSchedule) && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-lg font-semibold">Team calendar</h2>
+            {canSchedule && (
+              <Link
+                href={`/events/new?team=${team.slug}`}
+                className="text-sm font-medium text-brand-text hover:underline"
+              >
+                New event →
+              </Link>
+            )}
+          </div>
+          {events.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">
+              Nothing scheduled. Training, scrimmages and socials you add here
+              are visible to the whole team.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
+              {events.map((e) => (
+                <li key={e.id}>
+                  <Link
+                    href={`/events/${e.slug}`}
+                    className="flex items-baseline justify-between gap-3 py-2.5"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium">{e.title}</span>
+                      {e.visibility !== "public" && (
+                        <span className="ml-2 rounded-full bg-elevated px-2 py-0.5 text-xs text-muted">
+                          {e.visibility}
+                        </span>
+                      )}
+                      <span className="block text-xs capitalize text-muted">
+                        {e.kind}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm text-muted">
+                      {fmtDate(e.startsAt)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section className="mt-8">
-        <h2 className="text-lg font-semibold">Events</h2>
+        <h2 className="text-lg font-semibold">Tournaments</h2>
         {team.eventTeams.length === 0 ? (
           <p className="mt-2 text-sm text-muted">No events yet.</p>
         ) : (

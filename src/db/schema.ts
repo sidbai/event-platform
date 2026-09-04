@@ -188,6 +188,21 @@ export const events = pgTable(
     capacity: integer("capacity"),
 
     organizerId: uuid("organizer_id").references(() => users.id),
+    /**
+     * The team this event belongs to, if any. Distinct from home/away team,
+     * which say who is *playing*; this says who *owns* it — the team's
+     * owner/manager/coach can manage it, and its members can see it even when
+     * it is private, without individual invites.
+     */
+    /*
+     * The explicit AnyPgColumn return type is load-bearing. teams already
+     * references events (originEventId), so pointing back at teams here closes
+     * a type cycle; without the annotation TypeScript gives up and every
+     * inferred query type in the schema silently degrades to `any`.
+     */
+    hostTeamId: uuid("host_team_id").references((): AnyPgColumn => teams.id, {
+      onDelete: "set null",
+    }),
     needsOpponent: boolean("needs_opponent").notNull().default(false),
     homeTeamId: uuid("home_team_id"),
     awayTeamId: uuid("away_team_id"),
@@ -317,6 +332,14 @@ export const matches = pgTable(
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   venue: one(venues, { fields: [events.venueId], references: [venues.id] }),
+  hostTeam: one(teams, {
+    fields: [events.hostTeamId],
+    references: [teams.id],
+    // events->teams and teams->events are both `one`; without explicit names
+    // drizzle tries to pair them into one relation and gives up, which turns
+    // every inferred query type in the schema into `any`.
+    relationName: "eventHostTeam",
+  }),
   kind: one(eventKinds, { fields: [events.kind], references: [eventKinds.slug] }),
   divisions: many(eventDivisions),
   eventTeams: many(eventTeams),
@@ -356,7 +379,17 @@ export const matchesRelations = relations(matches, ({ one }) => ({
   awayTeam: one(teams, { fields: [matches.awayTeamId], references: [teams.id] }),
 }));
 
-export const teamRole = pgEnum("team_role", ["owner", "manager"]);
+/**
+ * owner/manager administer the team (edit it, invite people).
+ * coach can also put events on the team's calendar.
+ * player is membership only — sees the team's private events, can RSVP.
+ */
+export const teamRole = pgEnum("team_role", [
+  "owner",
+  "manager",
+  "coach",
+  "player",
+]);
 
 export const teamMembers = pgTable(
   "team_members",
@@ -380,6 +413,7 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   originEvent: one(events, {
     fields: [teams.originEventId],
     references: [events.id],
+    relationName: "teamOriginEvent",
   }),
 }));
 
@@ -461,6 +495,50 @@ export const eventInvites = pgTable(
     ),
   ],
 );
+
+/**
+ * An invitation to join a team, in a given role. Same targeting rules as
+ * eventInvites; accepting writes the team_members row.
+ */
+export const teamInvites = pgTable(
+  "team_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    invitedUserId: uuid("invited_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    email: text("email"),
+    // Least privilege if anything ever forgets to pass one.
+    role: teamRole("role").notNull().default("player"),
+    invitedBy: uuid("invited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: inviteStatus("status").notNull().default("pending"),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("team_invites_team_user_uq").on(t.teamId, t.invitedUserId),
+    unique("team_invites_team_email_uq").on(t.teamId, t.email),
+    index("team_invites_email_idx").on(t.email),
+    check(
+      "team_invites_target_ck",
+      sql`(${t.invitedUserId} is null) <> (${t.email} is null)`,
+    ),
+  ],
+);
+
+export const teamInvitesRelations = relations(teamInvites, ({ one }) => ({
+  team: one(teams, { fields: [teamInvites.teamId], references: [teams.id] }),
+  invitedUser: one(users, {
+    fields: [teamInvites.invitedUserId],
+    references: [users.id],
+  }),
+}));
 
 export const eventInvitesRelations = relations(eventInvites, ({ one }) => ({
   event: one(events, { fields: [eventInvites.eventId], references: [events.id] }),

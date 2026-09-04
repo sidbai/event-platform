@@ -35,9 +35,9 @@ describe("viewDecision", () => {
     );
   });
 
-  it("defers to the guest list for a signed-in stranger", () => {
+  it("defers to the guest list / host team for a signed-in stranger", () => {
     expect(viewDecision(event({ visibility: "private" }), OTHER, false)).toBe(
-      "check-invite",
+      "check-access",
     );
   });
 

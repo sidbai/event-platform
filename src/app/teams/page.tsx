@@ -10,7 +10,15 @@ export default async function TeamsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
+        <Link
+          href="/teams/new"
+          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+        >
+          Create a team
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-muted">
         {teams.length === 0
           ? "Teams that play year-round show up here once a coach claims them. One-off tournament teams stay with their event."
