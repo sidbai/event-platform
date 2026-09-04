@@ -1,6 +1,47 @@
 import { describe, expect, it } from "vitest";
 
-import { isOurBlobUrl, parseUploadTarget } from "./blob";
+import {
+  isOurBlobUrl,
+  parseUploadTarget,
+  pathnameMatchesTarget,
+} from "./blob";
+
+describe("pathnameMatchesTarget", () => {
+  const avatar = { kind: "avatar" } as const;
+  const crest = { kind: "crest", teamSlug: "marymoor-united" } as const;
+
+  it("accepts a single file directly under the target's prefix", () => {
+    expect(pathnameMatchesTarget("avatars/me.png", avatar)).toBe(true);
+    expect(
+      pathnameMatchesTarget("crests/marymoor-united/badge.png", crest),
+    ).toBe(true);
+  });
+
+  it("refuses a path belonging to a different target", () => {
+    // the client chooses the pathname, so this is the check that stops one
+    // team's upload landing in another team's folder
+    expect(
+      pathnameMatchesTarget("crests/some-other-team/badge.png", crest),
+    ).toBe(false);
+    expect(pathnameMatchesTarget("avatars/me.png", crest)).toBe(false);
+    expect(pathnameMatchesTarget("crests/marymoor-united/x.png", avatar)).toBe(
+      false,
+    );
+  });
+
+  it("refuses traversal and nesting", () => {
+    expect(pathnameMatchesTarget("avatars/../crests/x.png", avatar)).toBe(false);
+    expect(pathnameMatchesTarget("avatars/sub/dir.png", avatar)).toBe(false);
+    expect(pathnameMatchesTarget("avatars/", avatar)).toBe(false);
+  });
+
+  it("refuses a prefix that only looks right", () => {
+    expect(pathnameMatchesTarget("avatars-evil/x.png", avatar)).toBe(false);
+    expect(
+      pathnameMatchesTarget("crests/marymoor-united-evil/x.png", crest),
+    ).toBe(false);
+  });
+});
 
 describe("isOurBlobUrl", () => {
   it("accepts a URL from our own Blob store", () => {

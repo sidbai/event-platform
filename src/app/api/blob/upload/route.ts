@@ -10,6 +10,7 @@ import {
   IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
   parseUploadTarget,
+  pathnameMatchesTarget,
 } from "@/features/uploads/blob";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +30,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     const json = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
         const user = await getCurrentUser();
         if (!user) throw new Error("Sign in to upload.");
 
         const target = parseUploadTarget(clientPayload ?? null);
         if (!target) throw new Error("Unknown upload target.");
+
+        // The pathname comes from the browser and cannot be rewritten here, so
+        // it has to be checked: it must sit directly under this target's own
+        // prefix, with no traversal into anyone else's.
+        if (!pathnameMatchesTarget(pathname, target))
+          throw new Error("That upload path isn't allowed.");
 
         if (target.kind === "crest") {
           const team = await db.query.teams.findFirst({
@@ -48,12 +55,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         return {
           allowedContentTypes: [...IMAGE_TYPES],
           maximumSizeInBytes: MAX_UPLOAD_BYTES,
-          // Keep the uploader's identity in the path so an orphaned blob can be
-          // traced back later.
-          pathname:
-            target.kind === "avatar"
-              ? `avatars/${user.id}`
-              : `crests/${target.teamSlug}`,
           addRandomSuffix: true,
         };
       },

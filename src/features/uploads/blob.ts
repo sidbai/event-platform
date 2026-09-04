@@ -36,6 +36,28 @@ export type UploadTarget =
   | { kind: "avatar" }
   | { kind: "crest"; teamSlug: string };
 
+/**
+ * Where a target's files live.
+ *
+ * The client sets the upload path and the server only gets to *validate* it —
+ * `onBeforeGenerateToken` cannot rewrite the pathname, so both sides derive it
+ * from here and the server checks the prefix before minting a token.
+ */
+export function uploadPrefix(target: UploadTarget): string {
+  return target.kind === "avatar" ? "avatars" : `crests/${target.teamSlug}`;
+}
+
+export function pathnameMatchesTarget(
+  pathname: string,
+  target: UploadTarget,
+): boolean {
+  const prefix = `${uploadPrefix(target)}/`;
+  if (!pathname.startsWith(prefix)) return false;
+  const rest = pathname.slice(prefix.length);
+  // One flat segment: no traversal, no burrowing into another target's folder.
+  return rest.length > 0 && !rest.includes("/") && !rest.includes("..");
+}
+
 export function parseUploadTarget(raw: string | null): UploadTarget | null {
   if (!raw) return null;
   let value: unknown;

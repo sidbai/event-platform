@@ -3,7 +3,12 @@
 import { upload } from "@vercel/blob/client";
 import { useRef, useState, useTransition } from "react";
 
-import { IMAGE_TYPES, MAX_UPLOAD_BYTES, type UploadTarget } from "./blob";
+import {
+  IMAGE_TYPES,
+  MAX_UPLOAD_BYTES,
+  uploadPrefix,
+  type UploadTarget,
+} from "./blob";
 
 const MB = (n: number) => `${Math.round(n / (1024 * 1024))}MB`;
 
@@ -41,7 +46,9 @@ export function ImageUpload({
 
     setBusy(true);
     try {
-      const blob = await upload(file.name, file, {
+      // addRandomSuffix keeps this unique; the server validates the prefix.
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-60);
+      const blob = await upload(`${uploadPrefix(target)}/${safeName}`, file, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
         clientPayload: JSON.stringify(target),
