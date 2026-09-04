@@ -437,7 +437,45 @@ export const discussionSubject = pgEnum("discussion_subject", [
   "event",
   "team",
   "post",
+  "forum_post",
 ]);
+
+// --- forum: standalone community discussions --------------------------
+
+export const forumCategory = pgEnum("forum_category", [
+  "general",
+  "looking-for-players",
+  "looking-for-teams",
+  "coaching",
+  "tournaments",
+  "logistics",
+  "feedback",
+]);
+
+export const forumPosts = pgTable(
+  "forum_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    category: forumCategory("category").notNull().default("general"),
+    authorId: uuid("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    pinned: boolean("pinned").notNull().default(false),
+    locked: boolean("locked").notNull().default(false),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("forum_posts_activity_idx").on(t.pinned, t.lastActivityAt)],
+);
+
+export const forumPostsRelations = relations(forumPosts, ({ one }) => ({
+  author: one(users, { fields: [forumPosts.authorId], references: [users.id] }),
+}));
 
 export const discussions = pgTable(
   "discussions",

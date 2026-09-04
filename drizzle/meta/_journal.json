@@ -57,6 +57,13 @@
       "when": 1788500965758,
       "tag": "0007_true_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788502165376,
+      "tag": "0008_tearful_titanium_man",
+      "breakpoints": true
     }
   ]
 }
