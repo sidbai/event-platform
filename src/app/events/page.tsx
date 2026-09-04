@@ -3,6 +3,7 @@ import { asc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { eventKinds } from "@/db/schema";
+import { EventTags } from "@/features/events/event-tags";
 import { listEvents, type EventFilters } from "@/features/events/queries";
 
 export const dynamic = "force-dynamic";
@@ -117,14 +118,12 @@ export default async function EventsPage({
                     {fmtDate(event.startsAt, event.timezone)}
                   </span>
                 </div>
-                <div className="mt-0.5 text-sm text-muted">
-                  <span className="capitalize">{event.kind}</span>
-                  {event.venue && <span> · {event.venue.name}</span>}
-                  {event.needsOpponent && (
-                    <span className="text-amber-700"> · looking for opponent</span>
-                  )}
-                  {event.status === "completed" && <span> · final results</span>}
-                </div>
+                {event.venue && (
+                  <div className="mt-0.5 text-sm text-muted">
+                    {event.venue.name}
+                  </div>
+                )}
+                <EventTags event={event} className="mt-2" />
               </Link>
             </li>
           ))}

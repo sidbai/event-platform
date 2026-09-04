@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { AttendanceSection } from "@/features/attendance/section";
 import { canViewEvent } from "@/features/events/can-view";
+import { EventTags } from "@/features/events/event-tags";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
@@ -120,12 +121,7 @@ export default async function EventPage({
       )}
 
       <header className="mt-4">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-          <span className="rounded bg-brand-soft px-1.5 py-0.5 text-brand-soft-text">
-            {event.kind}
-          </span>
-          <span>{event.status}</span>
-        </div>
+        <EventTags event={event} />
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.title}</h1>
         {event.titleZh && (
           <p className="mt-1 text-lg text-muted">{event.titleZh}</p>

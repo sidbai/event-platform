@@ -45,7 +45,7 @@ export async function listEvents(filters: EventFilters = {}) {
       filters.when === "upcoming" || filters.when === "weekend"
         ? [asc(events.startsAt)]
         : [desc(events.startsAt)],
-    with: { venue: true },
+    with: { venue: true, hostTeam: { columns: { name: true } } },
   });
 }
 
