@@ -67,7 +67,7 @@ export async function AttendanceSection({
     <section className="mt-10 border-t border-line pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold">
-          Who&rsquo;s in{" "}
+          RSVP{" "}
           <span className="text-muted">
             ({headcount}
             {capacity != null && ` / ${capacity}`})
@@ -80,7 +80,7 @@ export async function AttendanceSection({
 
       {user ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {button("going", "I’m in")}
+          {button("going", "Going")}
           {button("maybe", "Maybe")}
           {mine && (
             <span className="text-xs text-muted">
