@@ -31,7 +31,7 @@
   "sponsors": [
     { "name": "FixerUp", "url": "https://www.fixerupus.com/", "tier": "presenting" },
     { "name": "Eyas Global Montessori School", "url": "http://www.eyasmontessori.com/", "tier": "presenting" },
-    { "name": "Hootie Hoo", "url": null, "tier": "presenting" }
+    { "name": "Hootie Hoo", "url": "https://hootiehoo.com/", "tier": "presenting" }
   ],
   "rules": {
     "gameFormat": "5v5 co-ed, no goalkeeper, small POD goals. 15-minute halves, running clock, unlimited substitutions.",
