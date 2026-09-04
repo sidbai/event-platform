@@ -158,26 +158,31 @@ function CommentItem({
 
   return (
     <div className={isReply ? "border-l border-line pl-4" : ""}>
-      <div className="flex items-center gap-2 text-sm">
-        <Avatar src={comment.authorImage} name={comment.authorName} size={20} />
-        {comment.authorUsername ? (
-          <Link
-            href={`/people/${comment.authorUsername}`}
-            className="font-medium hover:underline"
-          >
-            {comment.authorName}
-          </Link>
-        ) : (
-          <span className="font-medium">{comment.authorName}</span>
-        )}
-        <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
-      </div>
       {hidden ? (
-        <p className="mt-1 text-sm italic text-muted">Comment removed.</p>
+        /* No author, no avatar, no timestamp: a removed comment shouldn't
+           still be attributed to the person who wrote it. It stays as a
+           tombstone only so its replies keep their place in the thread. */
+        <p className="text-sm italic text-muted">Comment removed.</p>
       ) : (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-          {comment.body}
-        </p>
+        <>
+          <div className="flex items-center gap-2 text-sm">
+            <Avatar src={comment.authorImage} name={comment.authorName} size={20} />
+            {comment.authorUsername ? (
+              <Link
+                href={`/people/${comment.authorUsername}`}
+                className="font-medium hover:underline"
+              >
+                {comment.authorName}
+              </Link>
+            ) : (
+              <span className="font-medium">{comment.authorName}</span>
+            )}
+            <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
+          </div>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+            {comment.body}
+          </p>
+        </>
       )}
 
       {!hidden && (

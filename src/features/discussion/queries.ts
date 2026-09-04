@@ -13,8 +13,9 @@ export type ThreadComment = {
   body: string;
   createdAt: Date;
   hiddenAt: Date | null;
-  authorId: string;
-  authorName: string;
+  /** All null once removed — a tombstone carries no identity. */
+  authorId: string | null;
+  authorName: string | null;
   authorUsername: string | null;
   authorImage: string | null;
   replies: ThreadComment[];
@@ -55,15 +56,21 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
 
   const byId = new Map<string, ThreadComment>();
   for (const row of rows) {
+    const hidden = Boolean(row.hiddenAt);
     byId.set(row.id, {
       id: row.id,
-      body: row.body,
+      // A removed comment keeps its place so replies still make sense, but
+      // nothing about it leaves the server: not the text, not who wrote it.
+      // Hiding it in the markup alone would still ship both to the browser in
+      // the payload, where anyone can read them.
+      body: hidden ? "" : row.body,
       createdAt: row.createdAt,
       hiddenAt: row.hiddenAt,
-      authorId: row.authorId,
-      authorName: row.author ? publicName(row.author) : "Someone",
-      authorUsername: row.author?.username ?? null,
-      authorImage: row.author?.avatarUrl ?? row.author?.image ?? null,
+      authorId: hidden ? null : row.authorId,
+      authorName: hidden ? null : row.author ? publicName(row.author) : "Someone",
+      authorUsername: hidden ? null : (row.author?.username ?? null),
+      // Custom uploads only. The Google photo is deliberately never shown.
+      authorImage: hidden ? null : (row.author?.avatarUrl ?? null),
       replies: [],
     });
   }
@@ -79,7 +86,7 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
   return {
     discussion,
     comments: roots,
-    count: rows.length,
+    count: rows.filter((r) => !r.hiddenAt).length,
     pinnedId: discussion.pinnedCommentId,
   };
 }
