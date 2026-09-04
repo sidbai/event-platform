@@ -21,8 +21,21 @@ function authorFields(a: {
   };
 }
 
-async function replyCounts(postIds: string[]) {
-  if (postIds.length === 0) return new Map<string, number>();
+/**
+ * Visible reply count per post.
+ *
+ * A converted post's thread lives on its event, so the count has to come from
+ * the event's discussion — otherwise every converted post reads as having no
+ * replies. Both subjects are counted in one pass, then keyed back to the post.
+ */
+async function replyCounts(
+  posts: { id: string; convertedEventId: string | null }[],
+) {
+  const subjectIds = [
+    ...posts.map((p) => p.convertedEventId ?? p.id),
+  ];
+  if (subjectIds.length === 0) return new Map<string, number>();
+
   const rows = await db
     .select({
       sid: discussions.subjectId,
@@ -32,22 +45,23 @@ async function replyCounts(postIds: string[]) {
     .innerJoin(discussions, eq(discussions.id, comments.discussionId))
     .where(
       and(
-        eq(discussions.subjectType, "forum_post"),
-        inArray(discussions.subjectId, postIds),
+        inArray(discussions.subjectType, ["forum_post", "event"]),
+        inArray(discussions.subjectId, subjectIds),
         isNull(comments.hiddenAt),
       ),
     )
     .groupBy(discussions.subjectId);
-  return new Map(rows.map((r) => [r.sid, r.n]));
+
+  const bySubject = new Map(rows.map((r) => [r.sid, r.n]));
+  return new Map(
+    posts.map((p) => [p.id, bySubject.get(p.convertedEventId ?? p.id) ?? 0]),
+  );
 }
 
 export async function listForumPosts(category?: ForumCategory) {
-  // Converted posts live on as events; their slug redirects there.
-  const notConverted = isNull(forumPosts.convertedEventId);
+  // Converted posts stay in the feed, badged, and link through to their event.
   const posts = await db.query.forumPosts.findMany({
-    where: category
-      ? and(eq(forumPosts.category, category), notConverted)
-      : notConverted,
+    where: category ? eq(forumPosts.category, category) : undefined,
     orderBy: [desc(forumPosts.pinned), desc(forumPosts.lastActivityAt)],
     limit: 100,
     with: {
@@ -59,13 +73,17 @@ export async function listForumPosts(category?: ForumCategory) {
           avatarUrl: true,
         },
       },
+      convertedEvent: { columns: { slug: true } },
     },
   });
 
-  const counts = await replyCounts(posts.map((p) => p.id));
+  const counts = await replyCounts(posts);
   return posts.map((p) => ({
     ...p,
     replies: counts.get(p.id) ?? 0,
+    href: p.convertedEvent
+      ? `/events/${p.convertedEvent.slug}`
+      : `/discussions/${p.slug}`,
     ...authorFields(p.author),
   }));
 }
@@ -89,22 +107,3 @@ export async function getForumPost(slug: string) {
   return { ...post, ...authorFields(post.author) };
 }
 
-export async function countByCategory() {
-  const rows = await db
-    .select({ category: forumPosts.category, n: sql<number>`count(*)::int` })
-    .from(forumPosts)
-    .where(isNull(forumPosts.convertedEventId))
-    .groupBy(forumPosts.category);
-  return Object.fromEntries(rows.map((r) => [r.category, r.n])) as Record<
-    string,
-    number
-  >;
-}
-
-export async function ownForumPost(slug: string, userId: string) {
-  const row = await db.query.forumPosts.findFirst({
-    where: and(eq(forumPosts.slug, slug), eq(forumPosts.authorId, userId)),
-    columns: { id: true },
-  });
-  return Boolean(row);
-}
