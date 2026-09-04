@@ -89,7 +89,7 @@ export default async function DiscussionsPage({
           {posts.map((post) => (
             <li key={post.slug}>
               <Link
-                href={`/discussions/${post.slug}`}
+                href={post.href}
                 className="block rounded-xl border border-line bg-card p-4 transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
               >
                 <div className="flex items-center gap-2 text-xs text-muted">
@@ -97,6 +97,11 @@ export default async function DiscussionsPage({
                   <span className="rounded-full bg-elevated px-2 py-0.5">
                     {CATEGORY_LABELS[post.category]}
                   </span>
+                  {post.convertedEvent && (
+                    <span className="rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-soft-text">
+                      Now an event
+                    </span>
+                  )}
                   {post.locked && <span>· locked</span>}
                 </div>
                 <h2 className="mt-1.5 font-medium leading-snug">{post.title}</h2>
