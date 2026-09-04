@@ -48,11 +48,32 @@ export function overallOf(r: Ratings): number {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-/** Per-category averages across many reviews, plus the overall mean. */
+/**
+ * How many reviews a subject needs before we publish a score.
+ *
+ * Below this the reviews still show — one person's account is worth reading —
+ * but the number does not, because at n=1 a single unhappy reviewer *is* the
+ * subject's public rating. This matters most for people (coaches) rather than
+ * organisations, but a thin club average is just as misleading.
+ */
+export const MIN_REVIEWS_FOR_SCORE = 3;
+
+/** Whether a subject has enough reviews for its average to mean anything. */
+export function isRated(count: number): boolean {
+  return count >= MIN_REVIEWS_FOR_SCORE;
+}
+
+/**
+ * Per-category averages across many reviews, plus the overall mean.
+ *
+ * `rated` says whether the numbers are safe to show; callers branch on it
+ * rather than re-deriving the threshold, so a new surface cannot forget.
+ */
 export function averageRatings(reviews: Ratings[]): {
   byCategory: Ratings;
   overall: number;
   count: number;
+  rated: boolean;
 } | null {
   if (reviews.length === 0) return null;
 
@@ -65,6 +86,7 @@ export function averageRatings(reviews: Ratings[]): {
     byCategory,
     overall: overallOf(byCategory),
     count: reviews.length,
+    rated: isRated(reviews.length),
   };
 }
 

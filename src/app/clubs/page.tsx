@@ -62,7 +62,7 @@ export default async function ClubsPage() {
                 {/* Pushed to the bottom so ratings line up across a row even
                     when club names wrap to two lines. */}
                 <div className="mt-auto pt-1">
-                  {club.summary ? (
+                  {club.summary?.rated ? (
                     <>
                       <div className="flex items-center justify-center gap-1.5">
                         <span className="text-lg font-semibold tabular-nums">
@@ -72,6 +72,16 @@ export default async function ClubsPage() {
                           <Stars value={club.summary.overall} />
                         </span>
                       </div>
+                      <div className="text-xs text-muted">
+                        {club.summary.count} review
+                        {club.summary.count === 1 ? "" : "s"}
+                      </div>
+                    </>
+                  ) : club.summary ? (
+                    // Reviews exist but too few to average — say so rather
+                    // than showing a number one person decided.
+                    <>
+                      <div className="text-sm text-muted">Not rated yet</div>
                       <div className="text-xs text-muted">
                         {club.summary.count} review
                         {club.summary.count === 1 ? "" : "s"}

@@ -60,3 +60,35 @@ describe("parseRating", () => {
     }
   });
 });
+
+describe("rating threshold", () => {
+  const r = (n: number): Ratings => ({
+    playerDevelopment: n,
+    coaching: n,
+    communication: n,
+    clubCulture: n,
+    playingTime: n,
+    value: n,
+  });
+
+  it("withholds a score below the threshold", () => {
+    expect(averageRatings([r(5)])?.rated).toBe(false);
+    expect(averageRatings([r(5), r(1)])?.rated).toBe(false);
+  });
+
+  it("publishes one at the threshold and above", () => {
+    expect(averageRatings([r(4), r(4), r(4)])?.rated).toBe(true);
+    expect(averageRatings([r(4), r(4), r(4), r(2)])?.rated).toBe(true);
+  });
+
+  it("still computes the average, so it is display policy not data loss", () => {
+    // A single 5 star review must not read as a 5.0 club, but the number is
+    // still there for admins and for the moment it crosses the threshold.
+    expect(averageRatings([r(5)])?.overall).toBe(5);
+    expect(averageRatings([r(5)])?.count).toBe(1);
+  });
+
+  it("has no score at all with no reviews", () => {
+    expect(averageRatings([])).toBeNull();
+  });
+});
