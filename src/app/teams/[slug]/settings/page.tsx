@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser, publicName, requireUser } from "@/features/auth";
 import { canManageTeam } from "@/features/teams/access";
-import { removeMember, updateTeam } from "@/features/teams/actions";
+import { deleteTeam, removeMember, updateTeam } from "@/features/teams/actions";
+import { DeleteTeamButton } from "@/features/teams/delete-team";
 import { TeamInviteForm } from "@/features/teams/create-form";
 import {
   inviteToTeam,
@@ -140,6 +141,20 @@ export default async function TeamSettingsPage({
           </>
         )}
       </section>
+      {isOwner && (
+        <section className="mt-12 border-t border-line pt-6">
+          <h2 className="text-lg font-semibold">Delete team</h2>
+          <p className="mt-1 mb-3 text-sm text-muted">
+            Removes {team.name}, its members and any pending invites. A team
+            that has played in an event can&rsquo;t be deleted — its results
+            would go with it.
+          </p>
+          <DeleteTeamButton
+            teamName={team.name}
+            action={deleteTeam.bind(null, slug)}
+          />
+        </section>
+      )}
     </div>
   );
 }

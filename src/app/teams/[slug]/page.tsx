@@ -10,7 +10,7 @@ import {
   canViewTeam,
   isTeamMember,
 } from "@/features/teams/access";
-import { claimTeam, promoteTeam, unclaimTeam } from "@/features/teams/actions";
+import { claimTeam, promoteTeam } from "@/features/teams/actions";
 import {
   acceptTeamInvite,
   declineTeamInvite,
@@ -123,11 +123,6 @@ export default async function TeamPage({
             >
               Team settings
             </Link>
-            <form action={unclaimTeam.bind(null, team.slug)}>
-              <button type="submit" className="text-muted hover:text-red-600">
-                Release
-              </button>
-            </form>
           </>
         ) : canEdit ? (
           <>

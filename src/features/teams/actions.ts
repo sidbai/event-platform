@@ -1,10 +1,11 @@
 "use server";
 
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { teamMembers, teams } from "@/db/schema";
+import { eventOffers, eventTeams, matches, teamMembers, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
@@ -31,23 +32,6 @@ export async function claimTeam(slug: string): Promise<void> {
 
   revalidatePath(`/teams/${slug}`);
   revalidatePath("/teams");
-}
-
-export async function unclaimTeam(slug: string): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  const [team] = await db
-    .update(teams)
-    .set({ claimedBy: null, verifiedAt: null, updatedAt: new Date() })
-    .where(and(eq(teams.slug, slug), eq(teams.claimedBy, user.id)))
-    .returning({ id: teams.id });
-
-  if (team) {
-    await db.delete(teamMembers).where(eq(teamMembers.teamId, team.id));
-  }
-
-  revalidatePath(`/teams/${slug}`);
 }
 
 export async function verifyTeam(teamId: string): Promise<void> {
@@ -147,4 +131,50 @@ export async function updateTeam(
   revalidatePath(`/teams/${slug}`);
   revalidatePath(`/teams/${slug}/settings`);
   return { ok: true };
+}
+
+/**
+ * Delete a team outright. Owner or admin.
+ *
+ * Refused while anything competitive still points at the team. The database
+ * would block it anyway — event_teams, matches and event_offers all reference
+ * teams with NO ACTION — but a raw foreign-key error is not an answer, and
+ * silently deleting a King Juan Cup side would take its standings with it.
+ * team_members and team_invites cascade; events.host_team_id nulls itself.
+ */
+export async function deleteTeam(slug: string): Promise<TeamFormResult> {
+  const ctx = await ownerOnly(slug);
+  if (!ctx) return { error: "Only the owner can delete this team." };
+
+  const inEvent = await db.query.eventTeams.findFirst({
+    where: eq(eventTeams.teamId, ctx.team.id),
+    columns: { id: true },
+    with: { event: { columns: { title: true } } },
+  });
+  if (inEvent) {
+    return {
+      error: `This team is registered for ${inEvent.event?.title ?? "an event"}, so it can't be deleted. Deleting it would take that event's results with it.`,
+    };
+  }
+
+  const played = await db.query.matches.findFirst({
+    where: or(
+      eq(matches.homeTeamId, ctx.team.id),
+      eq(matches.awayTeamId, ctx.team.id),
+    ),
+    columns: { id: true },
+  });
+  if (played) return { error: "This team has matches on record, so it can't be deleted." };
+
+  const offered = await db.query.eventOffers.findFirst({
+    where: eq(eventOffers.fromTeamId, ctx.team.id),
+    columns: { id: true },
+  });
+  if (offered) {
+    return { error: "This team has offered to play an event, so it can't be deleted." };
+  }
+
+  await db.delete(teams).where(eq(teams.id, ctx.team.id));
+  revalidatePath("/teams");
+  redirect("/teams");
 }
