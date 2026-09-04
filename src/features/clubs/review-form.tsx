@@ -2,7 +2,11 @@
 
 import { useActionState } from "react";
 
-import { RATING_CATEGORIES, type ClubResult } from "./constants";
+import {
+  RATING_CATEGORIES,
+  REVIEWER_ROLES,
+  type ClubResult,
+} from "./constants";
 
 type Action = (prev: ClubResult, formData: FormData) => Promise<ClubResult>;
 
@@ -60,6 +64,7 @@ export function ReviewForm({
   existing?: {
     title: string;
     body: string;
+    reviewerRole: string;
     ratings: Record<string, number>;
   } | null;
 }) {
@@ -71,6 +76,32 @@ export function ReviewForm({
 
   return (
     <form action={formAction} className="mt-6 space-y-5">
+      <fieldset>
+        <legend className="block text-sm font-medium">
+          How do you know this club?
+        </legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {REVIEWER_ROLES.map(({ key, label }) => (
+            <label
+              key={key}
+              className="cursor-pointer rounded-full border border-line px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft has-[:checked]:font-medium has-[:checked]:text-brand-soft-text"
+            >
+              <input
+                type="radio"
+                name="reviewerRole"
+                value={key}
+                defaultChecked={existing?.reviewerRole === key}
+                className="sr-only"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {err.reviewerRole && (
+          <p className="mt-1 text-xs text-red-600">{err.reviewerRole}</p>
+        )}
+      </fieldset>
+
       <div className="rounded-xl border border-line bg-card p-4">
         <div className="divide-y divide-line">
           {RATING_CATEGORIES.map(({ key, label }) => (

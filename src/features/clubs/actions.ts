@@ -21,6 +21,7 @@ import { canEditClub } from "./access";
 import { generateAnonHandle } from "./anon";
 import {
   parseRating,
+  parseReviewerRole,
   RATING_CATEGORIES,
   REPORT_REASONS,
   type ClubResult,
@@ -117,6 +118,9 @@ export async function saveReview(
     else ratings[key] = v;
   }
 
+  const reviewerRole = parseReviewerRole(formData.get("reviewerRole"));
+  if (!reviewerRole) fieldErrors.reviewerRole = "Say how you know this club.";
+
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   if (title.length < 4) fieldErrors.title = "Give it a headline.";
@@ -131,10 +135,17 @@ export async function saveReview(
   // One review per person per club: writing again edits the one you have.
   await db
     .insert(clubReviews)
-    .values({ clubId: club.id, authorId: user.id, ...ratings, title, body })
+    .values({
+      clubId: club.id,
+      authorId: user.id,
+      ...ratings,
+      reviewerRole: reviewerRole!,
+      title,
+      body,
+    })
     .onConflictDoUpdate({
       target: [clubReviews.clubId, clubReviews.authorId],
-      set: { ...ratings, title, body, updatedAt: new Date() },
+      set: { ...ratings, reviewerRole: reviewerRole!, title, body, updatedAt: new Date() },
     });
 
   revalidatePath(`/clubs/${slug}`);

@@ -42,6 +42,7 @@ export default async function ReviewPage({
             ? {
                 title: existing.title,
                 body: existing.body,
+                reviewerRole: existing.reviewerRole,
                 ratings: {
                   playerDevelopment: existing.playerDevelopment,
                   coaching: existing.coaching,

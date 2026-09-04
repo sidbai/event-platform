@@ -60,6 +60,7 @@ export type ReviewCard = {
   ratings: Ratings;
   overallForReview: Ratings;
   anonHandle: string;
+  reviewerRole: string;
   createdAt: Date;
   helpful: number;
   votedByMe: boolean;
@@ -107,6 +108,7 @@ export async function listReviews(clubId: string, userId: string | null) {
     title: r.title,
     body: r.body,
     ratings: ratingsOf(r),
+    reviewerRole: r.reviewerRole,
     anonHandle: r.author?.anonHandle ?? "anon",
     createdAt: r.createdAt,
     helpful: byReview.get(r.id) ?? 0,
