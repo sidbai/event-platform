@@ -60,20 +60,18 @@ export default async function ClubPage({
         <TeamCrest src={club.crestUrl} size={64} />
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight">{club.name}</h1>
-          <p className="text-sm text-muted">
-            {[club.city, club.website ? "Website" : null].filter(Boolean).join(" · ")}
+          <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
+            {club.city && <span>{club.city}</span>}
+            {club.city && club.website && <span aria-hidden>·</span>}
             {club.website && (
-              <>
-                {club.city ? " · " : ""}
-                <a
-                  href={club.website}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="text-brand-text hover:underline"
-                >
-                  Website
-                </a>
-              </>
+              <a
+                href={club.website}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-brand-text hover:underline"
+              >
+                Website
+              </a>
             )}
           </p>
         </div>
@@ -137,6 +135,13 @@ export default async function ClubPage({
                   <span className="tabular-nums text-ink">
                     {overallOf(r.ratings).toFixed(1)}
                   </span>
+                </span>
+                <span>·</span>
+                <span
+                  className="rounded-full bg-elevated px-2 py-0.5 capitalize"
+                  title="Self-reported — we can't verify this"
+                >
+                  {r.reviewerRole}
                 </span>
                 <span>·</span>
                 <span className="font-mono">{r.anonHandle}</span>

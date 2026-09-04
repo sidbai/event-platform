@@ -12,6 +12,20 @@ export type RatingKey = (typeof RATING_CATEGORIES)[number]["key"];
 
 export type Ratings = Record<RatingKey, number>;
 
+/** Self-declared, and labelled as such — we can't verify it. */
+export const REVIEWER_ROLES = [
+  { key: "parent", label: "Parent" },
+  { key: "player", label: "Player" },
+  { key: "coach", label: "Coach" },
+] as const;
+
+export type ReviewerRole = (typeof REVIEWER_ROLES)[number]["key"];
+
+export function parseReviewerRole(raw: FormDataEntryValue | null): ReviewerRole | null {
+  const v = String(raw ?? "");
+  return REVIEWER_ROLES.some((r) => r.key === v) ? (v as ReviewerRole) : null;
+}
+
 export const REPORT_REASONS = [
   "Abusive or offensive",
   "Not true",

@@ -113,6 +113,13 @@
       "when": 1788546091330,
       "tag": "0015_giant_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788548431806,
+      "tag": "0016_old_bill_hollister",
+      "breakpoints": true
     }
   ]
 }

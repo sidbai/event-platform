@@ -461,6 +461,14 @@ export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
 
 // --- clubs and club reviews --------------------------------------------
 
+/**
+ * Who the reviewer is relative to the club. Shown on every review, because a
+ * coach's view of a club and a parent's are different claims and readers
+ * should be able to tell them apart. It is self-declared — we can't verify it
+ * the way Blind verifies a work email — so it is disclosure, not proof.
+ */
+export const reviewerRole = pgEnum("reviewer_role", ["parent", "player", "coach"]);
+
 export const clubs = pgTable("clubs", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
@@ -499,6 +507,7 @@ export const clubReviews = pgTable(
     playingTime: integer("playing_time").notNull(),
     value: integer("value").notNull(),
 
+    reviewerRole: reviewerRole("reviewer_role").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
     /** Set by an admin; hides the review without destroying the record. */
