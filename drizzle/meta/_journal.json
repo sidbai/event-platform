@@ -141,6 +141,13 @@
       "when": 1788558455596,
       "tag": "0019_sloppy_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788561142845,
+      "tag": "0020_lazy_ultimates",
+      "breakpoints": true
     }
   ]
 }

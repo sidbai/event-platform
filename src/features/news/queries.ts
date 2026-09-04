@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { comments, discussions, newsPosts } from "@/db/schema";
@@ -61,6 +61,31 @@ export async function getNewsPost(slug: string) {
     ...post,
     authorName: post.author ? publicName(post.author) : "King Juan Soccer",
   };
+}
+
+/**
+ * An author's own drafts and submissions, for the "Your posts" strip on the
+ * index — otherwise a contributor sends a post for review and has no way back
+ * to it, since unpublished posts are absent from the index by design.
+ */
+export async function myNewsSubmissions(userId: string) {
+  return db.query.newsPosts.findMany({
+    where: and(eq(newsPosts.authorId, userId), ne(newsPosts.status, "published")),
+    orderBy: [desc(newsPosts.updatedAt)],
+    limit: 10,
+    columns: { slug: true, title: true, status: true, reviewNote: true },
+  });
+}
+
+/** Submissions waiting on an editor. */
+export async function pendingNews() {
+  return db.query.newsPosts.findMany({
+    where: eq(newsPosts.status, "pending"),
+    orderBy: [desc(newsPosts.updatedAt)],
+    with: {
+      author: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
 }
 
 /** Everything including drafts, for the admin index. */

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { requireUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canEditNewsPost } from "@/features/news/access";
 import { deleteNewsPost, updateNewsPost } from "@/features/news/actions";
 import { NewsPostForm } from "@/features/news/post-form";
 import { getNewsPost } from "@/features/news/queries";
@@ -18,10 +19,13 @@ export default async function EditNewsPage({
 }) {
   const { slug } = await params;
   const user = await requireUser(`/news/${slug}/edit`);
-  if (!isAdmin(user)) notFound();
+  const admin = isAdmin(user);
 
   const post = await getNewsPost(slug);
   if (!post) notFound();
+  // Authors edit their own work up to the moment it goes live; after that it
+  // is the site's article, not theirs.
+  if (!canEditNewsPost(post, { id: user.id, admin })) notFound();
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -32,6 +36,7 @@ export default async function EditNewsPage({
 
       <NewsPostForm
         action={updateNewsPost.bind(null, slug)}
+        admin={admin}
         submitLabel="Save changes"
         existing={{
           title: post.title,

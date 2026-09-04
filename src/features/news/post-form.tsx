@@ -14,6 +14,7 @@ const label = "block text-sm font-medium";
 export function NewsPostForm({
   action,
   existing,
+  admin,
   submitLabel,
 }: {
   action: Action;
@@ -25,6 +26,8 @@ export function NewsPostForm({
     coverUrl: string | null;
     published: boolean;
   } | null;
+  /** Admins publish directly; everyone else's send goes to the review queue. */
+  admin: boolean;
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<NewsResult, FormData>(
@@ -133,9 +136,11 @@ export function NewsPostForm({
           name="publish"
           defaultChecked={existing?.published ?? false}
         />
-        Publish now
+        {admin ? "Publish now" : "Send for review"}
         <span className="text-muted">
-          (leave off to keep it a draft only admins can see)
+          {admin
+            ? "(leave off to keep it a draft only admins can see)"
+            : "(leave off to keep working on it privately)"}
         </span>
       </label>
 

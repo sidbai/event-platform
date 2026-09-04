@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
-import { isAdmin } from "@/features/auth/admin";
 import { canEditClub } from "@/features/clubs/access";
 import { canManageTeam } from "@/features/teams/access";
 import {
@@ -51,9 +50,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (target.kind === "club" && !(await canEditClub()))
           throw new Error("You can't edit that club.");
 
-        // News is editorial, so its images are admin-only like its articles.
-        if (target.kind === "news" && !isAdmin(user))
-          throw new Error("Only admins can upload news images.");
+        // "news" needs no extra check either: anyone signed in may write a
+        // post, so anyone may attach a cover to the one they are drafting. The
+        // size and content-type limits below still apply, and nothing they
+        // upload is public until an admin approves the post itself.
 
         if (target.kind === "crest") {
           const team = await db.query.teams.findFirst({

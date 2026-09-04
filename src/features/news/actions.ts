@@ -11,6 +11,12 @@ import { isAdmin } from "@/features/auth/admin";
 import { isOurBlobUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
+import {
+  canDeleteNewsPost,
+  canEditNewsPost,
+  nextStatus,
+  type NewsViewer,
+} from "./access";
 import { parseCategory, type NewsResult } from "./constants";
 
 const TITLE_MAX = 160;
@@ -64,20 +70,22 @@ export async function createNewsPost(
   formData: FormData,
 ): Promise<NewsResult> {
   const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return { error: "Only admins can write news." };
+  if (!user) return { error: "Sign in to write a post." };
+  const viewer: NewsViewer = { id: user.id, admin: isAdmin(user) };
 
   const { fieldErrors, values } = read(formData);
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  const publish = formData.get("publish") === "on";
+  const intent = formData.get("publish") === "on" ? "submit" : "save";
+  const status = nextStatus(intent, viewer);
   const slug = await uniqueSlug(slugify(values.title).slice(0, 70));
 
   await db.insert(newsPosts).values({
     slug,
     ...values,
     authorId: user.id,
-    status: publish ? "published" : "draft",
-    publishedAt: publish ? new Date() : null,
+    status,
+    publishedAt: status === "published" ? new Date() : null,
   });
 
   revalidatePath("/news");
@@ -90,28 +98,36 @@ export async function updateNewsPost(
   formData: FormData,
 ): Promise<NewsResult> {
   const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return { error: "Only admins can edit news." };
+  if (!user) return { error: "Sign in to edit." };
+  const viewer: NewsViewer = { id: user.id, admin: isAdmin(user) };
 
   const existing = await db.query.newsPosts.findFirst({
     where: eq(newsPosts.slug, slug),
-    columns: { id: true, publishedAt: true },
+    columns: { id: true, publishedAt: true, status: true, authorId: true },
   });
   if (!existing) return { error: "That post is gone." };
+  if (!canEditNewsPost(existing, viewer))
+    return { error: "You can't edit that post." };
 
   const { fieldErrors, values } = read(formData);
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  const publish = formData.get("publish") === "on";
+  const intent = formData.get("publish") === "on" ? "submit" : "save";
+  const status = nextStatus(intent, viewer, existing.status);
 
   await db
     .update(newsPosts)
     .set({
       ...values,
-      status: publish ? "published" : "draft",
+      status,
       // Keep the original publication date across later edits; only stamp it
       // the first time it goes live, or the article keeps jumping to the top
       // of the index every time a typo is fixed.
-      publishedAt: publish ? (existing.publishedAt ?? new Date()) : null,
+      publishedAt:
+        status === "published" ? (existing.publishedAt ?? new Date()) : null,
+      // A resubmission clears the last rejection, so stale feedback does not
+      // sit on a post the author has already fixed.
+      reviewNote: null,
       updatedAt: new Date(),
     })
     .where(eq(newsPosts.id, existing.id));
@@ -123,8 +139,71 @@ export async function updateNewsPost(
 
 export async function deleteNewsPost(slug: string): Promise<void> {
   const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return;
+  if (!user) return;
+  const existing = await db.query.newsPosts.findFirst({
+    where: eq(newsPosts.slug, slug),
+    columns: { status: true, authorId: true },
+  });
+  if (!existing) return;
+  if (!canDeleteNewsPost(existing, { id: user.id, admin: isAdmin(user) })) return;
+
   await db.delete(newsPosts).where(eq(newsPosts.slug, slug));
   revalidatePath("/news");
   redirect("/news");
+}
+
+/** Admin review: put a submission live. */
+export async function approveNewsPost(slug: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  const existing = await db.query.newsPosts.findFirst({
+    where: eq(newsPosts.slug, slug),
+    columns: { id: true, publishedAt: true },
+  });
+  if (!existing) return;
+
+  await db
+    .update(newsPosts)
+    .set({
+      status: "published",
+      publishedAt: existing.publishedAt ?? new Date(),
+      reviewNote: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(newsPosts.id, existing.id));
+
+  revalidatePath("/news");
+  revalidatePath(`/news/${slug}`);
+  revalidatePath("/admin");
+}
+
+/**
+ * Admin review: send a submission back to its author.
+ *
+ * Back to draft rather than a terminal 'rejected' state — the author fixes it
+ * and resubmits, which is the outcome we actually want from feedback.
+ */
+export async function rejectNewsPost(
+  slug: string,
+  formData: FormData,
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500);
+
+  await db
+    .update(newsPosts)
+    .set({
+      status: "draft",
+      publishedAt: null,
+      reviewNote: note || "Sent back without a note.",
+      updatedAt: new Date(),
+    })
+    .where(eq(newsPosts.slug, slug));
+
+  revalidatePath("/news");
+  revalidatePath(`/news/${slug}`);
+  revalidatePath("/admin");
 }
