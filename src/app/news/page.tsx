@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
-import { isAdmin } from "@/features/auth/admin";
 import {
   categoryEmoji,
   categoryLabel,
@@ -11,7 +10,7 @@ import {
   parseCategory,
   readingMinutes,
 } from "@/features/news/constants";
-import { listNews } from "@/features/news/queries";
+import { listNews, myNewsSubmissions } from "@/features/news/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -60,8 +59,11 @@ export default async function NewsPage({
 }) {
   const { c } = await searchParams;
   const active = parseCategory(c);
-  const [posts, user] = await Promise.all([listNews(active ?? undefined), getCurrentUser()]);
-  const admin = isAdmin(user);
+  const [posts, user] = await Promise.all([
+    listNews(active ?? undefined),
+    getCurrentUser(),
+  ]);
+  const mine = user ? await myNewsSubmissions(user.id) : [];
 
   // The newest post leads; the rest run underneath as rows.
   const [lead, ...rest] = posts;
@@ -75,7 +77,7 @@ export default async function NewsPage({
             Recaps, guides and announcements from around Seattle youth soccer.
           </p>
         </div>
-        {admin && (
+        {user && (
           <Link
             href="/news/new"
             className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
@@ -84,6 +86,38 @@ export default async function NewsPage({
           </Link>
         )}
       </div>
+
+      {mine.length > 0 && (
+        <section className="mt-5 rounded-lg border border-line bg-elevated px-4 py-3">
+          <h2 className="text-sm font-semibold">Your posts</h2>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {mine.map((p) => (
+              <li key={p.slug} className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/news/${p.slug}`}
+                  className="min-w-0 truncate hover:underline"
+                >
+                  {p.title}
+                </Link>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+                    p.status === "pending"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-line text-muted"
+                  }`}
+                >
+                  {p.status === "pending" ? "In review" : "Draft"}
+                </span>
+                {p.reviewNote && (
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    Sent back: {p.reviewNote}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <nav className="mt-5 flex flex-wrap gap-1.5 text-sm">
         <Link
@@ -112,7 +146,7 @@ export default async function NewsPage({
       {posts.length === 0 ? (
         <p className="mt-10 text-muted">
           Nothing here yet.
-          {admin && (
+          {user && (
             <>
               {" "}
               <Link href="/news/new" className="text-brand-text hover:underline">

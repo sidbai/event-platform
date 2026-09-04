@@ -12,6 +12,8 @@ import {
 import { dismissReviewReports, hideReview } from "@/features/clubs/actions";
 import { hideComment } from "@/features/discussion/actions";
 import { approveEvent, rejectEvent } from "@/features/events/actions";
+import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
+import { pendingNews } from "@/features/news/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +21,9 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, reports, reviewReports, clubEdits] = await Promise.all([
+  const [events, news, reports, reviewReports, clubEdits] = await Promise.all([
     pendingEvents(),
+    pendingNews(),
     reportedComments(),
     reportedReviews(),
     recentClubEdits(),
@@ -66,6 +69,58 @@ export default async function AdminPage() {
                   <form action={rejectEvent.bind(null, event.slug)}>
                     <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                       Decline
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          News submissions{" "}
+          {news.length > 0 && <span className="text-muted">({news.length})</span>}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Anyone can write a post; nothing reaches News until it is approved
+          here.
+        </p>
+        {news.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {news.map((post) => (
+              <li key={post.id} className="rounded-lg border border-line p-3">
+                <Link
+                  href={`/news/${post.slug}`}
+                  className="font-medium text-brand-text hover:underline"
+                >
+                  {post.title}
+                </Link>
+                <div className="text-xs text-muted">
+                  {post.author ? publicName(post.author) : "Unknown"} ·{" "}
+                  {post.category}
+                </div>
+                <p className="mt-1 text-sm text-muted">{post.summary}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <form action={approveNewsPost.bind(null, post.slug)}>
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
+                      Publish
+                    </button>
+                  </form>
+                  <form
+                    action={rejectNewsPost.bind(null, post.slug)}
+                    className="flex flex-1 flex-wrap items-center gap-2"
+                  >
+                    <input
+                      name="note"
+                      placeholder="Why it is going back (optional)"
+                      className="min-w-0 flex-1 rounded-md border border-line bg-card px-2 py-1 text-sm"
+                    />
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
+                      Send back
                     </button>
                   </form>
                 </div>

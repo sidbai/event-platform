@@ -468,15 +468,20 @@ export const newsCategory = pgEnum("news_category", [
   "announcement",
 ]);
 
-export const newsStatus = pgEnum("news_status", ["draft", "published"]);
+export const newsStatus = pgEnum("news_status", [
+  "draft",
+  "pending",
+  "published",
+]);
 
 /**
- * An editorial article, written by an admin.
+ * An editorial article. Anyone signed in may write one; an admin decides what
+ * actually appears on /news, the same shape as the pending-event queue.
  *
  * Distinct from forum_posts on purpose: the community forum is anyone's to
- * post in, this is the site speaking. Comments reuse the polymorphic
- * discussion, so a news post gets the same thread, moderation and reporting
- * as everything else.
+ * post in and needs no approval, this is the site speaking. Comments reuse the
+ * polymorphic discussion, so a news post gets the same thread, moderation and
+ * reporting as everything else.
  */
 export const newsPosts = pgTable(
   "news_posts",
@@ -495,6 +500,11 @@ export const newsPosts = pgTable(
     }),
     /** Null until first published; drives ordering and the visible date. */
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /**
+     * Why an admin sent a submission back. Shown to the author on their own
+     * post so a rejection is actionable rather than a silent bounce.
+     */
+    reviewNote: text("review_note"),
     ...timestamps,
   },
   (t) => [index("news_posts_published_idx").on(t.status, t.publishedAt)],

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canEditNewsPost, canViewNewsPost } from "@/features/news/access";
 import { DiscussionThread } from "@/features/discussion/thread";
 import {
   categoryEmoji,
@@ -49,8 +50,11 @@ export default async function NewsPostPage({
   if (!post) notFound();
 
   const admin = isAdmin(user);
-  // A draft is only visible to the people who can publish it.
-  if (post.status !== "published" && !admin) notFound();
+  const viewer = user ? { id: user.id, admin } : null;
+  // Unpublished posts are for admins and the author — an author who could not
+  // see their own submission would have no idea it existed.
+  if (!canViewNewsPost(post, viewer)) notFound();
+  const canEdit = canEditNewsPost(post, viewer);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -58,10 +62,23 @@ export default async function NewsPostPage({
         ← News
       </Link>
 
-      {post.status !== "published" && (
+      {post.status === "pending" && (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Draft — only admins can see this.
+          {admin
+            ? "Waiting for review — approve it from the admin queue."
+            : "Sent for review. An editor will take a look before it appears on News."}
         </p>
+      )}
+
+      {post.status === "draft" && (
+        <div className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p>Draft — only you and the editors can see this.</p>
+          {post.reviewNote && (
+            <p className="mt-1">
+              <span className="font-medium">Sent back:</span> {post.reviewNote}
+            </p>
+          )}
+        </div>
       )}
 
       <article className="mt-4">
@@ -80,7 +97,7 @@ export default async function NewsPostPage({
           <span>{fmt(post.publishedAt)}</span>
           <span aria-hidden>·</span>
           <span>{readingMinutes(post.body)} min read</span>
-          {admin && (
+          {canEdit && (
             <>
               <span aria-hidden>·</span>
               <Link

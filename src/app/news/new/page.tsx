@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { requireUser } from "@/features/auth";
@@ -12,7 +11,7 @@ export const metadata: Metadata = { title: "Write a post" };
 
 export default async function NewNewsPage() {
   const user = await requireUser("/news/new");
-  if (!isAdmin(user)) notFound();
+  const admin = isAdmin(user);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -20,7 +19,17 @@ export default async function NewNewsPage() {
         ← News
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Write a post</h1>
-      <NewsPostForm action={createNewsPost} submitLabel="Create post" />
+      {!admin && (
+        <p className="mt-2 text-sm text-muted">
+          Anyone can write. An editor reads it before it appears on News — you
+          can keep working on it as a draft until you send it.
+        </p>
+      )}
+      <NewsPostForm
+        action={createNewsPost}
+        admin={admin}
+        submitLabel="Create post"
+      />
     </div>
   );
 }
