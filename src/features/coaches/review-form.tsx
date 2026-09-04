@@ -47,9 +47,13 @@ export function CoachReviewForm({
 
       <fieldset>
         <legend className="text-sm font-medium">Your experience</legend>
+        <p className="mt-1 text-xs text-muted">
+          Leave the team blank if naming it would make you easy to identify —
+          a squad is a small group of families.
+        </p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            Team
+            Team <span className="text-muted">(optional)</span>
             <input
               name="teamLabel"
               defaultValue={existing?.teamLabel ?? ""}
@@ -101,13 +105,14 @@ export function CoachReviewForm({
           </label>
 
           <label className="block text-sm">
-            Seasons with this coach
+            Seasons with this coach <span className="text-muted">(optional)</span>
             <input
               name="yearsWith"
               type="number"
               min={1}
               max={20}
-              defaultValue={existing?.yearsWith ?? 1}
+              placeholder="—"
+              defaultValue={existing?.yearsWith ?? ""}
               className={`mt-1 ${field}`}
             />
             {err.yearsWith && (

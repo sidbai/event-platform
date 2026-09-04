@@ -213,30 +213,34 @@ export default async function CoachPage({
               </div>
 
               {/* The context is the point: it makes this an account of a
-                  season with this coach rather than a verdict on a person. */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                {r.teamLabel && <span>{r.teamLabel}</span>}
-                {r.season && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{r.season}</span>
-                  </>
-                )}
-                {r.yearsWith && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>
-                      {r.yearsWith} season{r.yearsWith === 1 ? "" : "s"} together
-                    </span>
-                  </>
-                )}
-                {r.recommends !== null && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{r.recommends ? "👍 Recommends" : "👎 Doesn't recommend"}</span>
-                  </>
-                )}
-              </div>
+                  season with this coach rather than a verdict on a person.
+                  Team and tenure are optional, so the separators are built
+                  from whatever is actually present rather than hardcoded. */}
+              {(() => {
+                const parts = [
+                  r.teamLabel,
+                  r.season,
+                  r.yearsWith
+                    ? `${r.yearsWith} season${r.yearsWith === 1 ? "" : "s"} together`
+                    : null,
+                  r.recommends === null
+                    ? null
+                    : r.recommends
+                      ? "👍 Recommends"
+                      : "👎 Doesn't recommend",
+                ].filter(Boolean) as string[];
+                if (parts.length === 0) return null;
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                    {parts.map((part, i) => (
+                      <span key={part} className="flex items-center gap-2">
+                        {i > 0 && <span aria-hidden>·</span>}
+                        {part}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
 
               <h2 className="mt-2 font-medium leading-snug">{r.title}</h2>
               <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{r.body}</p>
