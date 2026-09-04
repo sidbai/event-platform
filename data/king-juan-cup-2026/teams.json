@@ -1,0 +1,122 @@
+[
+  {
+    "name": "吃饼FC",
+    "division": "Venti",
+    "group": "1",
+    "logo": "chibing-fc.png"
+  },
+  {
+    "name": "Atletico 2013",
+    "division": "Venti",
+    "group": "1",
+    "logo": "atletico.png"
+  },
+  {
+    "name": "Top Ballers",
+    "division": "Venti",
+    "group": "1",
+    "logo": "top-ballers.png"
+  },
+  {
+    "name": "Lightning",
+    "division": "Venti",
+    "group": "1",
+    "logo": "lightning.png"
+  },
+  {
+    "name": "喂饼FC",
+    "division": "Grande",
+    "group": "1",
+    "logo": "weibing-fc.png"
+  },
+  {
+    "name": "SPFC",
+    "division": "Grande",
+    "group": "1",
+    "logo": "spfc.png"
+  },
+  {
+    "name": "Niu Lai",
+    "division": "Grande",
+    "group": "1",
+    "logo": "warriors-b16-blue.PNG"
+  },
+  {
+    "name": "Warriors GU12",
+    "division": "Grande",
+    "group": "1",
+    "logo": "warriors.png"
+  },
+  {
+    "name": "烙饼FC",
+    "division": "Grande",
+    "group": "2",
+    "logo": "laobing.png"
+  },
+  {
+    "name": "Incredible Warriors",
+    "division": "Grande",
+    "group": "2",
+    "logo": "incredible-warriors.png"
+  },
+  {
+    "name": "Green Devils",
+    "division": "Grande",
+    "group": "2",
+    "logo": "celtic.png"
+  },
+  {
+    "name": "Attack Girls",
+    "division": "Grande",
+    "group": "2",
+    "logo": "attack-girls.png"
+  },
+  {
+    "name": "CR7 Champions",
+    "division": "Tall",
+    "group": "2",
+    "logo": "cr7-championis.png"
+  },
+  {
+    "name": "Galaxy Rockets",
+    "division": "Tall",
+    "group": "1",
+    "logo": "galaxy-rockets.png"
+  },
+  {
+    "name": "Yummy Pancakes",
+    "division": "Tall",
+    "group": "1",
+    "logo": "yummy-pancakes.PNG"
+  },
+  {
+    "name": "Flaming Soccer Ball",
+    "division": "Tall",
+    "group": "1",
+    "logo": "flaming-soccer-ball.png"
+  },
+  {
+    "name": "Dino Blaster",
+    "division": "Tall",
+    "group": "2",
+    "logo": "dino-blaster.png"
+  },
+  {
+    "name": "Storm Breakers",
+    "division": "Tall",
+    "group": "2",
+    "logo": "storm-breakers.png"
+  },
+  {
+    "name": "Unstoppable",
+    "division": "Tall",
+    "group": "2",
+    "logo": "unstoppable.png"
+  },
+  {
+    "name": "The Wildcards",
+    "division": "Tall",
+    "group": "1",
+    "logo": "wildcards.png"
+  }
+]
