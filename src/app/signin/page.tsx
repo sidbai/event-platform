@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { auth, devLoginEnabled, googleEnabled, signIn } from "@/auth";
+import { devLoginEnabled, googleEnabled, signIn } from "@/auth";
+import { getCurrentUser } from "@/features/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,8 @@ export default async function SignInPage({
   const { next } = await searchParams;
   const redirectTo = next && next.startsWith("/") ? next : "/";
 
-  const session = await auth();
-  if (session?.user) redirect(redirectTo);
+  const user = await getCurrentUser();
+  if (user) redirect(redirectTo);
 
   return (
     <div className="mx-auto max-w-sm px-5 py-16">

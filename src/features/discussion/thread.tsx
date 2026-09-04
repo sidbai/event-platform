@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { Avatar } from "@/components/avatar";
 import type { discussionSubject } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 
@@ -155,9 +158,19 @@ function CommentItem({
 
   return (
     <div className={isReply ? "border-l border-neutral-200 pl-4 dark:border-neutral-800" : ""}>
-      <div className="text-sm">
-        <span className="font-medium">{comment.authorName ?? "Someone"}</span>
-        <span className="ml-2 text-xs text-neutral-400">{timeAgo(comment.createdAt)}</span>
+      <div className="flex items-center gap-2 text-sm">
+        <Avatar src={comment.authorImage} name={comment.authorName} size={20} />
+        {comment.authorUsername ? (
+          <Link
+            href={`/people/${comment.authorUsername}`}
+            className="font-medium hover:underline"
+          >
+            {comment.authorName}
+          </Link>
+        ) : (
+          <span className="font-medium">{comment.authorName}</span>
+        )}
+        <span className="text-xs text-neutral-400">{timeAgo(comment.createdAt)}</span>
       </div>
       {hidden ? (
         <p className="mt-1 text-sm italic text-neutral-400">Comment removed.</p>

@@ -27,7 +27,7 @@ export async function reportedComments() {
     where: and(gt(comments.reportCount, 0), isNull(comments.hiddenAt)),
     orderBy: [desc(comments.reportCount)],
     with: {
-      author: { columns: { name: true, email: true } },
+      author: { columns: { name: true, displayName: true, username: true, email: true } },
       discussion: { columns: { subjectType: true, subjectId: true } },
     },
   });

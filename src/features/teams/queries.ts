@@ -22,7 +22,17 @@ export async function getTeamBySlug(slug: string) {
     with: {
       originEvent: { columns: { slug: true, title: true } },
       members: {
-        with: { user: { columns: { name: true, email: true, image: true } } },
+        with: {
+          user: {
+            columns: {
+              name: true,
+              displayName: true,
+              username: true,
+              email: true,
+              image: true,
+            },
+          },
+        },
       },
       eventTeams: {
         orderBy: (et, { desc: d }) => [d(et.points)],

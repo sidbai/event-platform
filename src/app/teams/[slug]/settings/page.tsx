@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getCurrentUser, requireUser } from "@/features/auth";
+import { getCurrentUser, publicName, requireUser } from "@/features/auth";
 import { canManageTeam } from "@/features/teams/access";
 import {
   addManager,
@@ -63,14 +63,14 @@ export default async function TeamSettingsPage({
         <ul className="mt-3 space-y-1 text-sm">
           {owner && (
             <li>
-              {owner.user.name ?? owner.user.email}{" "}
+              {publicName(owner.user)}{" "}
               <span className="text-xs text-neutral-400">owner</span>
             </li>
           )}
           {managers.map((m) => (
             <li key={m.userId} className="flex items-center justify-between">
               <span>
-                {m.user.name ?? m.user.email}{" "}
+                {publicName(m.user)}{" "}
                 <span className="text-xs text-neutral-400">manager</span>
               </span>
               {isOwner && (

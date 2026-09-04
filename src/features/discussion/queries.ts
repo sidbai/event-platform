@@ -4,6 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { comments, discussions, type discussionSubject } from "@/db/schema";
+import { publicName } from "@/features/auth";
 
 type SubjectType = (typeof discussionSubject.enumValues)[number];
 
@@ -13,7 +14,8 @@ export type ThreadComment = {
   createdAt: Date;
   hiddenAt: Date | null;
   authorId: string;
-  authorName: string | null;
+  authorName: string;
+  authorUsername: string | null;
   authorImage: string | null;
   replies: ThreadComment[];
 };
@@ -38,7 +40,17 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
   const rows = await db.query.comments.findMany({
     where: eq(comments.discussionId, discussion.id),
     orderBy: [asc(comments.createdAt)],
-    with: { author: { columns: { name: true, image: true } } },
+    with: {
+      author: {
+        columns: {
+          name: true,
+          displayName: true,
+          username: true,
+          image: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
 
   const byId = new Map<string, ThreadComment>();
@@ -49,8 +61,9 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
       createdAt: row.createdAt,
       hiddenAt: row.hiddenAt,
       authorId: row.authorId,
-      authorName: row.author?.name ?? null,
-      authorImage: row.author?.image ?? null,
+      authorName: row.author ? publicName(row.author) : "Someone",
+      authorUsername: row.author?.username ?? null,
+      authorImage: row.author?.avatarUrl ?? row.author?.image ?? null,
       replies: [],
     });
   }

@@ -70,7 +70,15 @@ export const users = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { withTimezone: true }),
-  image: text("image"),
+  image: text("image"), // from Google
+  // profile
+  username: text("username").unique(),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"), // custom upload; falls back to `image`
+  tags: text("tags").array().notNull().default([]),
+  club: text("club"),
+  bio: text("bio"),
+  city: text("city"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
