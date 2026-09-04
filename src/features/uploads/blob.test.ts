@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isOurBlobUrl,
+  isPendingClubUrl,
   isPendingCrestUrl,
   parseUploadTarget,
   pathnameMatchesTarget,
@@ -35,6 +36,18 @@ describe("isPendingCrestUrl", () => {
   });
 });
 
+describe("isPendingClubUrl", () => {
+  it("accepts a logo staged while adding a club", () => {
+    expect(isPendingClubUrl(`${HOST}/clubs/_pending/logo-x1.png`)).toBe(true);
+  });
+
+  it("refuses a live club's logo and a team crest", () => {
+    // a new club must not adopt an existing club's file, or a team's
+    expect(isPendingClubUrl(`${HOST}/clubs/seattle-united/logo.png`)).toBe(false);
+    expect(isPendingClubUrl(`${HOST}/crests/_pending/badge.png`)).toBe(false);
+  });
+});
+
 describe("pathnameMatchesTarget", () => {
   const avatar = { kind: "avatar" } as const;
   const crest = { kind: "crest", teamSlug: "marymoor-united" } as const;
@@ -46,6 +59,15 @@ describe("pathnameMatchesTarget", () => {
     expect(pathnameMatchesTarget("crests/marymoor-united/x.png", staged)).toBe(
       false,
     );
+  });
+
+  it("keeps one club's logo out of another club's folder", () => {
+    const mine = { kind: "club", clubSlug: "rain-city-sc" } as const;
+    expect(pathnameMatchesTarget("clubs/rain-city-sc/logo.png", mine)).toBe(true);
+    expect(pathnameMatchesTarget("clubs/seattle-united/logo.png", mine)).toBe(
+      false,
+    );
+    expect(pathnameMatchesTarget("clubs/_pending/logo.png", mine)).toBe(false);
   });
 
   it("accepts a single file directly under the target's prefix", () => {
@@ -115,6 +137,12 @@ describe("parseUploadTarget", () => {
   it("reads the known targets", () => {
     expect(parseUploadTarget('{"kind":"avatar"}')).toEqual({ kind: "avatar" });
     expect(parseUploadTarget('{"kind":"new-crest"}')).toEqual({ kind: "new-crest" });
+    expect(parseUploadTarget('{"kind":"new-club"}')).toEqual({ kind: "new-club" });
+    expect(parseUploadTarget('{"kind":"club","clubSlug":"seattle-united"}')).toEqual(
+      { kind: "club", clubSlug: "seattle-united" },
+    );
+    // a club target with no slug can't be permission-checked
+    expect(parseUploadTarget('{"kind":"club"}')).toBeNull();
     expect(parseUploadTarget('{"kind":"crest","teamSlug":"marymoor-united"}')).toEqual(
       { kind: "crest", teamSlug: "marymoor-united" },
     );
