@@ -204,6 +204,17 @@ export default async function EventPage({
           >
             referee score cards
           </Link>
+          {canManage && (
+            <>
+              {" · "}
+              <Link
+                href={`/events/${event.slug}/scores`}
+                className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+              >
+                enter scores
+              </Link>
+            </>
+          )}
         </p>
       )}
 
