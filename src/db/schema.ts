@@ -239,8 +239,12 @@ export const teams = pgTable("teams", {
   originEventId: uuid("origin_event_id").references(() => events.id, {
     onDelete: "set null",
   }),
-  claimedBy: uuid("claimed_by").references(() => users.id),
-  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  /**
+   * Whoever runs the team. Set at creation; an admin can hand it to someone
+   * else. Null only for a team auto-created for an event, until an admin
+   * transfers it to the coach who actually runs it.
+   */
+  ownerId: uuid("owner_id").references(() => users.id),
   ...timestamps,
 });
 

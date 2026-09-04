@@ -79,7 +79,7 @@ export async function getEventOffers(eventId: string) {
 
 export async function teamsManagedBy(userId: string) {
   return db.query.teams.findMany({
-    where: (t) => eq(t.claimedBy, userId),
+    where: (t) => eq(t.ownerId, userId),
     orderBy: (t) => [asc(t.name)],
     columns: { id: true, name: true },
   });

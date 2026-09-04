@@ -16,7 +16,7 @@ export async function managedEntry(eventId: string, userId: string) {
     })
     .from(eventTeams)
     .innerJoin(teams, eq(teams.id, eventTeams.teamId))
-    .where(and(eq(eventTeams.eventId, eventId), eq(teams.claimedBy, userId)));
+    .where(and(eq(eventTeams.eventId, eventId), eq(teams.ownerId, userId)));
   return rows[0] ?? null;
 }
 

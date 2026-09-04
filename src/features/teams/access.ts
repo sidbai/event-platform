@@ -37,9 +37,9 @@ async function check(teamId: string, allowed: TeamRole[]): Promise<boolean> {
   // teams claimed before team_members existed rely on this.
   const team = await db.query.teams.findFirst({
     where: eq(teams.id, teamId),
-    columns: { claimedBy: true },
+    columns: { ownerId: true },
   });
-  if (team?.claimedBy === user.id) return true;
+  if (team?.ownerId === user.id) return true;
 
   const role = await teamRoleOf(teamId, user.id);
   return role !== null && allowed.includes(role);
@@ -65,9 +65,9 @@ export async function isTeamMember(
 ): Promise<boolean> {
   const team = await db.query.teams.findFirst({
     where: eq(teams.id, teamId),
-    columns: { claimedBy: true },
+    columns: { ownerId: true },
   });
-  if (team?.claimedBy === userId) return true;
+  if (team?.ownerId === userId) return true;
   return (await teamRoleOf(teamId, userId)) !== null;
 }
 

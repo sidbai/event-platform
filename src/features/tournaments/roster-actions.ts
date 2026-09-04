@@ -20,10 +20,10 @@ export async function saveRoster(
 
   const entry = await db.query.eventTeams.findFirst({
     where: eq(eventTeams.id, ctx.eventTeamId),
-    with: { team: { columns: { claimedBy: true } }, division: true },
+    with: { team: { columns: { ownerId: true } }, division: true },
   });
   if (!entry) return { error: "Team not found in this event." };
-  if (entry.team.claimedBy !== user.id && !isAdmin(user)) {
+  if (entry.team.ownerId !== user.id && !isAdmin(user)) {
     return { error: "Only the team's manager can edit the roster." };
   }
 

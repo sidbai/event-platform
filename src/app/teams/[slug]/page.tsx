@@ -10,7 +10,6 @@ import {
   canViewTeam,
   isTeamMember,
 } from "@/features/teams/access";
-import { claimTeam, promoteTeam } from "@/features/teams/actions";
 import {
   acceptTeamInvite,
   declineTeamInvite,
@@ -42,8 +41,7 @@ export default async function TeamPage({
   // an event stay open, since public standings link to them.
   if (!(await canViewTeam(team, user?.id ?? null))) notFound();
 
-  const mine = user && team.claimedBy === user.id;
-  const claimable = user && !team.claimedBy;
+  const mine = user && team.ownerId === user.id;
   const isPrivate = team.visibility === "private";
   const admin = isAdmin(user);
   // Owner/manager only. Being on the roster is not permission to edit.
@@ -86,16 +84,6 @@ export default async function TeamPage({
         <div className="mt-4 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
           Event team{team.originEvent ? ` — created for ${team.originEvent.title}` : ""}. Not
           listed in the public directory.
-          {admin && !team.claimedBy && (
-            <>
-              {" "}
-              <form action={promoteTeam.bind(null, team.slug)} className="inline">
-                <button className="text-brand-text hover:underline">
-                  Make public
-                </button>
-              </form>
-            </>
-          )}
         </div>
       )}
 
@@ -115,7 +103,7 @@ export default async function TeamPage({
         {mine ? (
           <>
             <span className="rounded bg-brand-soft px-1.5 py-0.5 text-brand-soft-text">
-              {team.verifiedAt ? "You own this team · verified" : "You own this team · pending verification"}
+              {"You own this team"}
             </span>
             <Link
               href={`/teams/${team.slug}/settings`}
@@ -134,23 +122,12 @@ export default async function TeamPage({
               Team settings
             </Link>
           </>
-        ) : team.claimedBy ? (
+        ) : team.ownerId ? (
           <span className="text-muted">
-            {team.verifiedAt ? "Managed by a verified coach" : "Claimed by a coach"}
+            {"Run by a coach"}
           </span>
-        ) : claimable ? (
-          <form action={claimTeam.bind(null, team.slug)}>
-            <button
-              type="submit"
-              className="rounded-md border border-line px-3 py-1.5 font-medium hover:bg-elevated"
-            >
-              {isPrivate ? "Claim & make this a public team" : "Claim this team"}
-            </button>
-          </form>
         ) : (
-          <Link href="/signin" className="text-brand-text hover:underline">
-            Sign in to claim this team
-          </Link>
+          <span className="text-muted">No owner yet</span>
         )}
       </div>
 
