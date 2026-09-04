@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { AttendanceSection } from "@/features/attendance/section";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
@@ -83,6 +84,7 @@ export default async function EventPage({
   const sponsors = meta?.sponsors ?? [];
   const rules = meta?.rules;
   const hasRoster = event.modules.includes("roster");
+  const hasAttendance = event.modules.includes("attendance");
   const myEntry =
     user && hasRoster ? await managedEntry(event.id, user.id) : null;
 
@@ -156,6 +158,14 @@ export default async function EventPage({
       </header>
 
       <OpponentSection event={event} />
+
+      {hasAttendance && (
+        <AttendanceSection
+          eventId={event.id}
+          slug={event.slug}
+          capacity={event.capacity}
+        />
+      )}
 
       {champions.length > 0 && (
         <section className="mt-10">
