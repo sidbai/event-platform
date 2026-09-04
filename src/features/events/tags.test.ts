@@ -57,6 +57,26 @@ describe("eventTags", () => {
     expect(labels({ kind: "game", status: "published" })).toEqual(["Game"]);
   });
 
+  it("gives every tag an emoji", () => {
+    const tags = eventTags({
+      kind: "tournament",
+      ageGroup: "U12",
+      gender: "girls",
+      format: "7v7",
+      level: "select",
+      needsOpponent: true,
+      status: "completed",
+      visibility: "private",
+      hostTeam: { name: "Marymoor United" },
+    });
+    expect(tags.every((t) => t.emoji.length > 0)).toBe(true);
+  });
+
+  it("falls back to a generic emoji for an unknown kind", () => {
+    // event_kinds is an editable table, so a kind can exist with no mapping
+    expect(eventTags({ kind: "brand-new-kind" })[0].emoji).toBeTruthy();
+  });
+
   it("produces unique labels, since they are used as React keys", () => {
     const tags = eventTags({
       kind: "game",

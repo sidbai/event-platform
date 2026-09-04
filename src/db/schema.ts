@@ -77,6 +77,12 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"), // custom upload; falls back to `image`
   tags: text("tags").array().notNull().default([]),
+  /**
+   * Stable pseudonym shown on club reviews. Generated on first review so
+   * existing accounts get one lazily. Global rather than per-club, so one
+   * person's reviews are linkable to each other but not to their account.
+   */
+  anonHandle: text("anon_handle").unique(),
   club: text("club"),
   bio: text("bio"),
   city: text("city"),
@@ -451,6 +457,119 @@ export const eventOffers = pgTable(
 export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
   event: one(events, { fields: [eventOffers.eventId], references: [events.id] }),
   fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
+}));
+
+// --- clubs and club reviews --------------------------------------------
+
+export const clubs = pgTable("clubs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  city: text("city"),
+  website: text("website"),
+  crestUrl: text("crest_url"),
+  createdBy: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/**
+ * One person's review of a club, on six fixed 1-5 scales.
+ *
+ * Reviews are shown anonymously: `authorId` exists so a person can edit their
+ * own review and only review a club once, and is never exposed to readers —
+ * the display name comes from users.anonHandle instead.
+ */
+export const clubReviews = pgTable(
+  "club_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    playerDevelopment: integer("player_development").notNull(),
+    coaching: integer("coaching").notNull(),
+    communication: integer("communication").notNull(),
+    clubCulture: integer("club_culture").notNull(),
+    playingTime: integer("playing_time").notNull(),
+    value: integer("value").notNull(),
+
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** Set by an admin; hides the review without destroying the record. */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    unique("club_reviews_club_author_uq").on(t.clubId, t.authorId),
+    index("club_reviews_club_idx").on(t.clubId, t.hiddenAt),
+    check(
+      "club_reviews_ratings_ck",
+      sql`${t.playerDevelopment} between 1 and 5 and ${t.coaching} between 1 and 5
+          and ${t.communication} between 1 and 5 and ${t.clubCulture} between 1 and 5
+          and ${t.playingTime} between 1 and 5 and ${t.value} between 1 and 5`,
+    ),
+  ],
+);
+
+/** "Helpful" votes. One per person per review. */
+export const clubReviewVotes = pgTable(
+  "club_review_votes",
+  {
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => clubReviews.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.reviewId, t.userId] })],
+);
+
+export const clubReviewReports = pgTable(
+  "club_review_reports",
+  {
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => clubReviews.id, { onDelete: "cascade" }),
+    reporterId: uuid("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.reviewId, t.reporterId] })],
+);
+
+export const clubsRelations = relations(clubs, ({ many }) => ({
+  reviews: many(clubReviews),
+}));
+
+export const clubReviewsRelations = relations(clubReviews, ({ one, many }) => ({
+  club: one(clubs, { fields: [clubReviews.clubId], references: [clubs.id] }),
+  author: one(users, { fields: [clubReviews.authorId], references: [users.id] }),
+  votes: many(clubReviewVotes),
+  reports: many(clubReviewReports),
+}));
+
+export const clubReviewVotesRelations = relations(clubReviewVotes, ({ one }) => ({
+  review: one(clubReviews, {
+    fields: [clubReviewVotes.reviewId],
+    references: [clubReviews.id],
+  }),
+}));
+
+export const clubReviewReportsRelations = relations(clubReviewReports, ({ one }) => ({
+  review: one(clubReviews, {
+    fields: [clubReviewReports.reviewId],
+    references: [clubReviews.id],
+  }),
 }));
 
 // --- invites -----------------------------------------------------------

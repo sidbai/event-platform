@@ -21,7 +21,7 @@ export function EventTags({
           key={t.label}
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${TONE[t.tone]}`}
         >
-          {t.label}
+          <span aria-hidden>{t.emoji}</span> {t.label}
         </li>
       ))}
     </ul>
