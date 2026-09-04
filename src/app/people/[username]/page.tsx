@@ -40,7 +40,7 @@ export default async function ProfilePage({
   if (!p) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-10">
+    <div className="mx-auto max-w-3xl px-5 py-10">
       <header className="flex items-center gap-4">
         <Avatar src={avatarOf(p)} name={publicName(p)} size={72} />
         <div>

@@ -35,7 +35,11 @@ export function PostForm({
       </div>
 
       <div>
-        <select name="category" defaultValue={defaultCategory} className={field}>
+        <select
+          name="category"
+          defaultValue={defaultCategory}
+          className={`${field} sm:max-w-xs`}
+        >
           {FORUM_CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {CATEGORY_LABELS[c]}

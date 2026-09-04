@@ -32,7 +32,7 @@ export default async function TeamSettingsPage({
   const managers = team.members.filter((m) => m.role === "manager");
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-10">
+    <div className="mx-auto max-w-3xl px-5 py-10">
       <Link
         href={`/teams/${slug}`}
         className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
