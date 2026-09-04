@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { signOut } from "@/auth";
 import { Avatar, avatarOf } from "@/components/avatar";
+import { ProfileMenu } from "@/components/profile-menu";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
@@ -40,22 +41,28 @@ export async function SiteHeader() {
           <Link href="/clubs" className={navLink}>
             Reviews
           </Link>
-          <Link href="/teams" className={navLink}>
-            Teams
-          </Link>
           {admin && (
             <Link href="/admin" className={navLink}>
               Admin
             </Link>
           )}
           {user ? (
-            <div className="flex items-center gap-2">
-              <Link href="/settings" className="flex items-center gap-1.5">
-                <Avatar src={avatarOf(user)} name={publicName(user)} size={22} />
-                <span className="hidden text-white/75 sm:inline">
-                  {publicName(user)}
-                </span>
-              </Link>
+            <ProfileMenu
+              name={publicName(user)}
+              avatar={
+                <Avatar src={avatarOf(user)} name={publicName(user)} size={24} />
+              }
+              items={[
+                // Only offer the public profile once there is a username to
+                // point at; it is generated at signup, but older rows may not
+                // have one.
+                ...(user.username
+                  ? [{ href: `/people/${user.username}`, label: "Profile" }]
+                  : []),
+                { href: "/teams", label: "Teams" },
+                { href: "/settings", label: "Settings" },
+              ]}
+            >
               <form
                 action={async () => {
                   "use server";
@@ -64,12 +71,12 @@ export async function SiteHeader() {
               >
                 <button
                   type="submit"
-                  className="whitespace-nowrap text-gold transition-opacity hover:opacity-80"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-elevated"
                 >
                   Sign out
                 </button>
               </form>
-            </div>
+            </ProfileMenu>
           ) : (
             <Link
               href="/signin"
