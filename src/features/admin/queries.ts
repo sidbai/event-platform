@@ -4,6 +4,7 @@ import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
+  clubEdits,
   clubReviewReports,
   clubReviews,
   comments,
@@ -67,4 +68,29 @@ export async function reportedReviews() {
       reasons: (byId.get(r.id)?.reasons ?? []).filter(Boolean),
     }))
     .sort((a, b) => b.reportCount - a.reportCount);
+}
+
+/**
+ * Recent club edits across every club, so an admin can skim what the community
+ * changed without having to police it club by club.
+ */
+export async function recentClubEdits() {
+  const rows = await db.query.clubEdits.findMany({
+    orderBy: [desc(clubEdits.createdAt)],
+    limit: 15,
+    with: {
+      club: { columns: { name: true, slug: true } },
+      editor: { columns: { username: true, displayName: true, name: true } },
+    },
+  });
+  return rows
+    // The seeded baselines aren't edits anyone made.
+    .filter((r) => r.editedBy !== null)
+    .map((r) => ({
+      id: r.id,
+      club: r.club,
+      summary: r.summary ?? "Edited",
+      editor: r.editor,
+      createdAt: r.createdAt,
+    }));
 }

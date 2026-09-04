@@ -492,6 +492,41 @@ export const clubs = pgTable("clubs", {
 });
 
 /**
+ * A snapshot of a club's details after each change, so community edits can be
+ * undone.
+ *
+ * Stores the resulting state rather than a diff: reverting is then just
+ * writing an older snapshot back, and the history stays append-only — a revert
+ * is itself an edit, never a deletion. Every club gets a baseline row so its
+ * original details are always reachable.
+ */
+export const clubEdits = pgTable(
+  "club_edits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    editedBy: uuid("edited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    city: text("city"),
+    website: text("website"),
+    crestUrl: text("crest_url"),
+    /** What the editor did, for a readable history line. */
+    summary: text("summary"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("club_edits_club_idx").on(t.clubId, t.createdAt)],
+);
+
+export const clubEditsRelations = relations(clubEdits, ({ one }) => ({
+  club: one(clubs, { fields: [clubEdits.clubId], references: [clubs.id] }),
+  editor: one(users, { fields: [clubEdits.editedBy], references: [users.id] }),
+}));
+
+/**
  * One person's review of a club, on six fixed 1-5 scales.
  *
  * Reviews are shown anonymously: `authorId` exists so a person can edit their

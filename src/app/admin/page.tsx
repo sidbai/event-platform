@@ -5,6 +5,7 @@ import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import {
   pendingEvents,
+  recentClubEdits,
   reportedComments,
   reportedReviews,
 } from "@/features/admin/queries";
@@ -18,10 +19,11 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, reports, reviewReports] = await Promise.all([
+  const [events, reports, reviewReports, clubEdits] = await Promise.all([
     pendingEvents(),
     reportedComments(),
     reportedReviews(),
+    recentClubEdits(),
   ]);
 
   return (
@@ -140,6 +142,34 @@ export default async function AdminPage() {
                     </button>
                   </form>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Recent club edits</h2>
+        <p className="mt-1 text-sm text-muted">
+          Club details are community maintained. Nothing here needs approving —
+          this is just so you can see what changed.
+        </p>
+        {clubEdits.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No edits yet.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line text-sm">
+            {clubEdits.map((e) => (
+              <li key={e.id} className="flex flex-wrap items-center gap-2 py-2">
+                <Link
+                  href={`/clubs/${e.club?.slug}`}
+                  className="font-medium text-brand-text hover:underline"
+                >
+                  {e.club?.name}
+                </Link>
+                <span className="text-muted">{e.summary}</span>
+                <span className="text-muted">·</span>
+                <span className="text-muted">
+                  {e.editor ? publicName(e.editor) : "someone"}
+                </span>
               </li>
             ))}
           </ul>
