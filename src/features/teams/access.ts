@@ -7,6 +7,8 @@ import { teamMembers, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
+import { teamViewDecision } from "./view-decision";
+
 export type TeamRole = "owner" | "manager" | "coach" | "player";
 
 /** Roles that may edit the team and invite people. */
@@ -67,4 +69,14 @@ export async function isTeamMember(
   });
   if (team?.claimedBy === userId) return true;
   return (await teamRoleOf(teamId, userId)) !== null;
+}
+
+/** Whether the current user may open a team's page. */
+export async function canViewTeam(
+  team: { id: string; visibility: string; originEventId: string | null },
+  userId: string | null,
+): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (teamViewDecision(team, isAdmin(user)) === "allow") return true;
+  return userId ? isTeamMember(team.id, userId) : false;
 }
