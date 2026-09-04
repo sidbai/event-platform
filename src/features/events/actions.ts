@@ -4,9 +4,10 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { eventKinds, events, venues } from "@/db/schema";
+import { eventKinds, events, teams, venues } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canScheduleForTeam } from "@/features/teams/access";
 
 export type EventFormResult = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -86,6 +87,20 @@ export async function submitEvent(
       )[0].id;
   }
 
+  // Hosting for a team: only its owner/manager/coach may put events on its
+  // calendar, so a forged slug in the form gets dropped rather than trusted.
+  let hostTeamId: string | null = null;
+  const hostTeamSlug = get("hostTeam");
+  if (hostTeamSlug) {
+    const team = await db.query.teams.findFirst({
+      where: eq(teams.slug, hostTeamSlug),
+      columns: { id: true },
+    });
+    if (!team || !(await canScheduleForTeam(team.id)))
+      return { error: "You can't create events for that team." };
+    hostTeamId = team.id;
+  }
+
   const admin = isAdmin(user);
   const picked = get("visibility");
   const visibility = (
@@ -117,6 +132,7 @@ export async function submitEvent(
     format: get("format") || null,
     needsOpponent: formData.get("needsOpponent") === "on",
     organizerId: user.id,
+    hostTeamId,
   });
 
   redirect(`/events/${slug}`);

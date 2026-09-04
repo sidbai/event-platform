@@ -10,17 +10,26 @@ const field =
   "w-full rounded-md border border-line px-3 py-2 text-sm bg-card";
 const label = "block text-sm font-medium";
 
-export function EventForm({ kinds }: { kinds: Kind[] }) {
+export function EventForm({
+  kinds,
+  hostTeam,
+}: {
+  kinds: Kind[];
+  hostTeam?: { slug: string; name: string } | null;
+}) {
   const [state, action, pending] = useActionState<EventFormResult, FormData>(
     (_prev, formData) => submitEvent(_prev, formData),
     {},
   );
   const [locationType, setLocationType] = useState("in_person");
-  const [visibility, setVisibility] = useState("public");
+  // A team event is usually internal, so start it private rather than
+  // announcing training to the whole site by accident.
+  const [visibility, setVisibility] = useState(hostTeam ? "private" : "public");
   const err = state.fieldErrors ?? {};
 
   return (
     <form action={action} className="mt-6 space-y-5">
+      {hostTeam && <input type="hidden" name="hostTeam" value={hostTeam.slug} />}
       <div>
         <label className={label} htmlFor="title">
           Event name

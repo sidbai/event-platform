@@ -88,30 +88,3 @@ export function TeamEditForm({
   );
 }
 
-export function AddManagerForm({ action }: { action: Action }) {
-  const [state, formAction, pending] = useActionState<TeamFormResult, FormData>(
-    action,
-    {},
-  );
-
-  return (
-    <form action={formAction} className="mt-3 flex flex-wrap items-center gap-2">
-      <input
-        type="email"
-        name="email"
-        required
-        placeholder="manager@email.com"
-        className={`${field} max-w-xs`}
-      />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md border border-line px-3 py-2 text-sm font-medium hover:bg-elevated disabled:opacity-50"
-      >
-        {pending ? "Adding…" : "Add manager"}
-      </button>
-      {state.error && <span className="text-sm text-red-600">{state.error}</span>}
-      {state.ok && <span className="text-sm text-brand-text">Added.</span>}
-    </form>
-  );
-}

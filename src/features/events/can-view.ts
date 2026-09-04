@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { eventInvites } from "@/db/schema";
 import type { CurrentUser } from "@/features/auth";
 import { isAdmin, normalizeEmail } from "@/features/auth/admin";
+import { isTeamMember } from "@/features/teams/access";
 
 import { viewDecision, type ViewableEvent } from "./view-decision";
 
@@ -23,8 +24,15 @@ export async function canViewEvent(
   user: CurrentUser | null,
 ): Promise<boolean> {
   const decision = viewDecision(event, user?.id ?? null, isAdmin(user));
-  if (decision !== "check-invite") return decision === "allow";
-  return user ? isInvited(event.id, user) : false;
+  if (decision !== "check-access") return decision === "allow";
+  if (!user) return false;
+
+  // A team's own event is visible to the whole team — that is the point of
+  // hosting it as a team, rather than inviting twenty people one at a time.
+  if (event.hostTeamId && (await isTeamMember(event.hostTeamId, user.id)))
+    return true;
+
+  return isInvited(event.id, user);
 }
 
 export async function isInvited(eventId: string, user: CurrentUser) {

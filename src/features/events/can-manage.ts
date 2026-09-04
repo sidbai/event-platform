@@ -6,28 +6,37 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canScheduleForTeam } from "@/features/teams/access";
 
 /**
- * True if the current user may manage this event — its organizer, or an admin.
- * Pass the event's `organizerId` if you already have it to skip a query.
+ * True if the current user may manage this event — its organizer, an admin, or
+ * staff (owner/manager/coach) of the team hosting it.
  */
 export async function canManageEvent(
-  eventIdOrSlug: { id: string } | { slug: string } | { organizerId: string | null },
+  ref:
+    | { id: string }
+    | { slug: string }
+    | { organizerId: string | null; hostTeamId?: string | null },
 ): Promise<boolean> {
   const user = await getCurrentUser();
   if (!user) return false;
   if (isAdmin(user)) return true;
 
-  if ("organizerId" in eventIdOrSlug) {
-    return eventIdOrSlug.organizerId === user.id;
+  let organizerId: string | null | undefined;
+  let hostTeamId: string | null | undefined;
+
+  if ("organizerId" in ref) {
+    ({ organizerId, hostTeamId } = ref);
+  } else {
+    const row = await db.query.events.findFirst({
+      where: "id" in ref ? eq(events.id, ref.id) : eq(events.slug, ref.slug),
+      columns: { organizerId: true, hostTeamId: true },
+    });
+    organizerId = row?.organizerId;
+    hostTeamId = row?.hostTeamId;
   }
 
-  const row = await db.query.events.findFirst({
-    where:
-      "id" in eventIdOrSlug
-        ? eq(events.id, eventIdOrSlug.id)
-        : eq(events.slug, eventIdOrSlug.slug),
-    columns: { organizerId: true },
-  });
-  return row?.organizerId === user.id;
+  if (organizerId && organizerId === user.id) return true;
+  if (hostTeamId) return canScheduleForTeam(hostTeamId);
+  return false;
 }
