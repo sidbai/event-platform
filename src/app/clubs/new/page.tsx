@@ -14,7 +14,7 @@ export default async function NewClubPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link href="/clubs" className="text-sm text-brand-text hover:underline">
-        ← Club Experience
+        ← Reviews
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Add a club</h1>
       <p className="mt-1 text-sm text-muted">

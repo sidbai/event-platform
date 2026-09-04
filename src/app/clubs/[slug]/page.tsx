@@ -63,7 +63,7 @@ export default async function ClubPage({
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link href="/clubs" className="text-sm text-brand-text hover:underline">
-        ← Club Experience
+        ← Reviews
       </Link>
 
       <header className="mt-4 flex items-start gap-4">
