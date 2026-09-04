@@ -5,6 +5,8 @@ import { Avatar, avatarOf } from "@/components/avatar";
 import { requireUser } from "@/features/auth";
 import { updateProfile } from "@/features/profile/actions";
 import { SettingsForm } from "@/features/profile/settings-form";
+import { clearMyAvatar, setMyAvatar } from "@/features/uploads/actions";
+import { ImageUpload } from "@/features/uploads/image-upload";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Settings" };
@@ -16,14 +18,19 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Your profile</h1>
 
-      <div className="mt-5 flex items-center gap-3">
-        <Avatar src={avatarOf(user)} name={user.displayName ?? user.name} size={56} />
-        <div className="text-sm text-muted">
-          <p className="text-muted">Custom photo uploads coming soon.</p>
+      <div className="mt-5 flex items-start gap-4">
+        <Avatar src={avatarOf(user)} name={user.displayName ?? user.name} size={64} />
+        <div className="text-sm">
+          <ImageUpload
+            target={{ kind: "avatar" }}
+            hasImage={Boolean(user.avatarUrl)}
+            onUploaded={setMyAvatar}
+            onCleared={clearMyAvatar}
+          />
           {user.username && (
             <Link
               href={`/people/${user.username}`}
-              className="text-brand-text hover:underline"
+              className="mt-2 inline-block text-brand-text hover:underline"
             >
               View public profile →
             </Link>
