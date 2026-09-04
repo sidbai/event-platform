@@ -43,6 +43,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (!pathnameMatchesTarget(pathname, target))
           throw new Error("That upload path isn't allowed.");
 
+        // "new-crest" needs no team check: it lands in the staging folder for
+        // a team that doesn't exist yet, and createTeam only adopts URLs from
+        // there. Any signed-in user may write one.
         if (target.kind === "crest") {
           const team = await db.query.teams.findFirst({
             where: eq(teams.slug, target.teamSlug),

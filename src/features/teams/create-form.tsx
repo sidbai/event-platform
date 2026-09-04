@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { TeamCrest } from "@/components/team-crest";
+import { ImageUpload } from "@/features/uploads/image-upload";
+
 import type { TeamFormResult } from "./create-actions";
 
 type Action = (prev: TeamFormResult, formData: FormData) => Promise<TeamFormResult>;
@@ -15,6 +18,7 @@ export function CreateTeamForm({ action }: { action: Action }) {
     {},
   );
   const [visibility, setVisibility] = useState("public");
+  const [crestUrl, setCrestUrl] = useState<string | null>(null);
   const err = state.fieldErrors ?? {};
 
   return (
@@ -63,16 +67,21 @@ export function CreateTeamForm({ action }: { action: Action }) {
       </div>
 
       <div>
-        <label className={label} htmlFor="crestUrl">
-          Crest image URL <span className="text-muted">(optional)</span>
-        </label>
-        <input
-          id="crestUrl"
-          name="crestUrl"
-          type="url"
-          placeholder="https://…"
-          className={`mt-1 ${field}`}
-        />
+        <span className={label}>
+          Crest <span className="text-muted">(optional)</span>
+        </span>
+        <div className="mt-2 flex items-start gap-4">
+          <TeamCrest src={crestUrl} size={64} />
+          {/* Carried on the form; createTeam attaches it to the new team. */}
+          <input type="hidden" name="crestUrl" value={crestUrl ?? ""} />
+          <ImageUpload
+            target={{ kind: "new-crest" }}
+            hasImage={Boolean(crestUrl)}
+            onUploaded={async (url) => setCrestUrl(url)}
+            onCleared={async () => setCrestUrl(null)}
+            label="Upload a crest"
+          />
+        </div>
       </div>
 
       <div>

@@ -2,13 +2,51 @@ import { describe, expect, it } from "vitest";
 
 import {
   isOurBlobUrl,
+  isPendingCrestUrl,
   parseUploadTarget,
   pathnameMatchesTarget,
 } from "./blob";
 
+const HOST = "https://abc123.public.blob.vercel-storage.com";
+
+describe("isPendingCrestUrl", () => {
+  it("accepts a crest staged during team creation", () => {
+    expect(isPendingCrestUrl(`${HOST}/crests/_pending/badge-x1.png`)).toBe(true);
+  });
+
+  it("refuses a live team's crest", () => {
+    // otherwise a new team could adopt an existing team's file, and that team
+    // replacing its crest would delete the image out from under the new one
+    expect(
+      isPendingCrestUrl(`${HOST}/crests/marymoor-united/badge-x1.png`),
+    ).toBe(false);
+  });
+
+  it("refuses avatars and foreign hosts", () => {
+    expect(isPendingCrestUrl(`${HOST}/avatars/me.png`)).toBe(false);
+    expect(
+      isPendingCrestUrl("https://evil.example.com/crests/_pending/x.png"),
+    ).toBe(false);
+  });
+
+  it("refuses a lookalike prefix", () => {
+    expect(isPendingCrestUrl(`${HOST}/crests/_pendingXX/x.png`)).toBe(false);
+    expect(isPendingCrestUrl(`${HOST}/x/crests/_pending/x.png`)).toBe(false);
+  });
+});
+
 describe("pathnameMatchesTarget", () => {
   const avatar = { kind: "avatar" } as const;
   const crest = { kind: "crest", teamSlug: "marymoor-united" } as const;
+
+  it("puts a new team's crest in the staging folder", () => {
+    const staged = { kind: "new-crest" } as const;
+    expect(pathnameMatchesTarget("crests/_pending/badge.png", staged)).toBe(true);
+    // and cannot be aimed at a real team from there
+    expect(pathnameMatchesTarget("crests/marymoor-united/x.png", staged)).toBe(
+      false,
+    );
+  });
 
   it("accepts a single file directly under the target's prefix", () => {
     expect(pathnameMatchesTarget("avatars/me.png", avatar)).toBe(true);
@@ -74,8 +112,9 @@ describe("isOurBlobUrl", () => {
 });
 
 describe("parseUploadTarget", () => {
-  it("reads the two known targets", () => {
+  it("reads the known targets", () => {
     expect(parseUploadTarget('{"kind":"avatar"}')).toEqual({ kind: "avatar" });
+    expect(parseUploadTarget('{"kind":"new-crest"}')).toEqual({ kind: "new-crest" });
     expect(parseUploadTarget('{"kind":"crest","teamSlug":"marymoor-united"}')).toEqual(
       { kind: "crest", teamSlug: "marymoor-united" },
     );

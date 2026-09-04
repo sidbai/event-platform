@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { teamMembers, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { isPendingCrestUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
 export type TeamFormResult = {
@@ -40,6 +41,11 @@ export async function createTeam(
   if (name.length > 80) return { fieldErrors: { name: "That name is too long." } };
 
   const visibility = get("visibility") === "private" ? "private" : "public";
+
+  // Only a crest this form just staged. Anything else is dropped rather than
+  // rejected — a bad URL shouldn't cost someone the rest of the form.
+  const crest = get("crestUrl");
+  const crestUrl = crest && isPendingCrestUrl(crest) ? crest : null;
   const slug = await uniqueTeamSlug(slugify(name).slice(0, 60));
 
   const [team] = await db
@@ -51,7 +57,7 @@ export async function createTeam(
       ageGroup: get("ageGroup") || null,
       gender: get("gender") || null,
       city: get("city") || null,
-      crestUrl: get("crestUrl") || null,
+      crestUrl,
       bio: get("bio") || null,
       visibility,
       // The creator owns it outright — no claim flow needed for a team that
