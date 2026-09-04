@@ -24,7 +24,7 @@ export default async function EditClubPage({
   await requireUser(`/clubs/${slug}/edit`);
   const club = await getClub(slug);
   if (!club) notFound();
-  if (!(await canEditClub(slug))) notFound();
+  if (!(await canEditClub())) notFound();
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">

@@ -50,7 +50,10 @@ export async function listClubs() {
 }
 
 export async function getClub(slug: string) {
-  return db.query.clubs.findFirst({ where: eq(clubs.slug, slug) });
+  return db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    with: { updatedByUser: { columns: { username: true, displayName: true, name: true } } },
+  });
 }
 
 export type ReviewCard = {

@@ -226,7 +226,9 @@ export async function updateClub(
   _prev: ClubResult,
   formData: FormData,
 ): Promise<ClubResult> {
-  if (!(await canEditClub(slug))) return { error: "You can't edit this club." };
+  const user = await getCurrentUser();
+  if (!user || !(await canEditClub()))
+    return { error: "Sign in to edit this club." };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const name = get("name");
@@ -238,6 +240,7 @@ export async function updateClub(
       name,
       city: get("city") || null,
       website: get("website") || null,
+      updatedBy: user.id,
       updatedAt: new Date(),
     })
     .where(eq(clubs.slug, slug));
@@ -249,22 +252,24 @@ export async function updateClub(
 
 /** Save a logo uploaded straight from the club page. */
 export async function setClubLogo(slug: string, url: string): Promise<void> {
-  if (!(await canEditClub(slug))) return;
+  const user = await getCurrentUser();
+  if (!user || !(await canEditClub())) return;
   // The browser reports this URL, so it is checked rather than trusted.
   if (!isOurBlobUrl(url)) return;
   await db
     .update(clubs)
-    .set({ crestUrl: url, updatedAt: new Date() })
+    .set({ crestUrl: url, updatedBy: user.id, updatedAt: new Date() })
     .where(eq(clubs.slug, slug));
   revalidatePath(`/clubs/${slug}`);
   revalidatePath("/clubs");
 }
 
 export async function clearClubLogo(slug: string): Promise<void> {
-  if (!(await canEditClub(slug))) return;
+  const user = await getCurrentUser();
+  if (!user || !(await canEditClub())) return;
   await db
     .update(clubs)
-    .set({ crestUrl: null, updatedAt: new Date() })
+    .set({ crestUrl: null, updatedBy: user.id, updatedAt: new Date() })
     .where(eq(clubs.slug, slug));
   revalidatePath(`/clubs/${slug}`);
   revalidatePath("/clubs");

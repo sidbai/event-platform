@@ -120,6 +120,13 @@
       "when": 1788548431806,
       "tag": "0016_old_bill_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788551314704,
+      "tag": "0017_abnormal_scalphunter",
+      "breakpoints": true
     }
   ]
 }
