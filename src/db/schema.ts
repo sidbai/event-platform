@@ -459,6 +459,51 @@ export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
   fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
 }));
 
+// --- news: editorial posts ---------------------------------------------
+
+export const newsCategory = pgEnum("news_category", [
+  "news",
+  "recap",
+  "guide",
+  "announcement",
+]);
+
+export const newsStatus = pgEnum("news_status", ["draft", "published"]);
+
+/**
+ * An editorial article, written by an admin.
+ *
+ * Distinct from forum_posts on purpose: the community forum is anyone's to
+ * post in, this is the site speaking. Comments reuse the polymorphic
+ * discussion, so a news post gets the same thread, moderation and reporting
+ * as everything else.
+ */
+export const newsPosts = pgTable(
+  "news_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    /** Shown on the index and used as the meta description. */
+    summary: text("summary").notNull(),
+    body: text("body").notNull(),
+    coverUrl: text("cover_url"),
+    category: newsCategory("category").notNull().default("news"),
+    status: newsStatus("status").notNull().default("draft"),
+    authorId: uuid("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Null until first published; drives ordering and the visible date. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("news_posts_published_idx").on(t.status, t.publishedAt)],
+);
+
+export const newsPostsRelations = relations(newsPosts, ({ one }) => ({
+  author: one(users, { fields: [newsPosts.authorId], references: [users.id] }),
+}));
+
 // --- clubs and club reviews --------------------------------------------
 
 /**
@@ -789,6 +834,7 @@ export const discussionSubject = pgEnum("discussion_subject", [
   "team",
   "post",
   "forum_post",
+  "news_post",
 ]);
 
 // --- forum: standalone community discussions --------------------------

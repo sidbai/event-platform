@@ -134,6 +134,13 @@
       "when": 1788552699512,
       "tag": "0018_eminent_revanche",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788558455596,
+      "tag": "0019_sloppy_puck",
+      "breakpoints": true
     }
   ]
 }

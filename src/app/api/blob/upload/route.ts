@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
 import { canEditClub } from "@/features/clubs/access";
 import { canManageTeam } from "@/features/teams/access";
 import {
@@ -49,6 +50,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         // URLs from there. Any signed-in user may write one.
         if (target.kind === "club" && !(await canEditClub()))
           throw new Error("You can't edit that club.");
+
+        // News is editorial, so its images are admin-only like its articles.
+        if (target.kind === "news" && !isAdmin(user))
+          throw new Error("Only admins can upload news images.");
 
         if (target.kind === "crest") {
           const team = await db.query.teams.findFirst({

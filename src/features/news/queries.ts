@@ -1,0 +1,81 @@
+import "server-only";
+
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+
+import { db } from "@/db";
+import { comments, discussions, newsPosts } from "@/db/schema";
+import { publicName } from "@/features/auth";
+
+import type { NewsCategory } from "./constants";
+
+/** Published only — drafts are visible to admins through the admin list. */
+const live = and(
+  eq(newsPosts.status, "published"),
+  isNotNull(newsPosts.publishedAt),
+);
+
+async function commentCounts(postIds: string[]) {
+  if (postIds.length === 0) return new Map<string, number>();
+  const rows = await db
+    .select({ sid: discussions.subjectId, n: sql<number>`count(*)::int` })
+    .from(comments)
+    .innerJoin(discussions, eq(discussions.id, comments.discussionId))
+    .where(
+      and(
+        eq(discussions.subjectType, "news_post"),
+        inArray(discussions.subjectId, postIds),
+        sql`${comments.hiddenAt} is null`,
+      ),
+    )
+    .groupBy(discussions.subjectId);
+  return new Map(rows.map((r) => [r.sid, r.n]));
+}
+
+export async function listNews(category?: NewsCategory) {
+  const rows = await db.query.newsPosts.findMany({
+    where: category ? and(live, eq(newsPosts.category, category)) : live,
+    orderBy: [desc(newsPosts.publishedAt)],
+    limit: 40,
+    with: {
+      author: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
+
+  const counts = await commentCounts(rows.map((r) => r.id));
+  return rows.map((r) => ({
+    ...r,
+    authorName: r.author ? publicName(r.author) : "King Juan Soccer",
+    comments: counts.get(r.id) ?? 0,
+  }));
+}
+
+export async function getNewsPost(slug: string) {
+  const post = await db.query.newsPosts.findFirst({
+    where: eq(newsPosts.slug, slug),
+    with: {
+      author: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
+  if (!post) return null;
+  return {
+    ...post,
+    authorName: post.author ? publicName(post.author) : "King Juan Soccer",
+  };
+}
+
+/** Everything including drafts, for the admin index. */
+export async function listAllNews() {
+  return db.query.newsPosts.findMany({
+    orderBy: [desc(newsPosts.updatedAt)],
+    limit: 60,
+    columns: {
+      id: true,
+      slug: true,
+      title: true,
+      status: true,
+      category: true,
+      publishedAt: true,
+      updatedAt: true,
+    },
+  });
+}
