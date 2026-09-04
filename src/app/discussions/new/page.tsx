@@ -23,7 +23,7 @@ export default async function NewDiscussionPage({
     : "general";
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-8">
+    <div className="mx-auto max-w-3xl px-5 py-8">
       <Link
         href="/discussions"
         className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"

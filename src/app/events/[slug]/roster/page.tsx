@@ -28,7 +28,7 @@ export default async function RosterPage({
   const entry = await managedEntry(event.id, user.id);
   if (!entry) {
     return (
-      <div className="mx-auto max-w-xl px-5 py-10">
+      <div className="mx-auto max-w-3xl px-5 py-10">
         <Link href={`/events/${slug}`} className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
           ← {event.title}
         </Link>
@@ -49,7 +49,7 @@ export default async function RosterPage({
   const existing = await rosterFor(entry.eventTeamId);
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-10">
+    <div className="mx-auto max-w-3xl px-5 py-10">
       <Link href={`/events/${slug}`} className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
         ← {event.title}
       </Link>
