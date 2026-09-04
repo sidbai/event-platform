@@ -63,7 +63,7 @@ export async function listClubs() {
     name: c.name,
     city: c.city,
     crestUrl: c.crestUrl,
-    summary: averageRatings(byClub.get(c.id) ?? []),
+    summary: averageRatings("club", byClub.get(c.id) ?? []),
   }));
 }
 
@@ -143,7 +143,7 @@ export async function clubSummary(clubId: string) {
     where: ofClub(clubId),
     columns: { ratings: true },
   });
-  return averageRatings(rows.map(ratingsOf));
+  return averageRatings("club", rows.map(ratingsOf));
 }
 
 /** The signed-in user's own review of a club, for edit-in-place. */

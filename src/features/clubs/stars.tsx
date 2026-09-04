@@ -1,4 +1,4 @@
-import { RATING_CATEGORIES, type Ratings } from "./constants";
+import { CLUB_SCALES, type Ratings, type Scale } from "@/features/reviews/constants";
 
 /**
  * Read-only star row. Rounds to the nearest half so an average of 3.7 reads as
@@ -24,21 +24,24 @@ export function Stars({ value, size = 14 }: { value: number; size?: number }) {
 
 export function RatingBreakdown({
   ratings,
+  scales = CLUB_SCALES,
   showValues = true,
 }: {
   ratings: Ratings;
+  /** Which scales to render — a coach's differ from a club's. */
+  scales?: readonly Scale[];
   showValues?: boolean;
 }) {
   return (
     <dl className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-      {RATING_CATEGORIES.map(({ key, label }) => (
+      {scales.map(({ key, label }) => (
         <div key={key} className="flex items-center justify-between gap-3">
           <dt className="text-sm text-muted">{label}</dt>
           <dd className="flex items-center gap-2 text-amber-500">
-            <Stars value={ratings[key]} />
+            <Stars value={ratings[key] ?? 0} />
             {showValues && (
               <span className="w-7 text-right text-xs tabular-nums text-muted">
-                {ratings[key].toFixed(1)}
+                {(ratings[key] ?? 0).toFixed(1)}
               </span>
             )}
           </dd>

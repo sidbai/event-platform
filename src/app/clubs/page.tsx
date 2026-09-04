@@ -35,6 +35,19 @@ export default async function ClubsPage() {
         </Link>
       </div>
 
+      <nav className="mt-5 flex gap-1.5 text-sm">
+        <Link href="/clubs" className="rounded-full bg-ink px-3 py-1 text-page">
+          Clubs
+        </Link>
+        <Link
+          href="/coaches"
+          className="rounded-full bg-elevated px-3 py-1 text-muted hover:bg-line"
+        >
+          Coaches
+        </Link>
+      </nav>
+
+
       {clubs.length === 0 ? (
         <p className="mt-10 text-muted">
           No clubs yet.{" "}
