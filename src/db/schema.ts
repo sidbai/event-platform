@@ -1,7 +1,8 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  check,
   doublePrecision,
   index,
   integer,
@@ -412,6 +413,61 @@ export const eventOffers = pgTable(
 export const eventOffersRelations = relations(eventOffers, ({ one }) => ({
   event: one(events, { fields: [eventOffers.eventId], references: [events.id] }),
   fromTeam: one(teams, { fields: [eventOffers.fromTeamId], references: [teams.id] }),
+}));
+
+// --- invites -----------------------------------------------------------
+
+export const inviteStatus = pgEnum("invite_status", [
+  "pending",
+  "accepted",
+  "declined",
+]);
+
+/**
+ * An invitation to a private/unlisted event.
+ *
+ * Targets either a registered user or a bare email address — exactly one, per
+ * the check constraint. An email invite is stored normalized (see
+ * normalizeEmail) and is claimed when someone signs in with a matching
+ * address. `token` backs a shareable link, which is how invites travel until
+ * transactional email exists.
+ */
+export const eventInvites = pgTable(
+  "event_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    invitedUserId: uuid("invited_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    email: text("email"),
+    invitedBy: uuid("invited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: inviteStatus("status").notNull().default("pending"),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("event_invites_event_user_uq").on(t.eventId, t.invitedUserId),
+    unique("event_invites_event_email_uq").on(t.eventId, t.email),
+    index("event_invites_email_idx").on(t.email),
+    check(
+      "event_invites_target_ck",
+      sql`(${t.invitedUserId} is null) <> (${t.email} is null)`,
+    ),
+  ],
+);
+
+export const eventInvitesRelations = relations(eventInvites, ({ one }) => ({
+  event: one(events, { fields: [eventInvites.eventId], references: [events.id] }),
+  invitedUser: one(users, {
+    fields: [eventInvites.invitedUserId],
+    references: [users.id],
+  }),
 }));
 
 // --- attendance: the `attendance` module ------------------------------

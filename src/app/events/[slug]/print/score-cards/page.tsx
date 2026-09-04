@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { getCurrentUser } from "@/features/auth";
+import { canViewEvent } from "@/features/events/can-view";
 import { getEventBySlug } from "@/features/events/queries";
 import { PrintButton } from "@/features/tournaments/print-button";
 
@@ -18,8 +20,13 @@ export default async function ScoreCards({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const [event, user] = await Promise.all([
+    getEventBySlug(slug),
+    getCurrentUser(),
+  ]);
   if (!event) notFound();
+  // These sheets carry the full team list and roster.
+  if (!(await canViewEvent(event, user))) notFound();
 
   const rules = (event.metadata as { rules?: Rules } | null)?.rules;
 

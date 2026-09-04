@@ -14,7 +14,11 @@ export type EventFilters = {
 };
 
 export async function listEvents(filters: EventFilters = {}) {
-  const where: SQL[] = [inArray(events.status, ["published", "completed"])];
+  const where: SQL[] = [
+    inArray(events.status, ["published", "completed"]),
+    // Unlisted and private events are reachable by link/invite, never listed.
+    eq(events.visibility, "public"),
+  ];
 
   if (filters.kind) where.push(eq(events.kind, filters.kind));
   if (filters.needsOpponent) where.push(eq(events.needsOpponent, true));
