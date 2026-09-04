@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
-import { canManageTeam, canScheduleForTeam, isTeamMember } from "@/features/teams/access";
+import {
+  canManageTeam,
+  canScheduleForTeam,
+  canViewTeam,
+  isTeamMember,
+} from "@/features/teams/access";
 import { claimTeam, promoteTeam, unclaimTeam } from "@/features/teams/actions";
 import {
   acceptTeamInvite,
@@ -33,6 +38,9 @@ export default async function TeamPage({
   const { slug } = await params;
   const [team, user] = await Promise.all([getTeamBySlug(slug), getCurrentUser()]);
   if (!team) notFound();
+  // A team someone created as private is members-only; teams auto-created for
+  // an event stay open, since public standings link to them.
+  if (!(await canViewTeam(team, user?.id ?? null))) notFound();
 
   const mine = user && team.claimedBy === user.id;
   const claimable = user && !team.claimedBy;

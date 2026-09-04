@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, asc, desc, eq, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { events, matches, teams } from "@/db/schema";
+import { events, matches, teamMembers, teams } from "@/db/schema";
 
 /** The public team directory — event-only teams are excluded. */
 export async function listTeams() {
@@ -78,4 +78,43 @@ export async function hostedEvents(teamId: string, includePrivate: boolean) {
       visibility: true,
     },
   });
+}
+
+/**
+ * Every team the signed-in user belongs to, private ones included.
+ *
+ * The directory only lists public teams and a public profile deliberately
+ * hides private ones, so without this a team you created privately is
+ * reachable only by remembering its URL.
+ */
+export async function myTeams(userId: string) {
+  const memberships = await db.query.teamMembers.findMany({
+    where: eq(teamMembers.userId, userId),
+    columns: { teamId: true, role: true },
+  });
+  const roleByTeam = new Map(memberships.map((m) => [m.teamId, m.role]));
+  const ids = memberships.map((m) => m.teamId);
+
+  const rows = await db.query.teams.findMany({
+    where:
+      ids.length > 0
+        ? or(eq(teams.claimedBy, userId), inArray(teams.id, ids))
+        : eq(teams.claimedBy, userId),
+    columns: {
+      id: true,
+      slug: true,
+      name: true,
+      crestUrl: true,
+      visibility: true,
+      ageGroup: true,
+      city: true,
+    },
+    orderBy: [asc(teams.name)],
+  });
+
+  return rows.map((t) => ({
+    ...t,
+    // Claiming predates team_members, so fall back to owner for older teams.
+    role: roleByTeam.get(t.id) ?? "owner",
+  }));
 }
