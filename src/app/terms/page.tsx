@@ -12,9 +12,9 @@ export default function TermsPage() {
   return (
     <main className="mx-auto max-w-2xl px-5 py-12">
       <h1 className="text-3xl font-semibold tracking-tight">Terms of Service</h1>
-      <p className="mt-2 text-sm text-neutral-500">Last updated {UPDATED}</p>
+      <p className="mt-2 text-sm text-muted">Last updated {UPDATED}</p>
 
-      <div className="mt-8 space-y-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-200">
+      <div className="mt-8 space-y-6 text-sm leading-relaxed text-ink">
         <p>
           These terms govern your use of King Juan Soccer at{" "}
           <strong>kingjuansoccer.com</strong>, a free platform for organizing and
@@ -22,7 +22,7 @@ export default function TermsPage() {
           Juan Cup. By using the site you agree to them.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Accounts
         </h2>
         <p>
@@ -33,7 +33,7 @@ export default function TermsPage() {
           directly.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Acceptable use
         </h2>
         <ul className="list-disc space-y-1 pl-5">
@@ -58,13 +58,13 @@ export default function TermsPage() {
         <p>
           We may remove content, lock discussions, or suspend accounts that
           break these rules or the{" "}
-          <a href="/privacy" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <a href="/privacy" className="text-brand-text hover:underline">
             Privacy Policy
           </a>
           .
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Your content
         </h2>
         <p>
@@ -74,7 +74,7 @@ export default function TermsPage() {
           feed used by kingjuancup.org.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Events are run by their organizers
         </h2>
         <p>
@@ -85,7 +85,7 @@ export default function TermsPage() {
           with the organizer.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Disclaimer and liability
         </h2>
         <p>
@@ -95,7 +95,7 @@ export default function TermsPage() {
           use the service (which is nothing).
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Changes and termination
         </h2>
         <p>
@@ -104,11 +104,11 @@ export default function TermsPage() {
           time.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Contact
         </h2>
         <p>
-          <a href={`mailto:${CONTACT}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <a href={`mailto:${CONTACT}`} className="text-brand-text hover:underline">
             {CONTACT}
           </a>
         </p>

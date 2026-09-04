@@ -31,25 +31,25 @@ export default async function AdminPage() {
       <section className="mt-8">
         <h2 className="text-lg font-semibold">
           Pending events{" "}
-          {events.length > 0 && <span className="text-neutral-400">({events.length})</span>}
+          {events.length > 0 && <span className="text-muted">({events.length})</span>}
         </h2>
         {events.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">Nothing waiting.</p>
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {events.map((event) => (
               <li
                 key={event.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3"
               >
                 <div>
                   <Link
                     href={`/events/${event.slug}`}
-                    className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                    className="font-medium text-brand-text hover:underline"
                   >
                     {event.title}
                   </Link>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-xs text-muted">
                     {event.kind}
                     {event.venue && ` · ${event.venue.name}`}
                     {event.onlineUrl && " · online"}
@@ -57,12 +57,12 @@ export default async function AdminPage() {
                 </div>
                 <div className="flex gap-2 text-sm">
                   <form action={approveEvent.bind(null, event.slug)}>
-                    <button className="rounded-md bg-emerald-700 px-3 py-1 font-medium text-white hover:bg-emerald-800">
+                    <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
                       Approve
                     </button>
                   </form>
                   <form action={rejectEvent.bind(null, event.slug)}>
-                    <button className="rounded-md border border-neutral-300 px-3 py-1 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900">
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                       Decline
                     </button>
                   </form>
@@ -76,31 +76,31 @@ export default async function AdminPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">
           Team claims{" "}
-          {claims.length > 0 && <span className="text-neutral-400">({claims.length})</span>}
+          {claims.length > 0 && <span className="text-muted">({claims.length})</span>}
         </h2>
         {claims.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">No claims to verify.</p>
+          <p className="mt-2 text-sm text-muted">No claims to verify.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {claims.map((team) => (
               <li
                 key={team.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3"
               >
                 <Link
                   href={`/teams/${team.slug}`}
-                  className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                  className="font-medium text-brand-text hover:underline"
                 >
                   {team.name}
                 </Link>
                 <div className="flex gap-2 text-sm">
                   <form action={verifyTeam.bind(null, team.id)}>
-                    <button className="rounded-md bg-emerald-700 px-3 py-1 font-medium text-white hover:bg-emerald-800">
+                    <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
                       Verify
                     </button>
                   </form>
                   <form action={rejectClaim.bind(null, team.id)}>
-                    <button className="rounded-md border border-neutral-300 px-3 py-1 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900">
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                       Reject
                     </button>
                   </form>
@@ -114,18 +114,18 @@ export default async function AdminPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">
           Reported comments{" "}
-          {reports.length > 0 && <span className="text-neutral-400">({reports.length})</span>}
+          {reports.length > 0 && <span className="text-muted">({reports.length})</span>}
         </h2>
         {reports.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">Nothing reported.</p>
+          <p className="mt-2 text-sm text-muted">Nothing reported.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {reports.map((comment) => (
               <li
                 key={comment.id}
-                className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="rounded-lg border border-line p-3"
               >
-                <div className="text-xs text-neutral-500">
+                <div className="text-xs text-muted">
                   {comment.author ? publicName(comment.author) : "Someone"} ·{" "}
                   {comment.reportCount} report{comment.reportCount > 1 ? "s" : ""} ·{" "}
                   {comment.discussion?.subjectType}

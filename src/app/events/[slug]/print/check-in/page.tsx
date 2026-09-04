@@ -44,7 +44,7 @@ export default async function CheckInSheet({
         </h1>
         <p className="mt-1 text-sm">{date}</p>
         {sponsors.length > 0 && (
-          <p className="mt-1 text-xs text-neutral-600">
+          <p className="mt-1 text-xs text-muted">
             Sponsors: {sponsors.map((s) => s.name).join("  ·  ")}
           </p>
         )}

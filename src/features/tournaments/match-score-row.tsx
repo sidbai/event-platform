@@ -8,9 +8,9 @@ type Team = { id: string; name: string };
 type Action = (prev: ScoreResult, formData: FormData) => Promise<ScoreResult>;
 
 const num =
-  "w-12 rounded-md border border-neutral-300 px-1.5 py-1 text-center text-sm tabular-nums dark:border-neutral-700 dark:bg-neutral-900";
+  "w-12 rounded-md border border-line px-1.5 py-1 text-center text-sm tabular-nums bg-card";
 const sel =
-  "rounded-md border border-neutral-300 px-1.5 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-line px-1.5 py-1 text-sm bg-card";
 
 export function MatchScoreRow({
   action,
@@ -68,9 +68,9 @@ export function MatchScoreRow({
   return (
     <form
       action={formAction}
-      className="flex flex-wrap items-center gap-2 border-b border-neutral-100 py-2 text-sm dark:border-neutral-900"
+      className="flex flex-wrap items-center gap-2 border-b border-line py-2 text-sm"
     >
-      <span className="w-40 shrink-0 text-xs uppercase tracking-wide text-neutral-400">
+      <span className="w-40 shrink-0 text-xs uppercase tracking-wide text-muted">
         {meta}
       </span>
 
@@ -84,7 +84,7 @@ export function MatchScoreRow({
         className={num}
         aria-label="home score"
       />
-      <span className="text-neutral-400">–</span>
+      <span className="text-muted">–</span>
       <input
         name="awayScore"
         inputMode="numeric"
@@ -105,14 +105,14 @@ export function MatchScoreRow({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+        className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-strong disabled:opacity-50"
       >
         {pending ? "…" : "Save"}
       </button>
       <button
         type="submit"
         formAction={deleteAction}
-        className="text-xs text-neutral-400 hover:text-red-600 dark:hover:text-red-400"
+        className="text-xs text-muted hover:text-red-600 dark:hover:text-red-400"
         aria-label="delete match"
       >
         ×
@@ -122,7 +122,7 @@ export function MatchScoreRow({
         <span className="w-full text-xs text-red-600 dark:text-red-400">{state.error}</span>
       )}
       {state.ok && (
-        <span className="w-full text-xs text-emerald-600 dark:text-emerald-400">Saved.</span>
+        <span className="w-full text-xs text-brand-text">Saved.</span>
       )}
     </form>
   );

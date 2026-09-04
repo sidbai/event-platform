@@ -10,23 +10,23 @@ export async function SiteHeader() {
   const admin = isAdmin(user);
 
   return (
-    <header className="border-b border-neutral-200 print:hidden dark:border-neutral-800">
+    <header className="sticky top-0 z-40 border-b border-line bg-page/85 backdrop-blur-md print:hidden">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
-        <Link href="/" className="font-semibold tracking-tight">
+        <Link href="/" className="font-semibold tracking-tight text-ink">
           King Juan Soccer
         </Link>
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/events" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
+          <Link href="/events" className="text-muted transition-colors hover:text-ink">
             Events
           </Link>
-          <Link href="/teams" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
+          <Link href="/teams" className="text-muted transition-colors hover:text-ink">
             Teams
           </Link>
-          <Link href="/discussions" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
+          <Link href="/discussions" className="text-muted transition-colors hover:text-ink">
             Discussions
           </Link>
           {admin && (
-            <Link href="/admin" className="text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">
+            <Link href="/admin" className="text-muted transition-colors hover:text-ink">
               Admin
             </Link>
           )}
@@ -34,7 +34,7 @@ export async function SiteHeader() {
             <div className="flex items-center gap-2">
               <Link href="/settings" className="flex items-center gap-1.5">
                 <Avatar src={avatarOf(user)} name={publicName(user)} size={22} />
-                <span className="hidden text-neutral-500 sm:inline">{publicName(user)}</span>
+                <span className="hidden text-muted sm:inline">{publicName(user)}</span>
               </Link>
               <form
                 action={async () => {
@@ -42,13 +42,13 @@ export async function SiteHeader() {
                   await signOut({ redirectTo: "/" });
                 }}
               >
-                <button type="submit" className="text-emerald-700 hover:underline dark:text-emerald-400">
+                <button type="submit" className="text-brand-text hover:underline">
                   Sign out
                 </button>
               </form>
             </div>
           ) : (
-            <Link href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
+            <Link href="/signin" className="text-brand-text hover:underline">
               Sign in
             </Link>
           )}

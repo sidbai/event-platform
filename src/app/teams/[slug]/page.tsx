@@ -42,19 +42,19 @@ export default async function TeamPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <Link href={back.href} className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+      <Link href={back.href} className="text-sm text-brand-text hover:underline">
         {back.label}
       </Link>
 
       {isPrivate && (
-        <div className="mt-4 rounded-md bg-neutral-100 px-3 py-2 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+        <div className="mt-4 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
           Event team{team.originEvent ? ` — created for ${team.originEvent.title}` : ""}. Not
           listed in the public directory.
           {admin && !team.claimedBy && (
             <>
               {" "}
               <form action={promoteTeam.bind(null, team.slug)} className="inline">
-                <button className="text-emerald-700 hover:underline dark:text-emerald-400">
+                <button className="text-brand-text hover:underline">
                   Make public
                 </button>
               </form>
@@ -67,13 +67,13 @@ export default async function TeamPage({
         <TeamCrest src={team.crestUrl} size={64} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             {[team.club, team.ageGroup, team.city].filter(Boolean).join(" · ") || "Youth soccer team"}
           </p>
         </div>
       </header>
 
-      {team.bio && <p className="mt-4 text-neutral-600 dark:text-neutral-300">{team.bio}</p>}
+      {team.bio && <p className="mt-4 text-muted">{team.bio}</p>}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         {mine ? (
@@ -83,41 +83,41 @@ export default async function TeamPage({
             </span>
             <Link
               href={`/teams/${team.slug}/settings`}
-              className="text-emerald-700 hover:underline dark:text-emerald-400"
+              className="text-brand-text hover:underline"
             >
               Team settings
             </Link>
             <form action={unclaimTeam.bind(null, team.slug)}>
-              <button type="submit" className="text-neutral-500 hover:text-red-600 dark:hover:text-red-400">
+              <button type="submit" className="text-muted hover:text-red-600 dark:hover:text-red-400">
                 Release
               </button>
             </form>
           </>
         ) : canEdit ? (
           <>
-            <span className="text-neutral-500">You manage this team</span>
+            <span className="text-muted">You manage this team</span>
             <Link
               href={`/teams/${team.slug}/settings`}
-              className="text-emerald-700 hover:underline dark:text-emerald-400"
+              className="text-brand-text hover:underline"
             >
               Team settings
             </Link>
           </>
         ) : team.claimedBy ? (
-          <span className="text-neutral-500">
+          <span className="text-muted">
             {team.verifiedAt ? "Managed by a verified coach" : "Claimed by a coach"}
           </span>
         ) : claimable ? (
           <form action={claimTeam.bind(null, team.slug)}>
             <button
               type="submit"
-              className="rounded-md border border-neutral-300 px-3 py-1.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+              className="rounded-md border border-line px-3 py-1.5 font-medium hover:bg-elevated"
             >
               {isPrivate ? "Claim & make this a public team" : "Claim this team"}
             </button>
           </form>
         ) : (
-          <Link href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <Link href="/signin" className="text-brand-text hover:underline">
             Sign in to claim this team
           </Link>
         )}
@@ -126,28 +126,28 @@ export default async function TeamPage({
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Events</h2>
         {team.eventTeams.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">No events yet.</p>
+          <p className="mt-2 text-sm text-muted">No events yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {team.eventTeams.map((et) => (
               <li
                 key={et.id}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg border border-line p-3"
               >
                 <div>
                   <Link
                     href={`/events/${et.event.slug}`}
-                    className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                    className="font-medium text-brand-text hover:underline"
                   >
                     {et.event.title}
                   </Link>
-                  <span className="text-sm text-neutral-500">
+                  <span className="text-sm text-muted">
                     {" — "}
                     {et.division?.label ?? et.division?.name}
                     {et.seed === 1 && " · 🏆 champion"}
                   </span>
                 </div>
-                <div className="text-sm tabular-nums text-neutral-500">
+                <div className="text-sm tabular-nums text-muted">
                   {fmtDate(et.event.startsAt)} · {et.won}W {et.drawn}D {et.lost}L ·{" "}
                   {et.gf}–{et.ga} · {et.points} pts
                 </div>
@@ -188,21 +188,21 @@ function MatchRow({
     us == null || them == null ? "" : us > them ? "W" : us < them ? "L" : "D";
   const resultColor =
     result === "W"
-      ? "text-emerald-700 dark:text-emerald-400"
+      ? "text-brand-text"
       : result === "L"
         ? "text-red-600 dark:text-red-400"
-        : "text-neutral-500";
+        : "text-muted";
 
   return (
     <li className="flex items-center gap-2">
       <span className={`w-4 font-semibold ${resultColor}`}>{result}</span>
-      <span className="w-16 text-xs uppercase tracking-wide text-neutral-400">
+      <span className="w-16 text-xs uppercase tracking-wide text-muted">
         {match.stage === "ko" ? match.round : match.division?.name}
       </span>
       <span className="tabular-nums">
         {us}–{them}
       </span>
-      <span className="text-neutral-500">vs</span>
+      <span className="text-muted">vs</span>
       <span className="flex items-center gap-1.5">
         <TeamCrest src={opponent?.crestUrl} size={16} />
         {opponent?.slug ? (

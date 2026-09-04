@@ -31,65 +31,65 @@ export async function OpponentSection({ event }: { event: EventDetail }) {
           offerableTeams.length > 0 ? (
             <OfferForm action={sendOffer.bind(null, event.slug)} teams={offerableTeams} />
           ) : myTeams.length > 0 ? (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="mt-2 text-sm text-muted">
               You&rsquo;ve already offered every team you manage.
             </p>
           ) : (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-              <Link href="/teams" className="text-emerald-700 hover:underline dark:text-emerald-400">
+            <p className="mt-2 text-sm text-muted">
+              <Link href="/teams" className="text-brand-text hover:underline">
                 Claim a team
               </Link>{" "}
               to send an offer.
             </p>
           )
         ) : (
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-            <Link href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <p className="mt-2 text-sm text-muted">
+            <Link href="/signin" className="text-brand-text hover:underline">
               Sign in
             </Link>{" "}
             to offer a team.
           </p>
         )
       ) : (
-        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="mt-2 text-sm text-muted">
           Opponent confirmed.
         </p>
       )}
 
       {canManage && offers.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-sm font-medium text-neutral-500">Offers</h3>
+          <h3 className="text-sm font-medium text-muted">Offers</h3>
           <ul className="mt-2 space-y-2">
             {offers.map((offer) => (
               <li
                 key={offer.id}
-                className="rounded-md border border-neutral-200 bg-white p-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
+                className="rounded-md border border-line bg-card p-3 text-sm"
               >
                 <div className="flex items-center justify-between gap-3">
                   <Link
                     href={`/teams/${offer.fromTeam.slug}`}
-                    className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                    className="font-medium text-brand-text hover:underline"
                   >
                     {offer.fromTeam.name}
                   </Link>
-                  <span className="text-xs uppercase tracking-wide text-neutral-400">
+                  <span className="text-xs uppercase tracking-wide text-muted">
                     {offer.status}
                   </span>
                 </div>
                 {offer.message && (
-                  <p className="mt-1 whitespace-pre-wrap text-neutral-600 dark:text-neutral-300">
+                  <p className="mt-1 whitespace-pre-wrap text-muted">
                     {offer.message}
                   </p>
                 )}
                 {offer.status === "pending" && (
                   <div className="mt-2 flex gap-2">
                     <form action={respondToOffer.bind(null, event.slug, offer.id, true)}>
-                      <button className="rounded-md bg-emerald-700 px-3 py-1 font-medium text-white hover:bg-emerald-800">
+                      <button className="rounded-md bg-brand px-3 py-1 font-medium text-white hover:bg-brand-strong">
                         Accept
                       </button>
                     </form>
                     <form action={respondToOffer.bind(null, event.slug, offer.id, false)}>
-                      <button className="rounded-md border border-neutral-300 px-3 py-1 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900">
+                      <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                         Decline
                       </button>
                     </form>

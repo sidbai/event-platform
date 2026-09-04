@@ -17,7 +17,7 @@ type Profile = {
 };
 
 const field =
-  "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-md border border-line px-3 py-2 text-sm bg-card";
 const label = "block text-sm font-medium";
 
 export function SettingsForm({
@@ -40,7 +40,7 @@ export function SettingsForm({
           Username
         </label>
         <div className="mt-1 flex items-center gap-1">
-          <span className="text-sm text-neutral-400">@</span>
+          <span className="text-sm text-muted">@</span>
           <input
             id="username"
             name="username"
@@ -50,7 +50,7 @@ export function SettingsForm({
             spellCheck={false}
           />
         </div>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted">
           Letters, numbers and underscores. Your profile is at /people/username.
         </p>
         {err.username && <p className="mt-1 text-xs text-red-600">{err.username}</p>}
@@ -91,13 +91,13 @@ export function SettingsForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="club">
-            Club <span className="text-neutral-400">(optional)</span>
+            Club <span className="text-muted">(optional)</span>
           </label>
           <input id="club" name="club" defaultValue={profile.club ?? ""} className={`mt-1 ${field}`} />
         </div>
         <div>
           <label className={label} htmlFor="city">
-            City <span className="text-neutral-400">(optional)</span>
+            City <span className="text-muted">(optional)</span>
           </label>
           <input id="city" name="city" defaultValue={profile.city ?? ""} className={`mt-1 ${field}`} />
         </div>
@@ -105,7 +105,7 @@ export function SettingsForm({
 
       <div>
         <label className={label} htmlFor="bio">
-          About <span className="text-neutral-400">(optional)</span>
+          About <span className="text-muted">(optional)</span>
         </label>
         <textarea id="bio" name="bio" rows={3} defaultValue={profile.bio ?? ""} className={`mt-1 ${field}`} />
       </div>
@@ -114,12 +114,12 @@ export function SettingsForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save"}
         </button>
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
-        {state.ok && <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved.</span>}
+        {state.ok && <span className="text-sm text-brand-text">Saved.</span>}
       </div>
     </form>
   );

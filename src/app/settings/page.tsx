@@ -18,12 +18,12 @@ export default async function SettingsPage() {
 
       <div className="mt-5 flex items-center gap-3">
         <Avatar src={avatarOf(user)} name={user.displayName ?? user.name} size={56} />
-        <div className="text-sm text-neutral-500">
-          <p className="text-neutral-400">Custom photo uploads coming soon.</p>
+        <div className="text-sm text-muted">
+          <p className="text-muted">Custom photo uploads coming soon.</p>
           {user.username && (
             <Link
               href={`/people/${user.username}`}
-              className="text-emerald-700 hover:underline dark:text-emerald-400"
+              className="text-brand-text hover:underline"
             >
               View public profile →
             </Link>
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
         }}
       />
 
-      <p className="mt-8 text-xs text-neutral-400">
+      <p className="mt-8 text-xs text-muted">
         Signed in as {user.email}.
       </p>
     </div>

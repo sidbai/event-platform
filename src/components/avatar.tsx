@@ -31,7 +31,7 @@ export function Avatar({
     <span
       aria-hidden
       style={{ width: size, height: size }}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-400 dark:bg-neutral-700 dark:text-neutral-500 ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-line text-muted ${className}`}
     >
       <svg
         viewBox="0 0 24 24"

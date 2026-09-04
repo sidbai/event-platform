@@ -62,25 +62,25 @@ export default async function ScoresPage({
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link
         href={`/events/${slug}`}
-        className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+        className="text-sm text-brand-text hover:underline"
       >
         ← {event.title}
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Scores</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Enter results as games finish. Standings recompute automatically; the
         public feed (kingjuancup.org) refreshes within ~30 seconds.
       </p>
 
-      <details className="mt-6 rounded-lg border border-dashed border-neutral-300 p-3 text-sm dark:border-neutral-700">
+      <details className="mt-6 rounded-lg border border-dashed border-line p-3 text-sm">
         <summary className="cursor-pointer font-medium">
           Teams ({event.eventTeams.length})
         </summary>
-        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-neutral-600 dark:text-neutral-300">
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted">
           {event.eventTeams.map((et) => (
             <li key={et.id}>
               {et.team.name}
-              <span className="text-xs text-neutral-400">
+              <span className="text-xs text-muted">
                 {" "}
                 {et.division?.name}
                 {et.groupLabel ? ` G${et.groupLabel}` : ""}
@@ -109,7 +109,7 @@ export default async function ScoresPage({
               {division.label ?? division.name}
             </h2>
             {matches.length === 0 ? (
-              <p className="mt-2 text-sm text-neutral-500">No matches yet.</p>
+              <p className="mt-2 text-sm text-muted">No matches yet.</p>
             ) : (
               <div className="mt-2">
                 {matches.map((m) => (

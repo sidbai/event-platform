@@ -56,19 +56,19 @@ export default async function ForumPostPage({
     <div className="mx-auto max-w-3xl px-5 py-8">
       <Link
         href={`/discussions?c=${post.category}`}
-        className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+        className="text-sm text-brand-text hover:underline"
       >
         ← {CATEGORY_LABELS[post.category]}
       </Link>
 
       <article className="mt-3">
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          {post.pinned && <span className="text-emerald-700 dark:text-emerald-400">📌 Pinned</span>}
+        <div className="flex items-center gap-2 text-xs text-muted">
+          {post.pinned && <span className="text-brand-text">📌 Pinned</span>}
           {post.locked && <span>Locked</span>}
         </div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{post.title}</h1>
 
-        <div className="mt-3 flex items-center gap-2 text-sm text-neutral-500">
+        <div className="mt-3 flex items-center gap-2 text-sm text-muted">
           <Avatar src={post.authorAvatar} name={post.authorName} size={22} />
           {post.authorUsername ? (
             <Link href={`/people/${post.authorUsername}`} className="hover:underline">
@@ -81,21 +81,21 @@ export default async function ForumPostPage({
           <span>{fmt(post.createdAt)}</span>
         </div>
 
-        <p className="mt-4 whitespace-pre-wrap leading-relaxed text-neutral-800 dark:text-neutral-100">
+        <p className="mt-4 whitespace-pre-wrap leading-relaxed text-ink">
           {post.body}
         </p>
 
         {canModerate && (
-          <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-400">
+          <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted">
             {admin && (
               <>
                 <form action={setForumPostFlag.bind(null, slug, "pinned", !post.pinned)}>
-                  <button className="hover:text-emerald-700 dark:hover:text-emerald-400">
+                  <button className="hover:text-brand-text">
                     {post.pinned ? "Unpin" : "Pin"}
                   </button>
                 </form>
                 <form action={setForumPostFlag.bind(null, slug, "locked", !post.locked)}>
-                  <button className="hover:text-neutral-600 dark:hover:text-neutral-200">
+                  <button className="hover:text-ink">
                     {post.locked ? "Unlock" : "Lock"}
                   </button>
                 </form>

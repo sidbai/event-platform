@@ -29,12 +29,12 @@ export default async function RosterPage({
   if (!entry) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-10">
-        <Link href={`/events/${slug}`} className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+        <Link href={`/events/${slug}`} className="text-sm text-brand-text hover:underline">
           ← {event.title}
         </Link>
-        <p className="mt-6 text-neutral-600 dark:text-neutral-300">
+        <p className="mt-6 text-muted">
           You don&rsquo;t manage a team registered for this event. Claim your team on its{" "}
-          <Link href="/teams" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <Link href="/teams" className="text-brand-text hover:underline">
             team page
           </Link>{" "}
           first.
@@ -50,13 +50,13 @@ export default async function RosterPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <Link href={`/events/${slug}`} className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+      <Link href={`/events/${slug}`} className="text-sm text-brand-text hover:underline">
         ← {event.title}
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">
         {entry.teamName} — roster
       </h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         {division ? `${division.label ?? division.name} division` : "This event"}. Visible to
         you and the organizer only.
       </p>

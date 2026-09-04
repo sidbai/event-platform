@@ -7,7 +7,7 @@ import { submitEvent, type EventFormResult } from "./actions";
 type Kind = { slug: string; label: string };
 
 const field =
-  "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-md border border-line px-3 py-2 text-sm bg-card";
 const label = "block text-sm font-medium";
 
 export function EventForm({ kinds }: { kinds: Kind[] }) {
@@ -47,7 +47,7 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
         </div>
         <div>
           <label className={label} htmlFor="format">
-            Format <span className="text-neutral-400">(optional)</span>
+            Format <span className="text-muted">(optional)</span>
           </label>
           <input
             id="format"
@@ -68,7 +68,7 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
         </div>
         <div>
           <label className={label} htmlFor="time">
-            Start time <span className="text-neutral-400">(optional)</span>
+            Start time <span className="text-muted">(optional)</span>
           </label>
           <input id="time" name="time" type="time" className={`mt-1 ${field}`} />
         </div>
@@ -150,7 +150,7 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
 
       <div>
         <label className={label} htmlFor="summary">
-          Details <span className="text-neutral-400">(optional)</span>
+          Details <span className="text-muted">(optional)</span>
         </label>
         <textarea id="summary" name="summary" rows={3} className={`mt-1 ${field}`} />
       </div>
@@ -160,11 +160,11 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+        className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
       >
         {pending ? "Submitting…" : "Submit event"}
       </button>
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted">
         Submitted events are reviewed before they appear in the public list.
       </p>
     </form>

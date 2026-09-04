@@ -11,7 +11,7 @@ export default async function TeamsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         {teams.length === 0
           ? "Teams that play year-round show up here once a coach claims them. One-off tournament teams stay with their event."
           : `${teams.length} team${teams.length === 1 ? "" : "s"}`}
@@ -22,12 +22,12 @@ export default async function TeamsPage() {
           <li key={team.id}>
             <Link
               href={`/teams/${team.slug}`}
-              className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+              className="flex items-center gap-3 rounded-lg border border-line p-3 transition-colors hover:bg-elevated"
             >
               <TeamCrest src={team.crestUrl} size={36} />
               <div className="min-w-0">
                 <div className="truncate font-medium">{team.name}</div>
-                <div className="text-xs text-neutral-500">
+                <div className="text-xs text-muted">
                   {[team.ageGroup, team.city].filter(Boolean).join(" · ")}
                   {team.eventTeams.length > 0 &&
                     ` · ${team.eventTeams.length} event${team.eventTeams.length > 1 ? "s" : ""}`}

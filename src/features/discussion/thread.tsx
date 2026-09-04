@@ -73,16 +73,16 @@ export async function DiscussionThread({
   const pinned = pinnedId ? findComment(comments, pinnedId) : null;
 
   return (
-    <section className="mt-10 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+    <section className="mt-10 border-t border-line pt-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          Discussion {count > 0 && <span className="text-neutral-400">({count})</span>}
+          Discussion {count > 0 && <span className="text-muted">({count})</span>}
         </h2>
         {canModerate && (
           <form action={setThreadLocked.bind(null, ctx, !locked)}>
             <button
               type="submit"
-              className="text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+              className="text-xs text-muted hover:text-ink"
             >
               {locked ? "Unlock thread" : "Lock thread"}
             </button>
@@ -90,11 +90,11 @@ export async function DiscussionThread({
         )}
       </div>
 
-      {locked && <p className="mt-2 text-sm text-neutral-500">This thread is locked.</p>}
+      {locked && <p className="mt-2 text-sm text-muted">This thread is locked.</p>}
 
       {pinned && !pinned.hiddenAt && (
         <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
-          <div className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+          <div className="text-xs font-medium uppercase tracking-wide text-brand-text">
             📌 Pinned · {pinned.authorName ?? "Someone"}
           </div>
           <p className="mt-1 whitespace-pre-wrap">{pinned.body}</p>
@@ -107,8 +107,8 @@ export async function DiscussionThread({
             <CommentForm action={postComment.bind(null, ctx)} />
           </div>
         ) : (
-          <p className="mt-3 text-sm text-neutral-500">
-            <a href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <p className="mt-3 text-sm text-muted">
+            <a href="/signin" className="text-brand-text hover:underline">
               Sign in
             </a>{" "}
             to join the discussion.
@@ -117,7 +117,7 @@ export async function DiscussionThread({
 
       <div className="mt-6 space-y-5">
         {comments.length === 0 ? (
-          <p className="text-sm text-neutral-500">No comments yet.</p>
+          <p className="text-sm text-muted">No comments yet.</p>
         ) : (
           comments.map((c) => (
             <CommentItem
@@ -157,7 +157,7 @@ function CommentItem({
   const mine = comment.authorId === currentUserId;
 
   return (
-    <div className={isReply ? "border-l border-neutral-200 pl-4 dark:border-neutral-800" : ""}>
+    <div className={isReply ? "border-l border-line pl-4" : ""}>
       <div className="flex items-center gap-2 text-sm">
         <Avatar src={comment.authorImage} name={comment.authorName} size={20} />
         {comment.authorUsername ? (
@@ -170,18 +170,18 @@ function CommentItem({
         ) : (
           <span className="font-medium">{comment.authorName}</span>
         )}
-        <span className="text-xs text-neutral-400">{timeAgo(comment.createdAt)}</span>
+        <span className="text-xs text-muted">{timeAgo(comment.createdAt)}</span>
       </div>
       {hidden ? (
-        <p className="mt-1 text-sm italic text-neutral-400">Comment removed.</p>
+        <p className="mt-1 text-sm italic text-muted">Comment removed.</p>
       ) : (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-200">
+        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
           {comment.body}
         </p>
       )}
 
       {!hidden && (
-        <div className="mt-1 flex flex-wrap gap-3 text-xs text-neutral-400">
+        <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted">
           {(mine || canModerate) && (
             <form action={hideComment.bind(null, ctx.revalidate, comment.id)}>
               <button type="submit" className="hover:text-red-600 dark:hover:text-red-400">
@@ -191,7 +191,7 @@ function CommentItem({
           )}
           {currentUserId && !mine && (
             <form action={reportComment.bind(null, ctx.revalidate, comment.id)}>
-              <button type="submit" className="hover:text-neutral-600 dark:hover:text-neutral-300">
+              <button type="submit" className="hover:text-ink">
                 Report
               </button>
             </form>
@@ -200,14 +200,14 @@ function CommentItem({
             <form
               action={setPinnedComment.bind(null, ctx, isPinned ? null : comment.id)}
             >
-              <button type="submit" className="hover:text-emerald-700 dark:hover:text-emerald-400">
+              <button type="submit" className="hover:text-brand-text">
                 {isPinned ? "Unpin" : "Pin"}
               </button>
             </form>
           )}
           {canReply && !isReply && (
             <details className="[&_summary]:cursor-pointer">
-              <summary className="hover:text-neutral-600 dark:hover:text-neutral-300">Reply</summary>
+              <summary className="hover:text-ink">Reply</summary>
               <div className="mt-2">
                 <CommentForm
                   action={postComment.bind(null, ctx)}
