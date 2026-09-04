@@ -34,7 +34,17 @@ export function isOurBlobUrl(url: string): boolean {
 /** Where a given upload is allowed to live, keyed by what it is for. */
 export type UploadTarget =
   | { kind: "avatar" }
-  | { kind: "crest"; teamSlug: string };
+  | { kind: "crest"; teamSlug: string }
+  /**
+   * A crest chosen while creating a team, before the team exists to authorize
+   * against. Lands in a staging folder any signed-in user may write to, and
+   * createTeam will only adopt a URL from there — so a new team cannot claim
+   * an existing team's crest file out from under it.
+   */
+  | { kind: "new-crest" };
+
+/** Staging folder for crests uploaded before their team exists. */
+export const PENDING_CREST_PREFIX = "crests/_pending";
 
 /**
  * Where a target's files live.
@@ -44,7 +54,24 @@ export type UploadTarget =
  * from here and the server checks the prefix before minting a token.
  */
 export function uploadPrefix(target: UploadTarget): string {
-  return target.kind === "avatar" ? "avatars" : `crests/${target.teamSlug}`;
+  if (target.kind === "avatar") return "avatars";
+  if (target.kind === "new-crest") return PENDING_CREST_PREFIX;
+  return `crests/${target.teamSlug}`;
+}
+
+/**
+ * True only for a crest sitting in the staging folder. createTeam accepts
+ * nothing else: an arbitrary blob URL would let a new team point at a live
+ * team's crest, and that team replacing its crest would then delete the file
+ * out from under the new one.
+ */
+export function isPendingCrestUrl(url: string): boolean {
+  if (!isOurBlobUrl(url)) return false;
+  try {
+    return new URL(url).pathname.startsWith(`/${PENDING_CREST_PREFIX}/`);
+  } catch {
+    return false;
+  }
 }
 
 export function pathnameMatchesTarget(
@@ -69,6 +96,7 @@ export function parseUploadTarget(raw: string | null): UploadTarget | null {
   if (typeof value !== "object" || value === null) return null;
   const v = value as Record<string, unknown>;
   if (v.kind === "avatar") return { kind: "avatar" };
+  if (v.kind === "new-crest") return { kind: "new-crest" };
   if (v.kind === "crest" && typeof v.teamSlug === "string")
     return { kind: "crest", teamSlug: v.teamSlug };
   return null;
