@@ -3,43 +3,59 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubEdits, clubReviewVotes, clubReviews, clubs } from "@/db/schema";
+import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
 
 import { publicName } from "@/features/auth";
 
 import { averageRatings, type Ratings } from "./constants";
 
-const visible = isNull(clubReviews.hiddenAt);
+const visible = isNull(reviews.hiddenAt);
 
-function ratingsOf(row: Ratings): Ratings {
+/** Reviews of clubs, never of another subject that shares an id. */
+const ofClub = (clubId: string) =>
+  and(eq(reviews.subjectType, "club"), eq(reviews.subjectId, clubId), visible);
+
+/**
+ * Ratings arrive as free-form JSON, since the scales vary per subject. Reading
+ * them back through the club's own six keys keeps the rest of the code honest:
+ * a row missing one scores 0 for it rather than producing undefined.
+ */
+function ratingsOf(row: { ratings: Record<string, number> }): Ratings {
+  const r = row.ratings;
   return {
-    playerDevelopment: row.playerDevelopment,
-    coaching: row.coaching,
-    communication: row.communication,
-    clubCulture: row.clubCulture,
-    playingTime: row.playingTime,
-    value: row.value,
+    playerDevelopment: r.playerDevelopment ?? 0,
+    coaching: r.coaching ?? 0,
+    communication: r.communication ?? 0,
+    clubCulture: r.clubCulture ?? 0,
+    playingTime: r.playingTime ?? 0,
+    value: r.value ?? 0,
   };
 }
 
 /** Club directory with each club's aggregate score. */
 export async function listClubs() {
-  const rows = await db.query.clubs.findMany({
-    orderBy: [asc(clubs.name)],
-    with: {
-      reviews: {
-        where: visible,
-        columns: {
-          playerDevelopment: true,
-          coaching: true,
-          communication: true,
-          clubCulture: true,
-          playingTime: true,
-          value: true,
-        },
-      },
-    },
-  });
+  const rows = await db.query.clubs.findMany({ orderBy: [asc(clubs.name)] });
+  if (rows.length === 0) return [];
+
+  // Fetched separately rather than through a relation: the join needs
+  // subject_type too, which drizzle relations cannot express.
+  const reviewRows = await db
+    .select({ subjectId: reviews.subjectId, ratings: reviews.ratings })
+    .from(reviews)
+    .where(
+      and(
+        eq(reviews.subjectType, "club"),
+        inArray(reviews.subjectId, rows.map((c) => c.id)),
+        visible,
+      ),
+    );
+
+  const byClub = new Map<string, Ratings[]>();
+  for (const r of reviewRows) {
+    const list = byClub.get(r.subjectId) ?? [];
+    list.push(ratingsOf(r));
+    byClub.set(r.subjectId, list);
+  }
 
   return rows.map((c) => ({
     id: c.id,
@@ -47,7 +63,7 @@ export async function listClubs() {
     name: c.name,
     city: c.city,
     crestUrl: c.crestUrl,
-    summary: averageRatings(c.reviews.map(ratingsOf)),
+    summary: averageRatings(byClub.get(c.id) ?? []),
   }));
 }
 
@@ -79,28 +95,28 @@ export type ReviewCard = {
  * their own review — no user id, name or avatar reaches the caller.
  */
 export async function listReviews(clubId: string, userId: string | null) {
-  const rows = await db.query.clubReviews.findMany({
-    where: and(eq(clubReviews.clubId, clubId), visible),
-    orderBy: [desc(clubReviews.createdAt)],
+  const rows = await db.query.reviews.findMany({
+    where: ofClub(clubId),
+    orderBy: [desc(reviews.createdAt)],
     with: { author: { columns: { id: true, anonHandle: true } } },
   });
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
   const counts = await db
-    .select({ reviewId: clubReviewVotes.reviewId, n: sql<number>`count(*)::int` })
-    .from(clubReviewVotes)
-    .where(inArray(clubReviewVotes.reviewId, ids))
-    .groupBy(clubReviewVotes.reviewId);
+    .select({ reviewId: reviewVotes.reviewId, n: sql<number>`count(*)::int` })
+    .from(reviewVotes)
+    .where(inArray(reviewVotes.reviewId, ids))
+    .groupBy(reviewVotes.reviewId);
   const byReview = new Map(counts.map((c) => [c.reviewId, c.n]));
 
   const mineVotes = userId
     ? new Set(
         (
-          await db.query.clubReviewVotes.findMany({
+          await db.query.reviewVotes.findMany({
             where: and(
-              inArray(clubReviewVotes.reviewId, ids),
-              eq(clubReviewVotes.userId, userId),
+              inArray(reviewVotes.reviewId, ids),
+              eq(reviewVotes.userId, userId),
             ),
             columns: { reviewId: true },
           })
@@ -123,25 +139,24 @@ export async function listReviews(clubId: string, userId: string | null) {
 }
 
 export async function clubSummary(clubId: string) {
-  const rows = await db.query.clubReviews.findMany({
-    where: and(eq(clubReviews.clubId, clubId), visible),
-    columns: {
-      playerDevelopment: true,
-      coaching: true,
-      communication: true,
-      clubCulture: true,
-      playingTime: true,
-      value: true,
-    },
+  const rows = await db.query.reviews.findMany({
+    where: ofClub(clubId),
+    columns: { ratings: true },
   });
   return averageRatings(rows.map(ratingsOf));
 }
 
 /** The signed-in user's own review of a club, for edit-in-place. */
 export async function myReview(clubId: string, userId: string) {
-  return db.query.clubReviews.findFirst({
-    where: and(eq(clubReviews.clubId, clubId), eq(clubReviews.authorId, userId)),
+  const row = await db.query.reviews.findFirst({
+    where: and(
+      eq(reviews.subjectType, "club"),
+      eq(reviews.subjectId, clubId),
+      eq(reviews.authorId, userId),
+    ),
   });
+  // Callers want the six club scales, not the raw JSON.
+  return row ? { ...row, ratings: ratingsOf(row) } : undefined;
 }
 
 export type ClubEditRow = {

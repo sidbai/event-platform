@@ -582,29 +582,43 @@ export const clubEditsRelations = relations(clubEdits, ({ one }) => ({
 }));
 
 /**
- * One person's review of a club, on six fixed 1-5 scales.
+ * Which kind of thing a review is about.
+ *
+ * 'coach' is declared ahead of the coaches table: adding an enum value later
+ * has to COMMIT before anything can use it, which forces a separate migration,
+ * so the cheap move is to name every subject up front.
+ */
+export const reviewSubject = pgEnum("review_subject", ["club", "coach"]);
+
+/**
+ * One person's review of one subject.
+ *
+ * Polymorphic on (subject_type, subject_id) like `discussions`, so a coach or
+ * a venue can be reviewed without a second copy of this table, its votes and
+ * its reports. There is deliberately no foreign key on subject_id — that is
+ * the cost of the pattern, and it means whatever deletes a subject has to
+ * delete its reviews too.
+ *
+ * Scores live in `ratings` as JSON because the scales differ per subject: a
+ * club is judged on six, a coach on a different five. The 1-5 rule is still
+ * enforced in the database, by review_ratings_valid().
  *
  * Reviews are shown anonymously: `authorId` exists so a person can edit their
- * own review and only review a club once, and is never exposed to readers —
+ * own review and only review a subject once, and is never exposed to readers —
  * the display name comes from users.anonHandle instead.
  */
-export const clubReviews = pgTable(
-  "club_reviews",
+export const reviews = pgTable(
+  "reviews",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    clubId: uuid("club_id")
-      .notNull()
-      .references(() => clubs.id, { onDelete: "cascade" }),
+    subjectType: reviewSubject("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
     authorId: uuid("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    playerDevelopment: integer("player_development").notNull(),
-    coaching: integer("coaching").notNull(),
-    communication: integer("communication").notNull(),
-    clubCulture: integer("club_culture").notNull(),
-    playingTime: integer("playing_time").notNull(),
-    value: integer("value").notNull(),
+    /** Scale key -> 1-5. Which keys are expected depends on subjectType. */
+    ratings: jsonb("ratings").$type<Record<string, number>>().notNull(),
 
     reviewerRole: reviewerRole("reviewer_role").notNull(),
     title: text("title").notNull(),
@@ -614,24 +628,19 @@ export const clubReviews = pgTable(
     ...timestamps,
   },
   (t) => [
-    unique("club_reviews_club_author_uq").on(t.clubId, t.authorId),
-    index("club_reviews_club_idx").on(t.clubId, t.hiddenAt),
-    check(
-      "club_reviews_ratings_ck",
-      sql`${t.playerDevelopment} between 1 and 5 and ${t.coaching} between 1 and 5
-          and ${t.communication} between 1 and 5 and ${t.clubCulture} between 1 and 5
-          and ${t.playingTime} between 1 and 5 and ${t.value} between 1 and 5`,
-    ),
+    unique("reviews_subject_author_uq").on(t.subjectType, t.subjectId, t.authorId),
+    index("reviews_subject_idx").on(t.subjectType, t.subjectId, t.hiddenAt),
+    check("reviews_ratings_ck", sql`review_ratings_valid(${t.ratings})`),
   ],
 );
 
 /** "Helpful" votes. One per person per review. */
-export const clubReviewVotes = pgTable(
-  "club_review_votes",
+export const reviewVotes = pgTable(
+  "review_votes",
   {
     reviewId: uuid("review_id")
       .notNull()
-      .references(() => clubReviews.id, { onDelete: "cascade" }),
+      .references(() => reviews.id, { onDelete: "cascade" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -640,12 +649,12 @@ export const clubReviewVotes = pgTable(
   (t) => [primaryKey({ columns: [t.reviewId, t.userId] })],
 );
 
-export const clubReviewReports = pgTable(
-  "club_review_reports",
+export const reviewReports = pgTable(
+  "review_reports",
   {
     reviewId: uuid("review_id")
       .notNull()
-      .references(() => clubReviews.id, { onDelete: "cascade" }),
+      .references(() => reviews.id, { onDelete: "cascade" }),
     reporterId: uuid("reporter_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -655,32 +664,34 @@ export const clubReviewReports = pgTable(
   (t) => [primaryKey({ columns: [t.reviewId, t.reporterId] })],
 );
 
-export const clubsRelations = relations(clubs, ({ one, many }) => ({
-  reviews: many(clubReviews),
+export const clubsRelations = relations(clubs, ({ one }) => ({
+  // No `reviews` relation: the join needs subject_type as well, which drizzle
+  // relations cannot express, and without it a coach review whose subject_id
+  // collided with a club id would be counted as the club's. Reviews are
+  // fetched explicitly instead.
   updatedByUser: one(users, {
     fields: [clubs.updatedBy],
     references: [users.id],
   }),
 }));
 
-export const clubReviewsRelations = relations(clubReviews, ({ one, many }) => ({
-  club: one(clubs, { fields: [clubReviews.clubId], references: [clubs.id] }),
-  author: one(users, { fields: [clubReviews.authorId], references: [users.id] }),
-  votes: many(clubReviewVotes),
-  reports: many(clubReviewReports),
+export const reviewsRelations = relations(reviews, ({ one, many }) => ({
+  author: one(users, { fields: [reviews.authorId], references: [users.id] }),
+  votes: many(reviewVotes),
+  reports: many(reviewReports),
 }));
 
-export const clubReviewVotesRelations = relations(clubReviewVotes, ({ one }) => ({
-  review: one(clubReviews, {
-    fields: [clubReviewVotes.reviewId],
-    references: [clubReviews.id],
+export const reviewVotesRelations = relations(reviewVotes, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewVotes.reviewId],
+    references: [reviews.id],
   }),
 }));
 
-export const clubReviewReportsRelations = relations(clubReviewReports, ({ one }) => ({
-  review: one(clubReviews, {
-    fields: [clubReviewReports.reviewId],
-    references: [clubReviews.id],
+export const reviewReportsRelations = relations(reviewReports, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewReports.reviewId],
+    references: [reviews.id],
   }),
 }));
 

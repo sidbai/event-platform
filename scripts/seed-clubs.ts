@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { slugify } from "../src/lib/slug";
 
@@ -91,7 +91,7 @@ const RETIRED_SLUGS = [
 
 async function main() {
   const { db } = await import("../src/db");
-  const { clubs, clubReviews } = await import("../src/db/schema");
+  const { clubs, reviews } = await import("../src/db/schema");
 
   let added = 0;
   let filled = 0;
@@ -137,8 +137,8 @@ async function main() {
   });
   let removed = 0;
   for (const r of retired) {
-    const review = await db.query.clubReviews.findFirst({
-      where: eq(clubReviews.clubId, r.id),
+    const review = await db.query.reviews.findFirst({
+      where: and(eq(reviews.subjectType, "club"), eq(reviews.subjectId, r.id)),
       columns: { id: true },
     });
     if (review) {
