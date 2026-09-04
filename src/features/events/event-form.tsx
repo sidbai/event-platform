@@ -16,6 +16,7 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
     {},
   );
   const [locationType, setLocationType] = useState("in_person");
+  const [visibility, setVisibility] = useState("public");
   const err = state.fieldErrors ?? {};
 
   return (
@@ -154,6 +155,61 @@ export function EventForm({ kinds }: { kinds: Kind[] }) {
         </label>
         <textarea id="summary" name="summary" rows={3} className={`mt-1 ${field}`} />
       </div>
+
+      <fieldset>
+        <legend className={label}>Who can see it</legend>
+        <div className="mt-2 space-y-2 text-sm">
+          <label className="flex items-start gap-2">
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              checked={visibility === "public"}
+              onChange={() => setVisibility("public")}
+              className="mt-1"
+            />
+            <span>
+              <span className="font-medium">Public</span>
+              <span className="block text-muted">
+                Listed on the events page for anyone to find.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input
+              type="radio"
+              name="visibility"
+              value="unlisted"
+              checked={visibility === "unlisted"}
+              onChange={() => setVisibility("unlisted")}
+              className="mt-1"
+            />
+            <span>
+              <span className="font-medium">Unlisted</span>
+              <span className="block text-muted">
+                Not listed, but anyone with the link can open it.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              checked={visibility === "private"}
+              onChange={() => setVisibility("private")}
+              className="mt-1"
+            />
+            <span>
+              <span className="font-medium">Private</span>
+              <span className="block text-muted">
+                Only you and the people you invite. You can invite them once
+                it&rsquo;s created.
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 

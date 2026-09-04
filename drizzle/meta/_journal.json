@@ -78,6 +78,13 @@
       "when": 1788507411344,
       "tag": "0010_careful_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788509110332,
+      "tag": "0011_free_revanche",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { AttendanceSection } from "@/features/attendance/section";
+import { canViewEvent } from "@/features/events/can-view";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
@@ -73,8 +74,8 @@ export default async function EventPage({
 
   const canManage =
     !!user && (event.organizerId === user.id || isAdmin(user));
+  if (!(await canViewEvent(event, user))) notFound();
   const notPublic = event.status === "pending" || event.status === "cancelled";
-  if (notPublic && !canManage) notFound();
 
   const champions = (event.result as { champions?: Champion[] } | null)?.champions ?? [];
   const crestByName = new Map(
@@ -99,6 +100,22 @@ export default async function EventPage({
           {event.status === "pending"
             ? "This event is awaiting review — only you can see it."
             : "This event was declined."}
+        </p>
+      )}
+
+      {canManage && event.visibility !== "public" && (
+        <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
+          <span>
+            {event.visibility === "private"
+              ? "Private — only you and the people you invite can see this."
+              : "Unlisted — not in the events list, but anyone with the link can open it."}
+          </span>
+          <Link
+            href={`/events/${event.slug}/invite`}
+            className="font-medium text-brand-text hover:underline"
+          >
+            Invite people →
+          </Link>
         </p>
       )}
 

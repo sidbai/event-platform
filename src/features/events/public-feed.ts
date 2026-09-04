@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema";
@@ -36,7 +36,10 @@ export type FeedSchedule = {
 
 async function loadEvent(slug: string) {
   return db.query.events.findFirst({
-    where: eq(events.slug, slug),
+    // Public only. These endpoints send Access-Control-Allow-Origin: * and are
+    // cached at the edge, so serving an unlisted or private event here would
+    // publish it to the world.
+    where: and(eq(events.slug, slug), eq(events.visibility, "public")),
     with: {
       eventTeams: {
         with: {

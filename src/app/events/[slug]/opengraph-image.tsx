@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+import { canViewEvent } from "@/features/events/can-view";
 import { getEventBySlug } from "@/features/events/queries";
 
 export const alt = "King Juan Soccer event";
@@ -12,7 +13,11 @@ export default async function OgImage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const found = await getEventBySlug(slug);
+  // Unfurlers arrive with no session, so this is the anonymous check: an
+  // unlisted event still gets a real card (sharing the link is the point), a
+  // private one falls back to generic branding rather than leaking its details.
+  const event = found && (await canViewEvent(found, null)) ? found : null;
 
   const title = event?.title ?? "King Juan Soccer";
   const dateLine = event?.startsAt

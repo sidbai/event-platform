@@ -87,6 +87,15 @@ export async function submitEvent(
   }
 
   const admin = isAdmin(user);
+  const picked = get("visibility");
+  const visibility = (
+    ["public", "unlisted", "private"].includes(picked) ? picked : "public"
+  ) as "public" | "unlisted" | "private";
+
+  // Review exists to gate what reaches the public list. An unlisted or private
+  // event isn't going there, so it would be pointless to make the organizer
+  // wait for approval before they can even invite anyone.
+  const needsReview = visibility === "public" && !admin;
   const slug = await uniqueSlug(slugify(title));
 
   await db.insert(events).values({
@@ -95,8 +104,8 @@ export async function submitEvent(
     modules: kindRow.defaultModules,
     title,
     summary: get("summary") || null,
-    status: admin ? "published" : "pending",
-    visibility: admin ? "public" : "unlisted",
+    status: needsReview ? "pending" : "published",
+    visibility,
     locationType: locationType as "in_person" | "online" | "hybrid",
     venueId,
     onlineUrl: locationType === "online" ? onlineUrl : null,
