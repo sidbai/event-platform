@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/features/auth";
+import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import {
   pendingEvents,
@@ -169,7 +169,7 @@ export default async function AdminPage({
                 className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
               >
                 <div className="text-xs text-neutral-500">
-                  {comment.author?.name ?? comment.author?.email ?? "Someone"} ·{" "}
+                  {comment.author ? publicName(comment.author) : "Someone"} ·{" "}
                   {comment.reportCount} report{comment.reportCount > 1 ? "s" : ""} ·{" "}
                   {comment.discussion?.subjectType}
                 </div>

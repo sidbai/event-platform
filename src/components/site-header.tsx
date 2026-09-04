@@ -1,11 +1,12 @@
 import Link from "next/link";
 
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
+import { Avatar, avatarOf } from "@/components/avatar";
+import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
 export async function SiteHeader() {
-  const session = await auth();
-  const user = session?.user;
+  const user = await getCurrentUser();
   const admin = isAdmin(user);
 
   return (
@@ -30,18 +31,22 @@ export async function SiteHeader() {
             </Link>
           )}
           {user ? (
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-              className="flex items-center gap-2"
-            >
-              <span className="hidden text-neutral-500 sm:inline">{user.email}</span>
-              <button type="submit" className="text-emerald-700 hover:underline dark:text-emerald-400">
-                Sign out
-              </button>
-            </form>
+            <div className="flex items-center gap-2">
+              <Link href="/settings" className="flex items-center gap-1.5">
+                <Avatar src={avatarOf(user)} name={publicName(user)} size={22} />
+                <span className="hidden text-neutral-500 sm:inline">{publicName(user)}</span>
+              </Link>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/" });
+                }}
+              >
+                <button type="submit" className="text-emerald-700 hover:underline dark:text-emerald-400">
+                  Sign out
+                </button>
+              </form>
+            </div>
           ) : (
             <Link href="/signin" className="text-emerald-700 hover:underline dark:text-emerald-400">
               Sign in
