@@ -226,13 +226,21 @@ async function main() {
         ageGroup: t.division,
         gender: "coed",
         city: "Bellevue",
+        visibility: "private",
+        originEventId: event.id,
         crestUrl: t.logo
           ? `https://raw.githubusercontent.com/sidbai/kingjuan-assets/main/logos/${t.logo}`
           : null,
       })
       .onConflictDoUpdate({
         target: s.teams.slug,
-        set: { name: t.name, crestUrl: sql`excluded.crest_url` },
+        set: {
+          name: t.name,
+          crestUrl: sql`excluded.crest_url`,
+          // don't clobber a team that a coach has already claimed & made public
+          visibility: sql`case when ${s.teams.claimedBy} is null then 'private'::team_visibility else ${s.teams.visibility} end`,
+          originEventId: sql`coalesce(${s.teams.originEventId}, excluded.origin_event_id)`,
+        },
       })
       .returning({ id: s.teams.id });
     teamIdByName.set(t.name, row.id);

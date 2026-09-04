@@ -4,9 +4,17 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { events, matches, matchStage, matchStatus } from "@/db/schema";
+import {
+  eventTeams,
+  events,
+  matches,
+  matchStage,
+  matchStatus,
+  teams,
+} from "@/db/schema";
 import { canManageEvent } from "@/features/events/can-manage";
 import { zonedDate } from "@/lib/dates";
+import { slugify } from "@/lib/slug";
 
 export type ScoreResult = { error?: string; ok?: boolean };
 
@@ -122,6 +130,57 @@ export async function addMatch(
     awayPlaceholder: awayTeamId ? null : String(formData.get("awayPlaceholder") ?? "").trim() || "TBD",
     status: "scheduled",
   });
+
+  await touchEvent(event.id, eventSlug);
+  return { ok: true };
+}
+
+export async function addTeamToEvent(
+  eventSlug: string,
+  _prev: ScoreResult,
+  formData: FormData,
+): Promise<ScoreResult> {
+  if (!(await canManageEvent({ slug: eventSlug }))) return { error: "Not allowed." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, eventSlug),
+    columns: { id: true },
+  });
+  if (!event) return { error: "Event not found." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Team name?" };
+  const divisionId = (formData.get("divisionId") as string) || null;
+  const groupLabel = String(formData.get("groupLabel") ?? "").trim() || null;
+
+  const base = slugify(name) || "team";
+  let slug = base;
+  for (let i = 0; i < 60; i++) {
+    const candidate = i === 0 ? base : `${base}-${i + 1}`;
+    const clash = await db.query.teams.findFirst({
+      where: eq(teams.slug, candidate),
+      columns: { id: true },
+    });
+    if (!clash) {
+      slug = candidate;
+      break;
+    }
+  }
+
+  const [team] = await db
+    .insert(teams)
+    .values({
+      slug,
+      name,
+      visibility: "private",
+      originEventId: event.id,
+    })
+    .returning({ id: teams.id });
+
+  await db
+    .insert(eventTeams)
+    .values({ eventId: event.id, teamId: team.id, divisionId, groupLabel })
+    .onConflictDoNothing();
 
   await touchEvent(event.id, eventSlug);
   return { ok: true };
