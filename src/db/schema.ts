@@ -479,6 +479,15 @@ export const clubs = pgTable("clubs", {
   createdBy: uuid("created_by").references(() => users.id, {
     onDelete: "set null",
   }),
+  /**
+   * Whoever last changed the club's details. Club entries are community
+   * maintained — anyone signed in can correct one — so edits need to be
+   * attributable, both to show readers the page is tended and to make
+   * vandalism traceable.
+   */
+  updatedBy: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
   ...timestamps,
 });
 
@@ -556,8 +565,12 @@ export const clubReviewReports = pgTable(
   (t) => [primaryKey({ columns: [t.reviewId, t.reporterId] })],
 );
 
-export const clubsRelations = relations(clubs, ({ many }) => ({
+export const clubsRelations = relations(clubs, ({ one, many }) => ({
   reviews: many(clubReviews),
+  updatedByUser: one(users, {
+    fields: [clubs.updatedBy],
+    references: [users.id],
+  }),
 }));
 
 export const clubReviewsRelations = relations(clubReviews, ({ one, many }) => ({

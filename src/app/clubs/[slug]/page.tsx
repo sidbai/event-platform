@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
-import { getCurrentUser } from "@/features/auth";
+import { getCurrentUser, publicName } from "@/features/auth";
 import { canEditClub } from "@/features/clubs/access";
 import { reportReview, toggleHelpful } from "@/features/clubs/actions";
 import { overallOf } from "@/features/clubs/constants";
@@ -46,7 +46,7 @@ export default async function ClubPage({
   const [summary, reviews, mayEdit] = await Promise.all([
     clubSummary(club.id),
     listReviews(club.id, user?.id ?? null),
-    canEditClub(slug),
+    canEditClub(),
   ]);
   const mine = reviews.find((r) => r.mine);
 
@@ -124,6 +124,13 @@ export default async function ClubPage({
           </p>
         )}
       </section>
+
+      <p className="mt-3 text-xs text-muted">
+        Club details are maintained by the community — anyone signed in can
+        correct them.
+        {club.updatedByUser &&
+          ` Last edited by ${publicName(club.updatedByUser)}.`}
+      </p>
 
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">

@@ -11,7 +11,11 @@ config({ path: ".env.local" });
 const B = "https://cxmq9bef2phfq3rd.public.blob.vercel-storage.com/clubs";
 
 /**
- * Well-known Seattle-area youth clubs, so Club Experience isn't an empty page.
+ * The Seattle-area ECNL clubs, so Club Experience isn't an empty page.
+ *
+ * Scope is deliberately ECNL / RCL: those are the clubs families actually
+ * choose between, and a directory that tries to list every rec club is one
+ * nobody can maintain.
  *
  * Every field here was checked against the club's own site. Logos were fetched
  * from those sites and eyeballed one by one before being stored — the naive
@@ -46,15 +50,9 @@ const SEATTLE_CLUBS: {
   },
   {
     name: "Eastside FC",
-    city: null,
+    city: "Issaquah",
     website: "https://www.eastsidefc.org",
     logo: `${B}/eastside-fc/logo-Hgp7ZrwaD3jEBn1sT8f0jfY95VbkQD.png`,
-  },
-  {
-    name: "Issaquah FC",
-    city: "Issaquah",
-    website: "https://www.issaquahfc.org",
-    logo: `${B}/issaquah-fc/logo-LNaD9s4Lgj8mllAB6iki63vUMerNON.png`,
   },
   {
     name: "Washington Premier FC",
@@ -62,11 +60,19 @@ const SEATTLE_CLUBS: {
     website: "https://www.washingtonpremierfc.com",
     logo: `${B}/washington-premier-fc/logo-it5kyASFH20AneECYGLHNNMaTOIUlD.png`,
   },
-  // Site is up but blocks automated requests, so no logo was taken.
-  { name: "Emerald City FC", city: "Seattle", website: "https://emeraldcityfc.org", logo: null },
-  // No official site found — only social pages — and the favicon on the domain
-  // is a generic orange "S" that can't be confirmed as their mark.
-  { name: "Seattle Celtic", city: "Seattle", website: null, logo: null },
+  {
+    name: "PacNW SC",
+    city: "Tukwila",
+    website: "https://www.pacificnorthwestsoccerclub.org",
+    logo: `${B}/pacnw/logo-jHGHMTfseW78RDlfEtWHzTegbQGvZO.png`,
+  },
+  // Site is up but renders client-side, so no logo could be taken from it.
+  {
+    name: "Snohomish United",
+    city: null,
+    website: "https://www.snohomishunited.com",
+    logo: null,
+  },
 ];
 
 /**
@@ -75,7 +81,14 @@ const SEATTLE_CLUBS: {
  * Removed only when nobody has reviewed them, so this can never delete
  * somebody's writing.
  */
-const RETIRED_SLUGS = ["northwest-nationals", "issaquah-soccer-club"];
+const RETIRED_SLUGS = [
+  "northwest-nationals",
+  "issaquah-soccer-club",
+  // Out of scope: the directory covers ECNL / RCL clubs.
+  "emerald-city-fc",
+  "issaquah-fc",
+  "seattle-celtic",
+];
 
 async function main() {
   const { db } = await import("../src/db");
