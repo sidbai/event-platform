@@ -10,7 +10,7 @@ import {
   revertClub,
   toggleHelpful,
 } from "@/features/clubs/actions";
-import { overallOf } from "@/features/clubs/constants";
+import { MIN_REVIEWS_FOR_SCORE, overallOf } from "@/features/clubs/constants";
 import {
   clubHistory,
   clubSummary,
@@ -104,7 +104,7 @@ export default async function ClubPage({
       </header>
 
       <section className="mt-6 rounded-xl border border-line bg-card p-5">
-        {summary ? (
+        {summary?.rated ? (
           <>
             <div className="flex items-center gap-3">
               <span className="text-3xl font-semibold tabular-nums">
@@ -121,6 +121,14 @@ export default async function ClubPage({
               <RatingBreakdown ratings={summary.byCategory} />
             </div>
           </>
+        ) : summary ? (
+          // The reviews themselves still render below; only the average is
+          // withheld, because a mean of one or two is not a rating.
+          <div className="text-sm text-muted">
+            <span className="font-medium text-ink">Not rated yet</span> —{" "}
+            {summary.count} review{summary.count === 1 ? "" : "s"} so far. We
+            show a score once there are {MIN_REVIEWS_FOR_SCORE}.
+          </div>
         ) : (
           <p className="text-sm text-muted">
             No reviews yet.{" "}
