@@ -64,6 +64,13 @@
       "when": 1788502165376,
       "tag": "0008_tearful_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788506523732,
+      "tag": "0009_sticky_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

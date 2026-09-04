@@ -465,6 +465,14 @@ export const forumPosts = pgTable(
     }),
     pinned: boolean("pinned").notNull().default(false),
     locked: boolean("locked").notNull().default(false),
+    /**
+     * Set when the author turns the post into an event. The discussion moves
+     * with it, the post drops out of the forum feed, and its slug redirects to
+     * the event.
+     */
+    convertedEventId: uuid("converted_event_id").references(() => events.id, {
+      onDelete: "set null",
+    }),
     lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -475,6 +483,10 @@ export const forumPosts = pgTable(
 
 export const forumPostsRelations = relations(forumPosts, ({ one }) => ({
   author: one(users, { fields: [forumPosts.authorId], references: [users.id] }),
+  convertedEvent: one(events, {
+    fields: [forumPosts.convertedEventId],
+    references: [events.id],
+  }),
 }));
 
 export const discussions = pgTable(

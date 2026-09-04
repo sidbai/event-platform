@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { Avatar } from "@/components/avatar";
@@ -48,6 +48,9 @@ export default async function ForumPostPage({
   const [post, user] = await Promise.all([getForumPost(slug), getCurrentUser()]);
   if (!post) notFound();
 
+  // The thread moved to the event; keep shared links working.
+  if (post.convertedEvent) redirect(`/events/${post.convertedEvent.slug}`);
+
   const admin = isAdmin(user);
   const mine = !!user && post.authorId === user.id;
   const canModerate = admin || mine;
@@ -84,6 +87,15 @@ export default async function ForumPostPage({
         <p className="mt-4 whitespace-pre-wrap leading-relaxed text-ink">
           {post.body}
         </p>
+
+        {canModerate && (
+          <Link
+            href={`/discussions/${slug}/convert`}
+            className="mt-5 inline-block rounded-md border border-line px-3 py-1.5 text-sm font-medium hover:bg-elevated"
+          >
+            Turn into an event →
+          </Link>
+        )}
 
         {canModerate && (
           <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted">
