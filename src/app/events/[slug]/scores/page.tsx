@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { AddMatchForm } from "@/features/tournaments/add-match-form";
+import { AddTeamForm } from "@/features/tournaments/add-team-form";
 import { MatchScoreRow } from "@/features/tournaments/match-score-row";
 import {
   addMatch,
+  addTeamToEvent,
   deleteMatch,
   saveMatch,
 } from "@/features/tournaments/score-actions";
@@ -69,6 +71,25 @@ export default async function ScoresPage({
         Enter results as games finish. Standings recompute automatically; the
         public feed (kingjuancup.org) refreshes within ~30 seconds.
       </p>
+
+      <details className="mt-6 rounded-lg border border-dashed border-neutral-300 p-3 text-sm dark:border-neutral-700">
+        <summary className="cursor-pointer font-medium">
+          Teams ({event.eventTeams.length})
+        </summary>
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-neutral-600 dark:text-neutral-300">
+          {event.eventTeams.map((et) => (
+            <li key={et.id}>
+              {et.team.name}
+              <span className="text-xs text-neutral-400">
+                {" "}
+                {et.division?.name}
+                {et.groupLabel ? ` G${et.groupLabel}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <AddTeamForm action={addTeamToEvent.bind(null, slug)} divisions={groups} />
+      </details>
 
       {groups.map((division) => {
         const matches = (matchesByGroup.get(division.id) ?? []).slice().sort((a, b) => {

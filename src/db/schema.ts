@@ -197,6 +197,8 @@ export const events = pgTable(
 
 // --- teams: team-centric identity --------------------------------------
 
+export const teamVisibility = pgEnum("team_visibility", ["private", "public"]);
+
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
@@ -207,6 +209,12 @@ export const teams = pgTable("teams", {
   city: text("city"),
   crestUrl: text("crest_url"),
   bio: text("bio"),
+  // 'private' = created for an event, hidden from the public directory;
+  // 'public' = a standalone club profile. Claiming a private team promotes it.
+  visibility: teamVisibility("visibility").notNull().default("public"),
+  originEventId: uuid("origin_event_id").references(() => events.id, {
+    onDelete: "set null",
+  }),
   claimedBy: uuid("claimed_by").references(() => users.id),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   ...timestamps,
@@ -339,8 +347,36 @@ export const matchesRelations = relations(matches, ({ one }) => ({
   awayTeam: one(teams, { fields: [matches.awayTeamId], references: [teams.id] }),
 }));
 
-export const teamsRelations = relations(teams, ({ many }) => ({
+export const teamRole = pgEnum("team_role", ["owner", "manager"]);
+
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: teamRole("role").notNull().default("manager"),
+    addedBy: uuid("added_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.userId] })],
+);
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
   eventTeams: many(eventTeams),
+  members: many(teamMembers),
+  originEvent: one(events, {
+    fields: [teams.originEventId],
+    references: [events.id],
+  }),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, { fields: [teamMembers.teamId], references: [teams.id] }),
+  user: one(users, { fields: [teamMembers.userId], references: [users.id] }),
 }));
 
 // --- event_offers: responses to "looking for opponent" -----------------

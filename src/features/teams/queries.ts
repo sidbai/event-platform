@@ -5,8 +5,10 @@ import { asc, desc, eq, or } from "drizzle-orm";
 import { db } from "@/db";
 import { matches, teams } from "@/db/schema";
 
+/** The public team directory — event-only teams are excluded. */
 export async function listTeams() {
   return db.query.teams.findMany({
+    where: eq(teams.visibility, "public"),
     orderBy: [asc(teams.name)],
     with: {
       eventTeams: { columns: { eventId: true } },
@@ -18,6 +20,10 @@ export async function getTeamBySlug(slug: string) {
   const team = await db.query.teams.findFirst({
     where: eq(teams.slug, slug),
     with: {
+      originEvent: { columns: { slug: true, title: true } },
+      members: {
+        with: { user: { columns: { name: true, email: true, image: true } } },
+      },
       eventTeams: {
         orderBy: (et, { desc: d }) => [d(et.points)],
         with: { event: true, division: true },

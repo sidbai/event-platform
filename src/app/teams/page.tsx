@@ -11,7 +11,11 @@ export default async function TeamsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
-      <p className="mt-1 text-sm text-neutral-500">{teams.length} teams</p>
+      <p className="mt-1 text-sm text-neutral-500">
+        {teams.length === 0
+          ? "Teams that play year-round show up here once a coach claims them. One-off tournament teams stay with their event."
+          : `${teams.length} team${teams.length === 1 ? "" : "s"}`}
+      </p>
 
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">
         {teams.map((team) => (

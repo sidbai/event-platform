@@ -43,6 +43,13 @@
       "when": 1788478745822,
       "tag": "0005_swift_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788495877737,
+      "tag": "0006_yellow_norman_osborn",
+      "breakpoints": true
     }
   ]
 }
