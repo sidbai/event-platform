@@ -1,5 +1,7 @@
 export type EventTag = {
   label: string;
+  /** Prefixed to the label so a tag reads at a glance in a dense list. */
+  emoji: string;
   /** brand = what kind of thing it is, warn = needs attention, muted = detail */
   tone: "brand" | "warn" | "muted";
 };
@@ -22,6 +24,28 @@ const GENDER_LABEL: Record<string, string> = {
   coed: "Coed",
 };
 
+const GENDER_EMOJI: Record<string, string> = {
+  boys: "\u{1F466}",
+  girls: "\u{1F467}",
+  coed: "\u{1F9D1}",
+};
+
+/** One per event kind; anything unknown falls back to the generic marker. */
+const KIND_EMOJI: Record<string, string> = {
+  game: "\u26BD",
+  scrimmage: "\u{1F91D}",
+  pickup: "\u{1F945}",
+  tournament: "\u{1F3C6}",
+  league: "\u{1F4C5}",
+  jamboree: "\u{1F3AA}",
+  showcase: "\u{1F31F}",
+  camp: "\u{1F3D5}\uFE0F",
+  tryout: "\u{1F4CB}",
+  "watch-party": "\u{1F4FA}",
+  meetup: "\u2615",
+  custom: "\u2728",
+};
+
 function titleCase(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -34,32 +58,47 @@ function titleCase(s: string) {
  */
 export function eventTags(event: TaggableEvent): EventTag[] {
   const tags: EventTag[] = [
-    { label: titleCase(event.kind.replace(/-/g, " ")), tone: "brand" },
+    {
+      label: titleCase(event.kind.replace(/-/g, " ")),
+      emoji: KIND_EMOJI[event.kind] ?? "\u{1F4CD}",
+      tone: "brand",
+    },
   ];
 
   if (event.hostTeam?.name)
-    tags.push({ label: event.hostTeam.name, tone: "muted" });
-  if (event.ageGroup) tags.push({ label: event.ageGroup, tone: "muted" });
+    tags.push({ label: event.hostTeam.name, emoji: "\u{1F6E1}\uFE0F", tone: "muted" });
+  if (event.ageGroup)
+    tags.push({ label: event.ageGroup, emoji: "\u{1F382}", tone: "muted" });
 
   const gender = event.gender?.toLowerCase();
   if (gender && gender !== "coed")
-    tags.push({ label: GENDER_LABEL[gender] ?? titleCase(gender), tone: "muted" });
+    tags.push({
+      label: GENDER_LABEL[gender] ?? titleCase(gender),
+      emoji: GENDER_EMOJI[gender] ?? "\u{1F9D1}",
+      tone: "muted",
+    });
 
-  if (event.format) tags.push({ label: event.format, tone: "muted" });
-  if (event.level) tags.push({ label: titleCase(event.level), tone: "muted" });
+  if (event.format)
+    tags.push({ label: event.format, emoji: "\u{1F465}", tone: "muted" });
+  if (event.level)
+    tags.push({ label: titleCase(event.level), emoji: "\u{1F3AF}", tone: "muted" });
 
   if (event.needsOpponent)
-    tags.push({ label: "Looking for opponent", tone: "warn" });
+    tags.push({ label: "Looking for opponent", emoji: "\u{1F50D}", tone: "warn" });
 
   // Only ever set on events the viewer is already allowed to see, so this is a
   // reminder to the organizer rather than a leak.
   if (event.visibility && event.visibility !== "public")
-    tags.push({ label: titleCase(event.visibility), tone: "muted" });
+    tags.push({
+      label: titleCase(event.visibility),
+      emoji: event.visibility === "private" ? "\u{1F512}" : "\u{1F517}",
+      tone: "muted",
+    });
 
   if (event.status === "completed")
-    tags.push({ label: "Final results", tone: "muted" });
+    tags.push({ label: "Final results", emoji: "\u{1F3C1}", tone: "muted" });
   if (event.status === "cancelled")
-    tags.push({ label: "Cancelled", tone: "warn" });
+    tags.push({ label: "Cancelled", emoji: "\u26D4", tone: "warn" });
 
   return tags;
 }

@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
+  async redirects() {
+    return [
+      // The forum moved to /community. Links to posts are already out there.
+      { source: "/discussions", destination: "/community", permanent: true },
+      {
+        source: "/discussions/:path*",
+        destination: "/community/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

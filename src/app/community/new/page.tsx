@@ -14,7 +14,7 @@ export default async function NewDiscussionPage({
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  await requireUser("/discussions/new");
+  await requireUser("/community/new");
   const { c } = await searchParams;
   const defaultCategory = FORUM_CATEGORIES.includes(
     c as (typeof FORUM_CATEGORIES)[number],
@@ -25,10 +25,10 @@ export default async function NewDiscussionPage({
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
       <Link
-        href="/discussions"
+        href="/community"
         className="text-sm text-brand-text hover:underline"
       >
-        ← Discussions
+        ← Community
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">New post</h1>
       <PostForm action={createForumPost} defaultCategory={defaultCategory} />

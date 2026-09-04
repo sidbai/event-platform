@@ -20,7 +20,7 @@ export default async function ConvertPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const user = await requireUser(`/discussions/${slug}/convert`);
+  const user = await requireUser(`/community/${slug}/convert`);
   const post = await getForumPost(slug);
   if (!post) notFound();
 
@@ -37,7 +37,7 @@ export default async function ConvertPostPage({
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link
-        href={`/discussions/${slug}`}
+        href={`/community/${slug}`}
         className="text-sm text-brand-text hover:underline"
       >
         ← {post.title}

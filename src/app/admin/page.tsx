@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
-import { pendingEvents, reportedComments } from "@/features/admin/queries";
+import {
+  pendingEvents,
+  reportedComments,
+  reportedReviews,
+} from "@/features/admin/queries";
+import { dismissReviewReports, hideReview } from "@/features/clubs/actions";
 import { hideComment } from "@/features/discussion/actions";
 import { approveEvent, rejectEvent } from "@/features/events/actions";
 
@@ -13,9 +18,10 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, reports] = await Promise.all([
+  const [events, reports, reviewReports] = await Promise.all([
     pendingEvents(),
     reportedComments(),
+    reportedReviews(),
   ]);
 
   return (
@@ -95,6 +101,45 @@ export default async function AdminPage() {
                     Remove comment
                   </button>
                 </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Reported club reviews{" "}
+          {reviewReports.length > 0 && (
+            <span className="text-muted">({reviewReports.length})</span>
+          )}
+        </h2>
+        {reviewReports.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing reported.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {reviewReports.map((r) => (
+              <li key={r.id} className="rounded-lg border border-line p-3">
+                <div className="text-xs text-muted">
+                  {r.club?.name} · {r.reportCount} report
+                  {r.reportCount > 1 ? "s" : ""}
+                  {r.reasons.length > 0 && ` · ${r.reasons.join(", ")}`}
+                </div>
+                <p className="mt-1 text-sm font-medium">{r.title}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
+                  {r.body}
+                </p>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <form action={hideReview.bind(null, r.id)}>
+                    <button className="text-red-600 hover:underline">
+                      Hide review
+                    </button>
+                  </form>
+                  <form action={dismissReviewReports.bind(null, r.id)}>
+                    <button className="text-muted hover:text-ink">
+                      Dismiss reports
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>

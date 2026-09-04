@@ -58,7 +58,7 @@ export default async function ForumPostPage({
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
       <Link
-        href={`/discussions?c=${post.category}`}
+        href={`/community?c=${post.category}`}
         className="text-sm text-brand-text hover:underline"
       >
         ← {CATEGORY_LABELS[post.category]}
@@ -90,7 +90,7 @@ export default async function ForumPostPage({
 
         {canModerate && (
           <Link
-            href={`/discussions/${slug}/convert`}
+            href={`/community/${slug}/convert`}
             className="mt-5 inline-block rounded-md border border-line px-3 py-1.5 text-sm font-medium hover:bg-elevated"
           >
             Turn into an event →
@@ -123,7 +123,7 @@ export default async function ForumPostPage({
       <DiscussionThread
         subjectType="forum_post"
         subjectId={post.id}
-        revalidate={`/discussions/${slug}`}
+        revalidate={`/community/${slug}`}
         canModerate={canModerate}
       />
     </div>

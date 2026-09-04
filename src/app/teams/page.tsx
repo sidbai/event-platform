@@ -88,7 +88,7 @@ export default async function TeamsPage() {
         )}
         <p className={mine.length > 0 ? "mt-2 text-sm text-muted" : "mt-1 text-sm text-muted"}>
           {others.length === 0
-            ? "Teams that play year-round show up here once a coach claims them. One-off tournament teams stay with their event."
+            ? "No public teams yet."
             : `${others.length} public team${others.length === 1 ? "" : "s"}`}
         </p>
 

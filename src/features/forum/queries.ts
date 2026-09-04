@@ -83,7 +83,7 @@ export async function listForumPosts(category?: ForumCategory) {
     replies: counts.get(p.id) ?? 0,
     href: p.convertedEvent
       ? `/events/${p.convertedEvent.slug}`
-      : `/discussions/${p.slug}`,
+      : `/community/${p.slug}`,
     ...authorFields(p.author),
   }));
 }

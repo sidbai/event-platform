@@ -11,7 +11,7 @@ import { listForumPosts } from "@/features/forum/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Discussions",
+  title: "Community",
   description: "The King Juan Soccer community forum.",
 };
 
@@ -27,7 +27,7 @@ function timeAgo(d: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
 }
 
-export default async function DiscussionsPage({
+export default async function CommunityPage({
   searchParams,
 }: {
   searchParams: Promise<{ c?: string }>;
@@ -41,9 +41,9 @@ export default async function DiscussionsPage({
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Discussions</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
         <Link
-          href="/discussions/new"
+          href="/community/new"
           className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
           New post
@@ -52,7 +52,7 @@ export default async function DiscussionsPage({
 
       <nav className="mt-4 flex flex-wrap gap-1.5 text-sm">
         <Link
-          href="/discussions"
+          href="/community"
           className={`rounded-full px-2.5 py-1 ${
             !active
               ? "bg-ink text-page"
@@ -64,7 +64,7 @@ export default async function DiscussionsPage({
         {FORUM_CATEGORIES.map((cat) => (
           <Link
             key={cat}
-            href={`/discussions?c=${cat}`}
+            href={`/community?c=${cat}`}
             className={`rounded-full px-2.5 py-1 ${
               active === cat
                 ? "bg-ink text-page"
@@ -79,7 +79,7 @@ export default async function DiscussionsPage({
       {posts.length === 0 ? (
         <p className="mt-10 text-muted">
           Nothing here yet.{" "}
-          <Link href="/discussions/new" className="text-brand-text hover:underline">
+          <Link href="/community/new" className="text-brand-text hover:underline">
             Start the first discussion
           </Link>
           .

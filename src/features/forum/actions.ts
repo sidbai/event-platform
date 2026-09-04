@@ -63,8 +63,8 @@ export async function createForumPost(
     authorId: user.id,
   });
 
-  revalidatePath("/discussions");
-  redirect(`/discussions/${slug}`);
+  revalidatePath("/community");
+  redirect(`/community/${slug}`);
 }
 
 async function canModerate(slug: string) {
@@ -90,16 +90,16 @@ export async function setForumPostFlag(
     .update(forumPosts)
     .set({ [flag]: value })
     .where(eq(forumPosts.slug, slug));
-  revalidatePath(`/discussions/${slug}`);
-  revalidatePath("/discussions");
+  revalidatePath(`/community/${slug}`);
+  revalidatePath("/community");
 }
 
 export async function deleteForumPost(slug: string): Promise<void> {
   const post = await canModerate(slug);
   if (!post) return;
   await db.delete(forumPosts).where(eq(forumPosts.id, post.id));
-  revalidatePath("/discussions");
-  redirect("/discussions");
+  revalidatePath("/community");
+  redirect("/community");
 }
 
 async function uniqueEventSlug(base: string) {
@@ -217,7 +217,7 @@ export async function convertPostToEvent(
     .set({ convertedEventId: event.id })
     .where(eq(forumPosts.id, post.id));
 
-  revalidatePath("/discussions");
+  revalidatePath("/community");
   revalidatePath("/events");
   redirect(`/events/${eventSlug}`);
 }
