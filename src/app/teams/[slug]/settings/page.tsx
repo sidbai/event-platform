@@ -12,6 +12,9 @@ import {
 import { listTeamInvites } from "@/features/teams/invite-queries";
 import { getTeamBySlug } from "@/features/teams/queries";
 import { TeamEditForm } from "@/features/teams/team-forms";
+import { clearTeamCrest, setTeamCrest } from "@/features/uploads/actions";
+import { ImageUpload } from "@/features/uploads/image-upload";
+import { TeamCrest } from "@/components/team-crest";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +46,17 @@ export default async function TeamSettingsPage({
         ← {team.name}
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Team settings</h1>
+
+      <div className="mt-5 flex items-start gap-4">
+        <TeamCrest src={team.crestUrl} size={64} />
+        <ImageUpload
+          target={{ kind: "crest", teamSlug: slug }}
+          hasImage={Boolean(team.crestUrl)}
+          onUploaded={setTeamCrest.bind(null, slug)}
+          onCleared={clearTeamCrest.bind(null, slug)}
+          label="Upload a crest"
+        />
+      </div>
 
       <TeamEditForm
         action={updateTeam.bind(null, slug)}

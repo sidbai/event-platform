@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       // Google account avatars (Auth.js)
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      // Uploaded avatars and team crests (Vercel Blob)
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
 };
