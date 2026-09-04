@@ -5,9 +5,18 @@ import type { Metadata } from "next";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { canEditClub } from "@/features/clubs/access";
-import { reportReview, toggleHelpful } from "@/features/clubs/actions";
+import {
+  reportReview,
+  revertClub,
+  toggleHelpful,
+} from "@/features/clubs/actions";
 import { overallOf } from "@/features/clubs/constants";
-import { clubSummary, getClub, listReviews } from "@/features/clubs/queries";
+import {
+  clubHistory,
+  clubSummary,
+  getClub,
+  listReviews,
+} from "@/features/clubs/queries";
 import { HelpfulButton, ReportControl } from "@/features/clubs/review-card";
 import { RatingBreakdown, Stars } from "@/features/clubs/stars";
 
@@ -43,10 +52,11 @@ export default async function ClubPage({
   const [club, user] = await Promise.all([getClub(slug), getCurrentUser()]);
   if (!club) notFound();
 
-  const [summary, reviews, mayEdit] = await Promise.all([
+  const [summary, reviews, mayEdit, history] = await Promise.all([
     clubSummary(club.id),
     listReviews(club.id, user?.id ?? null),
     canEditClub(),
+    clubHistory(club.id),
   ]);
   const mine = reviews.find((r) => r.mine);
 
@@ -125,12 +135,36 @@ export default async function ClubPage({
         )}
       </section>
 
-      <p className="mt-3 text-xs text-muted">
-        Club details are maintained by the community — anyone signed in can
-        correct them.
-        {club.updatedByUser &&
-          ` Last edited by ${publicName(club.updatedByUser)}.`}
-      </p>
+      <details className="mt-3 text-xs text-muted">
+        <summary className="cursor-pointer hover:text-ink">
+          Club details are maintained by the community
+          {club.updatedByUser &&
+            ` — last edited by ${publicName(club.updatedByUser)}`}
+        </summary>
+        <p className="mt-2">
+          Anyone signed in can correct a club&rsquo;s details, and every change
+          is kept. If something looks wrong, put it back.
+        </p>
+        <ul className="mt-2 space-y-1">
+          {history.map((h) => (
+            <li key={h.id} className="flex flex-wrap items-center gap-2">
+              <span>{fmt(h.createdAt)}</span>
+              <span>·</span>
+              <span>{h.summary}</span>
+              <span>·</span>
+              <span>{h.editor}</span>
+              {mayEdit && !h.isCurrent && (
+                <form action={revertClub.bind(null, slug, h.id)}>
+                  <button className="text-brand-text hover:underline">
+                    restore this
+                  </button>
+                </form>
+              )}
+              {h.isCurrent && <span className="text-muted">(current)</span>}
+            </li>
+          ))}
+        </ul>
+      </details>
 
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">

@@ -3,7 +3,9 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubReviewVotes, clubReviews, clubs } from "@/db/schema";
+import { clubEdits, clubReviewVotes, clubReviews, clubs } from "@/db/schema";
+
+import { publicName } from "@/features/auth";
 
 import { averageRatings, type Ratings } from "./constants";
 
@@ -140,4 +142,33 @@ export async function myReview(clubId: string, userId: string) {
   return db.query.clubReviews.findFirst({
     where: and(eq(clubReviews.clubId, clubId), eq(clubReviews.authorId, userId)),
   });
+}
+
+export type ClubEditRow = {
+  id: string;
+  editor: string;
+  summary: string;
+  createdAt: Date;
+  /** The current live version can't be reverted to — it's already applied. */
+  isCurrent: boolean;
+};
+
+/** A club's edit history, newest first. */
+export async function clubHistory(clubId: string): Promise<ClubEditRow[]> {
+  const rows = await db.query.clubEdits.findMany({
+    where: eq(clubEdits.clubId, clubId),
+    orderBy: [desc(clubEdits.createdAt)],
+    limit: 20,
+    with: {
+      editor: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
+
+  return rows.map((r, i) => ({
+    id: r.id,
+    editor: r.editor ? publicName(r.editor) : "the seed",
+    summary: r.summary ?? "Edited",
+    createdAt: r.createdAt,
+    isCurrent: i === 0,
+  }));
 }

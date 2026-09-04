@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import {
+  clubEdits,
   clubReviewReports,
   clubReviewVotes,
   clubReviews,
@@ -61,14 +62,22 @@ export async function createClub(
   // restricted: an arbitrary blob URL could point at another club's file.
   const staged = get("crestUrl");
 
-  await db.insert(clubs).values({
-    slug,
+  const snapshot = {
     name,
     city: get("city") || null,
     website: get("website") || null,
     crestUrl: staged && isPendingClubUrl(staged) ? staged : null,
-    createdBy: user.id,
-  });
+  };
+
+  const [club] = await db
+    .insert(clubs)
+    .values({ slug, ...snapshot, createdBy: user.id, updatedBy: user.id })
+    .returning({ id: clubs.id });
+
+  // The club's first history row, so there is always something to revert to.
+  await db
+    .insert(clubEdits)
+    .values({ clubId: club.id, editedBy: user.id, ...snapshot, summary: "Added the club" });
 
   revalidatePath("/clubs");
   redirect(`/clubs/${slug}`);
@@ -234,19 +243,22 @@ export async function updateClub(
   const name = get("name");
   if (name.length < 2) return { fieldErrors: { name: "Give the club a name." } };
 
-  await db
-    .update(clubs)
-    .set({
+  const current = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: { crestUrl: true },
+  });
+
+  await applyClubEdit(
+    slug,
+    {
       name,
       city: get("city") || null,
       website: get("website") || null,
-      updatedBy: user.id,
-      updatedAt: new Date(),
-    })
-    .where(eq(clubs.slug, slug));
-
-  revalidatePath(`/clubs/${slug}`);
-  revalidatePath("/clubs");
+      crestUrl: current?.crestUrl ?? null,
+    },
+    user.id,
+    "Updated club details",
+  );
   return { ok: true };
 }
 
@@ -256,21 +268,85 @@ export async function setClubLogo(slug: string, url: string): Promise<void> {
   if (!user || !(await canEditClub())) return;
   // The browser reports this URL, so it is checked rather than trusted.
   if (!isOurBlobUrl(url)) return;
-  await db
-    .update(clubs)
-    .set({ crestUrl: url, updatedBy: user.id, updatedAt: new Date() })
-    .where(eq(clubs.slug, slug));
-  revalidatePath(`/clubs/${slug}`);
-  revalidatePath("/clubs");
+  const c = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: { name: true, city: true, website: true },
+  });
+  if (!c) return;
+  await applyClubEdit(slug, { ...c, crestUrl: url }, user.id, "Changed the logo");
 }
 
 export async function clearClubLogo(slug: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user || !(await canEditClub())) return;
-  await db
+  const c = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: { name: true, city: true, website: true },
+  });
+  if (!c) return;
+  await applyClubEdit(slug, { ...c, crestUrl: null }, user.id, "Removed the logo");
+}
+
+type ClubSnapshot = {
+  name: string;
+  city: string | null;
+  website: string | null;
+  crestUrl: string | null;
+};
+
+/**
+ * Write the club's new state to both the club row and its history.
+ *
+ * Every path that changes a club goes through here, so there is no way to
+ * modify one without leaving a trail — which is the whole basis for letting
+ * anyone edit in the first place.
+ */
+async function applyClubEdit(
+  slug: string,
+  next: ClubSnapshot,
+  editedBy: string,
+  summary: string,
+) {
+  const [club] = await db
     .update(clubs)
-    .set({ crestUrl: null, updatedBy: user.id, updatedAt: new Date() })
-    .where(eq(clubs.slug, slug));
+    .set({ ...next, updatedBy: editedBy, updatedAt: new Date() })
+    .where(eq(clubs.slug, slug))
+    .returning({ id: clubs.id });
+  if (!club) return;
+
+  await db.insert(clubEdits).values({ clubId: club.id, editedBy, ...next, summary });
+
   revalidatePath(`/clubs/${slug}`);
   revalidatePath("/clubs");
+}
+
+/** Restore a club to an earlier snapshot. The revert is itself recorded. */
+export async function revertClub(slug: string, editId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user || !(await canEditClub())) return;
+
+  const club = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: { id: true },
+  });
+  if (!club) return;
+
+  // Scoped to this club, so an id from another club's history can't be
+  // replayed onto this one.
+  const target = await db.query.clubEdits.findFirst({
+    where: and(eq(clubEdits.id, editId), eq(clubEdits.clubId, club.id)),
+  });
+  if (!target) return;
+
+  await applyClubEdit(
+    slug,
+    {
+      name: target.name,
+      city: target.city,
+      website: target.website,
+      crestUrl: target.crestUrl,
+    },
+    user.id,
+    "Reverted to an earlier version",
+  );
 }

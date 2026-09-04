@@ -127,6 +127,13 @@
       "when": 1788551314704,
       "tag": "0017_abnormal_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788552699512,
+      "tag": "0018_eminent_revanche",
+      "breakpoints": true
     }
   ]
 }
