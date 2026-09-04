@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
+import { canEditClub } from "@/features/clubs/access";
 import { reportReview, toggleHelpful } from "@/features/clubs/actions";
 import { overallOf } from "@/features/clubs/constants";
 import { clubSummary, getClub, listReviews } from "@/features/clubs/queries";
@@ -42,9 +43,10 @@ export default async function ClubPage({
   const [club, user] = await Promise.all([getClub(slug), getCurrentUser()]);
   if (!club) notFound();
 
-  const [summary, reviews] = await Promise.all([
+  const [summary, reviews, mayEdit] = await Promise.all([
     clubSummary(club.id),
     listReviews(club.id, user?.id ?? null),
+    canEditClub(slug),
   ]);
   const mine = reviews.find((r) => r.mine);
 
@@ -75,12 +77,22 @@ export default async function ClubPage({
             )}
           </p>
         </div>
-        <Link
-          href={`/clubs/${slug}/review`}
-          className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-        >
-          {mine ? "Edit your review" : "Write a review"}
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Link
+            href={`/clubs/${slug}/review`}
+            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          >
+            {mine ? "Edit your review" : "Write a review"}
+          </Link>
+          {mayEdit && (
+            <Link
+              href={`/clubs/${slug}/edit`}
+              className="text-xs text-muted hover:text-ink"
+            >
+              Edit club details
+            </Link>
+          )}
+        </div>
       </header>
 
       <section className="mt-6 rounded-xl border border-line bg-card p-5">

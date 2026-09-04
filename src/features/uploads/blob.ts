@@ -41,10 +41,15 @@ export type UploadTarget =
    * createTeam will only adopt a URL from there — so a new team cannot claim
    * an existing team's crest file out from under it.
    */
-  | { kind: "new-crest" };
+  | { kind: "new-crest" }
+  /** A club's logo. Editing a club is gated on creator-or-admin. */
+  | { kind: "club"; clubSlug: string }
+  /** A club logo chosen while adding the club, before it exists. */
+  | { kind: "new-club" };
 
-/** Staging folder for crests uploaded before their team exists. */
+/** Staging folders for images uploaded before their subject exists. */
 export const PENDING_CREST_PREFIX = "crests/_pending";
+export const PENDING_CLUB_PREFIX = "clubs/_pending";
 
 /**
  * Where a target's files live.
@@ -56,6 +61,8 @@ export const PENDING_CREST_PREFIX = "crests/_pending";
 export function uploadPrefix(target: UploadTarget): string {
   if (target.kind === "avatar") return "avatars";
   if (target.kind === "new-crest") return PENDING_CREST_PREFIX;
+  if (target.kind === "new-club") return PENDING_CLUB_PREFIX;
+  if (target.kind === "club") return `clubs/${target.clubSlug}`;
   return `crests/${target.teamSlug}`;
 }
 
@@ -66,9 +73,17 @@ export function uploadPrefix(target: UploadTarget): string {
  * out from under the new one.
  */
 export function isPendingCrestUrl(url: string): boolean {
+  return isUnderPrefix(url, PENDING_CREST_PREFIX);
+}
+
+export function isPendingClubUrl(url: string): boolean {
+  return isUnderPrefix(url, PENDING_CLUB_PREFIX);
+}
+
+function isUnderPrefix(url: string, prefix: string): boolean {
   if (!isOurBlobUrl(url)) return false;
   try {
-    return new URL(url).pathname.startsWith(`/${PENDING_CREST_PREFIX}/`);
+    return new URL(url).pathname.startsWith(`/${prefix}/`);
   } catch {
     return false;
   }
@@ -97,6 +112,9 @@ export function parseUploadTarget(raw: string | null): UploadTarget | null {
   const v = value as Record<string, unknown>;
   if (v.kind === "avatar") return { kind: "avatar" };
   if (v.kind === "new-crest") return { kind: "new-crest" };
+  if (v.kind === "new-club") return { kind: "new-club" };
+  if (v.kind === "club" && typeof v.clubSlug === "string")
+    return { kind: "club", clubSlug: v.clubSlug };
   if (v.kind === "crest" && typeof v.teamSlug === "string")
     return { kind: "crest", teamSlug: v.teamSlug };
   return null;

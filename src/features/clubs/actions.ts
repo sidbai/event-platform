@@ -14,8 +14,10 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { isOurBlobUrl, isPendingClubUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
+import { canEditClub } from "./access";
 import { generateAnonHandle } from "./anon";
 import {
   parseRating,
@@ -54,11 +56,16 @@ export async function createClub(
     }
   }
 
+  // Only a logo this form just staged, for the same reason team crests are
+  // restricted: an arbitrary blob URL could point at another club's file.
+  const staged = get("crestUrl");
+
   await db.insert(clubs).values({
     slug,
     name,
     city: get("city") || null,
     website: get("website") || null,
+    crestUrl: staged && isPendingClubUrl(staged) ? staged : null,
     createdBy: user.id,
   });
 
@@ -201,4 +208,53 @@ export async function dismissReviewReports(reviewId: string): Promise<void> {
   if (!user || !isAdmin(user)) return;
   await db.delete(clubReviewReports).where(eq(clubReviewReports.reviewId, reviewId));
   revalidatePath("/admin");
+}
+
+export async function updateClub(
+  slug: string,
+  _prev: ClubResult,
+  formData: FormData,
+): Promise<ClubResult> {
+  if (!(await canEditClub(slug))) return { error: "You can't edit this club." };
+
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const name = get("name");
+  if (name.length < 2) return { fieldErrors: { name: "Give the club a name." } };
+
+  await db
+    .update(clubs)
+    .set({
+      name,
+      city: get("city") || null,
+      website: get("website") || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(clubs.slug, slug));
+
+  revalidatePath(`/clubs/${slug}`);
+  revalidatePath("/clubs");
+  return { ok: true };
+}
+
+/** Save a logo uploaded straight from the club page. */
+export async function setClubLogo(slug: string, url: string): Promise<void> {
+  if (!(await canEditClub(slug))) return;
+  // The browser reports this URL, so it is checked rather than trusted.
+  if (!isOurBlobUrl(url)) return;
+  await db
+    .update(clubs)
+    .set({ crestUrl: url, updatedAt: new Date() })
+    .where(eq(clubs.slug, slug));
+  revalidatePath(`/clubs/${slug}`);
+  revalidatePath("/clubs");
+}
+
+export async function clearClubLogo(slug: string): Promise<void> {
+  if (!(await canEditClub(slug))) return;
+  await db
+    .update(clubs)
+    .set({ crestUrl: null, updatedAt: new Date() })
+    .where(eq(clubs.slug, slug));
+  revalidatePath(`/clubs/${slug}`);
+  revalidatePath("/clubs");
 }
