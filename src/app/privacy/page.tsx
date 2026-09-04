@@ -64,7 +64,7 @@ export default function PrivacyPage() {
             To let event organizers and other coaches identify and contact you
             about events you are involved in.
           </li>
-          <li>To operate features such as standings, schedules, and the weekly roundup.</li>
+          <li>To operate features such as standings, schedules and the community forum.</li>
           <li>To detect abuse, enforce our terms, and respond to reports.</li>
         </ul>
 

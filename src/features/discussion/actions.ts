@@ -10,6 +10,7 @@ import {
   discussions,
   type discussionSubject,
   events,
+  forumPosts,
   teams,
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
@@ -36,6 +37,13 @@ async function canModerateSubject(
       columns: { claimedBy: true },
     });
     return row?.claimedBy === user.id;
+  }
+  if (subjectType === "forum_post") {
+    const row = await db.query.forumPosts.findFirst({
+      where: eq(forumPosts.id, subjectId),
+      columns: { authorId: true },
+    });
+    return row?.authorId === user.id;
   }
   return false;
 }
@@ -100,6 +108,13 @@ export async function postComment(
     await db
       .insert(comments)
       .values({ discussionId: discussion.id, authorId: user.id, body });
+  }
+
+  if (ctx.subjectType === "forum_post") {
+    await db
+      .update(forumPosts)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(forumPosts.id, ctx.subjectId));
   }
 
   revalidatePath(ctx.revalidate);

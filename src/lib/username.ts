@@ -2,7 +2,7 @@ const RESERVED = new Set([
   "about", "admin", "api", "auth", "event", "events", "help", "me", "new",
   "people", "person", "privacy", "root", "settings", "signin", "signout",
   "staff", "support", "system", "team", "teams", "terms", "u", "user", "users",
-  "weekly", "you",
+  "weekly", "you", "discussions", "discussion", "forum",
 ]);
 
 export function normalizeUsername(input: string): string {
