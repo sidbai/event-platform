@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = "September 4, 2026";
-const CONTACT = "admin@kingjuansoccer.com";
+const CONTACT = "admin@kingjuancup.org";
 
 export default function PrivacyPage() {
   return (
