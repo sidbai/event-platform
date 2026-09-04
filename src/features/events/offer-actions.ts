@@ -30,9 +30,9 @@ export async function sendOffer(
 
   const team = await db.query.teams.findFirst({
     where: eq(teams.id, teamId),
-    columns: { claimedBy: true },
+    columns: { ownerId: true },
   });
-  if (!team || team.claimedBy !== user.id) return { error: "You don't manage that team." };
+  if (!team || team.ownerId !== user.id) return { error: "You don't manage that team." };
 
   await db
     .insert(eventOffers)

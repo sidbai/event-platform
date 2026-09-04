@@ -238,7 +238,7 @@ async function main() {
           name: t.name,
           crestUrl: sql`excluded.crest_url`,
           // don't clobber a team that a coach has already claimed & made public
-          visibility: sql`case when ${s.teams.claimedBy} is null then 'private'::team_visibility else ${s.teams.visibility} end`,
+          visibility: sql`case when ${s.teams.ownerId} is null then 'private'::team_visibility else ${s.teams.visibility} end`,
           originEventId: sql`coalesce(${s.teams.originEventId}, excluded.origin_event_id)`,
         },
       })

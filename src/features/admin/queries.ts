@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
-import { comments, events, teams } from "@/db/schema";
+import { comments, events } from "@/db/schema";
 
 export async function pendingEvents() {
   return db.query.events.findMany({
@@ -12,13 +12,6 @@ export async function pendingEvents() {
     with: {
       venue: { columns: { name: true, city: true } },
     },
-  });
-}
-
-export async function unverifiedClaims() {
-  return db.query.teams.findMany({
-    where: and(isNotNull(teams.claimedBy), isNull(teams.verifiedAt)),
-    orderBy: [desc(teams.updatedAt)],
   });
 }
 

@@ -26,7 +26,7 @@ export async function getProfileByUsername(username: string) {
 
   const [ownedTeams, organizedEvents] = await Promise.all([
     db.query.teams.findMany({
-      where: and(eq(teams.claimedBy, user.id), eq(teams.visibility, "public")),
+      where: and(eq(teams.ownerId, user.id), eq(teams.visibility, "public")),
       columns: { slug: true, name: true, crestUrl: true },
       orderBy: [teams.name],
     }),

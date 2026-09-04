@@ -1,11 +1,18 @@
 "use server";
 
-import { and, eq, isNull, ne, or } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { eventOffers, eventTeams, matches, teamMembers, teams } from "@/db/schema";
+import {
+  eventOffers,
+  eventTeams,
+  matches,
+  teamMembers,
+  teams,
+  users,
+} from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
@@ -13,69 +20,15 @@ import { canManageTeam } from "./access";
 
 export type TeamFormResult = { error?: string; ok?: boolean };
 
-export async function claimTeam(slug: string): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  const [team] = await db
-    .update(teams)
-    .set({ claimedBy: user.id, visibility: "public", updatedAt: new Date() })
-    .where(and(eq(teams.slug, slug), isNull(teams.claimedBy)))
-    .returning({ id: teams.id });
-
-  if (team) {
-    await db
-      .insert(teamMembers)
-      .values({ teamId: team.id, userId: user.id, role: "owner" })
-      .onConflictDoNothing();
-  }
-
-  revalidatePath(`/teams/${slug}`);
-  revalidatePath("/teams");
-}
-
-export async function verifyTeam(teamId: string): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return;
-  await db
-    .update(teams)
-    .set({ verifiedAt: new Date(), updatedAt: new Date() })
-    .where(eq(teams.id, teamId));
-  revalidatePath("/admin");
-}
-
-export async function rejectClaim(teamId: string): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return;
-  await db
-    .update(teams)
-    .set({ claimedBy: null, verifiedAt: null, updatedAt: new Date() })
-    .where(eq(teams.id, teamId));
-  await db.delete(teamMembers).where(eq(teamMembers.teamId, teamId));
-  revalidatePath("/admin");
-}
-
-/** Admin: make a private (event) team public without a claimant. */
-export async function promoteTeam(slug: string): Promise<void> {
-  const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return;
-  await db
-    .update(teams)
-    .set({ visibility: "public", updatedAt: new Date() })
-    .where(eq(teams.slug, slug));
-  revalidatePath(`/teams/${slug}`);
-  revalidatePath("/teams");
-}
-
 async function ownerOnly(slug: string) {
   const user = await getCurrentUser();
   if (!user) return null;
   const team = await db.query.teams.findFirst({
     where: eq(teams.slug, slug),
-    columns: { id: true, claimedBy: true },
+    columns: { id: true, ownerId: true },
   });
   if (!team) return null;
-  if (team.claimedBy !== user.id && !isAdmin(user)) return null;
+  if (team.ownerId !== user.id && !isAdmin(user)) return null;
   return { user, team };
 }
 
@@ -124,6 +77,9 @@ export async function updateTeam(
       ageGroup: get("ageGroup"),
       gender: get("gender"),
       bio: get("bio"),
+      // Editable now: claiming used to be the only route from private to
+      // public, and that route is gone.
+      visibility: get("visibility") === "private" ? "private" : "public",
       updatedAt: new Date(),
     })
     .where(eq(teams.id, team.id));
@@ -177,4 +133,69 @@ export async function deleteTeam(slug: string): Promise<TeamFormResult> {
   await db.delete(teams).where(eq(teams.id, ctx.team.id));
   revalidatePath("/teams");
   redirect("/teams");
+}
+
+/**
+ * Hand the team to someone else.
+ *
+ * Owner or admin. This is how a team an admin created on a coach's behalf —
+ * or one auto-created for a tournament — reaches the person who actually runs
+ * it, now that there is no self-serve claim.
+ *
+ * The new owner is written into team_members as `owner`, and the outgoing
+ * owner is demoted to `manager` rather than dropped: they were running the
+ * team a moment ago, and silently removing them is how people lose access to
+ * their own roster.
+ */
+export async function transferOwnership(
+  slug: string,
+  _prev: TeamFormResult,
+  formData: FormData,
+): Promise<TeamFormResult> {
+  const ctx = await ownerOnly(slug);
+  if (!ctx) return { error: "Only the owner can hand this team over." };
+
+  const raw = String(formData.get("who") ?? "").trim();
+  if (!raw) return { error: "Enter a username or email." };
+
+  const handle = raw.replace(/^@/, "").toLowerCase();
+  const next = await db.query.users.findFirst({
+    where: or(eq(users.username, handle), eq(users.email, raw.toLowerCase())),
+    columns: { id: true, username: true },
+  });
+  if (!next) {
+    return {
+      error: `No account for "${raw}". They need to sign in once before a team can be handed to them.`,
+    };
+  }
+  if (next.id === ctx.team.ownerId) return { error: "They already own it." };
+
+  await db
+    .update(teams)
+    .set({ ownerId: next.id, updatedAt: new Date() })
+    .where(eq(teams.id, ctx.team.id));
+
+  if (ctx.team.ownerId) {
+    await db
+      .update(teamMembers)
+      .set({ role: "manager" })
+      .where(
+        and(
+          eq(teamMembers.teamId, ctx.team.id),
+          eq(teamMembers.userId, ctx.team.ownerId),
+        ),
+      );
+  }
+
+  await db
+    .insert(teamMembers)
+    .values({ teamId: ctx.team.id, userId: next.id, role: "owner" })
+    .onConflictDoUpdate({
+      target: [teamMembers.teamId, teamMembers.userId],
+      set: { role: "owner" },
+    });
+
+  revalidatePath(`/teams/${slug}`);
+  revalidatePath(`/teams/${slug}/settings`);
+  return { ok: true };
 }

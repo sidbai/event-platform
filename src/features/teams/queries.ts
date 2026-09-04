@@ -98,8 +98,8 @@ export async function myTeams(userId: string) {
   const rows = await db.query.teams.findMany({
     where:
       ids.length > 0
-        ? or(eq(teams.claimedBy, userId), inArray(teams.id, ids))
-        : eq(teams.claimedBy, userId),
+        ? or(eq(teams.ownerId, userId), inArray(teams.id, ids))
+        : eq(teams.ownerId, userId),
     columns: {
       id: true,
       slug: true,

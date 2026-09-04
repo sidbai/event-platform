@@ -62,7 +62,7 @@ export async function createTeam(
       visibility,
       // The creator owns it outright — no claim flow needed for a team that
       // was never auto-created by a tournament.
-      claimedBy: user.id,
+      ownerId: user.id,
     })
     .returning({ id: teams.id });
 

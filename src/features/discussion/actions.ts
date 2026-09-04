@@ -34,9 +34,9 @@ async function canModerateSubject(
   if (subjectType === "team") {
     const row = await db.query.teams.findFirst({
       where: eq(teams.id, subjectId),
-      columns: { claimedBy: true },
+      columns: { ownerId: true },
     });
-    return row?.claimedBy === user.id;
+    return row?.ownerId === user.id;
   }
   if (subjectType === "forum_post") {
     const row = await db.query.forumPosts.findFirst({

@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getCurrentUser, publicName, requireUser } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
 import { canManageTeam } from "@/features/teams/access";
 import { deleteTeam, removeMember, updateTeam } from "@/features/teams/actions";
 import { DeleteTeamButton } from "@/features/teams/delete-team";
+import { transferOwnership } from "@/features/teams/actions";
 import { TeamInviteForm } from "@/features/teams/create-form";
 import {
   inviteToTeam,
@@ -12,7 +14,7 @@ import {
 } from "@/features/teams/invite-actions";
 import { listTeamInvites } from "@/features/teams/invite-queries";
 import { getTeamBySlug } from "@/features/teams/queries";
-import { TeamEditForm } from "@/features/teams/team-forms";
+import { TeamEditForm, TransferOwnerForm } from "@/features/teams/team-forms";
 import { clearTeamCrest, setTeamCrest } from "@/features/uploads/actions";
 import { ImageUpload } from "@/features/uploads/image-upload";
 import { TeamCrest } from "@/components/team-crest";
@@ -33,7 +35,11 @@ export default async function TeamSettingsPage({
   if (!(await canManageTeam(team.id))) notFound();
 
   const user = await getCurrentUser();
-  const isOwner = team.claimedBy === user?.id;
+  // Admins administer teams they don't own — that is how a team created on
+  // someone's behalf, or one auto-created for a tournament, reaches the person
+  // who actually runs it now that claiming is gone. The actions already allow
+  // admins; only this gate disagreed.
+  const isOwner = team.ownerId === user?.id || isAdmin(user);
 
   const invites = await listTeamInvites(team.id);
   const base = siteUrl();
@@ -62,6 +68,7 @@ export default async function TeamSettingsPage({
       <TeamEditForm
         action={updateTeam.bind(null, slug)}
         team={{
+          visibility: team.visibility,
           club: team.club,
           city: team.city,
           ageGroup: team.ageGroup,
@@ -141,6 +148,17 @@ export default async function TeamSettingsPage({
           </>
         )}
       </section>
+      {isOwner && (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold">Transfer ownership</h2>
+          <p className="mt-1 text-sm text-muted">
+            Hand the team to someone else. They become the owner and you stay
+            on as a manager, so you don&rsquo;t lose access.
+          </p>
+          <TransferOwnerForm action={transferOwnership.bind(null, slug)} />
+        </section>
+      )}
+
       {isOwner && (
         <section className="mt-12 border-t border-line pt-6">
           <h2 className="text-lg font-semibold">Delete team</h2>
