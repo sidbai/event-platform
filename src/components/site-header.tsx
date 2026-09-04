@@ -39,7 +39,7 @@ export async function SiteHeader() {
             Community
           </Link>
           <Link href="/clubs" className={navLink}>
-            Club Experience
+            Reviews
           </Link>
           <Link href="/teams" className={navLink}>
             Teams
