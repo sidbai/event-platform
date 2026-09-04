@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { claimTeam, unclaimTeam } from "@/features/teams/actions";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
@@ -35,12 +36,7 @@ export default async function TeamPage({
       </Link>
 
       <header className="mt-4 flex items-center gap-4">
-        {team.crestUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.crestUrl} alt="" className="h-16 w-16 rounded object-contain" />
-        ) : (
-          <div className="h-16 w-16 rounded bg-neutral-100 dark:bg-neutral-800" />
-        )}
+        <TeamCrest src={team.crestUrl} size={64} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
           <p className="text-sm text-neutral-500">
@@ -163,7 +159,8 @@ function MatchRow({
         {us}–{them}
       </span>
       <span className="text-neutral-500">vs</span>
-      <span>
+      <span className="flex items-center gap-1.5">
+        <TeamCrest src={opponent?.crestUrl} size={16} />
         {opponent?.slug ? (
           <Link href={`/teams/${opponent.slug}`} className="hover:underline">
             {opponentName}
