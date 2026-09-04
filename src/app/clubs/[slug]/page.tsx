@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { canEditClub } from "@/features/clubs/access";
+import { coachRoleLabel } from "@/features/coaches/constants";
+import { coachesAtClub } from "@/features/coaches/queries";
 import {
   reportReview,
   revertClub,
@@ -52,11 +54,12 @@ export default async function ClubPage({
   const [club, user] = await Promise.all([getClub(slug), getCurrentUser()]);
   if (!club) notFound();
 
-  const [summary, reviews, mayEdit, history] = await Promise.all([
+  const [summary, reviews, mayEdit, history, coaches] = await Promise.all([
     clubSummary(club.id),
     listReviews(club.id, user?.id ?? null),
     canEditClub(),
     clubHistory(club.id),
+    coachesAtClub(club.id),
   ]);
   const mine = reviews.find((r) => r.mine);
 
@@ -118,7 +121,7 @@ export default async function ClubPage({
               </span>
             </div>
             <div className="mt-4 border-t border-line pt-4">
-              <RatingBreakdown ratings={summary.byCategory} />
+              <RatingBreakdown ratings={summary.byScale} />
             </div>
           </>
         ) : summary ? (
@@ -174,15 +177,57 @@ export default async function ClubPage({
         </ul>
       </details>
 
+      {/* Coaches show a review COUNT, never a score. A column of numbers
+          against named people is a leaderboard; the score belongs on the
+          coach's own page, beside the context that makes it readable. */}
+      <section className="mt-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Coaches at this club</h2>
+          <Link href="/coaches/new" className="text-sm text-brand-text hover:underline">
+            Add a coach
+          </Link>
+        </div>
+        {coaches.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            None listed yet — add one so people can share what working with them
+            was like.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-line">
+            {coaches.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/coaches/${c.slug}`}
+                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 transition-colors hover:bg-elevated"
+                >
+                  <span>
+                    <span className="font-medium">{c.name}</span>{" "}
+                    <span className="text-sm text-muted">
+                      {coachRoleLabel(c.role)}
+                      {c.ageGroups.length > 0 && ` · ${c.ageGroups.join(", ")}`}
+                    </span>
+                  </span>
+                  <span className="text-xs text-muted">
+                    {c.reviewCount === 0
+                      ? "No reviews yet"
+                      : `${c.reviewCount} review${c.reviewCount === 1 ? "" : "s"}`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">
           {reviews.map((r) => (
             <li key={r.id} className="rounded-xl border border-line bg-card p-4">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span className="flex items-center gap-1.5 text-amber-500">
-                  <Stars value={overallOf(r.ratings)} />
+                  <Stars value={overallOf("club", r.ratings)} />
                   <span className="tabular-nums text-ink">
-                    {overallOf(r.ratings).toFixed(1)}
+                    {overallOf("club", r.ratings).toFixed(1)}
                   </span>
                 </span>
                 <span>·</span>

@@ -11,7 +11,6 @@ import {
   reviewVotes,
   reviews,
   clubs,
-  users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -19,7 +18,7 @@ import { isOurBlobUrl, isPendingClubUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
 import { canEditClub } from "./access";
-import { generateAnonHandle } from "./anon";
+import { ensureAnonHandle } from "./anon";
 import {
   parseRating,
   parseReviewerRole,
@@ -83,26 +82,6 @@ export async function createClub(
   redirect(`/clubs/${slug}`);
 }
 
-/**
- * Make sure the user has a pseudonym, creating one on first review.
- *
- * Generated lazily rather than at signup so accounts that predate reviews get
- * one too. The unique constraint is the real guard; the retry covers the
- * astronomically unlikely collision rather than trusting randomness alone.
- */
-async function ensureAnonHandle(userId: string, existing: string | null) {
-  if (existing) return existing;
-  for (let i = 0; i < 5; i++) {
-    const handle = generateAnonHandle();
-    try {
-      await db.update(users).set({ anonHandle: handle }).where(eq(users.id, userId));
-      return handle;
-    } catch {
-      // unique violation — try another
-    }
-  }
-  throw new Error("Could not allocate an anonymous handle.");
-}
 
 /** Create or update the signed-in user's review of a club. */
 export async function saveReview(

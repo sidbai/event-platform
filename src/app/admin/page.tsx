@@ -12,6 +12,7 @@ import {
 import { dismissReviewReports, hideReview } from "@/features/clubs/actions";
 import { hideComment } from "@/features/discussion/actions";
 import { approveEvent, rejectEvent } from "@/features/events/actions";
+import { restoreReview } from "@/features/coaches/actions";
 import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
 import { pendingNews } from "@/features/news/queries";
 
@@ -165,7 +166,7 @@ export default async function AdminPage() {
       </section>
       <section className="mt-10">
         <h2 className="text-lg font-semibold">
-          Reported club reviews{" "}
+          Reported reviews{" "}
           {reviewReports.length > 0 && (
             <span className="text-muted">({reviewReports.length})</span>
           )}
@@ -176,24 +177,39 @@ export default async function AdminPage() {
           <ul className="mt-3 space-y-2">
             {reviewReports.map((r) => (
               <li key={r.id} className="rounded-lg border border-line p-3">
-                <div className="text-xs text-muted">
-                  {r.club?.name} · {r.reportCount} report
-                  {r.reportCount > 1 ? "s" : ""}
-                  {r.reasons.length > 0 && ` · ${r.reasons.join(", ")}`}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <span>
+                    {r.subject?.name ?? "Unknown"} ({r.subjectType}) ·{" "}
+                    {r.reportCount} report{r.reportCount > 1 ? "s" : ""}
+                    {r.reasons.length > 0 && ` · ${r.reasons.join(", ")}`}
+                  </span>
+                  {r.hidden && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                      Auto-hidden — awaiting your decision
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-sm font-medium">{r.title}</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
                   {r.body}
                 </p>
                 <div className="mt-2 flex gap-4 text-sm">
-                  <form action={hideReview.bind(null, r.id)}>
-                    <button className="text-red-600 hover:underline">
-                      Hide review
-                    </button>
-                  </form>
+                  {r.hidden ? (
+                    <form action={restoreReview.bind(null, r.id)}>
+                      <button className="font-medium text-brand-text hover:underline">
+                        Put it back up
+                      </button>
+                    </form>
+                  ) : (
+                    <form action={hideReview.bind(null, r.id)}>
+                      <button className="text-red-600 hover:underline">
+                        Hide review
+                      </button>
+                    </form>
+                  )}
                   <form action={dismissReviewReports.bind(null, r.id)}>
                     <button className="text-muted hover:text-ink">
-                      Dismiss reports
+                      {r.hidden ? "Keep it hidden" : "Dismiss reports"}
                     </button>
                   </form>
                 </div>

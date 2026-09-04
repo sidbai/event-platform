@@ -6,6 +6,7 @@ import { db } from "@/db";
 import {
   clubEdits,
   clubs,
+  coaches,
   comments,
   events,
   reviewReports,
@@ -50,24 +51,35 @@ export async function reportedReviews() {
     .groupBy(reviewReports.reviewId);
   if (counts.length === 0) return [];
 
+  // Hidden reviews stay in this queue on purpose. A coach review that trips
+  // the auto-hide is being HELD, not disposed of — if it dropped out here the
+  // hold would be permanent and unreviewable, which is exactly how a takedown
+  // system turns into a way to bury criticism.
   const rows = await db.query.reviews.findMany({
-    where: and(
-      inArray(reviews.id, counts.map((c) => c.reviewId)),
-      isNull(reviews.hiddenAt),
-    ),
+    where: inArray(reviews.id, counts.map((c) => c.reviewId)),
   });
 
   // Reviews are polymorphic, so the subject is resolved by hand. Only club
   // reviews exist today; a coach review would simply have no club here.
   const clubIds = rows.filter((r) => r.subjectType === "club").map((r) => r.subjectId);
-  const clubRows =
+  const coachIds = rows.filter((r) => r.subjectType === "coach").map((r) => r.subjectId);
+  const [clubRows, coachRows] = await Promise.all([
     clubIds.length > 0
-      ? await db.query.clubs.findMany({
+      ? db.query.clubs.findMany({
           where: inArray(clubs.id, clubIds),
           columns: { id: true, name: true, slug: true },
         })
-      : [];
-  const clubById = new Map(clubRows.map((c) => [c.id, { name: c.name, slug: c.slug }]));
+      : [],
+    coachIds.length > 0
+      ? db.query.coaches.findMany({
+          where: inArray(coaches.id, coachIds),
+          columns: { id: true, name: true, slug: true },
+        })
+      : [],
+  ]);
+  const subjectById = new Map(
+    [...clubRows, ...coachRows].map((c) => [c.id, { name: c.name, slug: c.slug }]),
+  );
 
   const byId = new Map(counts.map((c) => [c.reviewId, c]));
   return rows
@@ -75,11 +87,15 @@ export async function reportedReviews() {
       id: r.id,
       title: r.title,
       body: r.body,
-      club: r.subjectType === "club" ? (clubById.get(r.subjectId) ?? null) : null,
+      subjectType: r.subjectType,
+      subject: subjectById.get(r.subjectId) ?? null,
+      hidden: r.hiddenAt !== null,
       reportCount: byId.get(r.id)?.n ?? 0,
       reasons: (byId.get(r.id)?.reasons ?? []).filter(Boolean),
     }))
-    .sort((a, b) => b.reportCount - a.reportCount);
+    .sort((a, b) =>
+      a.hidden === b.hidden ? b.reportCount - a.reportCount : a.hidden ? -1 : 1,
+    );
 }
 
 /**

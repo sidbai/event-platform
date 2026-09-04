@@ -581,6 +581,76 @@ export const clubEditsRelations = relations(clubEdits, ({ one }) => ({
   editor: one(users, { fields: [clubEdits.editedBy], references: [users.id] }),
 }));
 
+/** How a coach is involved with the club, for display only. */
+export const coachRole = pgEnum("coach_role", [
+  "head",
+  "assistant",
+  "director",
+]);
+
+/**
+ * A coach, always in the context of a club.
+ *
+ * Deliberately not a free-floating person page. Scoping a coach to the club
+ * they work for keeps the subject a professional role rather than an
+ * individual, which is the whole basis on which reviewing a named person is
+ * defensible. There is no photo column for the same reason.
+ *
+ * Community maintained like clubs: anyone signed in can correct an entry, and
+ * coach_edits keeps every version so vandalism is reversible and attributable.
+ */
+export const coaches = pgTable(
+  "coaches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    role: coachRole("role").notNull().default("head"),
+    /** e.g. {"Boys 2013","Girls 2014"} — what they actually coach. */
+    ageGroups: text("age_groups").array(),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (t) => [index("coaches_club_idx").on(t.clubId)],
+);
+
+/** A snapshot of a coach's details after each change. Mirrors club_edits. */
+export const coachEdits = pgTable(
+  "coach_edits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => coaches.id, { onDelete: "cascade" }),
+    editedBy: uuid("edited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    role: coachRole("role").notNull(),
+    ageGroups: text("age_groups").array(),
+    summary: text("summary"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("coach_edits_coach_idx").on(t.coachId, t.createdAt)],
+);
+
+export const coachesRelations = relations(coaches, ({ one }) => ({
+  club: one(clubs, { fields: [coaches.clubId], references: [clubs.id] }),
+}));
+
+export const coachEditsRelations = relations(coachEdits, ({ one }) => ({
+  coach: one(coaches, { fields: [coachEdits.coachId], references: [coaches.id] }),
+  editor: one(users, { fields: [coachEdits.editedBy], references: [users.id] }),
+}));
+
 /**
  * Which kind of thing a review is about.
  *
@@ -623,7 +693,23 @@ export const reviews = pgTable(
     reviewerRole: reviewerRole("reviewer_role").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    /** Set by an admin; hides the review without destroying the record. */
+
+    /*
+     * Context, required for coach reviews and unused by club ones.
+     *
+     * This is what makes a review an experience report rather than a verdict:
+     * "we worked with this coach, Boys 2013, 2025-26" is answerable and
+     * scoped, where "he is terrible" is neither. It is also what a reader
+     * needs to judge how much the review applies to them.
+     */
+    teamLabel: text("team_label"),
+    season: text("season"),
+    yearsWith: integer("years_with"),
+    /** The 👍/👎. Degrades better than a mean at low volume. */
+    recommends: boolean("recommends"),
+
+    /** Set by an admin, or automatically once a coach review is reported
+     * enough times; hides it without destroying the record. */
     hiddenAt: timestamp("hidden_at", { withTimezone: true }),
     ...timestamps,
   },

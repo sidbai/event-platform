@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { REPORT_REASONS } from "./constants";
+import { REPORT_REASONS } from "@/features/reviews/constants";
 
 export function HelpfulButton({
   count,
@@ -35,10 +35,13 @@ export function HelpfulButton({
  */
 export function ReportControl({
   action,
-  reported,
+  reported = false,
+  reasons = REPORT_REASONS,
 }: {
   action: (formData: FormData) => Promise<void>;
-  reported: boolean;
+  reported?: boolean;
+  /** Coaches get an extra reason clubs don't need. */
+  reasons?: readonly string[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -60,10 +63,10 @@ export function ReportControl({
     <form action={action} className="flex flex-wrap items-center gap-2">
       <select
         name="reason"
-        defaultValue={REPORT_REASONS[0]}
+        defaultValue={reasons[0]}
         className="rounded-md border border-line bg-card px-2 py-1 text-xs"
       >
-        {REPORT_REASONS.map((r) => (
+        {reasons.map((r) => (
           <option key={r} value={r}>
             {r}
           </option>
