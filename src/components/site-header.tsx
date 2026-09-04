@@ -17,8 +17,13 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 bg-header text-header-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] print:hidden">
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-3 px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          {/* Knockout version: the source lockup is drawn in near-black on
+              white, so its 卷 and half its ring vanish on this bar. The
+              wordmark is cropped off too — the text beside it already says
+              the name. public/logo-lockup.png keeps the full original for
+              light surfaces. */}
           <Image
-            src="/king-juan-logo.png"
+            src="/logo-mark-dark.png"
             alt="King Juan Soccer"
             width={80}
             height={80}
