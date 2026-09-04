@@ -42,8 +42,12 @@ async function replyCounts(postIds: string[]) {
 }
 
 export async function listForumPosts(category?: ForumCategory) {
+  // Converted posts live on as events; their slug redirects there.
+  const notConverted = isNull(forumPosts.convertedEventId);
   const posts = await db.query.forumPosts.findMany({
-    where: category ? eq(forumPosts.category, category) : undefined,
+    where: category
+      ? and(eq(forumPosts.category, category), notConverted)
+      : notConverted,
     orderBy: [desc(forumPosts.pinned), desc(forumPosts.lastActivityAt)],
     limit: 100,
     with: {
@@ -78,6 +82,7 @@ export async function getForumPost(slug: string) {
           avatarUrl: true,
         },
       },
+      convertedEvent: { columns: { slug: true } },
     },
   });
   if (!post) return null;
@@ -88,6 +93,7 @@ export async function countByCategory() {
   const rows = await db
     .select({ category: forumPosts.category, n: sql<number>`count(*)::int` })
     .from(forumPosts)
+    .where(isNull(forumPosts.convertedEventId))
     .groupBy(forumPosts.category);
   return Object.fromEntries(rows.map((r) => [r.category, r.n])) as Record<
     string,
