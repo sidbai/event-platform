@@ -20,10 +20,9 @@ import { slugify } from "@/lib/slug";
 
 import { canEditCoach } from "./access";
 import { parseCoachRole } from "./constants";
+import { validateCoachReview } from "./review-rules";
 
 const NAME_MAX = 80;
-const TITLE_MAX = 120;
-const BODY_MAX = 4000;
 
 async function uniqueSlug(base: string, exceptId?: string) {
   const root = base || "coach";
@@ -209,20 +208,16 @@ export async function reviewCoach(
   const recommends =
     recommendRaw === "yes" ? true : recommendRaw === "no" ? false : null;
 
-  const fieldErrors: Record<string, string> = {};
-  if (!ratings) fieldErrors.ratings = "Rate every category.";
-  if (!reviewerRole) fieldErrors.reviewerRole = "How did you know this coach?";
-  // A coach cannot be reviewed by a stranger: the context fields are what make
-  // this an experience report rather than a verdict on a person.
-  if (!teamLabel) fieldErrors.teamLabel = "Which team was this?";
-  if (!season) fieldErrors.season = "Which season?";
-  if (yearsWith === null) fieldErrors.yearsWith = "How long were you with them?";
-  if (recommends === null) fieldErrors.recommends = "Would you recommend them?";
-  if (title.length < 4) fieldErrors.title = "Give it a headline.";
-  if (title.length > TITLE_MAX) fieldErrors.title = "That headline is too long.";
-  if (body.length < 40)
-    fieldErrors.body = "Say a bit more — what actually happened over the season?";
-  if (body.length > BODY_MAX) fieldErrors.body = "That's too long.";
+  const fieldErrors = validateCoachReview({
+    ratings,
+    reviewerRole,
+    season,
+    recommends,
+    title,
+    body,
+    teamLabel,
+    yearsWith,
+  });
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   await ensureAnonHandle(user.id, user.anonHandle);

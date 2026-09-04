@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { listClubs } from "@/features/clubs/queries";
+import { ReviewsHeader } from "@/features/reviews/reviews-header";
 import { Stars } from "@/features/clubs/stars";
 
 export const dynamic = "force-dynamic";
@@ -17,36 +18,10 @@ export default async function ClubsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Anonymous club reviews from local families
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            What it&rsquo;s actually like inside a club — coaching, playing
-            time, communication — from the people there.
-          </p>
-        </div>
-        <Link
-          href="/clubs/new"
-          className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-        >
-          Add a club
-        </Link>
-      </div>
-
-      <nav className="mt-5 flex gap-1.5 text-sm">
-        <Link href="/clubs" className="rounded-full bg-ink px-3 py-1 text-page">
-          Clubs
-        </Link>
-        <Link
-          href="/coaches"
-          className="rounded-full bg-elevated px-3 py-1 text-muted hover:bg-line"
-        >
-          Coaches
-        </Link>
-      </nav>
-
+      <ReviewsHeader
+        active="clubs"
+        action={{ href: "/clubs/new", label: "Add a club" }}
+      />
 
       {clubs.length === 0 ? (
         <p className="mt-10 text-muted">
