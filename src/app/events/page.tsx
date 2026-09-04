@@ -18,7 +18,7 @@ function fmtDate(d: Date | null, tz: string | null) {
 }
 
 const selectClass =
-  "rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-line px-2 py-1.5 text-sm bg-card";
 
 export default async function EventsPage({
   searchParams,
@@ -51,7 +51,7 @@ export default async function EventsPage({
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
         <Link
           href="/events/new"
-          className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="text-sm font-medium text-brand-text hover:underline"
         >
           Submit an event →
         </Link>
@@ -90,34 +90,34 @@ export default async function EventsPage({
         </label>
         <button
           type="submit"
-          className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+          className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong"
         >
           Filter
         </button>
         {activeFilters && (
-          <Link href="/events" className="text-sm text-neutral-500 hover:underline">
+          <Link href="/events" className="text-sm text-muted hover:underline">
             Clear
           </Link>
         )}
       </form>
 
       {events.length === 0 ? (
-        <p className="mt-6 text-neutral-500">No events match.</p>
+        <p className="mt-6 text-muted">No events match.</p>
       ) : (
-        <ul className="mt-6 divide-y divide-neutral-200 dark:divide-neutral-800">
+        <ul className="mt-6 divide-y divide-line">
           {events.map((event) => (
             <li key={event.id}>
               <Link
                 href={`/events/${event.slug}`}
-                className="block py-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                className="block py-4 transition-colors hover:bg-elevated"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="font-medium">{event.title}</span>
-                  <span className="shrink-0 text-sm text-neutral-500">
+                  <span className="shrink-0 text-sm text-muted">
                     {fmtDate(event.startsAt, event.timezone)}
                   </span>
                 </div>
-                <div className="mt-0.5 text-sm text-neutral-500">
+                <div className="mt-0.5 text-sm text-muted">
                   <span className="capitalize">{event.kind}</span>
                   {event.venue && <span> · {event.venue.name}</span>}
                   {event.needsOpponent && (

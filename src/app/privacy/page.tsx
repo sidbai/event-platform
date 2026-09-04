@@ -12,9 +12,9 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-5 py-12">
       <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-neutral-500">Last updated {UPDATED}</p>
+      <p className="mt-2 text-sm text-muted">Last updated {UPDATED}</p>
 
-      <div className="mt-8 space-y-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-200">
+      <div className="mt-8 space-y-6 text-sm leading-relaxed text-ink">
         <p>
           King Juan Soccer (&ldquo;we&rdquo;, &ldquo;the platform&rdquo;) is a
           website at <strong>kingjuansoccer.com</strong> for discovering and
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           we collect, why, and how it is shared. It applies to the website only.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Information we collect
         </h2>
         <p>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           cookies.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           How we use it
         </h2>
         <ul className="list-disc space-y-1 pl-5">
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
           <li>To detect abuse, enforce our terms, and respond to reports.</li>
         </ul>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Youth player information
         </h2>
         <p>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
           and organizers; children do not create accounts.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           How information is shared
         </h2>
         <ul className="list-disc space-y-1 pl-5">
@@ -107,14 +107,14 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Retention and deletion
         </h2>
         <p>
           We keep your account information while your account is active. You can
           delete your own discussion comments at any time. To delete your
           account and associated personal data, email us at{" "}
-          <a href={`mailto:${CONTACT}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <a href={`mailto:${CONTACT}`} className="text-brand-text hover:underline">
             {CONTACT}
           </a>{" "}
           and we will remove it, except where we must retain limited records to
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
           have relied on it.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Your Google data
         </h2>
         <p>
@@ -131,14 +131,14 @@ export default function PrivacyPage() {
           Account at any time at{" "}
           <a
             href="https://myaccount.google.com/permissions"
-            className="text-emerald-700 hover:underline dark:text-emerald-400"
+            className="text-brand-text hover:underline"
           >
             myaccount.google.com/permissions
           </a>
           .
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Changes
         </h2>
         <p>
@@ -146,12 +146,12 @@ export default function PrivacyPage() {
           the date above.
         </p>
 
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2 className="text-lg font-semibold text-ink">
           Contact
         </h2>
         <p>
           Questions about this policy or your data:{" "}
-          <a href={`mailto:${CONTACT}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <a href={`mailto:${CONTACT}`} className="text-brand-text hover:underline">
             {CONTACT}
           </a>
           .

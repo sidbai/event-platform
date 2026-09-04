@@ -35,7 +35,7 @@ export default async function TeamSettingsPage({
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link
         href={`/teams/${slug}`}
-        className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+        className="text-sm text-brand-text hover:underline"
       >
         ← {team.name}
       </Link>
@@ -55,7 +55,7 @@ export default async function TeamSettingsPage({
       <section className="mt-10">
         <h2 className="text-lg font-semibold">People</h2>
         {!owner && (
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-muted">
             No owner yet. When a coach claims this team they become the owner and
             can add managers.
           </p>
@@ -64,18 +64,18 @@ export default async function TeamSettingsPage({
           {owner && (
             <li>
               {publicName(owner.user)}{" "}
-              <span className="text-xs text-neutral-400">owner</span>
+              <span className="text-xs text-muted">owner</span>
             </li>
           )}
           {managers.map((m) => (
             <li key={m.userId} className="flex items-center justify-between">
               <span>
                 {publicName(m.user)}{" "}
-                <span className="text-xs text-neutral-400">manager</span>
+                <span className="text-xs text-muted">manager</span>
               </span>
               {isOwner && (
                 <form action={removeManager.bind(null, slug, m.userId)}>
-                  <button className="text-xs text-neutral-400 hover:text-red-600 dark:hover:text-red-400">
+                  <button className="text-xs text-muted hover:text-red-600 dark:hover:text-red-400">
                     remove
                   </button>
                 </form>
@@ -86,7 +86,7 @@ export default async function TeamSettingsPage({
 
         {isOwner && <AddManagerForm action={addManager.bind(null, slug)} />}
         {!isOwner && owner && (
-          <p className="mt-3 text-xs text-neutral-400">
+          <p className="mt-3 text-xs text-muted">
             Only the owner can add or remove managers.
           </p>
         )}

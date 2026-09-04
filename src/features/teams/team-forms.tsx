@@ -7,7 +7,7 @@ import type { TeamFormResult } from "./actions";
 type Action = (prev: TeamFormResult, formData: FormData) => Promise<TeamFormResult>;
 
 const field =
-  "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-md border border-line px-3 py-2 text-sm bg-card";
 const label = "block text-sm font-medium";
 
 export function TeamEditForm({
@@ -77,12 +77,12 @@ export function TeamEditForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save"}
         </button>
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
-        {state.ok && <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved.</span>}
+        {state.ok && <span className="text-sm text-brand-text">Saved.</span>}
       </div>
     </form>
   );
@@ -106,12 +106,12 @@ export function AddManagerForm({ action }: { action: Action }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        className="rounded-md border border-line px-3 py-2 text-sm font-medium hover:bg-elevated disabled:opacity-50"
       >
         {pending ? "Adding…" : "Add manager"}
       </button>
       {state.error && <span className="text-sm text-red-600">{state.error}</span>}
-      {state.ok && <span className="text-sm text-emerald-600 dark:text-emerald-400">Added.</span>}
+      {state.ok && <span className="text-sm text-brand-text">Added.</span>}
     </form>
   );
 }

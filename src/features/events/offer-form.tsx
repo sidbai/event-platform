@@ -20,7 +20,7 @@ export function OfferForm({
 
   if (state.ok) {
     return (
-      <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-400">
+      <p className="mt-3 text-sm text-brand-text">
         Offer sent — the organizer will be in touch.
       </p>
     );
@@ -31,7 +31,7 @@ export function OfferForm({
       <select
         name="teamId"
         defaultValue={teams.length === 1 ? teams[0].id : ""}
-        className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+        className="w-full rounded-md border border-line px-3 py-2 text-sm bg-card"
       >
         <option value="" disabled>
           Which of your teams?
@@ -46,13 +46,13 @@ export function OfferForm({
         name="message"
         rows={2}
         placeholder="Age, level, where you can play, contact…"
-        className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+        className="w-full rounded-md border border-line px-3 py-2 text-sm bg-card"
       />
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Sending…" : "Offer to play"}
         </button>

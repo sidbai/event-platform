@@ -8,7 +8,7 @@ type Player = { name: string; birthYear: string; gender: string };
 type Action = (prev: RosterResult, formData: FormData) => Promise<RosterResult>;
 
 const cell =
-  "rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-line px-2 py-1.5 text-sm bg-card";
 
 export function RosterForm({
   action,
@@ -33,7 +33,7 @@ export function RosterForm({
 
   return (
     <form action={formAction} className="mt-6 space-y-2">
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-muted">
         {min}&ndash;{max} players. {rows.filter((r) => r.name.trim()).length} entered.
       </p>
       {rows.map((row, i) => (
@@ -66,7 +66,7 @@ export function RosterForm({
           <button
             type="button"
             onClick={() => setRows((r) => r.filter((_, j) => j !== i))}
-            className="px-2 text-neutral-400 hover:text-red-600"
+            className="px-2 text-muted hover:text-red-600"
             aria-label="Remove player"
           >
             ×
@@ -79,7 +79,7 @@ export function RosterForm({
           <button
             type="button"
             onClick={() => setRows((r) => [...r, { name: "", birthYear: "", gender: "" }])}
-            className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+            className="text-sm text-brand-text hover:underline"
           >
             + Add player
           </button>
@@ -90,12 +90,12 @@ export function RosterForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save roster"}
         </button>
         {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
-        {state.ok && <span className="text-sm text-emerald-700 dark:text-emerald-400">Saved.</span>}
+        {state.ok && <span className="text-sm text-brand-text">Saved.</span>}
       </div>
     </form>
   );

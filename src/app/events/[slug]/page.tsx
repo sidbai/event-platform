@@ -88,7 +88,7 @@ export default async function EventPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <Link href="/events" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+      <Link href="/events" className="text-sm text-brand-text hover:underline">
         ← All events
       </Link>
 
@@ -101,7 +101,7 @@ export default async function EventPage({
       )}
 
       <header className="mt-4">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
           <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
             {event.kind}
           </span>
@@ -109,25 +109,25 @@ export default async function EventPage({
         </div>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.title}</h1>
         {event.titleZh && (
-          <p className="mt-1 text-lg text-neutral-500">{event.titleZh}</p>
+          <p className="mt-1 text-lg text-muted">{event.titleZh}</p>
         )}
-        {event.summary && <p className="mt-3 text-neutral-600 dark:text-neutral-300">{event.summary}</p>}
+        {event.summary && <p className="mt-3 text-muted">{event.summary}</p>}
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-neutral-500">Date</dt>
+          <dt className="text-muted">Date</dt>
           <dd>{fmtDate(event.startsAt, event.timezone)}</dd>
           {event.venue && (
             <>
-              <dt className="text-neutral-500">Venue</dt>
+              <dt className="text-muted">Venue</dt>
               <dd>
                 {event.venue.mapUrl ? (
-                  <a href={event.venue.mapUrl} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                  <a href={event.venue.mapUrl} className="text-brand-text hover:underline">
                     {event.venue.name}
                   </a>
                 ) : (
                   event.venue.name
                 )}
                 {event.venue.address && (
-                  <span className="text-neutral-500">
+                  <span className="text-muted">
                     {" — "}
                     {event.venue.address}, {event.venue.city}
                   </span>
@@ -137,19 +137,19 @@ export default async function EventPage({
           )}
           {event.host && (
             <>
-              <dt className="text-neutral-500">Host</dt>
+              <dt className="text-muted">Host</dt>
               <dd>{event.host}</dd>
             </>
           )}
           {event.format && (
             <>
-              <dt className="text-neutral-500">Format</dt>
+              <dt className="text-muted">Format</dt>
               <dd>{event.format}</dd>
             </>
           )}
         </dl>
         {event.venue?.notes && (
-          <p className="mt-3 rounded-md bg-neutral-100 px-3 py-2 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          <p className="mt-3 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
             {event.venue.notes}
           </p>
         )}
@@ -162,13 +162,13 @@ export default async function EventPage({
           <h2 className="text-lg font-semibold">Champions</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {champions.map((c) => (
-              <div key={c.division} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-                <div className="text-xs uppercase tracking-wide text-neutral-500">{c.division}</div>
+              <div key={c.division} className="rounded-lg border border-line p-3">
+                <div className="text-xs uppercase tracking-wide text-muted">{c.division}</div>
                 <div className="mt-1 flex items-center gap-2 font-semibold">
                   <TeamCrest src={crestByName.get(c.champion)} size={24} />
                   🏆 {c.champion}
                 </div>
-                <div className="text-sm text-neutral-500">
+                <div className="text-sm text-muted">
                   def. {c.finalist} ({c.finalScore})
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default async function EventPage({
         <p className="mt-8 text-sm">
           <Link
             href={`/events/${event.slug}/roster`}
-            className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+            className="font-medium text-brand-text hover:underline"
           >
             Submit {myEntry.teamName}&rsquo;s roster →
           </Link>
@@ -189,18 +189,18 @@ export default async function EventPage({
       )}
 
       {event.divisions.length > 0 && (
-        <p className="mt-8 text-sm text-neutral-500">
+        <p className="mt-8 text-sm text-muted">
           Organizer tools:{" "}
           <Link
             href={`/events/${event.slug}/print/check-in`}
-            className="text-emerald-700 hover:underline dark:text-emerald-400"
+            className="text-brand-text hover:underline"
           >
             check-in sheet
           </Link>{" "}
           ·{" "}
           <Link
             href={`/events/${event.slug}/print/score-cards`}
-            className="text-emerald-700 hover:underline dark:text-emerald-400"
+            className="text-brand-text hover:underline"
           >
             referee score cards
           </Link>
@@ -209,7 +209,7 @@ export default async function EventPage({
               {" · "}
               <Link
                 href={`/events/${event.slug}/scores`}
-                className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                className="font-medium text-brand-text hover:underline"
               >
                 enter scores
               </Link>
@@ -235,19 +235,19 @@ export default async function EventPage({
           <h2 className="text-lg font-semibold">Rules</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div>
-              <dt className="text-neutral-500">Format</dt>
+              <dt className="text-muted">Format</dt>
               <dd>{rules.gameFormat}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Advancement</dt>
+              <dt className="text-muted">Advancement</dt>
               <dd>{rules.advancement}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Roster</dt>
+              <dt className="text-muted">Roster</dt>
               <dd>{rules.roster}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Tiebreakers</dt>
+              <dt className="text-muted">Tiebreakers</dt>
               <dd>{rules.tiebreakers.join(" → ").replace(/_/g, " ")}</dd>
             </div>
           </dl>
@@ -255,13 +255,13 @@ export default async function EventPage({
       )}
 
       {sponsors.length > 0 && (
-        <section className="mt-10 border-t border-neutral-200 pt-6 dark:border-neutral-800">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Sponsors</h2>
+        <section className="mt-10 border-t border-line pt-6">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Sponsors</h2>
           <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {sponsors.map((s) => (
               <li key={s.name}>
                 {s.url ? (
-                  <a href={s.url} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                  <a href={s.url} className="text-brand-text hover:underline">
                     {s.name}
                   </a>
                 ) : (
@@ -333,7 +333,7 @@ function DivisionBlock({
       <h2 className="text-lg font-semibold">
         {division.label ?? division.name}
         {division.birthYears.length > 0 && (
-          <span className="ml-2 text-sm font-normal text-neutral-500">
+          <span className="ml-2 text-sm font-normal text-muted">
             born {division.birthYears.join("/")}
           </span>
         )}
@@ -343,7 +343,7 @@ function DivisionBlock({
         {groups.map((group) => (
           <div key={group.label}>
             {groupLabels.length > 1 && (
-              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
                 Group {group.label}
               </div>
             )}
@@ -356,7 +356,7 @@ function DivisionBlock({
         <div className="mt-4 space-y-1.5 text-sm">
           {knockouts.map((m) => (
             <div key={m.id} className="flex items-center gap-2">
-              <span className="w-14 shrink-0 text-xs uppercase tracking-wide text-neutral-400">
+              <span className="w-14 shrink-0 text-xs uppercase tracking-wide text-muted">
                 {m.round}
               </span>
               <span className="flex flex-1 items-center justify-end gap-1.5 text-right">
@@ -389,7 +389,7 @@ function StandingsTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm tabular-nums">
         <thead>
-          <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800">
+          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
             <th className="py-1.5 pr-2 font-medium">#</th>
             <th className="py-1.5 pr-2 font-medium">Team</th>
             <th className="px-2 py-1.5 text-right font-medium">P</th>
@@ -405,8 +405,8 @@ function StandingsTable({
           {rows.map((row, i) => {
             const meta = teamMeta.get(row.teamId);
             return (
-              <tr key={row.teamId} className="border-b border-neutral-100 dark:border-neutral-900">
-                <td className="py-1.5 pr-2 text-neutral-400">{i + 1}</td>
+              <tr key={row.teamId} className="border-b border-line">
+                <td className="py-1.5 pr-2 text-muted">{i + 1}</td>
                 <td className="py-1.5 pr-2">
                   <span className="flex items-center gap-2">
                     <TeamCrest src={meta?.crestUrl} size={20} />

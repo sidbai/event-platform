@@ -26,7 +26,7 @@ export default async function NewDiscussionPage({
     <div className="mx-auto max-w-3xl px-5 py-8">
       <Link
         href="/discussions"
-        className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+        className="text-sm text-brand-text hover:underline"
       >
         ← Discussions
       </Link>

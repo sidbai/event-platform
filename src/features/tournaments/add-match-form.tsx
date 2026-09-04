@@ -9,7 +9,7 @@ type Division = { id: string; name: string; label: string | null };
 type Action = (prev: ScoreResult, formData: FormData) => Promise<ScoreResult>;
 
 const field =
-  "rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "rounded-md border border-line px-2 py-1.5 text-sm bg-card";
 
 export function AddMatchForm({
   action,
@@ -29,11 +29,11 @@ export function AddMatchForm({
   const teams = teamsByDivision[divisionId] ?? [];
 
   return (
-    <details className="mt-6 rounded-lg border border-dashed border-neutral-300 p-3 dark:border-neutral-700">
+    <details className="mt-6 rounded-lg border border-dashed border-line p-3">
       <summary className="cursor-pointer text-sm font-medium">Add a match</summary>
       <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2">
         <label className="text-xs">
-          <span className="block text-neutral-500">Division</span>
+          <span className="block text-muted">Division</span>
           <select
             name="divisionId"
             value={divisionId}
@@ -49,7 +49,7 @@ export function AddMatchForm({
         </label>
 
         <label className="text-xs">
-          <span className="block text-neutral-500">Round</span>
+          <span className="block text-muted">Round</span>
           <select
             name="round"
             value={round}
@@ -65,13 +65,13 @@ export function AddMatchForm({
 
         {round === "group" && (
           <label className="text-xs">
-            <span className="block text-neutral-500">Group</span>
+            <span className="block text-muted">Group</span>
             <input name="groupLabel" placeholder="1" className={`mt-0.5 w-16 ${field}`} />
           </label>
         )}
 
         <label className="text-xs">
-          <span className="block text-neutral-500">Home</span>
+          <span className="block text-muted">Home</span>
           <select name="homeTeamId" defaultValue="" className={`mt-0.5 ${field}`}>
             <option value="">TBD</option>
             {teams.map((t) => (
@@ -82,7 +82,7 @@ export function AddMatchForm({
           </select>
         </label>
         <label className="text-xs">
-          <span className="block text-neutral-500">Away</span>
+          <span className="block text-muted">Away</span>
           <select name="awayTeamId" defaultValue="" className={`mt-0.5 ${field}`}>
             <option value="">TBD</option>
             {teams.map((t) => (
@@ -94,23 +94,23 @@ export function AddMatchForm({
         </label>
 
         <label className="text-xs">
-          <span className="block text-neutral-500">Field</span>
+          <span className="block text-muted">Field</span>
           <input name="field" placeholder="Field 1" className={`mt-0.5 w-24 ${field}`} />
         </label>
         <label className="text-xs">
-          <span className="block text-neutral-500">Time</span>
+          <span className="block text-muted">Time</span>
           <input name="time" type="time" className={`mt-0.5 ${field}`} />
         </label>
 
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>
         {state.error && <span className="text-xs text-red-600">{state.error}</span>}
-        {state.ok && <span className="text-xs text-emerald-600">Added.</span>}
+        {state.ok && <span className="text-xs text-brand-text">Added.</span>}
       </form>
     </details>
   );

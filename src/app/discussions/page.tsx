@@ -44,7 +44,7 @@ export default async function DiscussionsPage({
         <h1 className="text-2xl font-semibold tracking-tight">Discussions</h1>
         <Link
           href="/discussions/new"
-          className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-strong"
         >
           New post
         </Link>
@@ -55,8 +55,8 @@ export default async function DiscussionsPage({
           href="/discussions"
           className={`rounded-full px-2.5 py-1 ${
             !active
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+              ? "bg-ink text-page"
+              : "bg-elevated text-muted hover:bg-line dark:text-muted"
           }`}
         >
           All
@@ -67,8 +67,8 @@ export default async function DiscussionsPage({
             href={`/discussions?c=${cat}`}
             className={`rounded-full px-2.5 py-1 ${
               active === cat
-                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                ? "bg-ink text-page"
+                : "bg-elevated text-muted hover:bg-line dark:text-muted"
             }`}
           >
             {CATEGORY_LABELS[cat]}
@@ -77,9 +77,9 @@ export default async function DiscussionsPage({
       </nav>
 
       {posts.length === 0 ? (
-        <p className="mt-10 text-neutral-500">
+        <p className="mt-10 text-muted">
           Nothing here yet.{" "}
-          <Link href="/discussions/new" className="text-emerald-700 hover:underline dark:text-emerald-400">
+          <Link href="/discussions/new" className="text-brand-text hover:underline">
             Start the first discussion
           </Link>
           .
@@ -90,18 +90,18 @@ export default async function DiscussionsPage({
             <li key={post.slug}>
               <Link
                 href={`/discussions/${post.slug}`}
-                className="block rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900/40 dark:hover:border-neutral-700"
+                className="block rounded-xl border border-line bg-card p-4 transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
               >
-                <div className="flex items-center gap-2 text-xs text-neutral-500">
-                  {post.pinned && <span className="text-emerald-700 dark:text-emerald-400">📌</span>}
-                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  {post.pinned && <span className="text-brand-text">📌</span>}
+                  <span className="rounded-full bg-elevated px-2 py-0.5">
                     {CATEGORY_LABELS[post.category]}
                   </span>
                   {post.locked && <span>· locked</span>}
                 </div>
                 <h2 className="mt-1.5 font-medium leading-snug">{post.title}</h2>
-                <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{post.body}</p>
-                <div className="mt-2 flex items-center gap-2 text-xs text-neutral-400">
+                <p className="mt-1 line-clamp-2 text-sm text-muted">{post.body}</p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted">
                   <Avatar src={post.authorAvatar} name={post.authorName} size={18} />
                   <span>{post.authorName}</span>
                   <span>·</span>

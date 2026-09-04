@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Semantic names map to Tailwind utilities via @theme below,
+ * e.g. bg-page, bg-card, border-line, text-ink, text-muted, text-brand,
+ * bg-brand / hover:bg-brand-strong.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --page: #fafafa;
+  --card: #ffffff;
+  --elevated: #f4f4f5;
+  --ink: #18181b;
+  --muted: #6b7280;
+  --line: #e7e7e9;
+  --brand: #047857;
+  --brand-strong: #065f46;
+  --brand-text: #047857;
+  --on-brand: #ffffff;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: var(--page);
+  --foreground: var(--ink);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --page: #0a0a0a;
+    --card: #131314;
+    --elevated: #1d1d1f;
+    --ink: #ededed;
+    --muted: #8b8b90;
+    --line: #272729;
+    --brand: #059669;
+    --brand-strong: #10b981;
+    --brand-text: #34d399;
+    --on-brand: #ffffff;
   }
 }
 
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-text: var(--brand-text);
+  --color-on-brand: var(--on-brand);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
 }

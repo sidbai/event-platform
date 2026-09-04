@@ -19,7 +19,7 @@ export default async function SignInPage({
   return (
     <div className="mx-auto max-w-sm px-5 py-16">
       <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         You only need an account to post, RSVP, or manage a team. Browsing is open.
       </p>
 
@@ -33,7 +33,7 @@ export default async function SignInPage({
           >
             <button
               type="submit"
-              className="w-full rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+              className="w-full rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-elevated"
             >
               Continue with Google
             </button>
@@ -52,7 +52,7 @@ export default async function SignInPage({
             className="space-y-2"
           >
             {googleEnabled && (
-              <div className="text-center text-xs uppercase tracking-wide text-neutral-400">
+              <div className="text-center text-xs uppercase tracking-wide text-muted">
                 or dev login
               </div>
             )}
@@ -61,15 +61,15 @@ export default async function SignInPage({
               name="email"
               required
               placeholder="you@example.com"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              className="w-full rounded-md border border-line px-3 py-2 text-sm bg-card"
             />
             <button
               type="submit"
-              className="w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+              className="w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-strong"
             >
               Sign in
             </button>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted">
               Dev only — any email signs you in without a password.
             </p>
           </form>

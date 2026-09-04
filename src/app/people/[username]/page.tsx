@@ -45,7 +45,7 @@ export default async function ProfilePage({
         <Avatar src={avatarOf(p)} name={publicName(p)} size={72} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{publicName(p)}</h1>
-          <p className="text-sm text-neutral-500">@{p.username}</p>
+          <p className="text-sm text-muted">@{p.username}</p>
         </div>
       </header>
 
@@ -54,7 +54,7 @@ export default async function ProfilePage({
           {p.tags.map((t) => (
             <span
               key={t}
-              className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+              className="rounded-full bg-elevated px-2 py-0.5 text-xs text-muted"
             >
               {TAG_LABELS[t] ?? t}
             </span>
@@ -63,27 +63,27 @@ export default async function ProfilePage({
       )}
 
       {(p.club || p.city) && (
-        <p className="mt-3 text-sm text-neutral-500">
+        <p className="mt-3 text-sm text-muted">
           {[p.club, p.city].filter(Boolean).join(" · ")}
         </p>
       )}
 
       {p.bio && (
-        <p className="mt-4 whitespace-pre-wrap text-neutral-700 dark:text-neutral-200">
+        <p className="mt-4 whitespace-pre-wrap text-ink">
           {p.bio}
         </p>
       )}
 
       {p.ownedTeams.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
             Teams
           </h2>
           <ul className="mt-2 space-y-1">
             {p.ownedTeams.map((t) => (
               <li key={t.slug} className="flex items-center gap-2 text-sm">
                 <TeamCrest src={t.crestUrl} size={18} />
-                <Link href={`/teams/${t.slug}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                <Link href={`/teams/${t.slug}`} className="text-brand-text hover:underline">
                   {t.name}
                 </Link>
               </li>
@@ -94,16 +94,16 @@ export default async function ProfilePage({
 
       {p.organizedEvents.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
             Organizing
           </h2>
           <ul className="mt-2 space-y-1 text-sm">
             {p.organizedEvents.map((e) => (
               <li key={e.slug}>
-                <Link href={`/events/${e.slug}`} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                <Link href={`/events/${e.slug}`} className="text-brand-text hover:underline">
                   {e.title}
                 </Link>{" "}
-                <span className="text-neutral-400">{fmtDate(e.startsAt)}</span>
+                <span className="text-muted">{fmtDate(e.startsAt)}</span>
               </li>
             ))}
           </ul>
