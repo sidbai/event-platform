@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
@@ -32,9 +32,20 @@ function ratingsOf(row: { ratings: Record<string, number> }): Ratings {
   };
 }
 
+/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Club directory with each club's aggregate score. */
-export async function listClubs() {
-  const rows = await db.query.clubs.findMany({ orderBy: [asc(clubs.name)] });
+export async function listClubs(q?: string) {
+  const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
+  const rows = await db.query.clubs.findMany({
+    where: term
+      ? or(ilike(clubs.name, term), ilike(clubs.city, term))
+      : undefined,
+    orderBy: [asc(clubs.name)],
+  });
   if (rows.length === 0) return [];
 
   // Fetched separately rather than through a relation: the join needs

@@ -13,19 +13,25 @@ export const metadata: Metadata = {
     "Anonymous reviews of Seattle-area youth soccer clubs, from the families who play there.",
 };
 
-export default async function ClubsPage() {
-  const clubs = await listClubs();
+export default async function ClubsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const q = ((await searchParams).q ?? "").trim();
+  const clubs = await listClubs(q);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <ReviewsHeader
         active="clubs"
         action={{ href: "/clubs/new", label: "Add a club" }}
+        q={q}
       />
 
       {clubs.length === 0 ? (
         <p className="mt-10 text-muted">
-          No clubs yet.{" "}
+          {q ? "No clubs match that. " : "No clubs yet. "}
           <Link href="/clubs/new" className="text-brand-text hover:underline">
             Add the first one
           </Link>

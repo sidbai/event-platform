@@ -13,19 +13,25 @@ export const metadata: Metadata = {
     "Parent and player experiences with Seattle-area youth soccer coaches.",
 };
 
-export default async function CoachesPage() {
-  const [coaches, user] = await Promise.all([listCoaches(), getCurrentUser()]);
+export default async function CoachesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const q = ((await searchParams).q ?? "").trim();
+  const [coaches, user] = await Promise.all([listCoaches(q), getCurrentUser()]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <ReviewsHeader
         active="coaches"
         action={user ? { href: "/coaches/new", label: "Add a coach" } : undefined}
+        q={q}
       />
 
       {coaches.length === 0 ? (
         <p className="mt-10 text-muted">
-          No coaches listed yet.
+          {q ? "No coaches match that." : "No coaches listed yet."}
           {user && (
             <>
               {" "}

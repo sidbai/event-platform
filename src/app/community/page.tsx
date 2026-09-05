@@ -53,13 +53,14 @@ export default async function CommunityPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
         <Link
           href="/community/new"
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
         >
-          New post
+          <span aria-hidden className="text-base leading-none">+</span>
+          Start a post
         </Link>
       </div>
 

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { SearchBar } from "@/components/search-bar";
+
 import { EventTags } from "@/features/events/event-tags";
 import { listEvents, listEventsByTime } from "@/features/events/queries";
 
@@ -78,34 +80,23 @@ export default async function EventsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
         <Link
           href="/events/new"
-          className="text-sm font-medium text-brand-text hover:underline"
+          className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
         >
-          Submit an event →
+          <span aria-hidden className="text-base leading-none">+</span>
+          Start an event
         </Link>
       </div>
 
-      {/* method="get" alone gives submit-on-Enter, a shareable ?q= URL and
-          working back/forward, with no client JavaScript. */}
-      <form method="get" role="search" className="mt-5 flex gap-2">
-        <input
-          type="search"
-          name="q"
-          defaultValue={q}
-          aria-label="Search events"
-          placeholder="Search events, venues and cities"
-          className="min-w-0 flex-1 rounded-md border border-line bg-card px-3 py-2 text-sm"
-        />
-        <button
-          type="submit"
-          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-        >
-          Search
-        </button>
-      </form>
+      <SearchBar
+        className="mt-5"
+        defaultValue={q}
+        label="Search events"
+        placeholder="Search events, venues and cities"
+      />
 
       {q && (
         <p className="mt-3 text-sm text-muted">

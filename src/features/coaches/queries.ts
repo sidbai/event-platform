@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -65,9 +65,25 @@ export async function coachesAtClub(clubId: string) {
   }));
 }
 
+/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Every coach, for the Coaches tab. Alphabetical, never by score. */
-export async function listCoaches() {
+export async function listCoaches(q?: string) {
+  const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
   const rows = await db.query.coaches.findMany({
+    where: term
+      ? or(
+          ilike(coaches.name, term),
+          // Club comes through a relation, which cannot filter the parent.
+          inArray(
+            coaches.clubId,
+            db.select({ id: clubs.id }).from(clubs).where(ilike(clubs.name, term)),
+          ),
+        )
+      : undefined,
     orderBy: [asc(coaches.name)],
     with: { club: { columns: { name: true, slug: true } } },
   });
