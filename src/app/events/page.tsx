@@ -3,7 +3,11 @@ import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 
 import { EventTags } from "@/features/events/event-tags";
-import { listEvents, listEventsByTime } from "@/features/events/queries";
+import {
+  listEventKindFacets,
+  listEvents,
+  listEventsByTime,
+} from "@/features/events/queries";
 import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +72,16 @@ export default async function EventsPage({
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
+  const kind = (sp.kind ?? "").trim() || undefined;
+
+  /** Keeps the search when a chip is picked, and the chip when searching. */
+  const href = (next: { kind?: string }) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (next.kind) params.set("kind", next.kind);
+    const s = params.toString();
+    return s ? `/events?${s}` : "/events";
+  };
 
   /*
    * Everything, upcoming and past, both when browsing and when searching.
@@ -77,7 +91,10 @@ export default async function EventsPage({
    * is a destination with results, standings and rosters. They are split into
    * two sections instead, so what you can still turn up to stays on top.
    */
-  const { upcoming, past, total } = await listEventsByTime(q ? { q } : {});
+  const [{ upcoming, past, total }, kinds] = await Promise.all([
+    listEventsByTime({ ...(q ? { q } : {}), kind }),
+    listEventKindFacets(q ? { q } : {}),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -93,11 +110,51 @@ export default async function EventsPage({
         placeholder="Search events, venues and cities"
       />
 
+      {/* Only worth showing when there is a choice to make: a single chip
+          filters to everything already on screen. */}
+      {kinds.length > 1 && (
+        <nav aria-label="Filter by kind" className="mt-3 flex flex-wrap gap-1.5">
+          <Link
+            href={href({})}
+            aria-current={kind ? undefined : "page"}
+            className={
+              kind
+                ? "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
+                : "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
+            }
+          >
+            All
+          </Link>
+          {kinds.map((k) => {
+            const on = k.slug === kind;
+            return (
+              <Link
+                key={k.slug}
+                // Picking the chip you are already on clears it, so the row
+                // works as a toggle rather than a trap.
+                href={href({ kind: on ? undefined : k.slug })}
+                aria-current={on ? "page" : undefined}
+                className={
+                  on
+                    ? "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
+                    : "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
+                }
+              >
+                <span aria-hidden>{k.emoji}</span> {k.label}{" "}
+                <span className="tabular-nums opacity-70">{k.count}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
       {q && (
         <p className="mt-3 text-sm text-muted">
           {total} {total === 1 ? "result" : "results"} for{" "}
           <span className="text-ink">&ldquo;{q}&rdquo;</span> ·{" "}
-          <Link href="/events" className="text-brand-text hover:underline">
+          {/* Clears the search only. It sits inside the sentence about the
+              search, so taking the chip with it would be a surprise. */}
+          <Link href={href({ kind })} className="text-brand-text hover:underline">
             Clear
           </Link>
         </p>
@@ -105,7 +162,9 @@ export default async function EventsPage({
 
       {total === 0 ? (
         <p className="mt-6 text-muted">
-          {q ? "Nothing matches that." : "No events yet."}
+          {/* A chip can only be picked when it has events, but a hand-typed
+              ?kind= can land here, and "No events yet" would be a lie. */}
+          {q || kind ? "Nothing matches that." : "No events yet."}
         </p>
       ) : (
         <>

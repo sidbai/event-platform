@@ -46,6 +46,11 @@ const KIND_EMOJI: Record<string, string> = {
   custom: "\u2728",
 };
 
+/** The chip emoji for an event kind, so a filter chip matches the card's tag. */
+export function kindEmoji(kind: string): string {
+  return KIND_EMOJI[kind] ?? "\u{1F4CD}";
+}
+
 function titleCase(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -60,7 +65,7 @@ export function eventTags(event: TaggableEvent): EventTag[] {
   const tags: EventTag[] = [
     {
       label: titleCase(event.kind.replace(/-/g, " ")),
-      emoji: KIND_EMOJI[event.kind] ?? "\u{1F4CD}",
+      emoji: kindEmoji(event.kind),
       tone: "brand",
     },
   ];

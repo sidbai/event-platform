@@ -11,14 +11,16 @@ import {
   isNull,
   lte,
   or,
+  sql,
   type SQL,
 } from "drizzle-orm";
 
 import { db } from "@/db";
-import { events, venues } from "@/db/schema";
+import { eventKinds, events, venues } from "@/db/schema";
 import { weekendRange } from "@/lib/dates";
 
 import { splitByTime } from "./split-by-time";
+import { kindEmoji } from "./tags";
 
 export type EventFilters = {
   /** Free text across the title, summary and where it is being played. */
@@ -30,6 +32,8 @@ export type EventFilters = {
    * dominated by everything that already happened.
    */
   when?: "weekend" | "upcoming" | "past";
+  /** One event-kind slug, e.g. "pickup". Everything when unset. */
+  kind?: string;
 };
 
 /**
@@ -41,7 +45,14 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-export async function listEvents(filters: EventFilters = {}) {
+/**
+ * The conditions every public listing of events shares.
+ *
+ * Shared rather than repeated because the facet counts run a second query over
+ * the same rows: if the two drifted, the chips would advertise events the list
+ * refuses to show — a hidden or private one — and the count would be the leak.
+ */
+function visibleEventsWhere(filters: EventFilters): SQL[] {
   const where: SQL[] = [
     inArray(events.status, ["published", "completed"]),
     // Unlisted and private events are reachable by link/invite, never listed.
@@ -69,6 +80,8 @@ export async function listEvents(filters: EventFilters = {}) {
     );
   }
 
+  if (filters.kind) where.push(eq(events.kind, filters.kind));
+
   const now = new Date();
   if (filters.when === "upcoming") where.push(gte(events.startsAt, now));
   else if (filters.when === "past") where.push(lte(events.startsAt, now));
@@ -76,6 +89,12 @@ export async function listEvents(filters: EventFilters = {}) {
     const { start, end } = weekendRange(now);
     where.push(gte(events.startsAt, start), lte(events.startsAt, end));
   }
+
+  return where;
+}
+
+export async function listEvents(filters: EventFilters = {}) {
+  const where = visibleEventsWhere(filters);
 
   return db.query.events.findMany({
     where: and(...where),
@@ -85,6 +104,42 @@ export async function listEvents(filters: EventFilters = {}) {
         : [desc(events.startsAt)],
     with: { venue: true, hostTeam: { columns: { name: true } } },
   });
+}
+
+/**
+ * The event kinds that actually have something to show, with counts.
+ *
+ * Deliberately counted with the kind filter REMOVED. Counting with it applied
+ * would leave one chip reading its own total and every other chip gone, so
+ * picking a kind would be a one-way door — you could narrow to Pickup and then
+ * have no way to see that there were also three Scrimmages.
+ *
+ * Kinds with no events are left out entirely: a row of chips that mostly lead
+ * to empty pages is worse than a shorter row that always goes somewhere.
+ */
+export async function listEventKindFacets(filters: EventFilters = {}) {
+  const rest: EventFilters = { ...filters, kind: undefined };
+  const rows = await db
+    .select({ kind: events.kind, n: sql<number>`count(*)::int` })
+    .from(events)
+    .where(and(...visibleEventsWhere(rest)))
+    .groupBy(events.kind);
+
+  const labels = new Map(
+    (await db.select({ slug: eventKinds.slug, label: eventKinds.label }).from(eventKinds))
+      .map((k) => [k.slug, k.label]),
+  );
+
+  return rows
+    .map((r) => ({
+      slug: r.kind,
+      label: labels.get(r.kind) ?? r.kind,
+      emoji: kindEmoji(r.kind),
+      count: r.n,
+    }))
+    // Commonest first: the chips are a shortcut to what is actually on, not a
+    // taxonomy of everything the site can host.
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
 /** listEvents, already split into upcoming and past for the events page. */
