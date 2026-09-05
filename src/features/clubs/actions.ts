@@ -107,9 +107,7 @@ export async function saveReview(
     const gate = await checkRateLimit("review:create", user);
     if (!gate.ok) return { error: gate.message };
   } else {
-    const gate = await allowAnonymousReview(
-      String(formData.get("captchaToken") ?? "") || null,
-    );
+    const gate = await allowAnonymousReview();
     if (!gate.ok) return { error: gate.error };
   }
 
