@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { teamInvites, teamMembers, teams, users } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { checkRateLimit } from "@/features/rate-limit";
 import { normalizeEmail } from "@/features/auth/admin";
 
 import { canManageTeam, type TeamRole } from "./access";
@@ -37,6 +38,9 @@ export async function inviteToTeam(
 ): Promise<TeamInviteResult> {
   const ctx = await manageable(slug);
   if (!ctx) return { error: "You can't invite people to this team." };
+
+  const gate = await checkRateLimit("invite:send", ctx.user);
+  if (!gate.ok) return { error: gate.message };
 
   const raw = String(formData.get("who") ?? "").trim();
   if (!raw) return { error: "Enter a username or email." };

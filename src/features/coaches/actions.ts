@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { checkRateLimit } from "@/features/rate-limit";
 import { ensureAnonHandle } from "@/features/clubs/anon";
 import {
   COACH_REPORTS_TO_AUTOHIDE,
@@ -85,6 +86,9 @@ export async function createCoach(
   if (!user || !(await canEditCoach()))
     return { error: "Sign in to add a coach." };
 
+  const gate = await checkRateLimit("entry:edit", user);
+  if (!gate.ok) return { error: gate.message };
+
   const name = String(formData.get("name") ?? "").trim();
   const clubId = String(formData.get("clubId") ?? "");
   const role = parseCoachRole(formData.get("role"));
@@ -139,6 +143,9 @@ export async function updateCoach(
 ): Promise<ReviewResult> {
   const user = await getCurrentUser();
   if (!user || !(await canEditCoach())) return { error: "Sign in to edit." };
+
+  const gate = await checkRateLimit("entry:edit", user);
+  if (!gate.ok) return { error: gate.message };
 
   const coach = await db.query.coaches.findFirst({
     where: eq(coaches.slug, slug),
@@ -202,6 +209,9 @@ export async function reviewCoach(
 ): Promise<ReviewResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to write a review." };
+
+  const gate = await checkRateLimit("review:create", user);
+  if (!gate.ok) return { error: gate.message };
 
   const coach = await db.query.coaches.findFirst({
     where: eq(coaches.slug, slug),
@@ -365,6 +375,9 @@ export async function requestCoachClaim(
 ): Promise<ReviewResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to claim this page." };
+
+  const gate = await checkRateLimit("claim:create", user);
+  if (!gate.ok) return { error: gate.message };
 
   const coach = await db.query.coaches.findFirst({
     where: eq(coaches.slug, slug),

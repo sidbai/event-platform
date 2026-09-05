@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { eventInvites, events, users } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin, normalizeEmail } from "@/features/auth/admin";
 
 export type InviteResult = { error?: string; ok?: string };
@@ -40,6 +41,9 @@ export async function inviteToEvent(
 ): Promise<InviteResult> {
   const ctx = await manageableEvent(slug);
   if (!ctx) return { error: "You can't invite people to this event." };
+
+  const gate = await checkRateLimit("invite:send", ctx.user);
+  if (!gate.ok) return { error: gate.message };
 
   const raw = String(formData.get("who") ?? "").trim();
   if (!raw) return { error: "Enter a username or email." };

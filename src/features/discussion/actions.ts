@@ -14,6 +14,7 @@ import {
   teams,
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin } from "@/features/auth/admin";
 
 type SubjectType = (typeof discussionSubject.enumValues)[number];
@@ -85,6 +86,9 @@ export async function postComment(
 ): Promise<FormResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to comment." };
+
+  const gate = await checkRateLimit("comment:create", user);
+  if (!gate.ok) return { error: gate.message };
 
   const body = String(formData.get("body") ?? "").trim();
   const parentId = (formData.get("parentId") as string) || null;
