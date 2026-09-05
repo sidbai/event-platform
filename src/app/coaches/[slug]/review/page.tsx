@@ -9,7 +9,7 @@ import { canReviewCoach } from "@/features/coaches/claim";
 import { getCoach, myCoachReview } from "@/features/coaches/queries";
 import { CoachReviewForm } from "@/features/coaches/review-form";
 import type { Ratings } from "@/features/reviews/constants";
-import { anonymousReviewsEnabled } from "@/features/reviews/captcha";
+import { anonymousReviewsEnabled } from "@/features/reviews/anon-gate";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Share your experience" };
@@ -56,12 +56,9 @@ export default async function ReviewCoachPage({
         seasons={recentSeasons()}
         slug={slug}
         signedIn={Boolean(user)}
-        /* Only offered when the whole anonymous path is configured — the
-           server refuses it otherwise, so showing the widget would promise
-           something that cannot work. */
-        captchaSiteKey={
-          anonymousReviewsEnabled() ? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY! : null
-        }
+        /* Only offered when the server would actually accept it, so the
+           button never promises something that cannot work. */
+        allowAnonymous={anonymousReviewsEnabled()}
         existing={
           existing
             ? {

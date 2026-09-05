@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { CaptchaWidget } from "@/features/reviews/captcha-widget";
 import { draftKey } from "@/features/reviews/draft";
 import { useFormDraft } from "@/features/reviews/use-form-draft";
 
@@ -26,7 +25,7 @@ export function CoachReviewForm({
   seasons,
   slug,
   signedIn,
-  captchaSiteKey,
+  allowAnonymous,
 }: {
   action: Action;
   existing?: {
@@ -43,8 +42,8 @@ export function CoachReviewForm({
   /** Identifies the draft, so one coach's review cannot restore under another. */
   slug: string;
   signedIn: boolean;
-  /** Set when anonymous posting is configured; the Turnstile site key. */
-  captchaSiteKey: string | null;
+  /** Whether the server will accept a review with no account behind it. */
+  allowAnonymous: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ReviewResult, FormData>(
     action,
@@ -251,7 +250,7 @@ export function CoachReviewForm({
           >
             {pending ? "Saving…" : "Post review"}
           </button>
-        ) : captchaSiteKey ? (
+        ) : allowAnonymous ? (
           /* No account needed. The captcha stands in for one, and the note
              below says what that costs the writer. */
           <button
@@ -279,9 +278,8 @@ export function CoachReviewForm({
       </div>
 
       {!signedIn &&
-        (captchaSiteKey ? (
+        (allowAnonymous ? (
           <div className="space-y-2">
-            <CaptchaWidget siteKey={captchaSiteKey} />
             <p className="text-xs text-muted">
               Posting without an account. Readers never see who wrote a review
               either way — but an anonymous one can&rsquo;t be edited or taken
