@@ -91,50 +91,50 @@ const SEATTLE_CLUBS: {
     name: "Blackhills FC",
     city: "Olympia",
     website: "https://www.blackhillsfc.org",
-    logo: null,
+    logo: `${B}/blackhills-fc/logo-2EDdm0L9l8U1vTz6bdp4uXRhGXo88w.png`,
   },
   {
     name: "Cascade FC",
     city: "Snoqualmie",
     website: "https://www.cascadefc.org",
-    logo: null,
+    logo: `${B}/cascade-fc/logo-AwHaz7Fy7cP8xtGczR78sONUcxlo3n.png`,
   },
   {
     name: "Harbor Soccer Club",
     city: "Gig Harbor",
     website: "https://www.harborsoccerclub.com",
-    logo: null,
+    logo: `${B}/harbor-soccer-club/logo-H7aUCzXawit0g30rsm2skl6PeKfqyW.png`,
   },
   {
     name: "Highline Premier FC",
     city: "Burien",
     website: "https://www.highlinepremier.com",
-    logo: null,
+    logo: `${B}/highline-premier-fc/logo-QynnoIBTubTJIJQcil8XSIGSihPxv2.png`,
   },
   {
     // Kitsap, Mason and Jefferson counties; the club names no single city.
     name: "Kitsap Alliance FC",
     city: null,
     website: "https://www.kitsapalliancefc.com",
-    logo: null,
+    logo: `${B}/kitsap-alliance-fc/logo-CQDsdnILjLhf5pYoDHMEzB2EOsHNTZ.png`,
   },
   {
     name: "Northwest United FC",
     city: "Burlington",
     website: "https://www.nwunited.org",
-    logo: null,
+    logo: `${B}/northwest-united-fc/logo-0G2etQnE6Jx9JtbEj9izX1YTI8T5qS.png`,
   },
   {
     name: "Sound Football Club",
     city: "Woodinville",
     website: "https://soundfc.org",
-    logo: null,
+    logo: `${B}/sound-football-club/logo-l3oxNKf10dL7zBkv5mAauBH4n7KOqM.png`,
   },
   {
     name: "Valor Soccer",
     city: "Maple Valley",
     website: "https://www.valorsoccer.com",
-    logo: null,
+    logo: `${B}/valor-soccer/logo-S6FcTG5RTSngh80hmsKr4aSxb5M9na.png`,
   },
   {
     // Their own site states no city, only "North County", so this stays blank
@@ -142,13 +142,13 @@ const SEATTLE_CLUBS: {
     name: "Washington Rush",
     city: null,
     website: "https://www.washingtonrush.com",
-    logo: null,
+    logo: `${B}/washington-rush/logo-rMP6FDPmFY1boEUnZYQDIRCNh7KGOI.png`,
   },
   {
     name: "Whatcom FC Rangers",
     city: "Bellingham",
     website: "https://whatcomfcrangers.org",
-    logo: null,
+    logo: `${B}/whatcom-fc-rangers/logo-lI7P4PBOZaDyL9Q4YHH8HpfToafLfS.png`,
   },
   // --- Seattle-area Washington Premier League clubs, added Sep 2026. -----
   //
@@ -167,7 +167,7 @@ const SEATTLE_CLUBS: {
     name: "Eagleclaw FC",
     city: "Tukwila",
     website: "https://www.eagleclawfc.org",
-    logo: null,
+    logo: `${B}/eagleclaw-fc/logo-1f3Dfqahp9WmbXKKI53jhTRYZqr8m8.png`,
   },
   {
     // Restored: dropped when the directory narrowed to ECNL/RCL, and back now
@@ -175,15 +175,18 @@ const SEATTLE_CLUBS: {
     name: "Emerald City FC",
     city: "Seattle",
     website: "https://emeraldcityfc.org",
-    logo: null,
+    logo: `${B}/emerald-city-fc/logo-81dowANSuevkv30frASpiZNrprp2Fd.png`,
   },
   {
     name: "Everett Youth Soccer Club",
     city: "Everett",
     website: "https://www.everettyouthsoccerclub.com",
-    logo: null,
+    logo: `${B}/everett-youth-soccer-club/logo-6msGCj8qTBZEOjx0nAFQwjWGtEKIFS.png`,
   },
   {
+    // No logo: fcedmonds.net redirects to skyc.net, the Sno-King site that
+    // runs this programme, and the only mark there is Sno-King's own. A club
+    // page carrying its parent's logo would be worse than carrying none.
     name: "FC Edmonds",
     city: "Edmonds",
     website: "https://www.fcedmonds.net",
@@ -193,32 +196,32 @@ const SEATTLE_CLUBS: {
     name: "Lake Washington Premier FC",
     city: "Kirkland",
     website: "https://www.lwpfc.org",
-    logo: null,
+    logo: `${B}/lake-washington-premier-fc/logo-PfypW8l4360eI91Ax2pzEhphRvIGd8.png`,
   },
   {
     name: "Mukilteo Youth Soccer Club",
     city: "Mukilteo",
     website: "https://mysc.org",
-    logo: null,
+    logo: `${B}/mukilteo-youth-soccer-club/logo-qKbfNlTYMEWTjK5BYrBlRgELmixat7.webp`,
   },
   {
     name: "Northlake Soccer Club",
     city: "Kenmore",
     website: "https://www.northlakesoccerclub.com",
-    logo: null,
+    logo: `${B}/northlake-soccer-club/logo-tKgv5eJ5lnD27GZvDvS88k492ykCWt.png`,
   },
   {
     name: "Pilchuck Soccer Alliance",
     city: "Marysville",
     website: "https://www.pilchucksocceralliance.com",
-    logo: null,
+    logo: `${B}/pilchuck-soccer-alliance/logo-V1k1vpaJVYDfOh6m23swPee88lrwJp.png`,
   },
   {
     // Restored alongside Emerald City, for the same reason.
     name: "Seattle Celtic",
     city: "Seattle",
     website: "https://seattleceltic.com",
-    logo: null,
+    logo: `${B}/seattle-celtic/logo-97O3eg3sdGlzUiMzoJuZ7uFtcly8wT.png`,
   },
 ];
 
