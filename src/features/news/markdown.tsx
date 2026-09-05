@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
-import { isOurBlobUrl } from "@/features/uploads/blob";
+import { canRenderImage, linkKind } from "./links";
 
 /**
  * A news article's body, written in Markdown.
@@ -87,13 +87,17 @@ export function Markdown({ children }: { children: string }) {
 /**
  * Internal links route client-side; external ones open in a new tab and carry
  * rel="nofollow", because a link in user-written copy is not an endorsement
- * this site wants to pass PageRank on.
+ * this site wants to pass PageRank on. Anything unsafe loses its href and
+ * stays as plain text — the words are still readable, they just do nothing.
+ *
+ * Which is which is decided in ./links, with tests.
  */
 function Anchor({ href, children }: { href?: string; children: React.ReactNode }) {
   const link = "text-brand-text underline underline-offset-2 hover:no-underline";
-  if (!href) return <span>{children}</span>;
+  const kind = linkKind(href);
 
-  if (href.startsWith("/")) {
+  if (kind === "unsafe" || !href) return <span>{children}</span>;
+  if (kind === "internal") {
     return (
       <Link href={href} className={link}>
         {children}
@@ -117,7 +121,7 @@ function Anchor({ href, children }: { href?: string; children: React.ReactNode }
  * the author picked, and break the day that host goes away.
  */
 function BodyImage({ src, alt }: { src?: string | Blob; alt?: string }) {
-  if (typeof src !== "string" || !isOurBlobUrl(src)) {
+  if (!canRenderImage(src)) {
     return (
       <span className="my-4 block rounded-lg border border-line bg-elevated p-3 text-sm text-muted">
         {alt ? `Image: ${alt}` : "Image"} — upload it here rather than linking
