@@ -7,8 +7,14 @@ export const IMAGE_TYPES = [
   "image/gif",
 ] as const;
 
-/** Avatars and crests are small display images; this is generous for one. */
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+/**
+ * Generous enough for a photo straight off a phone.
+ *
+ * Was 4MB, which avatars and crests never came close to but a news cover
+ * routinely did: a modern phone camera writes 5-8MB per shot, so the first
+ * thing an author tried to upload was often the thing that got refused.
+ */
+export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 

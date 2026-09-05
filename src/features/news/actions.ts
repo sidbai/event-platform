@@ -43,6 +43,14 @@ function read(formData: FormData) {
   const body = get("body");
   const category = parseCategory(formData.get("category"));
   const coverRaw = get("coverUrl");
+  const cover = coverRaw && isOurBlobUrl(coverRaw) ? coverRaw : null;
+  // Measured in the browser, so treated as a hint rather than a fact: anything
+  // absent, unparseable or absurd becomes null and the article falls back to a
+  // fixed shape instead of laying out around a bogus number.
+  const dimension = (k: string) => {
+    const n = Number(get(k));
+    return cover && Number.isInteger(n) && n > 0 && n <= 20000 ? n : null;
+  };
 
   const fieldErrors: Record<string, string> = {};
   if (title.length < 4) fieldErrors.title = "Give it a headline.";
@@ -61,7 +69,9 @@ function read(formData: FormData) {
       body,
       category: category ?? "news",
       // The browser reports this URL after uploading, so it is checked.
-      coverUrl: coverRaw && isOurBlobUrl(coverRaw) ? coverRaw : null,
+      coverUrl: cover,
+      coverWidth: dimension("coverWidth"),
+      coverHeight: dimension("coverHeight"),
     },
   };
 }

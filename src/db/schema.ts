@@ -504,6 +504,16 @@ export const newsPosts = pgTable(
     summary: text("summary").notNull(),
     body: text("body").notNull(),
     coverUrl: text("cover_url"),
+    /**
+     * The cover's real pixel size, measured in the browser before upload.
+     *
+     * Stored so the article can render the image at its own shape instead of
+     * forcing every photo through one aspect ratio and cropping whatever does
+     * not fit. Null on posts written before this was captured, and on formats
+     * the browser would not decode — those fall back to a fixed shape.
+     */
+    coverWidth: integer("cover_width"),
+    coverHeight: integer("cover_height"),
     category: newsCategory("category").notNull().default("news"),
     status: newsStatus("status").notNull().default("draft"),
     authorId: uuid("author_id").references(() => users.id, {
