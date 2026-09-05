@@ -1,6 +1,7 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
@@ -9,6 +10,8 @@ import { getCurrentUser } from "@/features/auth";
 import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
+
+import { canManageEvent } from "./can-manage";
 
 export type EventFormResult = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -147,7 +150,9 @@ export async function approveEvent(slug: string): Promise<void> {
   if (!user || !isAdmin(user)) return;
   await db
     .update(events)
-    .set({ status: "published", visibility: "public", updatedAt: new Date() })
+    // Only public events ever reach the queue, so this leaves visibility
+    // alone rather than promoting whatever it finds.
+    .set({ status: "published", updatedAt: new Date() })
     .where(and(eq(events.slug, slug), eq(events.status, "pending")));
   redirect("/admin");
 }
@@ -160,4 +165,48 @@ export async function rejectEvent(slug: string): Promise<void> {
     .set({ status: "cancelled", updatedAt: new Date() })
     .where(and(eq(events.slug, slug), eq(events.status, "pending")));
   redirect("/admin");
+}
+
+
+/**
+ * Change an event's visibility after the fact.
+ *
+ * It used to be write-once: whatever was chosen at submission stuck forever,
+ * with no edit page, so an event posted publicly by mistake could not be
+ * pulled back except by cancelling it.
+ *
+ * Open to whoever manages the event, not admins alone — the organizer is the
+ * person who notices the mistake, and every visibility value is one they could
+ * have picked at submission anyway.
+ */
+export async function setEventVisibility(
+  slug: string,
+  visibility: "public" | "unlisted" | "private",
+): Promise<void> {
+  if (!["public", "unlisted", "private"].includes(visibility)) return;
+  if (!(await canManageEvent({ slug }))) return;
+
+  const user = await getCurrentUser();
+  const admin = isAdmin(user);
+
+  // Making something public is the one direction that needs review, exactly as
+  // it does at submission — otherwise this would be a way around the queue.
+  const current = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { status: true },
+  });
+  if (!current) return;
+
+  const status =
+    visibility === "public" && !admin && current.status === "published"
+      ? "pending"
+      : current.status;
+
+  await db
+    .update(events)
+    .set({ visibility, status, updatedAt: new Date() })
+    .where(eq(events.slug, slug));
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath("/events");
 }
