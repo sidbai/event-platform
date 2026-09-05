@@ -1,6 +1,9 @@
 export const COACH_ROLES = [
   { key: "head", label: "Head coach" },
   { key: "assistant", label: "Assistant coach" },
+  // Most clubs publish staff as plain "Coach"; anything more specific would
+  // be a title we made up for a real person.
+  { key: "coach", label: "Coach" },
   { key: "director", label: "Director of coaching" },
 ] as const;
 
