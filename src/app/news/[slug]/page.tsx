@@ -13,6 +13,7 @@ import {
   readingMinutes,
 } from "@/features/news/constants";
 import { getNewsPost } from "@/features/news/queries";
+import { Markdown } from "@/features/news/markdown";
 
 export const dynamic = "force-dynamic";
 
@@ -110,21 +111,41 @@ export default async function NewsPostPage({
           )}
         </div>
 
-        {post.coverUrl && (
-          <div className="relative mt-6 aspect-[16/8] w-full overflow-hidden rounded-xl bg-elevated">
+        {post.coverUrl &&
+          (post.coverWidth && post.coverHeight ? (
+            /* Its own shape, since we know it. A portrait photo stays a
+               portrait photo instead of being cropped through the middle to
+               fit one ratio that suited the first cover anyone uploaded. */
             <Image
               src={post.coverUrl}
               alt=""
-              fill
+              width={post.coverWidth}
+              height={post.coverHeight}
               sizes="(max-width: 768px) 100vw, 768px"
-              className="object-cover"
+              /* Capped so a very tall photo cannot push the article itself
+                 off the first screen; object-contain keeps it undistorted when
+                 the cap bites, and does nothing at all when it does not. */
+              className="mt-6 h-auto max-h-[80vh] w-full rounded-xl object-contain"
+              style={{ height: "auto" }}
               priority
             />
-          </div>
-        )}
+          ) : (
+            /* Written before the size was captured: a fixed box is the only
+               safe assumption when the shape is unknown. */
+            <div className="relative mt-6 aspect-[16/8] w-full overflow-hidden rounded-xl bg-elevated">
+              <Image
+                src={post.coverUrl}
+                alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover"
+                priority
+              />
+            </div>
+          ))}
 
-        <div className="mt-6 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
-          {post.body}
+        <div className="mt-6">
+          <Markdown>{post.body}</Markdown>
         </div>
       </article>
 

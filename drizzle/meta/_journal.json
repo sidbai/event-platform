@@ -225,6 +225,13 @@
       "when": 1788621256262,
       "tag": "0031_club_league",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788631961657,
+      "tag": "0032_news_cover_size",
+      "breakpoints": true
     }
   ]
 }

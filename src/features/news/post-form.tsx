@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { ImageUpload } from "@/features/uploads/image-upload";
 
@@ -24,6 +24,8 @@ export function NewsPostForm({
     body: string;
     category: string;
     coverUrl: string | null;
+    coverWidth: number | null;
+    coverHeight: number | null;
     published: boolean;
   } | null;
   /** Admins publish directly; everyone else's send goes to the review queue. */
@@ -37,6 +39,34 @@ export function NewsPostForm({
   const [coverUrl, setCoverUrl] = useState<string | null>(
     existing?.coverUrl ?? null,
   );
+  const [coverSize, setCoverSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(
+    existing?.coverWidth && existing?.coverHeight
+      ? { width: existing.coverWidth, height: existing.coverHeight }
+      : null,
+  );
+  const [body, setBody] = useState(existing?.body ?? "");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Drops an uploaded image into the article at the cursor. */
+  function insertImage(url: string) {
+    const el = bodyRef.current;
+    const snippet = `\n![](${url})\n`;
+    if (!el) {
+      setBody((b) => b + snippet);
+      return;
+    }
+    const at = el.selectionStart ?? body.length;
+    setBody(body.slice(0, at) + snippet + body.slice(at));
+    // Put the caret after what we just inserted, so typing continues below the
+    // image rather than in the middle of the markup.
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = at + snippet.length;
+    });
+  }
   const err = state.fieldErrors ?? {};
 
   return (
@@ -106,11 +136,25 @@ export function NewsPostForm({
             <div className="h-20 w-32 rounded-lg bg-elevated" />
           )}
           <input type="hidden" name="coverUrl" value={coverUrl ?? ""} />
+          <input
+            type="hidden"
+            name="coverWidth"
+            value={coverSize?.width ?? ""}
+          />
+          <input
+            type="hidden"
+            name="coverHeight"
+            value={coverSize?.height ?? ""}
+          />
           <ImageUpload
             target={{ kind: "news" }}
             hasImage={Boolean(coverUrl)}
             onUploaded={async (url) => setCoverUrl(url)}
-            onCleared={async () => setCoverUrl(null)}
+            onMeasured={setCoverSize}
+            onCleared={async () => {
+              setCoverUrl(null);
+              setCoverSize(null);
+            }}
             label="Upload a cover"
           />
         </div>
@@ -123,11 +167,27 @@ export function NewsPostForm({
         <textarea
           id="body"
           name="body"
+          ref={bodyRef}
           rows={16}
-          defaultValue={existing?.body}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
           className={`mt-1 ${field}`}
         />
         {err.body && <p className="mt-1 text-xs text-red-600">{err.body}</p>}
+
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted">
+            Formatting: <code>**bold**</code>, <code>*italic*</code>,{" "}
+            <code>[text](https://link)</code>, <code>## heading</code>,{" "}
+            <code>- list</code>. A blank line starts a new paragraph.
+          </p>
+          <ImageUpload
+            target={{ kind: "news" }}
+            hasImage={false}
+            onUploaded={async (url) => insertImage(url)}
+            label="Insert an image"
+          />
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm">
