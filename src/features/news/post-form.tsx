@@ -24,6 +24,7 @@ export function NewsPostForm({
     body: string;
     category: string;
     coverUrl: string | null;
+    eventDate: string | null;
     coverWidth: number | null;
     coverHeight: number | null;
     published: boolean;
@@ -116,6 +117,27 @@ export function NewsPostForm({
           ))}
         </select>
         {err.category && <p className="mt-1 text-xs text-red-600">{err.category}</p>}
+      </div>
+
+      <div>
+        <label className={label} htmlFor="eventDate">
+          Date this is about <span className="text-muted">(optional)</span>
+        </label>
+        <input
+          id="eventDate"
+          name="eventDate"
+          type="date"
+          defaultValue={existing?.eventDate ?? ""}
+          className={`mt-1 ${field} max-w-xs`}
+        />
+        <p className="mt-1 text-xs text-muted">
+          For a recap or a report, the day it happened — the index files it
+          there rather than under the day you wrote it. Leave blank for a guide
+          or an announcement.
+        </p>
+        {err.eventDate && (
+          <p className="mt-1 text-xs text-red-600">{err.eventDate}</p>
+        )}
       </div>
 
       <div>

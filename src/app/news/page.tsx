@@ -21,6 +21,7 @@ import {
   PER_PAGE,
 } from "@/features/pagination/paginate";
 import { CreateLink } from "@/components/create-link";
+import { formatEventDate } from "@/features/news/dates";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -41,13 +42,21 @@ function fmt(d: Date | null) {
 function Meta({
   post,
 }: {
-  post: { authorName: string; publishedAt: Date | null; body: string };
+  post: {
+    authorName: string;
+    publishedAt: Date | null;
+    eventDate: string | null;
+    body: string;
+  };
 }) {
+  /* The day it is about leads, because that is what the list is ordered by —
+     an index sorted on a date it never shows just looks shuffled. */
+  const covered = formatEventDate(post.eventDate);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
       <span>{post.authorName}</span>
       <span aria-hidden>·</span>
-      <span>{fmt(post.publishedAt)}</span>
+      <span>{covered ?? fmt(post.publishedAt)}</span>
       <span aria-hidden>·</span>
       <span>{readingMinutes(post.body)} min read</span>
     </div>

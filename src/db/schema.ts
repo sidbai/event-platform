@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  date,
   doublePrecision,
   index,
   integer,
@@ -519,8 +520,20 @@ export const newsPosts = pgTable(
     authorId: uuid("author_id").references(() => users.id, {
       onDelete: "set null",
     }),
-    /** Null until first published; drives ordering and the visible date. */
+    /** Null until first published; the date shown as "posted". */
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /**
+     * The day the article is ABOUT, when that differs from the day it went up.
+     *
+     * A recap of a tournament played on the 29th is still a recap of the 29th
+     * when it is written a week later, and the index reads as nonsense if it
+     * files it under the day someone got round to typing it. Null for anything
+     * with no such day — a guide, an announcement about next season.
+     *
+     * A bare date, not a timestamp: this is a calendar day someone picks, and
+     * it should not shift because a reader is in another timezone.
+     */
+    eventDate: date("event_date"),
     /**
      * Why an admin sent a submission back. Shown to the author on their own
      * post so a rejection is actionable rather than a silent bounce.
@@ -528,7 +541,12 @@ export const newsPosts = pgTable(
     reviewNote: text("review_note"),
     ...timestamps,
   },
-  (t) => [index("news_posts_published_idx").on(t.status, t.publishedAt)],
+  (t) => [
+    index("news_posts_published_idx").on(t.status, t.publishedAt),
+    // The index orders by event date falling back to published, so the index
+    // it reads has to hold both.
+    index("news_posts_dated_idx").on(t.status, t.eventDate, t.publishedAt),
+  ],
 );
 
 export const newsPostsRelations = relations(newsPosts, ({ one }) => ({

@@ -41,7 +41,20 @@ export async function listNews(
 
   const rows = await db.query.newsPosts.findMany({
     where,
-    orderBy: [desc(newsPosts.publishedAt)],
+    /*
+     * The day the article is about, falling back to the day it went up.
+     *
+     * A recap written a week after the tournament belongs with the tournament,
+     * not with whatever else was typed that morning. Posts with no such day —
+     * guides, announcements — keep sorting by publication, which is the only
+     * date they have, and the two interleave into one timeline.
+     *
+     * The cost, worth knowing: a recap of something old, posted today, sorts
+     * to where the old thing was and will not appear near the top. That is the
+     * correct reading of "sort by event date", but it does mean the index is a
+     * timeline of the soccer rather than a feed of the writing.
+     */
+    orderBy: [desc(sql`coalesce(${newsPosts.eventDate}, ${newsPosts.publishedAt}::date)`)],
     limit: window?.limit ?? 40,
     offset: window?.offset,
     with: {
