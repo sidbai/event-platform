@@ -61,3 +61,35 @@ describe("viewDecision", () => {
     expect(viewDecision(e, null, false)).toBe("deny");
   });
 });
+
+describe("hidden by an admin", () => {
+  const base = {
+    id: "e1",
+    status: "published",
+    visibility: "public",
+    organizerId: "u-org",
+  };
+  const banned = { ...base, hiddenAt: new Date() };
+
+  it("denies the public whatever the visibility says", () => {
+    expect(viewDecision(banned, null, false)).toBe("deny");
+    expect(viewDecision(banned, "u-other", false)).toBe("deny");
+    expect(viewDecision({ ...banned, visibility: "unlisted" }, "u-other", false)).toBe(
+      "deny",
+    );
+  });
+
+  it("outranks the organizer's own access to publish it", () => {
+    // They still see it — a silent disappearance reads as a bug — but the
+    // ban is not something they can route around.
+    expect(viewDecision(banned, "u-org", false)).toBe("allow");
+  });
+
+  it("lets an admin see it, to lift it", () => {
+    expect(viewDecision(banned, "u-admin", true)).toBe("allow");
+  });
+
+  it("changes nothing when not hidden", () => {
+    expect(viewDecision({ ...base, hiddenAt: null }, null, false)).toBe("allow");
+  });
+});

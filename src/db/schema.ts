@@ -178,6 +178,14 @@ export const events = pgTable(
     summary: text("summary"),
     status: eventStatus("status").notNull().default("draft"),
     visibility: eventVisibility("visibility").notNull().default("public"),
+    /**
+     * Set by an admin to take an event down. Distinct from visibility and from
+     * cancelling: visibility is the organizer's to change, and cancelled means
+     * "not happening" rather than "removed". Only an admin can lift this, so
+     * an organizer cannot re-list a banned event by flipping it to unlisted
+     * and sharing the link.
+     */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
 
     locationType: locationType("location_type").notNull().default("in_person"),
     venueId: uuid("venue_id").references(() => venues.id),

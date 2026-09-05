@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema";
@@ -39,7 +39,13 @@ async function loadEvent(slug: string) {
     // Public only. These endpoints send Access-Control-Allow-Origin: * and are
     // cached at the edge, so serving an unlisted or private event here would
     // publish it to the world.
-    where: and(eq(events.slug, slug), eq(events.visibility, "public")),
+    // This feed is CORS-* and edge cached, so a banned event must never
+    // reach it — anything served here is effectively published forever.
+    where: and(
+      eq(events.slug, slug),
+      eq(events.visibility, "public"),
+      isNull(events.hiddenAt),
+    ),
     with: {
       eventTeams: {
         with: {

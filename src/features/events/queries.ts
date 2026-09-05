@@ -1,6 +1,18 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, ilike, inArray, lte, or, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  or,
+  type SQL,
+} from "drizzle-orm";
 
 import { db } from "@/db";
 import { events } from "@/db/schema";
@@ -18,6 +30,8 @@ export async function listEvents(filters: EventFilters = {}) {
     inArray(events.status, ["published", "completed"]),
     // Unlisted and private events are reachable by link/invite, never listed.
     eq(events.visibility, "public"),
+    // A banned event is off every list, whatever its visibility says.
+    isNull(events.hiddenAt),
   ];
 
   if (filters.kind) where.push(eq(events.kind, filters.kind));

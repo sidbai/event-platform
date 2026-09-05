@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { events, matches, teamMembers, teams } from "@/db/schema";
@@ -66,7 +66,11 @@ export async function hostedEvents(teamId: string, includePrivate: boolean) {
   return db.query.events.findMany({
     where: includePrivate
       ? eq(events.hostTeamId, teamId)
-      : and(eq(events.hostTeamId, teamId), eq(events.visibility, "public")),
+      : and(
+          eq(events.hostTeamId, teamId),
+          eq(events.visibility, "public"),
+          isNull(events.hiddenAt),
+        ),
     orderBy: [desc(events.startsAt)],
     limit: 20,
     columns: {

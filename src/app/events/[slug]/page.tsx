@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
-import { setEventVisibility } from "@/features/events/actions";
+import { setEventHidden, setEventVisibility } from "@/features/events/actions";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
@@ -98,6 +98,14 @@ export default async function EventPage({
       <Link href="/events" className="text-sm text-brand-text hover:underline">
         ← All events
       </Link>
+
+      {event.hiddenAt && (
+        <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {isAdmin(user)
+            ? "You've hidden this event — nobody else can see it."
+            : "An admin has taken this event down. Only you and the admins can see it."}
+        </p>
+      )}
 
       {notPublic && canManage && (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -248,6 +256,18 @@ export default async function EventPage({
               );
             })}
           </div>
+          {isAdmin(user) && (
+            <form
+              action={setEventHidden.bind(null, event.slug, !event.hiddenAt)}
+              className="mt-3 border-t border-line pt-3"
+            >
+              <button className="text-xs text-muted hover:text-red-600">
+                {event.hiddenAt
+                  ? "Unhide this event"
+                  : "Hide this event (admin only)"}
+              </button>
+            </form>
+          )}
           <p className="mt-2 text-xs text-muted">
             {event.visibility === "public"
               ? "Listed on the events page and visible to everyone."
