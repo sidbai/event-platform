@@ -1034,6 +1034,42 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   author: one(users, { fields: [messages.authorId], references: [users.id] }),
 }));
 
+/**
+ * What can be hearted.
+ *
+ * Every value is declared up front even though only forum posts use them
+ * today: adding an enum value later has to commit before anything can use it,
+ * which forces its own migration.
+ */
+export const likeSubject = pgEnum("like_subject", [
+  "forum_post",
+  "news_post",
+  "comment",
+]);
+
+/**
+ * One heart from one person.
+ *
+ * The primary key is the whole business rule — someone can like a thing once,
+ * and un-liking is a delete, so there is no count to drift out of step with
+ * who actually pressed it.
+ */
+export const likes = pgTable(
+  "likes",
+  {
+    subjectType: likeSubject("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.subjectType, t.subjectId, t.userId] }),
+    index("likes_subject_idx").on(t.subjectType, t.subjectId),
+  ],
+);
+
 // --- invites -----------------------------------------------------------
 
 export const inviteStatus = pgEnum("invite_status", [

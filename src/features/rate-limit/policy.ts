@@ -15,7 +15,8 @@ export type Bucket =
   | "comment:create"
   | "event:create"
   | "invite:send"
-  | "message:send";
+  | "message:send"
+  | "like:toggle";
 
 export type Limit = {
   limit: number;
@@ -80,6 +81,12 @@ export const LIMITS: Record<Bucket, Limit> = {
     limit: 60,
     windowSeconds: HOUR,
     message: "You're sending messages quickly.",
+  },
+  // Loose: hearting is cheap and harmless, this only stops a script.
+  "like:toggle": {
+    limit: 300,
+    windowSeconds: HOUR,
+    message: "That's a lot of likes at once.",
   },
 };
 
