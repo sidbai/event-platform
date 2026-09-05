@@ -20,10 +20,12 @@ export async function SiteHeader() {
   // a message would arrive somewhere nobody is looking.
   const unread = user ? await unreadCount(user.id) : 0;
 
+  // Order is the editor's, not alphabetical or by age: News leads, then the
+  // two things people come back for, then the directory they arrive through.
   const sections = [
+    { href: "/news", label: "News" },
     { href: "/events", label: "Events" },
     { href: "/community", label: "Community" },
-    { href: "/news", label: "News" },
     { href: "/clubs", label: "Reviews" },
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
