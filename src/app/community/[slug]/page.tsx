@@ -6,6 +6,8 @@ import { Avatar } from "@/components/avatar";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
+import { LikeButton } from "@/features/likes/like-button";
+import { likeState } from "@/features/likes/queries";
 import {
   deleteForumPost,
   setForumPostFlag,
@@ -51,6 +53,7 @@ export default async function ForumPostPage({
   // The thread moved to the event; keep shared links working.
   if (post.convertedEvent) redirect(`/events/${post.convertedEvent.slug}`);
 
+  const likes = await likeState("forum_post", post.id, user?.id ?? null);
   const admin = isAdmin(user);
   const mine = !!user && post.authorId === user.id;
   const canModerate = admin || mine;
@@ -118,6 +121,15 @@ export default async function ForumPostPage({
             </form>
           </div>
         )}
+        <div className="mt-4 border-t border-line pt-3">
+          <LikeButton
+            subjectType="forum_post"
+            subjectId={post.id}
+            state={likes}
+            revalidate={`/community/${slug}`}
+            signedIn={Boolean(user)}
+          />
+        </div>
       </article>
 
       <DiscussionThread

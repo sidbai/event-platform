@@ -8,6 +8,9 @@ import {
   type ForumCategory,
 } from "@/features/forum/constants";
 import { listForumPosts } from "@/features/forum/queries";
+import { CommentIcon, LikeButton } from "@/features/likes/like-button";
+import { likeStates } from "@/features/likes/queries";
+import { getCurrentUser } from "@/features/auth";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -36,7 +39,16 @@ export default async function CommunityPage({
   const active = FORUM_CATEGORIES.includes(c as ForumCategory)
     ? (c as ForumCategory)
     : undefined;
-  const posts = await listForumPosts(active);
+  const [posts, user] = await Promise.all([
+    listForumPosts(active),
+    getCurrentUser(),
+  ]);
+  const likes = await likeStates(
+    "forum_post",
+    posts.map((p) => p.id),
+    user?.id ?? null,
+  );
+  const backTo = active ? `/community?c=${active}` : "/community";
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -87,11 +99,14 @@ export default async function CommunityPage({
       ) : (
         <ul className="mt-5 space-y-2">
           {posts.map((post) => (
-            <li key={post.slug}>
-              <Link
-                href={post.href}
-                className="block rounded-xl border border-line bg-card p-4 transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-              >
+            /* The card is no longer one big link: a heart is a real button and
+               cannot be nested inside an anchor. The link wraps the reading
+               part, the actions sit beside it. */
+            <li
+              key={post.slug}
+              className="rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+            >
+              <Link href={post.href} className="block px-4 pb-2 pt-4">
                 <div className="flex items-center gap-2 text-xs text-muted">
                   {post.pinned && <span className="text-brand-text">📌</span>}
                   <span className="rounded-full bg-elevated px-2 py-0.5">
@@ -109,14 +124,30 @@ export default async function CommunityPage({
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted">
                   <Avatar src={post.authorAvatar} name={post.authorName} size={18} />
                   <span>{post.authorName}</span>
-                  <span>·</span>
+                  <span aria-hidden>·</span>
                   <span>{timeAgo(post.lastActivityAt)}</span>
-                  <span>·</span>
-                  <span>
-                    {post.replies} {post.replies === 1 ? "reply" : "replies"}
-                  </span>
                 </div>
               </Link>
+
+              <div className="flex items-center gap-1 px-3 pb-2.5">
+                <LikeButton
+                  subjectType="forum_post"
+                  subjectId={post.id}
+                  state={likes.get(post.id) ?? { count: 0, mine: false }}
+                  revalidate={backTo}
+                  signedIn={Boolean(user)}
+                />
+                <Link
+                  href={post.href}
+                  aria-label={`${post.replies} ${post.replies === 1 ? "reply" : "replies"}`}
+                  className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted transition-colors hover:bg-elevated hover:text-ink"
+                >
+                  <CommentIcon />
+                  {post.replies > 0 && (
+                    <span className="tabular-nums">{post.replies}</span>
+                  )}
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
