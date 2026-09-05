@@ -15,6 +15,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { includeHiddenInFeed } from "@/features/forum/visibility";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -69,13 +70,7 @@ export default async function CommunityPage({
     <div className="mx-auto max-w-3xl px-5 py-8">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
-        <Link
-          href="/community/new"
-          className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
-        >
-          <span aria-hidden className="text-base leading-none">+</span>
-          Start a post
-        </Link>
+        <CreateLink href="/community/new">Start a post</CreateLink>
       </div>
 
       <nav className="mt-4 flex flex-wrap gap-1.5 text-sm">

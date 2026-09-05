@@ -4,6 +4,7 @@ import { EventTags } from "@/features/events/event-tags";
 import { listEvents } from "@/features/events/queries";
 import { categoryEmoji, categoryLabel } from "@/features/news/constants";
 import { listNews } from "@/features/news/queries";
+import { CreateLink } from "@/components/create-link";
 
 // Both feeds are live content, so this cannot be a static landing page.
 export const dynamic = "force-dynamic";
@@ -35,19 +36,14 @@ export default async function Home() {
         More soccer, less effort!
       </h1>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <Link
           href="/events"
           className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
           Browse events
         </Link>
-        <Link
-          href="/events/new"
-          className="rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-elevated"
-        >
-          Submit an event
-        </Link>
+        <CreateLink href="/events/new">Start an event</CreateLink>
       </div>
 
       <section className="mt-12">

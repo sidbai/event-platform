@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { listTeams, myTeams } from "@/features/teams/queries";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 
@@ -47,14 +48,9 @@ export default async function TeamsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
-        <Link
-          href="/teams/new"
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-        >
-          Create a team
-        </Link>
+        <CreateLink href="/teams/new">Create a team</CreateLink>
       </div>
 
       {mine.length > 0 && (

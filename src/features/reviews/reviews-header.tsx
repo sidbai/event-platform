@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CreateLink } from "@/components/create-link";
 import { SearchBar } from "@/components/search-bar";
 
 import { db } from "@/db";
@@ -37,23 +38,14 @@ export async function ReviewsHeader({
 
   return (
     <header>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Reviews</h1>
-          <p className="mt-1 text-sm text-muted">
-            What it&rsquo;s actually like at a club, and with the coaches there
-            — written anonymously by local parents and players.
-          </p>
-        </div>
-        {action && (
-          <Link
-            href={action.href}
-            className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-          >
-            {action.label}
-          </Link>
-        )}
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Reviews</h1>
+        {action && <CreateLink href={action.href}>{action.label}</CreateLink>}
       </div>
+      <p className="mt-1 text-sm text-muted">
+        What it&rsquo;s actually like at a club, and with the coaches there —
+        written anonymously by local parents and players.
+      </p>
 
       {/* Searches whichever half you are on — the tabs are the scope, so one
           box does not need to explain which of the two it applies to. */}
