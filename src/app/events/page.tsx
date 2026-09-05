@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { asc } from "drizzle-orm";
 
-import { db } from "@/db";
-import { eventKinds } from "@/db/schema";
 import { EventTags } from "@/features/events/event-tags";
-import { listEvents, type EventFilters } from "@/features/events/queries";
+import { listEvents } from "@/features/events/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -18,33 +15,22 @@ function fmtDate(d: Date | null, tz: string | null) {
   }).format(d);
 }
 
-const selectClass =
-  "rounded-md border border-line px-2 py-1.5 text-sm bg-card";
-
 export default async function EventsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const filters: EventFilters = {
-    kind: sp.kind || undefined,
-    when: (sp.when as EventFilters["when"]) || undefined,
-    needsOpponent: sp.opponent === "1",
-    q: sp.q || undefined,
-  };
+  const q = (sp.q ?? "").trim();
 
-  const [events, kinds] = await Promise.all([
-    listEvents(filters),
-    db.query.eventKinds.findMany({
-      orderBy: [asc(eventKinds.sort)],
-      columns: { slug: true, label: true },
-    }),
-  ]);
-
-  const activeFilters = Boolean(
-    filters.kind || filters.when || filters.needsOpponent || filters.q,
-  );
+  /*
+   * Searching looks across all time; browsing does not.
+   *
+   * If you typed something you want it whether it has already happened or
+   * not, but with no window at all an empty box would open on a list led by
+   * everything that is already over.
+   */
+  const events = await listEvents(q ? { q } : { when: "upcoming" });
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -58,52 +44,41 @@ export default async function EventsPage({
         </Link>
       </div>
 
-      <form method="get" className="mt-5 flex flex-wrap items-center gap-2">
+      {/* method="get" alone gives submit-on-Enter, a shareable ?q= URL and
+          working back/forward, with no client JavaScript. */}
+      <form method="get" role="search" className="mt-5 flex gap-2">
         <input
           type="search"
           name="q"
-          defaultValue={filters.q ?? ""}
-          placeholder="Search"
-          className={selectClass}
+          defaultValue={q}
+          aria-label="Search events"
+          placeholder="Search events, venues and cities"
+          className="min-w-0 flex-1 rounded-md border border-line bg-card px-3 py-2 text-sm"
         />
-        <select name="kind" defaultValue={filters.kind ?? ""} className={selectClass}>
-          <option value="">Any kind</option>
-          {kinds.map((k) => (
-            <option key={k.slug} value={k.slug}>
-              {k.label}
-            </option>
-          ))}
-        </select>
-        <select name="when" defaultValue={filters.when ?? ""} className={selectClass}>
-          <option value="">Any time</option>
-          <option value="weekend">This weekend</option>
-          <option value="upcoming">Upcoming</option>
-          <option value="past">Past</option>
-        </select>
-        <label className="flex items-center gap-1.5 text-sm">
-          <input
-            type="checkbox"
-            name="opponent"
-            value="1"
-            defaultChecked={filters.needsOpponent}
-          />
-          Looking for opponent
-        </label>
         <button
           type="submit"
-          className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
         >
-          Filter
+          Search
         </button>
-        {activeFilters && (
-          <Link href="/events" className="text-sm text-muted hover:underline">
-            Clear
-          </Link>
-        )}
       </form>
 
+      {q && (
+        <p className="mt-3 text-sm text-muted">
+          {events.length} {events.length === 1 ? "result" : "results"} for{" "}
+          <span className="text-ink">&ldquo;{q}&rdquo;</span> ·{" "}
+          <Link href="/events" className="text-brand-text hover:underline">
+            Clear
+          </Link>
+        </p>
+      )}
+
       {events.length === 0 ? (
-        <p className="mt-6 text-muted">No events match.</p>
+        <p className="mt-6 text-muted">
+          {q
+            ? "Nothing matches that."
+            : "Nothing coming up yet."}
+        </p>
       ) : (
         <ul className="mt-6 divide-y divide-line">
           {events.map((event) => (
