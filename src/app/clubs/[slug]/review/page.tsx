@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { requireUser } from "@/features/auth";
+import { getCurrentUser } from "@/features/auth";
 import { saveReview } from "@/features/clubs/actions";
 import { getClub, myReview } from "@/features/clubs/queries";
 import { ReviewForm } from "@/features/clubs/review-form";
@@ -16,11 +16,17 @@ export default async function ReviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const user = await requireUser(`/clubs/${slug}/review`);
+  /*
+   * Open to everyone, deliberately. The account is asked for at the moment of
+   * posting instead, so a parent finds out after writing rather than before —
+   * saveReview still refuses a signed-out submission, so this is presentation,
+   * not permission.
+   */
+  const user = await getCurrentUser();
   const club = await getClub(slug);
   if (!club) notFound();
 
-  const existing = await myReview(club.id, user.id);
+  const existing = user ? await myReview(club.id, user.id) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -37,6 +43,8 @@ export default async function ReviewPage({
 
       <ReviewForm
         action={saveReview.bind(null, slug)}
+        slug={slug}
+        signedIn={Boolean(user)}
         existing={
           existing
             ? {

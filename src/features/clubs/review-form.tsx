@@ -1,6 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
+
+import { draftKey } from "@/features/reviews/draft";
+import { useFormDraft } from "@/features/reviews/use-form-draft";
 
 import {
   RATING_CATEGORIES,
@@ -59,6 +63,8 @@ function StarPicker({
 export function ReviewForm({
   action,
   existing,
+  slug,
+  signedIn,
 }: {
   action: Action;
   existing?: {
@@ -67,6 +73,9 @@ export function ReviewForm({
     reviewerRole: string;
     ratings: Record<string, number>;
   } | null;
+  /** Identifies the draft, so one club's review cannot restore under another. */
+  slug: string;
+  signedIn: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ClubResult, FormData>(
     action,
@@ -74,8 +83,20 @@ export function ReviewForm({
   );
   const err = state.fieldErrors ?? {};
 
+  // Nothing to hold on to when editing: the posted review is already the draft.
+  const {
+    ref: formRef,
+    save: saveDraft,
+    clear: clearDraft,
+  } = useFormDraft(draftKey("club", slug), !existing);
+
   return (
-    <form action={formAction} className="mt-6 space-y-5">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={clearDraft}
+      className="mt-6 space-y-5"
+    >
       <fieldset>
         <legend className="block text-sm font-medium">
           How do you know this club?
@@ -146,15 +167,35 @@ export function ReviewForm({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
-        >
-          {pending ? "Posting…" : existing ? "Update review" : "Post review"}
-        </button>
+        {signedIn ? (
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
+          >
+            {pending ? "Posting…" : existing ? "Update review" : "Post review"}
+          </button>
+        ) : (
+          /* An account is what keeps this one review per person and gives a
+             club someone to answer, but asking at the door costs the review.
+             So the ask lands here, with the draft already saved. */
+          <Link
+            href={`/signin?next=${encodeURIComponent(`/clubs/${slug}/review`)}`}
+            onClick={saveDraft}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          >
+            Sign in to post
+          </Link>
+        )}
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
       </div>
+
+      {!signedIn && (
+        <p className="text-xs text-muted">
+          Your draft is kept on this device — sign in and you will come back to
+          it. Reviews are posted anonymously; readers never see your name.
+        </p>
+      )}
     </form>
   );
 }

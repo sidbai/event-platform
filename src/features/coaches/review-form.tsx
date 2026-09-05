@@ -1,6 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
+
+import { draftKey } from "@/features/reviews/draft";
+import { useFormDraft } from "@/features/reviews/use-form-draft";
 
 import {
   COACH_SCALES,
@@ -19,6 +23,8 @@ export function CoachReviewForm({
   action,
   existing,
   seasons,
+  slug,
+  signedIn,
 }: {
   action: Action;
   existing?: {
@@ -32,6 +38,9 @@ export function CoachReviewForm({
     recommends: boolean | null;
   } | null;
   seasons: string[];
+  /** Identifies the draft, so one coach's review cannot restore under another. */
+  slug: string;
+  signedIn: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ReviewResult, FormData>(
     action,
@@ -39,8 +48,20 @@ export function CoachReviewForm({
   );
   const err = state.fieldErrors ?? {};
 
+  // Nothing to hold on to when editing: the posted review is already the draft.
+  const {
+    ref: formRef,
+    save: saveDraft,
+    clear: clearDraft,
+  } = useFormDraft(draftKey("coach", slug), !existing);
+
   return (
-    <form action={formAction} className="mt-6 space-y-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={clearDraft}
+      className="mt-6 space-y-6"
+    >
       <p className="rounded-lg border border-line bg-elevated px-4 py-3 text-sm text-muted">
         {COACH_REVIEW_RULE}
       </p>
@@ -218,18 +239,38 @@ export function CoachReviewForm({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
-        >
-          {pending ? "Saving…" : "Post review"}
-        </button>
+        {signedIn ? (
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
+          >
+            {pending ? "Saving…" : "Post review"}
+          </button>
+        ) : (
+          /* The account matters more here than anywhere: this review is about
+             a named person who can claim the page and answer it. Asking at the
+             door still cost the review, so the ask lands here instead. */
+          <Link
+            href={`/signin?next=${encodeURIComponent(`/coaches/${slug}/review`)}`}
+            onClick={saveDraft}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          >
+            Sign in to post
+          </Link>
+        )}
         <span className="text-xs text-muted">
           Posted under a pseudonym. Your name is never shown.
         </span>
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
       </div>
+
+      {!signedIn && (
+        <p className="text-xs text-muted">
+          Your draft is kept on this device — sign in and you will come back to
+          it.
+        </p>
+      )}
     </form>
   );
 }

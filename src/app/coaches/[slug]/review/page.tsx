@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { requireUser } from "@/features/auth";
+import { getCurrentUser } from "@/features/auth";
 import { reviewCoach } from "@/features/coaches/actions";
 import { recentSeasons } from "@/features/coaches/constants";
 import { canReviewCoach } from "@/features/coaches/claim";
@@ -19,14 +19,20 @@ export default async function ReviewCoachPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const user = await requireUser(`/coaches/${slug}/review`);
+  /*
+   * Open to everyone: the account is asked for at the moment of posting, so a
+   * parent finds out after writing rather than before. reviewCoach still
+   * refuses a signed-out submission, so this is presentation, not permission.
+   */
+  const user = await getCurrentUser();
 
   const coach = await getCoach(slug);
   if (!coach) notFound();
-  // A coach who has claimed their page cannot review themselves.
-  if (!canReviewCoach(coach, { id: user.id, admin: false })) notFound();
+  // A coach who has claimed their page cannot review themselves. Only checked
+  // once we know who is asking — signed out, there is nobody to be.
+  if (user && !canReviewCoach(coach, { id: user.id, admin: false })) notFound();
 
-  const existing = await myCoachReview(coach.id, user.id);
+  const existing = user ? await myCoachReview(coach.id, user.id) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -47,6 +53,8 @@ export default async function ReviewCoachPage({
       <CoachReviewForm
         action={reviewCoach.bind(null, slug)}
         seasons={recentSeasons()}
+        slug={slug}
+        signedIn={Boolean(user)}
         existing={
           existing
             ? {
