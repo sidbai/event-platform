@@ -13,6 +13,8 @@ export function Pager({
   params,
   pagination,
   noun,
+  pageKey = "page",
+  anchor,
 }: {
   basePath: string;
   /** Carried through so paging keeps the current search or filter. */
@@ -20,9 +22,19 @@ export function Pager({
   pagination: Pagination;
   /** Plural noun for the readout, e.g. "coaches". */
   noun: string;
+  /**
+   * Query parameter holding the page number. Defaults to "page"; /admin gives
+   * each of its lists its own so they page independently.
+   */
+  pageKey?: string;
+  /** Element id to jump back to, for a list part-way down a long page. */
+  anchor?: string;
 }) {
   const { page, totalPages, total, from, to, hasPrev, hasNext } = pagination;
   if (totalPages <= 1) return null;
+
+  const hash = anchor ? `#${anchor}` : "";
+  const href = (n: number) => `${pageHref(basePath, params, n, pageKey)}${hash}`;
 
   const link =
     "rounded-md border border-line px-3 py-1.5 text-sm hover:bg-elevated";
@@ -39,7 +51,7 @@ export function Pager({
       </p>
       <div className="flex items-center gap-2">
         {hasPrev ? (
-          <Link href={pageHref(basePath, params, page - 1)} className={link} rel="prev">
+          <Link href={href(page - 1)} className={link} rel="prev">
             ← Previous
           </Link>
         ) : (
@@ -51,7 +63,7 @@ export function Pager({
           Page {page} of {totalPages}
         </span>
         {hasNext ? (
-          <Link href={pageHref(basePath, params, page + 1)} className={link} rel="next">
+          <Link href={href(page + 1)} className={link} rel="next">
             Next →
           </Link>
         ) : (

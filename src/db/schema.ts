@@ -237,6 +237,9 @@ export const events = pgTable(
 
 export const teamVisibility = pgEnum("team_visibility", ["private", "public"]);
 
+/** Regional Club League and Washington Premier League, in ranked order. */
+export const clubLeague = pgEnum("club_league", ["rcl", "wpl"]);
+
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
@@ -545,6 +548,15 @@ export const clubs = pgTable("clubs", {
    * never write it, or an unpin would be undone on the next run.
    */
   pinned: boolean("pinned").notNull().default(false),
+  /**
+   * The league directory this club was listed in.
+   *
+   * Not a complete account of where a club plays — a big club fields teams
+   * across several leagues at once — but it is the list families use to place
+   * a club, and it is what the seeder can state from a source it checked.
+   * Null means neither directory listed it.
+   */
+  league: clubLeague("league"),
   city: text("city"),
   website: text("website"),
   crestUrl: text("crest_url"),

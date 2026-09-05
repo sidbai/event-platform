@@ -218,6 +218,13 @@
       "when": 1788619431942,
       "tag": "0030_bright_frightful_four",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788621256262,
+      "tag": "0031_club_league",
+      "breakpoints": true
     }
   ]
 }

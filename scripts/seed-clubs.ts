@@ -32,42 +32,54 @@ const B = "https://cxmq9bef2phfq3rd.public.blob.vercel-storage.com/clubs";
  */
 const SEATTLE_CLUBS: {
   name: string;
+  /**
+   * Which directory the club was taken from, not the only league it plays in:
+   * a club this size fields teams across several at once. It records the list
+   * families use to place a club, and it ranks the pinned ones.
+   */
+  league: "rcl" | "wpl";
   city: string | null;
   website: string | null;
   logo: string | null;
 }[] = [
   {
     name: "Seattle United",
+    league: "rcl",
     city: "Seattle",
     website: "https://www.seattleunited.com",
     logo: `${B}/seattle-united/logo-PBEqEPw5ALIar2IBrmLsg2u7LpoLX2.png`,
   },
   {
     name: "Crossfire Premier",
+    league: "rcl",
     city: "Redmond",
     website: "https://www.crossfiresoccer.org",
     logo: `${B}/crossfire-premier/logo-qYF7ZpbE8BjMcVbwDrOxzB6EEypC6R.png`,
   },
   {
     name: "Eastside FC",
+    league: "rcl",
     city: "Issaquah",
     website: "https://www.eastsidefc.org",
     logo: `${B}/eastside-fc/logo-Hgp7ZrwaD3jEBn1sT8f0jfY95VbkQD.png`,
   },
   {
     name: "Washington Premier FC",
+    league: "rcl",
     city: "Puyallup",
     website: "https://www.washingtonpremierfc.com",
     logo: `${B}/washington-premier-fc/logo-it5kyASFH20AneECYGLHNNMaTOIUlD.png`,
   },
   {
     name: "PacNW SC",
+    league: "rcl",
     city: "Tukwila",
     website: "https://www.pacificnorthwestsoccerclub.org",
     logo: `${B}/pacnw/logo-jHGHMTfseW78RDlfEtWHzTegbQGvZO.png`,
   },
   {
     name: "Snohomish United",
+    league: "rcl",
     city: "Snohomish",
     website: "https://www.snohomishunited.com",
     logo: `${B}/snohomish-united/logo-Kx4tsB2L34XohwA5Kl6czWO93UyXkN.png`,
@@ -89,24 +101,28 @@ const SEATTLE_CLUBS: {
   // real organisation.
   {
     name: "Blackhills FC",
+    league: "rcl",
     city: "Olympia",
     website: "https://www.blackhillsfc.org",
     logo: `${B}/blackhills-fc/logo-2EDdm0L9l8U1vTz6bdp4uXRhGXo88w.png`,
   },
   {
     name: "Cascade FC",
+    league: "rcl",
     city: "Snoqualmie",
     website: "https://www.cascadefc.org",
     logo: `${B}/cascade-fc/logo-AwHaz7Fy7cP8xtGczR78sONUcxlo3n.png`,
   },
   {
     name: "Harbor Soccer Club",
+    league: "rcl",
     city: "Gig Harbor",
     website: "https://www.harborsoccerclub.com",
     logo: `${B}/harbor-soccer-club/logo-H7aUCzXawit0g30rsm2skl6PeKfqyW.png`,
   },
   {
     name: "Highline Premier FC",
+    league: "rcl",
     city: "Burien",
     website: "https://www.highlinepremier.com",
     logo: `${B}/highline-premier-fc/logo-QynnoIBTubTJIJQcil8XSIGSihPxv2.png`,
@@ -114,24 +130,28 @@ const SEATTLE_CLUBS: {
   {
     // Kitsap, Mason and Jefferson counties; the club names no single city.
     name: "Kitsap Alliance FC",
+    league: "rcl",
     city: null,
     website: "https://www.kitsapalliancefc.com",
     logo: `${B}/kitsap-alliance-fc/logo-CQDsdnILjLhf5pYoDHMEzB2EOsHNTZ.png`,
   },
   {
     name: "Northwest United FC",
+    league: "rcl",
     city: "Burlington",
     website: "https://www.nwunited.org",
     logo: `${B}/northwest-united-fc/logo-0G2etQnE6Jx9JtbEj9izX1YTI8T5qS.png`,
   },
   {
     name: "Sound Football Club",
+    league: "rcl",
     city: "Woodinville",
     website: "https://soundfc.org",
     logo: `${B}/sound-football-club/logo-l3oxNKf10dL7zBkv5mAauBH4n7KOqM.png`,
   },
   {
     name: "Valor Soccer",
+    league: "rcl",
     city: "Maple Valley",
     website: "https://www.valorsoccer.com",
     logo: `${B}/valor-soccer/logo-S6FcTG5RTSngh80hmsKr4aSxb5M9na.png`,
@@ -140,12 +160,14 @@ const SEATTLE_CLUBS: {
     // Their own site states no city, only "North County", so this stays blank
     // rather than borrowing one from a third-party directory.
     name: "Washington Rush",
+    league: "rcl",
     city: null,
     website: "https://www.washingtonrush.com",
     logo: `${B}/washington-rush/logo-rMP6FDPmFY1boEUnZYQDIRCNh7KGOI.png`,
   },
   {
     name: "Whatcom FC Rangers",
+    league: "rcl",
     city: "Bellingham",
     website: "https://whatcomfcrangers.org",
     logo: `${B}/whatcom-fc-rangers/logo-lI7P4PBOZaDyL9Q4YHH8HpfToafLfS.png`,
@@ -165,6 +187,7 @@ const SEATTLE_CLUBS: {
   // not be verified at all.
   {
     name: "Eagleclaw FC",
+    league: "wpl",
     city: "Tukwila",
     website: "https://www.eagleclawfc.org",
     logo: `${B}/eagleclaw-fc/logo-1f3Dfqahp9WmbXKKI53jhTRYZqr8m8.png`,
@@ -173,36 +196,42 @@ const SEATTLE_CLUBS: {
     // Restored: dropped when the directory narrowed to ECNL/RCL, and back now
     // that WPL clubs are in scope.
     name: "Emerald City FC",
+    league: "wpl",
     city: "Seattle",
     website: "https://emeraldcityfc.org",
     logo: `${B}/emerald-city-fc/logo-81dowANSuevkv30frASpiZNrprp2Fd.png`,
   },
   {
     name: "Everett Youth Soccer Club",
+    league: "wpl",
     city: "Everett",
     website: "https://www.everettyouthsoccerclub.com",
     logo: `${B}/everett-youth-soccer-club/logo-6msGCj8qTBZEOjx0nAFQwjWGtEKIFS.png`,
   },
   {
     name: "Lake Washington Premier FC",
+    league: "wpl",
     city: "Kirkland",
     website: "https://www.lwpfc.org",
     logo: `${B}/lake-washington-premier-fc/logo-PfypW8l4360eI91Ax2pzEhphRvIGd8.png`,
   },
   {
     name: "Mukilteo Youth Soccer Club",
+    league: "wpl",
     city: "Mukilteo",
     website: "https://mysc.org",
     logo: `${B}/mukilteo-youth-soccer-club/logo-qKbfNlTYMEWTjK5BYrBlRgELmixat7.webp`,
   },
   {
     name: "Northlake Soccer Club",
+    league: "wpl",
     city: "Kenmore",
     website: "https://www.northlakesoccerclub.com",
     logo: `${B}/northlake-soccer-club/logo-tKgv5eJ5lnD27GZvDvS88k492ykCWt.png`,
   },
   {
     name: "Pilchuck Soccer Alliance",
+    league: "wpl",
     city: "Marysville",
     website: "https://www.pilchucksocceralliance.com",
     logo: `${B}/pilchuck-soccer-alliance/logo-V1k1vpaJVYDfOh6m23swPee88lrwJp.png`,
@@ -210,6 +239,7 @@ const SEATTLE_CLUBS: {
   {
     // Restored alongside Emerald City, for the same reason.
     name: "Seattle Celtic",
+    league: "wpl",
     city: "Seattle",
     website: "https://seattleceltic.com",
     logo: `${B}/seattle-celtic/logo-97O3eg3sdGlzUiMzoJuZ7uFtcly8wT.png`,
@@ -223,6 +253,7 @@ const SEATTLE_CLUBS: {
   // placed or verified at all.
   {
     name: "Seattle Reign Academy",
+    league: "wpl",
     city: "Seattle",
     website: "https://www.reignacademy.com",
     logo: `${B}/seattle-reign-academy/logo-wTwRsJXb79r3TtWo0LFVkvWR6zkMgb.png`,
@@ -230,6 +261,7 @@ const SEATTLE_CLUBS: {
   {
     // Their site names the North Kitsap region rather than a home city.
     name: "North Kitsap Soccer Club",
+    league: "wpl",
     city: null,
     website: "https://northkitsapsoccer.org",
     logo: `${B}/north-kitsap-soccer-club/logo-B3o4A1Dt0KfMt1bw6XKhPBv7EiQo4A.png`,
@@ -238,12 +270,14 @@ const SEATTLE_CLUBS: {
     // The site titles itself "Association", but the crest and the WPL
     // directory both say Club.
     name: "Norpoint Soccer Club",
+    league: "wpl",
     city: "Tacoma",
     website: "https://norpointsoccer.org",
     logo: `${B}/norpoint-soccer-club/logo-dZSCXeljE02cJXPJqJnKfhUfHDgizY.jpg`,
   },
   {
     name: "South Kitsap Soccer Club",
+    league: "wpl",
     city: "Port Orchard",
     website: "https://www.sksoccer.com",
     logo: `${B}/south-kitsap-soccer-club/logo-1UzP4GvP7XTr7p31k1TXXQvdjMVhsw.png`,
@@ -251,12 +285,14 @@ const SEATTLE_CLUBS: {
   {
     // Serves Bainbridge Island, Kitsap and the Olympic Peninsula; no home city.
     name: "West Sound Soccer Academy",
+    league: "wpl",
     city: null,
     website: "https://westsoundsoccer.org",
     logo: `${B}/west-sound-soccer-academy/logo-RKNvNk32APxlpIntGrlXvGltji9V65.png`,
   },
   {
     name: "Stanwood Camano Youth Soccer Club",
+    league: "wpl",
     city: "Stanwood",
     website: "https://scysc.com",
     logo: `${B}/stanwood-camano-youth-soccer-club/logo-t3fPSZr1VVxENOy7Nc4xuRGCrijdXA.jpg`,
@@ -272,6 +308,7 @@ const SEATTLE_CLUBS: {
   // reviewing the club, not the training site.
   {
     name: "Western Washington Surf",
+    league: "wpl",
     city: "Bellevue",
     website: "https://westernwasurf.com",
     logo: `${B}/western-washington-surf/logo-2UZrIt2CgZx3hmaZUMWCDqa7wlupzx.jpg`,
@@ -281,6 +318,7 @@ const SEATTLE_CLUBS: {
     // Eastern Washington Surf SC — ewsurfsc.com is the old site and points
     // here, so listing both would have been one club twice.
     name: "Washington East Surf Soccer Club",
+    league: "wpl",
     city: null,
     website: "https://www.wesurfsc.com",
     logo: `${B}/washington-east-surf-soccer-club/logo-b4HNOz5YJDyq8zyYdDuFKi2sF8tkZd.png`,
@@ -290,24 +328,28 @@ const SEATTLE_CLUBS: {
     // in Nov 2025 for operational infrastructure, which is a partnership
     // rather than the merger it first reads as.
     name: "Atletico Futbol Club",
+    league: "wpl",
     city: null,
     website: "https://atleticofutbol.com",
     logo: `${B}/atletico-futbol-club/logo-MLskqpAbmSvQGTVWOexXSuPr9iIOFn.png`,
   },
   {
     name: "BVB International Academy Washington",
+    league: "wpl",
     city: null,
     website: "https://www.bvbia-washington.com",
     logo: `${B}/bvb-international-academy-washington/logo-yZvJH3SuxnmOCzYWW9JfMHdtQZO7nX.png`,
   },
   {
     name: "Pumas Seattle",
+    league: "wpl",
     city: "Seattle",
     website: "https://pumasseattle.com",
     logo: `${B}/pumas-seattle/logo-jVZsXFxRvqOCMna2iG1yP4OtFcOKB4.png`,
   },
   {
     name: "Rayados Soccer Academy Northwest",
+    league: "wpl",
     city: "Issaquah",
     website: "https://www.rayadosnw.com",
     logo: `${B}/rayados-soccer-academy-northwest/logo-hPHenNZIz1Ye2BJLDkBGa0Mm3L9xCf.png`,
@@ -347,13 +389,20 @@ async function main() {
     const slug = slugify(club.name).slice(0, 60);
     const existing = await db.query.clubs.findFirst({
       where: eq(clubs.slug, slug),
-      columns: { id: true, city: true, website: true, crestUrl: true },
+      columns: {
+        id: true,
+        city: true,
+        website: true,
+        crestUrl: true,
+        league: true,
+      },
     });
 
     if (!existing) {
       await db.insert(clubs).values({
         slug,
         name: club.name,
+        league: club.league,
         city: club.city,
         website: club.website,
         crestUrl: club.logo,
@@ -363,12 +412,18 @@ async function main() {
     }
 
     // Fill blanks only. Anything an admin has already set in the app stays.
+    //
+    // League is the exception, and is written every run: it comes from the
+    // league's own directory and nothing in the app edits it, so there is no
+    // admin change here to clobber — only a stale value to correct.
     const patch = {
+      league: club.league,
       city: existing.city ?? club.city,
       website: existing.website ?? club.website,
       crestUrl: existing.crestUrl ?? club.logo,
     };
     if (
+      patch.league !== existing.league ||
       patch.city !== existing.city ||
       patch.website !== existing.website ||
       patch.crestUrl !== existing.crestUrl

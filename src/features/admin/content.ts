@@ -1,39 +1,57 @@
 import "server-only";
 
-import { asc, desc } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubs, events, forumPosts } from "@/db/schema";
 import { publicName } from "@/features/auth";
+import { clubDirectoryOrder } from "@/features/clubs/order";
+import { paginate } from "@/features/pagination/paginate";
 
 /**
- * Recent posts and events for the admin content list.
+ * The browse lists on /admin: everything there is, a page at a time.
+ *
+ * Unlike the queues above them these never empty — they are how an admin FINDS
+ * something to act on — so each takes a page number and hands back the
+ * pagination alongside the rows. Counting first lets the page be clamped
+ * before the window is read, so ?posts=99 shows the last page rather than a
+ * pager pointing at rows that were never fetched.
+ */
+/**
+ * Recent posts for the admin content list.
  *
  * Deliberately shows hidden ones too, and says which: the queues elsewhere are
  * for things awaiting a decision, but banning something requires FINDING it
  * first, and lifting a ban requires seeing what is currently down.
  */
-export async function recentForumPosts(limit = 20) {
+export async function recentForumPosts(page: number, perPage: number) {
+  const pagination = paginate(await db.$count(forumPosts), page, perPage);
   const rows = await db.query.forumPosts.findMany({
     orderBy: [desc(forumPosts.lastActivityAt)],
-    limit,
+    limit: pagination.perPage,
+    offset: pagination.offset,
     with: {
       author: { columns: { displayName: true, name: true, username: true } },
     },
   });
-  return rows.map((p) => ({
-    slug: p.slug,
-    title: p.title,
-    hidden: p.hiddenAt !== null,
-    author: p.author ? publicName(p.author) : "Someone",
-    at: p.lastActivityAt,
-  }));
+  return {
+    pagination,
+    rows: rows.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      hidden: p.hiddenAt !== null,
+      author: p.author ? publicName(p.author) : "Someone",
+      at: p.lastActivityAt,
+    })),
+  };
 }
 
-export async function recentEvents(limit = 20) {
+export async function recentEvents(page: number, perPage: number) {
+  const pagination = paginate(await db.$count(events), page, perPage);
   const rows = await db.query.events.findMany({
     orderBy: [desc(events.createdAt)],
-    limit,
+    limit: pagination.perPage,
+    offset: pagination.offset,
     columns: {
       slug: true,
       title: true,
@@ -43,21 +61,38 @@ export async function recentEvents(limit = 20) {
       createdAt: true,
     },
   });
-  return rows.map((e) => ({
-    slug: e.slug,
-    title: e.title,
-    status: e.status,
-    visibility: e.visibility,
-    hidden: e.hiddenAt !== null,
-    at: e.createdAt,
-  }));
+  return {
+    pagination,
+    rows: rows.map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      status: e.status,
+      visibility: e.visibility,
+      hidden: e.hiddenAt !== null,
+      at: e.createdAt,
+    })),
+  };
 }
 
-/** Clubs for the admin pin list, pinned ones first. */
-export async function allClubs() {
+/**
+ * Clubs for the admin pin list, in the order /clubs will show them.
+ *
+ * Matching that order matters more here than anywhere else: this is the screen
+ * where someone decides what to pin, so it should show what pinning will do.
+ */
+export async function allClubs(page: number, perPage: number) {
+  const pagination = paginate(await db.$count(clubs), page, perPage);
   const rows = await db.query.clubs.findMany({
-    orderBy: [desc(clubs.pinned), asc(clubs.name)],
-    columns: { slug: true, name: true, city: true, pinned: true },
+    orderBy: clubDirectoryOrder,
+    columns: {
+      slug: true,
+      name: true,
+      city: true,
+      pinned: true,
+      league: true,
+    },
+    limit: pagination.perPage,
+    offset: pagination.offset,
   });
-  return rows;
+  return { pagination, rows };
 }

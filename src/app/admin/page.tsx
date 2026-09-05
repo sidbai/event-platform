@@ -23,15 +23,33 @@ import { setClubPinned } from "@/features/clubs/actions";
 import { setEventHidden } from "@/features/events/actions";
 import { setForumPostHidden } from "@/features/forum/actions";
 import { pendingCoachClaims } from "@/features/coaches/queries";
+import { parsePage } from "@/features/pagination/paginate";
+import { Pager } from "@/features/pagination/pager";
 import { dismissMessageReports, hideMessage } from "@/features/messages/actions";
 import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
 import { pendingNews } from "@/features/news/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+/**
+ * Shorter than the public directories: these rows carry buttons that change
+ * things, and a long page of them is a page you skim rather than read.
+ */
+const PER_PAGE = 20;
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ posts?: string; events?: string; clubs?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
+
+  // One parameter per list, so paging the posts does not reset the clubs.
+  const sp = await searchParams;
+  const postPage = parsePage(sp.posts);
+  const eventPage = parsePage(sp.events);
+  const clubPage = parsePage(sp.clubs);
 
   const [
     events,
@@ -53,9 +71,9 @@ export default async function AdminPage() {
       reportedMessages(),
       reportedReviews(),
       recentClubEdits(),
-      recentForumPosts(),
-      recentEvents(),
-      allClubs(),
+      recentForumPosts(postPage, PER_PAGE),
+      recentEvents(eventPage, PER_PAGE),
+      allClubs(clubPage, PER_PAGE),
     ]);
 
   return (
@@ -338,16 +356,16 @@ export default async function AdminPage() {
       {/* Not a queue: the sections above are things awaiting a decision, this
           is for finding something and taking it down — and for putting it
           back, which needs the hidden ones listed. */}
-      <section className="mt-10">
+      <section id="posts" className="mt-10 scroll-mt-6">
         <h2 className="text-lg font-semibold">Posts</h2>
         <p className="mt-1 text-sm text-muted">
           Hiding keeps the post and its replies; the author still sees it.
         </p>
-        {posts.length === 0 ? (
+        {posts.rows.length === 0 ? (
           <p className="mt-2 text-sm text-muted">No posts yet.</p>
         ) : (
           <ul className="mt-3 divide-y divide-line">
-            {posts.map((p) => (
+            {posts.rows.map((p) => (
               <li
                 key={p.slug}
                 className="flex flex-wrap items-center justify-between gap-2 py-2"
@@ -381,19 +399,27 @@ export default async function AdminPage() {
             ))}
           </ul>
         )}
+        <Pager
+          basePath="/admin"
+          params={sp}
+          pagination={posts.pagination}
+          noun="posts"
+          pageKey="posts"
+          anchor="posts"
+        />
       </section>
 
-      <section className="mt-10">
+      <section id="events" className="mt-10 scroll-mt-6">
         <h2 className="text-lg font-semibold">Events</h2>
         <p className="mt-1 text-sm text-muted">
           Hiding takes an event off every list, feed and print sheet whatever
           its visibility says, and only you can lift it.
         </p>
-        {allEvents.length === 0 ? (
+        {allEvents.rows.length === 0 ? (
           <p className="mt-2 text-sm text-muted">No events yet.</p>
         ) : (
           <ul className="mt-3 divide-y divide-line">
-            {allEvents.map((e) => (
+            {allEvents.rows.map((e) => (
               <li
                 key={e.slug}
                 className="flex flex-wrap items-center justify-between gap-2 py-2"
@@ -429,16 +455,25 @@ export default async function AdminPage() {
             ))}
           </ul>
         )}
+        <Pager
+          basePath="/admin"
+          params={sp}
+          pagination={allEvents.pagination}
+          noun="events"
+          pageKey="events"
+          anchor="events"
+        />
       </section>
 
-      <section className="mt-10">
+      <section id="clubs" className="mt-10 scroll-mt-6">
         <h2 className="text-lg font-semibold">Featured clubs</h2>
         <p className="mt-1 text-sm text-muted">
-          Pinned clubs lead the directory instead of sorting alphabetically.
-          Nothing else about them changes.
+          Pinned clubs lead the directory instead of sorting alphabetically,
+          RCL before WPL. Nothing else about them changes, and nothing marks
+          them as pinned on the public page.
         </p>
         <ul className="mt-3 divide-y divide-line">
-          {clubList.map((c) => (
+          {clubList.rows.map((c) => (
             <li
               key={c.slug}
               className="flex flex-wrap items-center justify-between gap-2 py-2"
@@ -450,6 +485,11 @@ export default async function AdminPage() {
                 >
                   {c.name}
                 </Link>
+                {c.league && (
+                  <span className="ml-2 text-xs uppercase text-muted">
+                    {c.league}
+                  </span>
+                )}
                 {c.city && <span className="ml-2 text-xs text-muted">{c.city}</span>}
                 {c.pinned && (
                   <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-soft-text">
@@ -465,6 +505,14 @@ export default async function AdminPage() {
             </li>
           ))}
         </ul>
+        <Pager
+          basePath="/admin"
+          params={sp}
+          pagination={clubList.pagination}
+          noun="clubs"
+          pageKey="clubs"
+          anchor="clubs"
+        />
       </section>
 
       <section className="mt-10">
