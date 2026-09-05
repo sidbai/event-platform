@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { checkRateLimit } from "@/features/rate-limit";
 import { isOurBlobUrl, isPendingClubUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
@@ -37,6 +38,9 @@ export async function createClub(
 ): Promise<ClubResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to add a club." };
+
+  const gate = await checkRateLimit("entry:edit", user);
+  if (!gate.ok) return { error: gate.message };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const name = get("name");
@@ -91,6 +95,9 @@ export async function saveReview(
 ): Promise<ClubResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to write a review." };
+
+  const gate = await checkRateLimit("review:create", user);
+  if (!gate.ok) return { error: gate.message };
 
   const club = await db.query.clubs.findFirst({
     where: eq(clubs.slug, slug),
@@ -218,6 +225,9 @@ export async function updateClub(
   const user = await getCurrentUser();
   if (!user || !(await canEditClub()))
     return { error: "Sign in to edit this club." };
+
+  const gate = await checkRateLimit("entry:edit", user);
+  if (!gate.ok) return { error: gate.message };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const name = get("name");

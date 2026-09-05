@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { newsPosts } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { checkRateLimit } from "@/features/rate-limit";
 import { isOurBlobUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
@@ -71,6 +72,9 @@ export async function createNewsPost(
 ): Promise<NewsResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to write a post." };
+
+  const gate = await checkRateLimit("news:create", user);
+  if (!gate.ok) return { error: gate.message };
   const viewer: NewsViewer = { id: user.id, admin: isAdmin(user) };
 
   const { fieldErrors, values } = read(formData);

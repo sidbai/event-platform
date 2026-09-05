@@ -866,6 +866,36 @@ export const reviewReportsRelations = relations(reviewReports, ({ one }) => ({
   }),
 }));
 
+/**
+ * Fixed-window counters for rate limiting.
+ *
+ * Postgres rather than Redis on purpose: Neon sits in the same region as the
+ * functions, every request already makes a DB call for the session, and the
+ * limits that matter here are per-user-per-day rather than per-second. One
+ * more indexed upsert is cheaper than another vendor, another secret and
+ * another failure mode.
+ *
+ * The primary key is what makes the counter safe under concurrency — an
+ * INSERT ... ON CONFLICT DO UPDATE increments in a single statement, with no
+ * read-then-write race.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    /** Which allowance, e.g. 'review:create'. */
+    bucket: text("bucket").notNull(),
+    /** Who it applies to. Always a user id — every write here is signed in. */
+    subject: text("subject").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucket, t.subject, t.windowStart] }),
+    // Supports the sweep that drops expired windows.
+    index("rate_limits_window_idx").on(t.windowStart),
+  ],
+);
+
 // --- invites -----------------------------------------------------------
 
 export const inviteStatus = pgEnum("invite_status", [

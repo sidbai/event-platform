@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventKinds, events, teams, venues } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
 
@@ -38,6 +39,9 @@ export async function submitEvent(
 ): Promise<EventFormResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to submit an event." };
+
+  const gate = await checkRateLimit("event:create", user);
+  if (!gate.ok) return { error: gate.message };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
 

@@ -169,6 +169,13 @@
       "when": 1788566238316,
       "tag": "0023_overconfident_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788567115630,
+      "tag": "0024_funny_skrulls",
+      "breakpoints": true
     }
   ]
 }

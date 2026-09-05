@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { checkRateLimit } from "@/features/rate-limit";
 import { canEditClub } from "@/features/clubs/access";
 import { canManageTeam } from "@/features/teams/access";
 import {
@@ -34,6 +35,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const user = await getCurrentUser();
         if (!user) throw new Error("Sign in to upload.");
+
+        // The one allowance with a bill attached: blob storage is where abuse
+        // costs actual money, so this is checked before a token is minted
+        // rather than when the file lands.
+        const gate = await checkRateLimit("upload:token", user);
+        if (!gate.ok) throw new Error(gate.message);
 
         const target = parseUploadTarget(clientPayload ?? null);
         if (!target) throw new Error("Unknown upload target.");
