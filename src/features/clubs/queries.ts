@@ -38,15 +38,25 @@ function escapeLike(value: string): string {
 }
 
 /** Club directory with each club's aggregate score. */
-export async function listClubs(q?: string) {
+export async function listClubs(
+  q?: string,
+  window?: { limit: number; offset: number },
+) {
   const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
+  const where = term
+    ? or(ilike(clubs.name, term), ilike(clubs.city, term))
+    : undefined;
+
+  // Counted before slicing, so the pager sizes the whole result.
+  const total = await db.$count(clubs, where);
+
   const rows = await db.query.clubs.findMany({
-    where: term
-      ? or(ilike(clubs.name, term), ilike(clubs.city, term))
-      : undefined,
+    where,
     orderBy: [asc(clubs.name)],
+    limit: window?.limit,
+    offset: window?.offset,
   });
-  if (rows.length === 0) return [];
+  if (rows.length === 0) return { rows: [], total };
 
   // Fetched separately rather than through a relation: the join needs
   // subject_type too, which drizzle relations cannot express.
@@ -68,14 +78,17 @@ export async function listClubs(q?: string) {
     byClub.set(r.subjectId, list);
   }
 
-  return rows.map((c) => ({
-    id: c.id,
-    slug: c.slug,
-    name: c.name,
-    city: c.city,
-    crestUrl: c.crestUrl,
-    summary: averageRatings("club", byClub.get(c.id) ?? []),
-  }));
+  return {
+    total,
+    rows: rows.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      city: c.city,
+      crestUrl: c.crestUrl,
+      summary: averageRatings("club", byClub.get(c.id) ?? []),
+    })),
+  };
 }
 
 export async function getClub(slug: string) {

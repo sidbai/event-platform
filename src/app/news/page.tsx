@@ -11,6 +11,8 @@ import {
   readingMinutes,
 } from "@/features/news/constants";
 import { listNews, myNewsSubmissions } from "@/features/news/queries";
+import { Pager } from "@/features/pagination/pager";
+import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -55,14 +57,22 @@ function Meta({
 export default async function NewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string }>;
+  searchParams: Promise<{ c?: string; page?: string }>;
 }) {
-  const { c } = await searchParams;
-  const active = parseCategory(c);
-  const [posts, user] = await Promise.all([
-    listNews(active ?? undefined),
+  const sp = await searchParams;
+  const active = parseCategory(sp.c);
+  const [first, user] = await Promise.all([
+    listNews(active ?? undefined, { limit: PER_PAGE, offset: 0 }),
     getCurrentUser(),
   ]);
+  const pagination = paginate(first.total, parsePage(sp.page));
+  const { rows: posts } =
+    pagination.offset === 0
+      ? first
+      : await listNews(active ?? undefined, {
+          limit: PER_PAGE,
+          offset: pagination.offset,
+        });
   const mine = user ? await myNewsSubmissions(user.id) : [];
 
   // The newest post leads; the rest run underneath as rows.
@@ -230,6 +240,12 @@ export default async function NewsPage({
           )}
         </>
       )}
+      <Pager
+        basePath="/news"
+        params={{ c: active ?? undefined }}
+        pagination={pagination}
+        noun="posts"
+      />
     </div>
   );
 }
