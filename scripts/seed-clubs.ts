@@ -223,6 +223,53 @@ const SEATTLE_CLUBS: {
     website: "https://seattleceltic.com",
     logo: `${B}/seattle-celtic/logo-97O3eg3sdGlzUiMzoJuZ7uFtcly8wT.png`,
   },
+  // --- A second pass of Seattle-area WPL clubs, Sep 2026. ---------------
+  //
+  // Left out again with the reasons recorded: Sparta Tacoma is North Tacoma
+  // SC's premier programme, its own page 500s, and the only marks on that site
+  // are the parent club's and the CMS vendor's. Southlake FC, Mt. Rainier FC,
+  // Puget Sound SC, Granite Falls YSC and South Tacoma United could not be
+  // placed or verified at all.
+  {
+    name: "Seattle Reign Academy",
+    city: "Seattle",
+    website: "https://www.reignacademy.com",
+    logo: `${B}/seattle-reign-academy/logo-wTwRsJXb79r3TtWo0LFVkvWR6zkMgb.png`,
+  },
+  {
+    // Their site names the North Kitsap region rather than a home city.
+    name: "North Kitsap Soccer Club",
+    city: null,
+    website: "https://northkitsapsoccer.org",
+    logo: `${B}/north-kitsap-soccer-club/logo-B3o4A1Dt0KfMt1bw6XKhPBv7EiQo4A.png`,
+  },
+  {
+    // The site titles itself "Association", but the crest and the WPL
+    // directory both say Club.
+    name: "Norpoint Soccer Club",
+    city: "Tacoma",
+    website: "https://norpointsoccer.org",
+    logo: `${B}/norpoint-soccer-club/logo-dZSCXeljE02cJXPJqJnKfhUfHDgizY.jpg`,
+  },
+  {
+    name: "South Kitsap Soccer Club",
+    city: "Port Orchard",
+    website: "https://www.sksoccer.com",
+    logo: `${B}/south-kitsap-soccer-club/logo-1UzP4GvP7XTr7p31k1TXXQvdjMVhsw.png`,
+  },
+  {
+    // Serves Bainbridge Island, Kitsap and the Olympic Peninsula; no home city.
+    name: "West Sound Soccer Academy",
+    city: null,
+    website: "https://westsoundsoccer.org",
+    logo: `${B}/west-sound-soccer-academy/logo-RKNvNk32APxlpIntGrlXvGltji9V65.png`,
+  },
+  {
+    name: "Stanwood Camano Youth Soccer Club",
+    city: "Stanwood",
+    website: "https://scysc.com",
+    logo: `${B}/stanwood-camano-youth-soccer-club/logo-t3fPSZr1VVxENOy7Nc4xuRGCrijdXA.jpg`,
+  },
 ];
 
 /**
