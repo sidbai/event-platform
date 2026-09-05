@@ -11,23 +11,32 @@ export function SearchBar({
   placeholder = "Search",
   label,
   className = "",
+  action,
+  compact = false,
 }: {
   defaultValue?: string;
   placeholder?: string;
   /** Accessible name, since there is no visible label or button. */
   label: string;
   className?: string;
+  /** Where to submit. Omitted means the current page, which is what the
+   *  per-section bars want; the header one targets /search. */
+  action?: string;
+  /** Header sizing: shorter, and readable on a dark bar. */
+  compact?: boolean;
 }) {
   return (
-    <form method="get" role="search" className={`relative ${className}`}>
+    <form method="get" action={action} role="search" className={`relative ${className}`}>
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted"
+        className={`pointer-events-none absolute inset-y-0 flex items-center ${
+          compact ? "left-2.5 text-white/60" : "left-3 text-muted"
+        }`}
       >
         <svg
           viewBox="0 0 24 24"
-          width="16"
-          height="16"
+          width={compact ? 14 : 16}
+          height={compact ? 14 : 16}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -43,7 +52,11 @@ export function SearchBar({
         defaultValue={defaultValue}
         aria-label={label}
         placeholder={placeholder}
-        className="w-full rounded-md border border-line bg-card py-2 pl-9 pr-3 text-sm"
+        className={
+          compact
+            ? "w-full rounded-full border border-white/15 bg-white/10 py-1.5 pl-8 pr-3 text-sm text-white placeholder:text-white/50 focus:border-white/30 focus:outline-none"
+            : "w-full rounded-md border border-line bg-card py-2 pl-9 pr-3 text-sm"
+        }
       />
     </form>
   );

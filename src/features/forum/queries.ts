@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { comments, discussions, forumPosts } from "@/db/schema";
@@ -98,6 +98,47 @@ export async function listForumPosts(
      * feed. The post page holds the one access check and forwards from there.
      */
     href: `/community/${p.slug}`,
+    ...authorFields(p.author),
+  }));
+}
+
+/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/**
+ * Posts matching free text, for the site-wide search.
+ *
+ * Hidden posts are excluded outright — search must not be a way around
+ * moderation, and unlike the feed there is no admin view here to badge them in.
+ */
+export async function searchForumPosts(q: string, limit = 20) {
+  const term = `%${escapeLike(q)}%`;
+  const posts = await db.query.forumPosts.findMany({
+    where: and(
+      isNull(forumPosts.hiddenAt),
+      or(ilike(forumPosts.title, term), ilike(forumPosts.body, term)),
+    ),
+    orderBy: [desc(forumPosts.lastActivityAt)],
+    limit,
+    with: {
+      author: {
+        columns: { displayName: true, name: true, username: true, avatarUrl: true },
+      },
+      convertedEvent: { columns: { slug: true } },
+    },
+  });
+
+  const counts = await replyCounts(posts);
+  return posts.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    body: p.body,
+    category: p.category,
+    lastActivityAt: p.lastActivityAt,
+    replies: counts.get(p.id) ?? 0,
     ...authorFields(p.author),
   }));
 }
