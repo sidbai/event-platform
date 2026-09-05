@@ -19,6 +19,7 @@ import { hostedEvents } from "@/features/teams/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 
@@ -147,15 +148,12 @@ export default async function TeamPage({
 
       {(events.length > 0 || canSchedule) && (
         <section className="mt-8">
-          <div className="flex items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Team calendar</h2>
             {canSchedule && (
-              <Link
-                href={`/events/new?team=${team.slug}`}
-                className="text-sm font-medium text-brand-text hover:underline"
-              >
-                New event →
-              </Link>
+              <CreateLink href={`/events/new?team=${team.slug}`}>
+                Start an event
+              </CreateLink>
             )}
           </div>
           {events.length === 0 ? (

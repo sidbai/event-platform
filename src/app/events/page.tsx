@@ -4,6 +4,7 @@ import { SearchBar } from "@/components/search-bar";
 
 import { EventTags } from "@/features/events/event-tags";
 import { listEvents, listEventsByTime } from "@/features/events/queries";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 
@@ -82,13 +83,7 @@ export default async function EventsPage({
     <div className="mx-auto max-w-3xl px-5 py-10">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
-        <Link
-          href="/events/new"
-          className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
-        >
-          <span aria-hidden className="text-base leading-none">+</span>
-          Start an event
-        </Link>
+        <CreateLink href="/events/new">Start an event</CreateLink>
       </div>
 
       <SearchBar

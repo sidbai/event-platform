@@ -13,6 +13,7 @@ import {
 import { listNews, myNewsSubmissions } from "@/features/news/queries";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -80,22 +81,13 @@ export default async function NewsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight">News</h1>
-          <p className="mt-1 text-sm text-muted">
-            Recaps, guides and announcements from around Seattle youth soccer.
-          </p>
-        </div>
-        {user && (
-          <Link
-            href="/news/new"
-            className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-          >
-            Write a post
-          </Link>
-        )}
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">News</h1>
+        {user && <CreateLink href="/news/new">Write a post</CreateLink>}
       </div>
+      <p className="mt-1 text-sm text-muted">
+        Recaps, guides and announcements from around Seattle youth soccer.
+      </p>
 
       {mine.length > 0 && (
         <section className="mt-5 rounded-lg border border-line bg-elevated px-4 py-3">

@@ -21,6 +21,7 @@ import {
 } from "@/features/clubs/queries";
 import { HelpfulButton, ReportControl } from "@/features/clubs/review-card";
 import { RatingBreakdown, Stars } from "@/features/clubs/stars";
+import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 
@@ -181,11 +182,9 @@ export default async function ClubPage({
           against named people is a leaderboard; the score belongs on the
           coach's own page, beside the context that makes it readable. */}
       <section className="mt-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold">Coaches at this club</h2>
-          <Link href="/coaches/new" className="text-sm text-brand-text hover:underline">
-            Add a coach
-          </Link>
+          <CreateLink href="/coaches/new">Add a coach</CreateLink>
         </div>
         {coaches.length === 0 ? (
           <p className="mt-2 text-sm text-muted">
