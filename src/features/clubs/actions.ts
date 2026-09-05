@@ -340,3 +340,27 @@ export async function revertClub(slug: string, editId: string): Promise<void> {
     "Reverted to an earlier version",
   );
 }
+
+
+/**
+ * Hold a club at the top of the directory, or release it. Admin only.
+ *
+ * Deliberately not part of the seeder: it is an editorial choice about which
+ * clubs lead the page, and a seed run must never quietly undo an unpin.
+ */
+export async function setClubPinned(
+  slug: string,
+  pinned: boolean,
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  await db
+    .update(clubs)
+    .set({ pinned, updatedAt: new Date() })
+    .where(eq(clubs.slug, slug));
+
+  revalidatePath("/clubs");
+  revalidatePath(`/clubs/${slug}`);
+  revalidatePath("/admin");
+}

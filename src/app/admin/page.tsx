@@ -18,7 +18,8 @@ import {
   rejectCoachClaim,
   restoreReview,
 } from "@/features/coaches/actions";
-import { recentEvents, recentForumPosts } from "@/features/admin/content";
+import { allClubs, recentEvents, recentForumPosts } from "@/features/admin/content";
+import { setClubPinned } from "@/features/clubs/actions";
 import { setEventHidden } from "@/features/events/actions";
 import { setForumPostHidden } from "@/features/forum/actions";
 import { pendingCoachClaims } from "@/features/coaches/queries";
@@ -42,6 +43,7 @@ export default async function AdminPage() {
     clubEdits,
     posts,
     allEvents,
+    clubList,
   ] =
     await Promise.all([
       pendingEvents(),
@@ -53,6 +55,7 @@ export default async function AdminPage() {
       recentClubEdits(),
       recentForumPosts(),
       recentEvents(),
+      allClubs(),
     ]);
 
   return (
@@ -426,6 +429,42 @@ export default async function AdminPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Featured clubs</h2>
+        <p className="mt-1 text-sm text-muted">
+          Pinned clubs lead the directory instead of sorting alphabetically.
+          Nothing else about them changes.
+        </p>
+        <ul className="mt-3 divide-y divide-line">
+          {clubList.map((c) => (
+            <li
+              key={c.slug}
+              className="flex flex-wrap items-center justify-between gap-2 py-2"
+            >
+              <span className="min-w-0">
+                <Link
+                  href={`/clubs/${c.slug}`}
+                  className="font-medium text-brand-text hover:underline"
+                >
+                  {c.name}
+                </Link>
+                {c.city && <span className="ml-2 text-xs text-muted">{c.city}</span>}
+                {c.pinned && (
+                  <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-soft-text">
+                    Pinned
+                  </span>
+                )}
+              </span>
+              <form action={setClubPinned.bind(null, c.slug, !c.pinned)}>
+                <button className="rounded-md border border-line px-3 py-1 text-sm hover:bg-elevated">
+                  {c.pinned ? "Unpin" : "Pin to top"}
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mt-10">

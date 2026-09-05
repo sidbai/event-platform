@@ -52,7 +52,8 @@ export async function listClubs(
 
   const rows = await db.query.clubs.findMany({
     where,
-    orderBy: [asc(clubs.name)],
+    // Pinned clubs lead, so page one opens on what families actually compare.
+    orderBy: [desc(clubs.pinned), asc(clubs.name)],
     limit: window?.limit,
     offset: window?.offset,
   });
@@ -86,6 +87,7 @@ export async function listClubs(
       name: c.name,
       city: c.city,
       crestUrl: c.crestUrl,
+      pinned: c.pinned,
       summary: averageRatings("club", byClub.get(c.id) ?? []),
     })),
   };

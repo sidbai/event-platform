@@ -536,6 +536,15 @@ export const clubs = pgTable("clubs", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  /**
+   * Held at the top of the directory by an admin.
+   *
+   * The clubs most families are actually choosing between, so the first page
+   * is not simply whatever sorts first alphabetically. Same shape as
+   * forum_posts.pinned, and set only from the admin page — the seeder must
+   * never write it, or an unpin would be undone on the next run.
+   */
+  pinned: boolean("pinned").notNull().default(false),
   city: text("city"),
   website: text("website"),
   crestUrl: text("crest_url"),

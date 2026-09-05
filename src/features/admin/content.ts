@@ -1,9 +1,9 @@
 import "server-only";
 
-import { desc } from "drizzle-orm";
+import { asc, desc } from "drizzle-orm";
 
 import { db } from "@/db";
-import { events, forumPosts } from "@/db/schema";
+import { clubs, events, forumPosts } from "@/db/schema";
 import { publicName } from "@/features/auth";
 
 /**
@@ -51,4 +51,13 @@ export async function recentEvents(limit = 20) {
     hidden: e.hiddenAt !== null,
     at: e.createdAt,
   }));
+}
+
+/** Clubs for the admin pin list, pinned ones first. */
+export async function allClubs() {
+  const rows = await db.query.clubs.findMany({
+    orderBy: [desc(clubs.pinned), asc(clubs.name)],
+    columns: { slug: true, name: true, city: true, pinned: true },
+  });
+  return rows;
 }
