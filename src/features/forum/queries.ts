@@ -90,9 +90,14 @@ export async function listForumPosts(
   return posts.map((p) => ({
     ...p,
     replies: counts.get(p.id) ?? 0,
-    href: p.convertedEvent
-      ? `/events/${p.convertedEvent.slug}`
-      : `/community/${p.slug}`,
+    /*
+     * Always the post, even once converted.
+     *
+     * Linking straight to the event skipped every access check: an event whose
+     * visibility was narrowed after conversion left a dead link in a public
+     * feed. The post page holds the one access check and forwards from there.
+     */
+    href: `/community/${p.slug}`,
     ...authorFields(p.author),
   }));
 }

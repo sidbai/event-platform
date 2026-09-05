@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { db } from "@/db";
+import { events } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
 import { Avatar } from "@/components/avatar";
+import { canViewEvent } from "@/features/events/can-view";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
@@ -53,7 +58,17 @@ export default async function ForumPostPage({
   if (!post) notFound();
 
   // The thread moved to the event; keep shared links working.
-  if (post.convertedEvent) redirect(`/events/${post.convertedEvent.slug}`);
+  // Forward to the event only if this reader can open it. Otherwise the post
+  // stays readable here rather than bouncing them into a 404 — the discussion
+  // was public even when the event it became is not.
+  if (post.convertedEvent) {
+    const target = await db.query.events.findFirst({
+      where: eq(events.slug, post.convertedEvent.slug),
+    });
+    if (target && (await canViewEvent(target, user))) {
+      redirect(`/events/${post.convertedEvent.slug}`);
+    }
+  }
 
   const viewer = user ? { id: user.id, admin: isAdmin(user) } : null;
   // A hidden post stays reachable for its author and for admins.
