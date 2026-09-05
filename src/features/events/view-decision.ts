@@ -4,6 +4,8 @@ export type ViewableEvent = {
   visibility: string;
   organizerId: string | null;
   hostTeamId?: string | null;
+  /** Set when an admin has taken the event down. */
+  hiddenAt?: Date | null;
 };
 
 /**
@@ -22,6 +24,12 @@ export function viewDecision(
   admin: boolean,
 ): "allow" | "deny" | "check-access" {
   const mine = !!userId && event.organizerId === userId;
+
+  // Checked first, and before the organizer's own allow: a ban outranks
+  // visibility and status both. The organizer still sees it so a takedown is
+  // not indistinguishable from a bug, but nobody else does.
+  if (event.hiddenAt) return admin || mine ? "allow" : "deny";
+
   if (mine || admin) return "allow";
 
   if (

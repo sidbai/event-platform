@@ -210,3 +210,29 @@ export async function setEventVisibility(
   revalidatePath(`/events/${slug}`);
   revalidatePath("/events");
 }
+
+
+/**
+ * Take an event down, or put it back. Admin only.
+ *
+ * Separate from visibility, which belongs to the organizer, and from
+ * cancelling, which means the event is not happening rather than removed. Only
+ * an admin can lift it, so an organizer cannot re-list a banned event by
+ * flipping it to unlisted and passing the link around.
+ */
+export async function setEventHidden(
+  slug: string,
+  hidden: boolean,
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  await db
+    .update(events)
+    .set({ hiddenAt: hidden ? new Date() : null, updatedAt: new Date() })
+    .where(eq(events.slug, slug));
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath("/events");
+  revalidatePath("/admin");
+}

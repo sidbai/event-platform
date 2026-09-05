@@ -18,6 +18,9 @@ import {
   rejectCoachClaim,
   restoreReview,
 } from "@/features/coaches/actions";
+import { recentEvents, recentForumPosts } from "@/features/admin/content";
+import { setEventHidden } from "@/features/events/actions";
+import { setForumPostHidden } from "@/features/forum/actions";
 import { pendingCoachClaims } from "@/features/coaches/queries";
 import { dismissMessageReports, hideMessage } from "@/features/messages/actions";
 import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
@@ -29,7 +32,17 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, news, claims, reports, messageReports, reviewReports, clubEdits] =
+  const [
+    events,
+    news,
+    claims,
+    reports,
+    messageReports,
+    reviewReports,
+    clubEdits,
+    posts,
+    allEvents,
+  ] =
     await Promise.all([
       pendingEvents(),
       pendingNews(),
@@ -38,6 +51,8 @@ export default async function AdminPage() {
       reportedMessages(),
       reportedReviews(),
       recentClubEdits(),
+      recentForumPosts(),
+      recentEvents(),
     ]);
 
   return (
@@ -311,6 +326,102 @@ export default async function AdminPage() {
                     </button>
                   </form>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Not a queue: the sections above are things awaiting a decision, this
+          is for finding something and taking it down — and for putting it
+          back, which needs the hidden ones listed. */}
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Posts</h2>
+        <p className="mt-1 text-sm text-muted">
+          Hiding keeps the post and its replies; the author still sees it.
+        </p>
+        {posts.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No posts yet.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {posts.map((p) => (
+              <li
+                key={p.slug}
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+              >
+                <span className="min-w-0">
+                  <Link
+                    href={`/community/${p.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {p.title}
+                  </Link>
+                  <span className="ml-2 text-xs text-muted">{p.author}</span>
+                  {p.hidden && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                      Hidden
+                    </span>
+                  )}
+                </span>
+                <form action={setForumPostHidden.bind(null, p.slug, !p.hidden)}>
+                  <button
+                    className={
+                      p.hidden
+                        ? "rounded-md border border-line px-3 py-1 text-sm hover:bg-elevated"
+                        : "rounded-md border border-line px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                    }
+                  >
+                    {p.hidden ? "Unhide" : "Hide"}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Events</h2>
+        <p className="mt-1 text-sm text-muted">
+          Hiding takes an event off every list, feed and print sheet whatever
+          its visibility says, and only you can lift it.
+        </p>
+        {allEvents.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No events yet.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-line">
+            {allEvents.map((e) => (
+              <li
+                key={e.slug}
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+              >
+                <span className="min-w-0">
+                  <Link
+                    href={`/events/${e.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {e.title}
+                  </Link>
+                  <span className="ml-2 text-xs text-muted">
+                    {e.status} · {e.visibility}
+                  </span>
+                  {e.hidden && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                      Hidden
+                    </span>
+                  )}
+                </span>
+                <form action={setEventHidden.bind(null, e.slug, !e.hidden)}>
+                  <button
+                    className={
+                      e.hidden
+                        ? "rounded-md border border-line px-3 py-1 text-sm hover:bg-elevated"
+                        : "rounded-md border border-line px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                    }
+                  >
+                    {e.hidden ? "Unhide" : "Hide"}
+                  </button>
+                </form>
               </li>
             ))}
           </ul>
