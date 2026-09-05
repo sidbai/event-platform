@@ -122,23 +122,31 @@ export default async function NewsPostPage({
               width={post.coverWidth}
               height={post.coverHeight}
               sizes="(max-width: 768px) 100vw, 768px"
-              /* Capped so a very tall photo cannot push the article itself
-                 off the first screen; object-contain keeps it undistorted when
-                 the cap bites, and does nothing at all when it does not. */
-              className="mt-6 h-auto max-h-[80vh] w-full rounded-xl object-contain"
-              style={{ height: "auto" }}
+              /* Capped so a very tall photo cannot push the article itself off
+                 the first screen. The cap is on the box rather than on how the
+                 picture fills it: the element shrinks to the shape of the
+                 image, so a portrait cover is centred at its own proportions
+                 instead of sitting in a full-width strip between two bars. */
+              className="mx-auto mt-6 block h-auto w-auto max-w-full rounded-xl"
+              style={{ maxHeight: "80vh" }}
               priority
             />
           ) : (
-            /* Written before the size was captured: a fixed box is the only
-               safe assumption when the shape is unknown. */
+            /* Size unknown: a fixed box is the only safe assumption about the
+               shape, but the image is fitted inside it rather than cropped to
+               fill it. Letterboxing a portrait photo looks worse than a crop
+               and shows all of it, which is the right way round — cropping
+               silently threw away most of a 960x1200 cover.
+
+               Running `pnpm db:backfill:covers` measures these and they stop
+               taking this path. */
             <div className="relative mt-6 aspect-[16/8] w-full overflow-hidden rounded-xl bg-elevated">
               <Image
                 src={post.coverUrl}
                 alt=""
                 fill
                 sizes="(max-width: 768px) 100vw, 768px"
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             </div>

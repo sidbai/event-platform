@@ -137,10 +137,12 @@ function BodyImage({ src, alt }: { src?: string | Blob; alt?: string }) {
         width={1600}
         height={900}
         sizes="(max-width: 768px) 100vw, 768px"
-        // Height follows the file's own shape; the numbers above only reserve
-        // space, so this never squashes a portrait photo into a landscape box.
-        className="h-auto max-h-[80vh] w-full object-contain"
-        style={{ height: "auto" }}
+        /* Height follows the file's own shape; the numbers above only reserve
+           space, so this never squashes a portrait photo into a landscape box.
+           The cap applies to the box, so a tall image is centred at its own
+           proportions rather than stranded between two bars. */
+        className="mx-auto block h-auto w-auto max-w-full"
+        style={{ maxHeight: "80vh" }}
       />
     </span>
   );
