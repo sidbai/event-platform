@@ -18,6 +18,8 @@ import { db } from "@/db";
 import { events, venues } from "@/db/schema";
 import { weekendRange } from "@/lib/dates";
 
+import { splitByTime } from "./split-by-time";
+
 export type EventFilters = {
   /** Free text across the title, summary and where it is being played. */
   q?: string;
@@ -83,6 +85,12 @@ export async function listEvents(filters: EventFilters = {}) {
         : [desc(events.startsAt)],
     with: { venue: true, hostTeam: { columns: { name: true } } },
   });
+}
+
+/** listEvents, already split into upcoming and past for the events page. */
+export async function listEventsByTime(filters: EventFilters = {}) {
+  const events = await listEvents(filters);
+  return { ...splitByTime(events, new Date()), total: events.length };
 }
 
 export async function getEventBySlug(slug: string) {
