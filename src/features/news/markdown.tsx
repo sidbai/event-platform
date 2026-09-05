@@ -137,12 +137,16 @@ function BodyImage({ src, alt }: { src?: string | Blob; alt?: string }) {
         width={1600}
         height={900}
         sizes="(max-width: 768px) 100vw, 768px"
-        /* Height follows the file's own shape; the numbers above only reserve
-           space, so this never squashes a portrait photo into a landscape box.
-           The cap applies to the box, so a tall image is centred at its own
-           proportions rather than stranded between two bars. */
-        className="mx-auto block h-auto w-auto max-w-full"
-        style={{ maxHeight: "80vh" }}
+        /* Fills the column, height following the file's own shape — the
+           numbers above only reserve space before it loads, so this never
+           squashes a portrait photo into a landscape box.
+
+           w-full rather than w-auto: width auto would take the width of
+           whichever srcSet candidate was downloaded, which makes the layout
+           follow the download and can leave an image narrower than the text
+           around it. Body images are not capped by height the way covers are,
+           because nothing here records their real shape to compute one from. */
+        className="block h-auto w-full"
       />
     </span>
   );

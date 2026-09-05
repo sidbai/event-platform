@@ -14,6 +14,7 @@ import {
 } from "@/features/news/constants";
 import { getNewsPost } from "@/features/news/queries";
 import { Markdown } from "@/features/news/markdown";
+import { coverMaxWidth } from "@/features/news/cover";
 
 export const dynamic = "force-dynamic";
 
@@ -115,20 +116,22 @@ export default async function NewsPostPage({
           (post.coverWidth && post.coverHeight ? (
             /* Its own shape, since we know it. A portrait photo stays a
                portrait photo instead of being cropped through the middle to
-               fit one ratio that suited the first cover anyone uploaded. */
+               fit one ratio that suited the first cover anyone uploaded.
+
+               w-full, never w-auto. Width auto means the width of whichever
+               srcSet candidate the browser happened to download, so a 900px
+               original rendered at 768 and sat narrower than the column it is
+               in — the layout quietly following the download. Filling the
+               column is the browser's job; the height cap below is ours,
+               because only we know the real shape. */
             <Image
               src={post.coverUrl}
               alt=""
               width={post.coverWidth}
               height={post.coverHeight}
               sizes="(max-width: 768px) 100vw, 768px"
-              /* Capped so a very tall photo cannot push the article itself off
-                 the first screen. The cap is on the box rather than on how the
-                 picture fills it: the element shrinks to the shape of the
-                 image, so a portrait cover is centred at its own proportions
-                 instead of sitting in a full-width strip between two bars. */
-              className="mx-auto mt-6 block h-auto w-auto max-w-full rounded-xl"
-              style={{ maxHeight: "80vh" }}
+              className="mx-auto mt-6 block h-auto w-full rounded-xl"
+              style={{ maxWidth: coverMaxWidth(post.coverWidth, post.coverHeight) }}
               priority
             />
           ) : (
