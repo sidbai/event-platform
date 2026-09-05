@@ -62,17 +62,23 @@ export async function listForumPosts(
   category?: ForumCategory,
   /** Admins see hidden posts, badged, so moderated ones stay findable. */
   includeHidden = false,
+  window?: { limit: number; offset: number },
 ) {
   const filters = [
     category ? eq(forumPosts.category, category) : undefined,
     includeHidden ? undefined : isNull(forumPosts.hiddenAt),
   ].filter(Boolean);
+  const where = filters.length > 0 ? and(...filters) : undefined;
+
+  // Was a bare limit of 100, which silently hid post 101 onwards.
+  const total = await db.$count(forumPosts, where);
 
   // Converted posts stay in the feed, badged, and link through to their event.
   const posts = await db.query.forumPosts.findMany({
-    where: filters.length > 0 ? and(...filters) : undefined,
+    where,
     orderBy: [desc(forumPosts.pinned), desc(forumPosts.lastActivityAt)],
-    limit: 100,
+    limit: window?.limit ?? 100,
+    offset: window?.offset,
     with: {
       author: {
         columns: {
@@ -87,7 +93,7 @@ export async function listForumPosts(
   });
 
   const counts = await replyCounts(posts);
-  return posts.map((p) => ({
+  const rows = posts.map((p) => ({
     ...p,
     replies: counts.get(p.id) ?? 0,
     /*
@@ -100,6 +106,7 @@ export async function listForumPosts(
     href: `/community/${p.slug}`,
     ...authorFields(p.author),
   }));
+  return { rows, total };
 }
 
 /** % and _ are LIKE wildcards; a search for "50%" must not match everything. */

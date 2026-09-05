@@ -31,22 +31,33 @@ async function commentCounts(postIds: string[]) {
   return new Map(rows.map((r) => [r.sid, r.n]));
 }
 
-export async function listNews(category?: NewsCategory) {
+export async function listNews(
+  category?: NewsCategory,
+  window?: { limit: number; offset: number },
+) {
+  const where = category ? and(live, eq(newsPosts.category, category)) : live;
+  // Was a bare limit of 40: post 41 simply never appeared, and nothing said so.
+  const total = await db.$count(newsPosts, where);
+
   const rows = await db.query.newsPosts.findMany({
-    where: category ? and(live, eq(newsPosts.category, category)) : live,
+    where,
     orderBy: [desc(newsPosts.publishedAt)],
-    limit: 40,
+    limit: window?.limit ?? 40,
+    offset: window?.offset,
     with: {
       author: { columns: { displayName: true, name: true, username: true } },
     },
   });
 
   const counts = await commentCounts(rows.map((r) => r.id));
-  return rows.map((r) => ({
-    ...r,
-    authorName: r.author ? publicName(r.author) : "King Juan Soccer",
-    comments: counts.get(r.id) ?? 0,
-  }));
+  return {
+    total,
+    rows: rows.map((r) => ({
+      ...r,
+      authorName: r.author ? publicName(r.author) : "King Juan Soccer",
+      comments: counts.get(r.id) ?? 0,
+    })),
+  };
 }
 
 export async function getNewsPost(slug: string) {

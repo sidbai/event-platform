@@ -24,7 +24,7 @@ export default async function Home() {
   ]);
 
   const upcoming = events.slice(0, 6);
-  const latest = news.slice(0, 3);
+  const latest = news.rows.slice(0, 3);
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-12">

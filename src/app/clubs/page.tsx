@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { listClubs } from "@/features/clubs/queries";
+import { Pager } from "@/features/pagination/pager";
+import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 import { ReviewsHeader } from "@/features/reviews/reviews-header";
 import { Stars } from "@/features/clubs/stars";
 
@@ -16,10 +18,16 @@ export const metadata: Metadata = {
 export default async function ClubsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const q = ((await searchParams).q ?? "").trim();
-  const clubs = await listClubs(q);
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const first = await listClubs(q, { limit: PER_PAGE, offset: 0 });
+  const pagination = paginate(first.total, parsePage(sp.page));
+  const { rows: clubs } =
+    pagination.offset === 0
+      ? first
+      : await listClubs(q, { limit: PER_PAGE, offset: pagination.offset });
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -90,6 +98,8 @@ export default async function ClubsPage({
           ))}
         </ul>
       )}
+
+      <Pager basePath="/clubs" params={{ q }} pagination={pagination} noun="clubs" />
     </div>
   );
 }

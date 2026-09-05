@@ -13,6 +13,8 @@ import { likeStates } from "@/features/likes/queries";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { includeHiddenInFeed } from "@/features/forum/visibility";
+import { Pager } from "@/features/pagination/pager";
+import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -35,15 +37,27 @@ function timeAgo(d: Date) {
 export default async function CommunityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string }>;
+  searchParams: Promise<{ c?: string; page?: string }>;
 }) {
-  const { c } = await searchParams;
+  const sp = await searchParams;
+  const { c } = sp;
   const active = FORUM_CATEGORIES.includes(c as ForumCategory)
     ? (c as ForumCategory)
     : undefined;
   const user = await getCurrentUser();
   const viewer = user ? { id: user.id, admin: isAdmin(user) } : null;
-  const posts = await listForumPosts(active, includeHiddenInFeed(viewer));
+  const first = await listForumPosts(active, includeHiddenInFeed(viewer), {
+    limit: PER_PAGE,
+    offset: 0,
+  });
+  const pagination = paginate(first.total, parsePage(sp.page));
+  const { rows: posts } =
+    pagination.offset === 0
+      ? first
+      : await listForumPosts(active, includeHiddenInFeed(viewer), {
+          limit: PER_PAGE,
+          offset: pagination.offset,
+        });
   const likes = await likeStates(
     "forum_post",
     posts.map((p) => p.id),
@@ -159,6 +173,13 @@ export default async function CommunityPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        basePath="/community"
+        params={{ c: active }}
+        pagination={pagination}
+        noun="posts"
+      />
     </div>
   );
 }

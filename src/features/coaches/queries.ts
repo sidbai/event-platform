@@ -71,23 +71,34 @@ function escapeLike(value: string): string {
 }
 
 /** Every coach, for the Coaches tab. Alphabetical, never by score. */
-export async function listCoaches(q?: string) {
+export async function listCoaches(
+  q?: string,
+  window?: { limit: number; offset: number },
+) {
   const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
+  const where = term
+    ? or(
+        ilike(coaches.name, term),
+        // Club comes through a relation, which cannot filter the parent.
+        inArray(
+          coaches.clubId,
+          db.select({ id: clubs.id }).from(clubs).where(ilike(clubs.name, term)),
+        ),
+      )
+    : undefined;
+
+  // Counted before slicing, so the pager knows the size of the whole result
+  // rather than of the page it is showing.
+  const total = await db.$count(coaches, where);
+
   const rows = await db.query.coaches.findMany({
-    where: term
-      ? or(
-          ilike(coaches.name, term),
-          // Club comes through a relation, which cannot filter the parent.
-          inArray(
-            coaches.clubId,
-            db.select({ id: clubs.id }).from(clubs).where(ilike(clubs.name, term)),
-          ),
-        )
-      : undefined,
+    where,
     orderBy: [asc(coaches.name)],
+    limit: window?.limit,
+    offset: window?.offset,
     with: { club: { columns: { name: true, slug: true } } },
   });
-  if (rows.length === 0) return [];
+  if (rows.length === 0) return { rows: [], total };
 
   const counts = await db
     .select({ subjectId: reviews.subjectId, n: sql<number>`count(*)::int` })
@@ -102,15 +113,18 @@ export async function listCoaches(q?: string) {
     .groupBy(reviews.subjectId);
   const byCoach = new Map(counts.map((c) => [c.subjectId, c.n]));
 
-  return rows.map((c) => ({
-    id: c.id,
-    slug: c.slug,
-    name: c.name,
-    role: c.role,
-    ageGroups: c.ageGroups ?? [],
-    club: c.club,
-    reviewCount: byCoach.get(c.id) ?? 0,
-  }));
+  return {
+    total,
+    rows: rows.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      role: c.role,
+      ageGroups: c.ageGroups ?? [],
+      club: c.club,
+      reviewCount: byCoach.get(c.id) ?? 0,
+    })),
+  };
 }
 
 export async function coachSummary(coachId: string) {

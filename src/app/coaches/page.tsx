@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/features/auth";
 import { coachRoleLabel } from "@/features/coaches/constants";
 import { listCoaches } from "@/features/coaches/queries";
+import { Pager } from "@/features/pagination/pager";
+import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 import { ReviewsHeader } from "@/features/reviews/reviews-header";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +18,20 @@ export const metadata: Metadata = {
 export default async function CoachesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const q = ((await searchParams).q ?? "").trim();
-  const [coaches, user] = await Promise.all([listCoaches(q), getCurrentUser()]);
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+
+  // Counted first so the requested page can be clamped against the real total
+  // before the rows are fetched.
+  const first = await listCoaches(q, { limit: PER_PAGE, offset: 0 });
+  const pagination = paginate(first.total, parsePage(sp.page));
+  const { rows: coaches } =
+    pagination.offset === 0
+      ? first
+      : await listCoaches(q, { limit: PER_PAGE, offset: pagination.offset });
+  const user = await getCurrentUser();
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -70,6 +82,13 @@ export default async function CoachesPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        basePath="/coaches"
+        params={{ q }}
+        pagination={pagination}
+        noun="coaches"
+      />
     </div>
   );
 }
