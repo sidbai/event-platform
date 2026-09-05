@@ -56,17 +56,22 @@ export function paginate(
  *
  * Carries the other query parameters through, so paging never silently drops
  * the search you are paging within.
+ *
+ * `key` names the query parameter holding the page number. It exists for
+ * screens like /admin that stack several independent lists: each needs its own
+ * parameter, or paging one list would reset the others.
  */
 export function pageHref(
   basePath: string,
   params: Record<string, string | undefined>,
   page: number,
+  key = "page",
 ): string {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v) qs.set(k, v);
+    if (v && k !== key) qs.set(k, v);
   }
-  if (page > 1) qs.set("page", String(page));
+  if (page > 1) qs.set(key, String(page));
   const s = qs.toString();
   return s ? `${basePath}?${s}` : basePath;
 }

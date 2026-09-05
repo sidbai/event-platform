@@ -77,4 +77,22 @@ describe("pageHref", () => {
       "/clubs?q=port+orchard&page=2",
     );
   });
+
+  it("names the parameter, for a screen with more than one list", () => {
+    expect(pageHref("/admin", {}, 2, "clubs")).toBe("/admin?clubs=2");
+  });
+
+  it("carries the other lists' pages through", () => {
+    // /admin stacks three lists. Paging the posts must not send the clubs
+    // back to page one underneath you.
+    expect(pageHref("/admin", { clubs: "3", events: "2" }, 2, "posts")).toBe(
+      "/admin?clubs=3&events=2&posts=2",
+    );
+  });
+
+  it("drops its own parameter on page one instead of leaving a stale value", () => {
+    expect(pageHref("/admin", { posts: "4", clubs: "2" }, 1, "posts")).toBe(
+      "/admin?clubs=2",
+    );
+  });
 });

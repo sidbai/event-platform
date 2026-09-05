@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
@@ -8,6 +8,7 @@ import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
 import { publicName } from "@/features/auth";
 
 import { averageRatings, type Ratings } from "./constants";
+import { clubDirectoryOrder } from "./order";
 
 const visible = isNull(reviews.hiddenAt);
 
@@ -53,7 +54,8 @@ export async function listClubs(
   const rows = await db.query.clubs.findMany({
     where,
     // Pinned clubs lead, so page one opens on what families actually compare.
-    orderBy: [desc(clubs.pinned), asc(clubs.name)],
+    // Nothing marks them in the UI — the order is the whole effect.
+    orderBy: clubDirectoryOrder,
     limit: window?.limit,
     offset: window?.offset,
   });
@@ -87,7 +89,6 @@ export async function listClubs(
       name: c.name,
       city: c.city,
       crestUrl: c.crestUrl,
-      pinned: c.pinned,
       summary: averageRatings("club", byClub.get(c.id) ?? []),
     })),
   };
