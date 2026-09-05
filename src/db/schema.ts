@@ -593,6 +593,12 @@ export const clubEditsRelations = relations(clubEdits, ({ one }) => ({
 export const coachRole = pgEnum("coach_role", [
   "head",
   "assistant",
+  /**
+   * Plain "Coach" — what most clubs actually publish. Without it, seeding a
+   * club's staff list means inventing "Head" or "Assistant" for real people
+   * whose club gave them neither.
+   */
+  "coach",
   "director",
 ]);
 

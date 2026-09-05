@@ -28,7 +28,7 @@ import {
 import { slugify } from "@/lib/slug";
 
 import { canEditCoach } from "./access";
-import { parseCoachRole } from "./constants";
+import { parseCoachRole, type CoachRole } from "./constants";
 import {
   canRemoveReply,
   canReplyToReview,
@@ -67,7 +67,8 @@ function readAgeGroups(raw: string): string[] {
  */
 async function applyCoachEdit(
   coachId: string,
-  next: { name: string; role: "head" | "assistant" | "director"; ageGroups: string[] },
+  // Derived from the enum so a new role cannot drift out of step with it.
+  next: { name: string; role: CoachRole; ageGroups: string[] },
   editedBy: string,
   summary: string,
 ) {

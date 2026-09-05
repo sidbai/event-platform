@@ -204,6 +204,13 @@
       "when": 1788572554620,
       "tag": "0028_whole_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788618250661,
+      "tag": "0029_quick_zarda",
+      "breakpoints": true
     }
   ]
 }
