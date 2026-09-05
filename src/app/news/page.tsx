@@ -21,7 +21,7 @@ import {
   PER_PAGE,
 } from "@/features/pagination/paginate";
 import { CreateLink } from "@/components/create-link";
-import { formatEventDate } from "@/features/news/dates";
+import { formatEventDate, postedSeparately } from "@/features/news/dates";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -39,6 +39,15 @@ function fmt(d: Date | null) {
   }).format(d);
 }
 
+/** Short, for the second date on a row that already carries one. */
+function fmtShort(d: Date | null) {
+  if (!d) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(d);
+}
+
 function Meta({
   post,
 }: {
@@ -50,13 +59,24 @@ function Meta({
   };
 }) {
   /* The day it is about leads, because that is what the list is ordered by —
-     an index sorted on a date it never shows just looks shuffled. */
+     an index sorted on a date it never shows just looks shuffled.
+     
+     When the post went up on a different day, that is said too. One bare date
+     could be either, and a recap filed under a date it does not explain is the
+     confusing half of this feature rather than the useful half. */
   const covered = formatEventDate(post.eventDate);
+  const alsoPosted = postedSeparately(post.eventDate, post.publishedAt);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
       <span>{post.authorName}</span>
       <span aria-hidden>·</span>
       <span>{covered ?? fmt(post.publishedAt)}</span>
+      {alsoPosted && (
+        <>
+          <span aria-hidden>·</span>
+          <span>posted {fmtShort(post.publishedAt)}</span>
+        </>
+      )}
       <span aria-hidden>·</span>
       <span>{readingMinutes(post.body)} min read</span>
     </div>
