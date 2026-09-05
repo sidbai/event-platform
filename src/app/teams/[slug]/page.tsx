@@ -17,6 +17,8 @@ import {
 import { myPendingTeamInvite } from "@/features/teams/invite-queries";
 import { hostedEvents } from "@/features/teams/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
+import { startConversation } from "@/features/messages/actions";
+import { ContactButton } from "@/features/messages/message-form";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +100,18 @@ export default async function TeamPage({
       </header>
 
       {team.bio && <p className="mt-4 text-muted">{team.bio}</p>}
+
+      {user && !mine && (
+        <div className="mt-4">
+          <ContactButton
+            action={startConversation.bind(null, "team", team.slug)}
+            label="Message the team"
+            placeholder="Ask about joining, fixtures, or a scrimmage…"
+          />
+        </div>
+      )}
+
+
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
         {mine ? (

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { startConversation } from "@/features/messages/actions";
+import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
 import { canViewEvent } from "@/features/events/can-view";
 import { EventTags } from "@/features/events/event-tags";
@@ -209,6 +211,18 @@ export default async function EventPage({
             Submit {myEntry.teamName}&rsquo;s roster →
           </Link>
         </p>
+      )}
+
+      {/* Scoped contact: reaches the organizer of this event only, and only
+          for someone who can already see it. */}
+      {user && event.organizerId && event.organizerId !== user.id && (
+        <div className="mt-8">
+          <ContactButton
+            action={startConversation.bind(null, "event", event.slug)}
+            label="Message the organizer"
+            placeholder="Ask about the event — spaces, format, directions…"
+          />
+        </div>
       )}
 
       {event.divisions.length > 0 && (

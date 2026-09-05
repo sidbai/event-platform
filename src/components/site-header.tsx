@@ -6,6 +6,7 @@ import { Avatar, avatarOf } from "@/components/avatar";
 import { ProfileMenu } from "@/components/profile-menu";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { unreadCount } from "@/features/messages/queries";
 
 const navLink =
   "text-white/75 transition-colors hover:text-gold";
@@ -13,6 +14,9 @@ const navLink =
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const admin = isAdmin(user);
+  // With no email yet, this badge is the whole notification story — without it
+  // a message would arrive somewhere nobody is looking.
+  const unread = user ? await unreadCount(user.id) : 0;
 
   return (
     <header className="sticky top-0 z-40 bg-header text-header-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] print:hidden">
@@ -62,6 +66,10 @@ export async function SiteHeader() {
                 ...(user.username
                   ? [{ href: `/people/${user.username}`, label: "Profile" }]
                   : []),
+                {
+                  href: "/messages",
+                  label: unread > 0 ? `Messages (${unread})` : "Messages",
+                },
                 { href: "/teams", label: "Teams" },
                 { href: "/settings", label: "Settings" },
               ]}

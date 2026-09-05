@@ -14,7 +14,8 @@ export type Bucket =
   | "entry:edit"
   | "comment:create"
   | "event:create"
-  | "invite:send";
+  | "invite:send"
+  | "message:send";
 
 export type Limit = {
   limit: number;
@@ -74,6 +75,11 @@ export const LIMITS: Record<Bucket, Limit> = {
     limit: 50,
     windowSeconds: DAY,
     message: "You've sent a lot of invites today.",
+  },
+  "message:send": {
+    limit: 60,
+    windowSeconds: HOUR,
+    message: "You're sending messages quickly.",
   },
 };
 
