@@ -270,6 +270,74 @@ const SEATTLE_CLUBS: {
     website: "https://scysc.com",
     logo: `${B}/stanwood-camano-youth-soccer-club/logo-t3fPSZr1VVxENOy7Nc4xuRGCrijdXA.jpg`,
   },
+  // --- Surf, Atletico and the international academies, Sep 2026. --------
+  //
+  // The academies carry a foreign parent club's mark. Showing it on that
+  // academy's own review page is the same nominative use as any other club
+  // logo here — it identifies the organisation being reviewed.
+  //
+  // One row per organisation, not per location: the WPL directory lists BVB
+  // twice (Seattle, Eastside) and Nido Aguila four times, but a reviewer is
+  // reviewing the club, not the training site.
+  {
+    name: "Western Washington Surf",
+    city: "Bellevue",
+    website: "https://westernwasurf.com",
+    logo: `${B}/western-washington-surf/logo-2UZrIt2CgZx3hmaZUMWCDqa7wlupzx.jpg`,
+  },
+  {
+    // Eastern Washington, not Puget Sound, and added on request. Formerly
+    // Eastern Washington Surf SC — ewsurfsc.com is the old site and points
+    // here, so listing both would have been one club twice.
+    name: "Washington East Surf Soccer Club",
+    city: null,
+    website: "https://www.wesurfsc.com",
+    logo: `${B}/washington-east-surf-soccer-club/logo-b4HNOz5YJDyq8zyYdDuFKi2sF8tkZd.png`,
+  },
+  {
+    // Still its own club. It joined forces with ALBION SC and Bellevue United
+    // in Nov 2025 for operational infrastructure, which is a partnership
+    // rather than the merger it first reads as.
+    name: "Atletico Futbol Club",
+    city: null,
+    website: "https://atleticofutbol.com",
+    logo: `${B}/atletico-futbol-club/logo-MLskqpAbmSvQGTVWOexXSuPr9iIOFn.png`,
+  },
+  {
+    name: "BVB International Academy Washington",
+    city: null,
+    website: "https://www.bvbia-washington.com",
+    logo: `${B}/bvb-international-academy-washington/logo-yZvJH3SuxnmOCzYWW9JfMHdtQZO7nX.png`,
+  },
+  {
+    // Also known as Issaquah Soccer Club. "issaquah-soccer-club" stays in the
+    // retired list below: that row was seeded from a guessed name, and this is
+    // the club under the name it actually trades as.
+    name: "Liverpool FC International Academy Washington",
+    city: "Issaquah",
+    website: "https://www.lfciawashington.com",
+    logo: `${B}/liverpool-fc-international-academy-washington/logo-APopASZO4wxMKZlduoAo9tbFXuK67R.png`,
+  },
+  {
+    name: "Pumas Seattle",
+    city: "Seattle",
+    website: "https://pumasseattle.com",
+    logo: `${B}/pumas-seattle/logo-jVZsXFxRvqOCMna2iG1yP4OtFcOKB4.png`,
+  },
+  {
+    name: "Rayados Soccer Academy Northwest",
+    city: "Issaquah",
+    website: "https://www.rayadosnw.com",
+    logo: `${B}/rayados-soccer-academy-northwest/logo-hPHenNZIz1Ye2BJLDkBGa0Mm3L9xCf.png`,
+  },
+  {
+    // Club America's PNW branch. No website of its own to check, so the city
+    // is the one it names itself by and the logo is left to the app.
+    name: "Nido Aguila Club America Seattle",
+    city: "Seattle",
+    website: null,
+    logo: null,
+  },
 ];
 
 /**
