@@ -36,6 +36,30 @@ async function uniqueSlug(base: string, exceptId?: string) {
   return `${root}-${Date.now()}`;
 }
 
+/**
+ * The day an article is about, as typed into a date input.
+ *
+ * Kept as a plain YYYY-MM-DD string rather than parsed into a Date: this is a
+ * calendar day someone chose, and turning it into an instant would let it slip
+ * a day for a reader in another timezone. Anything unusable becomes null — the
+ * field is optional, so refusing to save the post over it would be worse than
+ * filing it by its publication date.
+ */
+function parseEventDate(raw: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [y, m, d] = raw.split("-").map(Number);
+  // Rejects 2026-02-31 and friends, which the pattern above happily allows.
+  const asUtc = new Date(Date.UTC(y, m - 1, d));
+  if (
+    asUtc.getUTCFullYear() !== y ||
+    asUtc.getUTCMonth() !== m - 1 ||
+    asUtc.getUTCDate() !== d
+  ) {
+    return null;
+  }
+  return raw;
+}
+
 function read(formData: FormData) {
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const title = get("title");
@@ -43,6 +67,7 @@ function read(formData: FormData) {
   const body = get("body");
   const category = parseCategory(formData.get("category"));
   const coverRaw = get("coverUrl");
+  const eventDate = parseEventDate(get("eventDate"));
   const cover = coverRaw && isOurBlobUrl(coverRaw) ? coverRaw : null;
   // Measured in the browser, so treated as a hint rather than a fact: anything
   // absent, unparseable or absurd becomes null and the article falls back to a
@@ -69,6 +94,7 @@ function read(formData: FormData) {
       body,
       category: category ?? "news",
       // The browser reports this URL after uploading, so it is checked.
+      eventDate,
       coverUrl: cover,
       coverWidth: dimension("coverWidth"),
       coverHeight: dimension("coverHeight"),

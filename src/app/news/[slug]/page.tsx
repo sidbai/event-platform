@@ -15,6 +15,7 @@ import {
 import { getNewsPost } from "@/features/news/queries";
 import { Markdown } from "@/features/news/markdown";
 import { coverMaxWidth } from "@/features/news/cover";
+import { formatEventDate, postedSeparately } from "@/features/news/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,15 @@ export default async function NewsPostPage({
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
           <span>{post.authorName}</span>
           <span aria-hidden>·</span>
-          <span>{fmt(post.publishedAt)}</span>
+          {/* The day it covers leads; the day it went up is only worth saying
+              when the two differ, which for a recap written later they do. */}
+          <span>{formatEventDate(post.eventDate) ?? fmt(post.publishedAt)}</span>
+          {postedSeparately(post.eventDate, post.publishedAt) && (
+            <>
+              <span aria-hidden>·</span>
+              <span>posted {fmt(post.publishedAt)}</span>
+            </>
+          )}
           <span aria-hidden>·</span>
           <span>{readingMinutes(post.body)} min read</span>
           {canEdit && (

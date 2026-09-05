@@ -232,6 +232,13 @@
       "when": 1788631961657,
       "tag": "0032_news_cover_size",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788646763390,
+      "tag": "0033_news_event_date",
+      "breakpoints": true
     }
   ]
 }
