@@ -1,3 +1,4 @@
+import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -24,4 +25,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/*
+ * withBotId adds the proxy rewrites BotID serves its client script through.
+ * Without them an ad blocker or a script blocker takes the classifier out
+ * along with the trackers, and every visitor with one starts looking like a
+ * bot — which on the review form would mean turning away real parents.
+ */
+export default withBotId(nextConfig);
