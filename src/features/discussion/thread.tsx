@@ -73,7 +73,9 @@ export async function DiscussionThread({
   const pinned = pinnedId ? findComment(comments, pinnedId) : null;
 
   return (
-    <section className="mt-10 border-t border-line pt-6">
+    /* Named so a comment icon elsewhere can land on the conversation rather
+       than the top of the page it is part of. */
+    <section id="discussion" className="mt-10 scroll-mt-6 border-t border-line pt-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
           Discussion {count > 0 && <span className="text-muted">({count})</span>}
