@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { setEventVisibility } from "@/features/events/actions";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
@@ -211,6 +212,53 @@ export default async function EventPage({
             Submit {myEntry.teamName}&rsquo;s roster →
           </Link>
         </p>
+      )}
+
+      {/* Visibility used to be fixed at submission with no way back. */}
+      {canManage && (
+        <div className="mt-8 rounded-lg border border-line bg-card p-4">
+          <p className="text-sm font-medium">Who can see this event</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(
+              [
+                ["public", "Public", "Listed for everyone"],
+                ["unlisted", "Unlisted", "Anyone with the link"],
+                ["private", "Private", "Only people you invite"],
+              ] as const
+            ).map(([value, label, hint]) => {
+              const on = event.visibility === value;
+              return (
+                <form
+                  key={value}
+                  action={setEventVisibility.bind(null, event.slug, value)}
+                >
+                  <button
+                    title={hint}
+                    aria-pressed={on}
+                    disabled={on}
+                    className={
+                      on
+                        ? "cursor-default rounded-md border border-brand bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand"
+                        : "rounded-md border border-line px-3 py-1.5 text-sm hover:bg-elevated"
+                    }
+                  >
+                    {label}
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            {event.visibility === "public"
+              ? "Listed on the events page and visible to everyone."
+              : event.visibility === "unlisted"
+                ? "Not listed, but anyone with the link can open it."
+                : "Only you and the people you invite can see it."}
+            {!isAdmin(user) &&
+              event.visibility !== "public" &&
+              " Making it public sends it for review first."}
+          </p>
+        </div>
       )}
 
       {/* Scoped contact: reaches the organizer of this event only, and only

@@ -1259,6 +1259,14 @@ export const forumPosts = pgTable(
     pinned: boolean("pinned").notNull().default(false),
     locked: boolean("locked").notNull().default(false),
     /**
+     * Set by an admin to take a post out of the feed without destroying it.
+     *
+     * Deleting was the only moderation option here, which is out of step with
+     * comments, reviews and messages — and irreversible, so a mistake could
+     * not be undone and a wrongly-removed post left no record.
+     */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    /**
      * Set when the author turns the post into an event. The discussion moves
      * with it, the post drops out of the forum feed, and its slug redirects to
      * the event.

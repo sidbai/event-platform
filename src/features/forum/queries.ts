@@ -58,10 +58,19 @@ async function replyCounts(
   );
 }
 
-export async function listForumPosts(category?: ForumCategory) {
+export async function listForumPosts(
+  category?: ForumCategory,
+  /** Admins see hidden posts, badged, so moderated ones stay findable. */
+  includeHidden = false,
+) {
+  const filters = [
+    category ? eq(forumPosts.category, category) : undefined,
+    includeHidden ? undefined : isNull(forumPosts.hiddenAt),
+  ].filter(Boolean);
+
   // Converted posts stay in the feed, badged, and link through to their event.
   const posts = await db.query.forumPosts.findMany({
-    where: category ? eq(forumPosts.category, category) : undefined,
+    where: filters.length > 0 ? and(...filters) : undefined,
     orderBy: [desc(forumPosts.pinned), desc(forumPosts.lastActivityAt)],
     limit: 100,
     with: {

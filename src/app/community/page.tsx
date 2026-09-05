@@ -11,6 +11,8 @@ import { listForumPosts } from "@/features/forum/queries";
 import { CommentIcon, LikeButton } from "@/features/likes/like-button";
 import { likeStates } from "@/features/likes/queries";
 import { getCurrentUser } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
+import { includeHiddenInFeed } from "@/features/forum/visibility";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -39,10 +41,9 @@ export default async function CommunityPage({
   const active = FORUM_CATEGORIES.includes(c as ForumCategory)
     ? (c as ForumCategory)
     : undefined;
-  const [posts, user] = await Promise.all([
-    listForumPosts(active),
-    getCurrentUser(),
-  ]);
+  const user = await getCurrentUser();
+  const viewer = user ? { id: user.id, admin: isAdmin(user) } : null;
+  const posts = await listForumPosts(active, includeHiddenInFeed(viewer));
   const likes = await likeStates(
     "forum_post",
     posts.map((p) => p.id),
@@ -118,6 +119,11 @@ export default async function CommunityPage({
                     </span>
                   )}
                   {post.locked && <span>· locked</span>}
+                  {post.hiddenAt && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                      Hidden
+                    </span>
+                  )}
                 </div>
                 <h2 className="mt-1.5 font-medium leading-snug">{post.title}</h2>
                 <p className="mt-1 line-clamp-2 text-sm text-muted">{post.body}</p>

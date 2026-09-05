@@ -14,6 +14,8 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+
+import { canSetHidden } from "./visibility";
 import { slugify } from "@/lib/slug";
 
 import { FORUM_CATEGORIES, type ForumResult } from "./constants";
@@ -92,6 +94,28 @@ export async function setForumPostFlag(
     .where(eq(forumPosts.slug, slug));
   revalidatePath(`/community/${slug}`);
   revalidatePath("/community");
+}
+
+/**
+ * Take a post out of the feed, or put it back.
+ *
+ * Admin only, and separate from delete on purpose: hiding is reversible and
+ * leaves the post for its author to see, where deleting is neither.
+ */
+export async function setForumPostHidden(
+  slug: string,
+  hidden: boolean,
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!canSetHidden(user ? { id: user.id, admin: isAdmin(user) } : null)) return;
+
+  await db
+    .update(forumPosts)
+    .set({ hiddenAt: hidden ? new Date() : null })
+    .where(eq(forumPosts.slug, slug));
+
+  revalidatePath("/community");
+  revalidatePath(`/community/${slug}`);
 }
 
 export async function deleteForumPost(slug: string): Promise<void> {

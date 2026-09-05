@@ -7,10 +7,12 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { LikeButton } from "@/features/likes/like-button";
+import { canViewPost } from "@/features/forum/visibility";
 import { likeState } from "@/features/likes/queries";
 import {
   deleteForumPost,
   setForumPostFlag,
+  setForumPostHidden,
 } from "@/features/forum/actions";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { getForumPost } from "@/features/forum/queries";
@@ -53,6 +55,10 @@ export default async function ForumPostPage({
   // The thread moved to the event; keep shared links working.
   if (post.convertedEvent) redirect(`/events/${post.convertedEvent.slug}`);
 
+  const viewer = user ? { id: user.id, admin: isAdmin(user) } : null;
+  // A hidden post stays reachable for its author and for admins.
+  if (!canViewPost(post, viewer)) notFound();
+
   const likes = await likeState("forum_post", post.id, user?.id ?? null);
   const admin = isAdmin(user);
   const mine = !!user && post.authorId === user.id;
@@ -72,6 +78,13 @@ export default async function ForumPostPage({
           {post.pinned && <span className="text-brand-text">📌 Pinned</span>}
           {post.locked && <span>Locked</span>}
         </div>
+        {post.hiddenAt && (
+          <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {admin
+              ? "Hidden — only you and the author can see this."
+              : "An admin hid this post. Only you and the admins can see it."}
+          </p>
+        )}
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{post.title}</h1>
 
         <div className="mt-3 flex items-center gap-2 text-sm text-muted">
@@ -112,6 +125,12 @@ export default async function ForumPostPage({
                 <form action={setForumPostFlag.bind(null, slug, "locked", !post.locked)}>
                   <button className="hover:text-ink">
                     {post.locked ? "Unlock" : "Lock"}
+                  </button>
+                </form>
+                {/* Reversible, unlike Delete beside it. */}
+                <form action={setForumPostHidden.bind(null, slug, !post.hiddenAt)}>
+                  <button className="hover:text-amber-700">
+                    {post.hiddenAt ? "Unhide" : "Hide"}
                   </button>
                 </form>
               </>
