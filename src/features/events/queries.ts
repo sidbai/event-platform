@@ -15,15 +15,29 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/db";
-import { events } from "@/db/schema";
+import { events, venues } from "@/db/schema";
 import { weekendRange } from "@/lib/dates";
 
 export type EventFilters = {
-  kind?: string;
-  when?: "weekend" | "upcoming" | "past";
-  needsOpponent?: boolean;
+  /** Free text across the title, summary and where it is being played. */
   q?: string;
+  /**
+   * Time window. The events page leaves this off while searching — if you
+   * typed something you want it whether it has happened or not — and pins it
+   * to "upcoming" when the box is empty, or a browse with no window would be
+   * dominated by everything that already happened.
+   */
+  when?: "weekend" | "upcoming" | "past";
 };
+
+/**
+ * % and _ are wildcards to LIKE, so a search for "50%" would otherwise match
+ * anything. Not an injection risk — the value is still parameterised — just
+ * wrong matching.
+ */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
 
 export async function listEvents(filters: EventFilters = {}) {
   const where: SQL[] = [
@@ -34,13 +48,21 @@ export async function listEvents(filters: EventFilters = {}) {
     isNull(events.hiddenAt),
   ];
 
-  if (filters.kind) where.push(eq(events.kind, filters.kind));
-  if (filters.needsOpponent) where.push(eq(events.needsOpponent, true));
   if (filters.q) {
+    const term = `%${escapeLike(filters.q)}%`;
     where.push(
       or(
-        ilike(events.title, `%${filters.q}%`),
-        ilike(events.summary, `%${filters.q}%`),
+        ilike(events.title, term),
+        ilike(events.summary, term),
+        // Venue comes through a relation, which cannot filter the parent, so
+        // matching where it is played needs a subquery on the id.
+        inArray(
+          events.venueId,
+          db
+            .select({ id: venues.id })
+            .from(venues)
+            .where(or(ilike(venues.name, term), ilike(venues.city, term))),
+        ),
       )!,
     );
   }
