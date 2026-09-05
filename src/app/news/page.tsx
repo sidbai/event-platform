@@ -11,8 +11,15 @@ import {
   readingMinutes,
 } from "@/features/news/constants";
 import { listNews, myNewsSubmissions } from "@/features/news/queries";
+import { CommentIcon, LikeButton } from "@/features/likes/like-button";
+import { likeStates, type LikeState } from "@/features/likes/queries";
 import { Pager } from "@/features/pagination/pager";
-import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
+import {
+  pageHref,
+  paginate,
+  parsePage,
+  PER_PAGE,
+} from "@/features/pagination/paginate";
 import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +41,7 @@ function fmt(d: Date | null) {
 function Meta({
   post,
 }: {
-  post: { authorName: string; publishedAt: Date | null; body: string; comments: number };
+  post: { authorName: string; publishedAt: Date | null; body: string };
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
@@ -43,14 +50,47 @@ function Meta({
       <span>{fmt(post.publishedAt)}</span>
       <span aria-hidden>·</span>
       <span>{readingMinutes(post.body)} min read</span>
-      {post.comments > 0 && (
-        <>
-          <span aria-hidden>·</span>
-          <span>
-            {post.comments} comment{post.comments === 1 ? "" : "s"}
-          </span>
-        </>
-      )}
+    </div>
+  );
+}
+
+/**
+ * The heart and the comment count, the same pair the community list carries.
+ *
+ * It sits outside the card's link rather than inside it: the heart is a real
+ * button, and a button nested in an anchor is invalid and swallows the click.
+ */
+function Reactions({
+  post,
+  state,
+  signedIn,
+  revalidate,
+}: {
+  post: { id: string; slug: string; comments: number };
+  state: LikeState;
+  signedIn: boolean;
+  /** Where to send the reader back to after the like lands. */
+  revalidate: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <LikeButton
+        subjectType="news_post"
+        subjectId={post.id}
+        state={state}
+        revalidate={revalidate}
+        signedIn={signedIn}
+      />
+      <Link
+        href={`/news/${post.slug}#discussion`}
+        aria-label={`${post.comments} ${post.comments === 1 ? "comment" : "comments"}`}
+        className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted transition-colors hover:bg-elevated hover:text-ink"
+      >
+        <CommentIcon />
+        {post.comments > 0 && (
+          <span className="tabular-nums">{post.comments}</span>
+        )}
+      </Link>
     </div>
   );
 }
@@ -75,6 +115,15 @@ export default async function NewsPage({
           offset: pagination.offset,
         });
   const mine = user ? await myNewsSubmissions(user.id) : [];
+  const likes = await likeStates(
+    "news_post",
+    posts.map((p) => p.id),
+    user?.id ?? null,
+  );
+  /* Back to the page and category you were reading, so a like does not bounce
+     you to the top of an unfiltered list. */
+  const backTo = pageHref("/news", { c: active ?? undefined }, pagination.page);
+  const likeOf = (id: string) => likes.get(id) ?? { count: 0, mine: false };
 
   // The newest post leads; the rest run underneath as rows.
   const [lead, ...rest] = posts;
@@ -160,10 +209,8 @@ export default async function NewsPage({
         </p>
       ) : (
         <>
-          <Link
-            href={`/news/${lead.slug}`}
-            className="mt-6 block overflow-hidden rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-          >
+          <div className="mt-6 overflow-hidden rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <Link href={`/news/${lead.slug}`} className="block">
             {lead.coverUrl && (
               <div className="relative aspect-[16/8] w-full bg-elevated">
                 <Image
@@ -190,14 +237,23 @@ export default async function NewsPage({
               </div>
             </div>
           </Link>
+          <div className="px-3 pb-2.5">
+            <Reactions
+              post={lead}
+              state={likeOf(lead.id)}
+              signedIn={Boolean(user)}
+              revalidate={backTo}
+            />
+          </div>
+          </div>
 
           {rest.length > 0 && (
             <ul className="mt-6 divide-y divide-line">
               {rest.map((post) => (
-                <li key={post.id}>
+                <li key={post.id} className="py-2">
                   <Link
                     href={`/news/${post.slug}`}
-                    className="flex gap-4 py-4 transition-colors hover:bg-elevated"
+                    className="flex gap-4 rounded-lg py-2 transition-colors hover:bg-elevated"
                   >
                     <div className="min-w-0 flex-1">
                       <span className="text-xs font-medium text-brand-text">
@@ -226,6 +282,12 @@ export default async function NewsPage({
                       </div>
                     )}
                   </Link>
+                  <Reactions
+                    post={post}
+                    state={likeOf(post.id)}
+                    signedIn={Boolean(user)}
+                    revalidate={backTo}
+                  />
                 </li>
               ))}
             </ul>
