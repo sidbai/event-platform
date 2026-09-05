@@ -150,6 +150,76 @@ const SEATTLE_CLUBS: {
     website: "https://whatcomfcrangers.org",
     logo: null,
   },
+  // --- Seattle-area Washington Premier League clubs, added Sep 2026. -----
+  //
+  // WPL is a different kind of list from the RCL: 89 clubs across Washington,
+  // Idaho and Oregon, spanning elite N1 down to recreational. So this is a
+  // chosen subset, not the membership — the Puget Sound clubs families
+  // actually pick between, each checked against its own site.
+  //
+  // Directory: https://system.gotsport.com/org_event/events/20169/clubs
+  //
+  // Left out on purpose: Sno-King Youth Club, which runs the FC Edmonds
+  // programme and would double-count one organisation; Terrace Brier SC,
+  // which describes itself as recreational; and Normandy Park FC, which could
+  // not be verified at all.
+  {
+    name: "Eagleclaw FC",
+    city: "Tukwila",
+    website: "https://www.eagleclawfc.org",
+    logo: null,
+  },
+  {
+    // Restored: dropped when the directory narrowed to ECNL/RCL, and back now
+    // that WPL clubs are in scope.
+    name: "Emerald City FC",
+    city: "Seattle",
+    website: "https://emeraldcityfc.org",
+    logo: null,
+  },
+  {
+    name: "Everett Youth Soccer Club",
+    city: "Everett",
+    website: "https://www.everettyouthsoccerclub.com",
+    logo: null,
+  },
+  {
+    name: "FC Edmonds",
+    city: "Edmonds",
+    website: "https://www.fcedmonds.net",
+    logo: null,
+  },
+  {
+    name: "Lake Washington Premier FC",
+    city: "Kirkland",
+    website: "https://www.lwpfc.org",
+    logo: null,
+  },
+  {
+    name: "Mukilteo Youth Soccer Club",
+    city: "Mukilteo",
+    website: "https://mysc.org",
+    logo: null,
+  },
+  {
+    name: "Northlake Soccer Club",
+    city: "Kenmore",
+    website: "https://www.northlakesoccerclub.com",
+    logo: null,
+  },
+  {
+    name: "Pilchuck Soccer Alliance",
+    city: "Marysville",
+    website: "https://www.pilchucksocceralliance.com",
+    logo: null,
+  },
+  {
+    // Restored alongside Emerald City, for the same reason.
+    name: "Seattle Celtic",
+    city: "Seattle",
+    website: "https://seattleceltic.com",
+    logo: null,
+  },
 ];
 
 /**
@@ -161,10 +231,11 @@ const SEATTLE_CLUBS: {
 const RETIRED_SLUGS = [
   "northwest-nationals",
   "issaquah-soccer-club",
-  // Out of scope: the directory covers ECNL / RCL clubs.
-  "emerald-city-fc",
+  // Out of scope: Issaquah FC is neither an RCL full member nor in the WPL
+  // directory. Emerald City FC and Seattle Celtic used to sit here too and
+  // were restored when WPL clubs came into scope — they must stay out of this
+  // list or the seeder would delete them again on the next run.
   "issaquah-fc",
-  "seattle-celtic",
 ];
 
 async function main() {
