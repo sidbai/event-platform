@@ -224,6 +224,63 @@ const COACHES: {
   { clubSlug: "seattle-united", name: "Chris Ruiz", title: "Coach", role: "coach", ageGroups: [] },
   { clubSlug: "seattle-united", name: "Cam Iftiger", title: "Coach", role: "coach", ageGroups: [] },
   { clubSlug: "seattle-united", name: "Britt Blomso", title: "Coach", role: "coach", ageGroups: [] },
+
+  // --- Western Washington Surf — westernwasurf.com/coaches ---------------
+  //
+  // The club publishes one flat roster: every one of these is titled "Coach",
+  // and no director or technical lead is named anywhere on the site, so none
+  // is invented here.
+  //
+  // Age groups are left empty on purpose. The academy pages do list a coach
+  // per team, but they say in as many words that assignments are still being
+  // finalised, and several read TBD. A provisional assignment on a page that
+  // carries reviews of a named person is worse than no assignment.
+  //
+  // The roster also gives each coach's licence (USSF A through Grassroots,
+  // one UEFA B). There is nowhere to put it — coaches have no such column —
+  // so it is not recorded rather than being crammed into a title the club
+  // did not write.
+  { clubSlug: "western-washington-surf", name: "Gareth Vaughan", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Nigel White", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Alex Cunliffe", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Gio Guthro", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Dan Faires", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Mitchel Pinedo", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Sam Valencia", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Micah Johnson", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Dario McDaniel", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Vencent Coleman", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Connor Rosenbaum", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Sam Hawks", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Mara Turner", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Andrew Matheny", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Jason Stepp", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Nelson Salazar", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Cory Hoffman", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Mario Martinez", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Sarah Reiber", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Danielle Jones", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Alex DePolo", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Liam Nevin", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Jack Sturgess", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Olivia Gaughran", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Bruno Ponce", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Brisa Rosas", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "David Ma", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Milliyon Fesseha", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Rob Aubrey", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Amer Aboud", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Neko Young", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Kiara Goodwin", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Keanna Brice", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Alex Zanas", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Kai Choi", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Phoenix Ford", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Eric Saniatan", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Matt Chang", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Miles Martinez", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Heather Rutkowski", title: "Coach", role: "coach", ageGroups: [] },
+  { clubSlug: "western-washington-surf", name: "Nathan Kim", title: "Coach", role: "coach", ageGroups: [] },
 ];
 
 async function main() {
