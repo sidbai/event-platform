@@ -3,12 +3,15 @@ import "server-only";
 import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { publicName } from "@/features/auth";
 import {
   clubEdits,
   clubs,
   coaches,
   comments,
   events,
+  messageReports,
+  messages,
   reviewReports,
   reviews,
 } from "@/db/schema";
@@ -96,6 +99,45 @@ export async function reportedReviews() {
     .sort((a, b) =>
       a.hidden === b.hidden ? b.reportCount - a.reportCount : a.hidden ? -1 : 1,
     );
+}
+
+/**
+ * Messages someone reported.
+ *
+ * The only way a private message reaches this queue — admins cannot browse
+ * inboxes, so everything here arrived because a participant asked for it.
+ */
+export async function reportedMessages() {
+  const counts = await db
+    .select({
+      messageId: messageReports.messageId,
+      n: sql<number>`count(*)::int`,
+      reasons: sql<string[]>`array_agg(distinct ${messageReports.reason})`,
+    })
+    .from(messageReports)
+    .groupBy(messageReports.messageId);
+  if (counts.length === 0) return [];
+
+  const rows = await db.query.messages.findMany({
+    where: and(
+      inArray(messages.id, counts.map((c) => c.messageId)),
+      isNull(messages.hiddenAt),
+    ),
+    with: {
+      author: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
+
+  const byId = new Map(counts.map((c) => [c.messageId, c]));
+  return rows
+    .map((m) => ({
+      id: m.id,
+      body: m.body,
+      author: m.author ? publicName(m.author) : "Someone",
+      reportCount: byId.get(m.id)?.n ?? 0,
+      reasons: (byId.get(m.id)?.reasons ?? []).filter(Boolean),
+    }))
+    .sort((a, b) => b.reportCount - a.reportCount);
 }
 
 /**

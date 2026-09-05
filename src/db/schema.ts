@@ -896,6 +896,144 @@ export const rateLimits = pgTable(
   ],
 );
 
+/**
+ * What a conversation is about.
+ *
+ * Conversations are always scoped to something both people already share.
+ * There is deliberately no 'user' subject: an open inbox between arbitrary
+ * accounts would be a private adult-to-minor channel by default on a youth
+ * sports site, and nothing here records who is a minor. 'offer' is declared
+ * now because adding an enum value later needs its own migration.
+ */
+export const conversationSubject = pgEnum("conversation_subject", [
+  "event",
+  "team",
+  "offer",
+]);
+
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectType: conversationSubject("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    startedBy: uuid("started_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Drives inbox ordering without counting messages on every read. */
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("conversations_subject_idx").on(t.subjectType, t.subjectId)],
+);
+
+/**
+ * Who is in a conversation. Membership is the whole access rule — there is no
+ * separate visibility flag, so a thread cannot be readable by someone who was
+ * never added to it.
+ */
+export const conversationParticipants = pgTable(
+  "conversation_participants",
+  {
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Null until they open it; drives the unread badge. */
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.conversationId, t.userId] }),
+    index("conversation_participants_user_idx").on(t.userId),
+  ],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    body: text("body").notNull(),
+    /** Set by an admin acting on a report; hides without destroying it. */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("messages_conversation_idx").on(t.conversationId, t.createdAt)],
+);
+
+export const messageReports = pgTable(
+  "message_reports",
+  {
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    reporterId: uuid("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.messageId, t.reporterId] })],
+);
+
+/**
+ * One person refusing contact from another.
+ *
+ * Directional: blocking stops them starting a conversation with you and stops
+ * them posting into one you are in. It does not erase what was already said —
+ * an admin still needs the history to judge a report.
+ */
+export const messageBlocks = pgTable(
+  "message_blocks",
+  {
+    blockerId: uuid("blocker_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
+);
+
+export const conversationsRelations = relations(conversations, ({ many }) => ({
+  participants: many(conversationParticipants),
+  messages: many(messages),
+}));
+
+export const conversationParticipantsRelations = relations(
+  conversationParticipants,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversationParticipants.conversationId],
+      references: [conversations.id],
+    }),
+    user: one(users, {
+      fields: [conversationParticipants.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  author: one(users, { fields: [messages.authorId], references: [users.id] }),
+}));
+
 // --- invites -----------------------------------------------------------
 
 export const inviteStatus = pgEnum("invite_status", [

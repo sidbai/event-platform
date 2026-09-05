@@ -7,6 +7,7 @@ import {
   pendingEvents,
   recentClubEdits,
   reportedComments,
+  reportedMessages,
   reportedReviews,
 } from "@/features/admin/queries";
 import { dismissReviewReports, hideReview } from "@/features/clubs/actions";
@@ -18,6 +19,7 @@ import {
   restoreReview,
 } from "@/features/coaches/actions";
 import { pendingCoachClaims } from "@/features/coaches/queries";
+import { dismissMessageReports, hideMessage } from "@/features/messages/actions";
 import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
 import { pendingNews } from "@/features/news/queries";
 
@@ -27,12 +29,13 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, news, claims, reports, reviewReports, clubEdits] =
+  const [events, news, claims, reports, messageReports, reviewReports, clubEdits] =
     await Promise.all([
       pendingEvents(),
       pendingNews(),
       pendingCoachClaims(),
       reportedComments(),
+      reportedMessages(),
       reportedReviews(),
       recentClubEdits(),
     ]);
@@ -274,6 +277,46 @@ export default async function AdminPage() {
           </ul>
         )}
       </section>
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Reported messages{" "}
+          {messageReports.length > 0 && (
+            <span className="text-muted">({messageReports.length})</span>
+          )}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Private messages reach this queue only when a participant reports one.
+        </p>
+        {messageReports.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing reported.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {messageReports.map((m) => (
+              <li key={m.id} className="rounded-lg border border-line p-3">
+                <div className="text-xs text-muted">
+                  {m.author} · {m.reportCount} report
+                  {m.reportCount > 1 ? "s" : ""}
+                  {m.reasons.length > 0 && ` · ${m.reasons.join(", ")}`}
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{m.body}</p>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <form action={hideMessage.bind(null, m.id)}>
+                    <button className="text-red-600 hover:underline">
+                      Hide message
+                    </button>
+                  </form>
+                  <form action={dismissMessageReports.bind(null, m.id)}>
+                    <button className="text-muted hover:text-ink">
+                      Dismiss reports
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Recent club edits</h2>
         <p className="mt-1 text-sm text-muted">
