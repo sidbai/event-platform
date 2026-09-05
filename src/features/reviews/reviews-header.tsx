@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { SearchBar } from "@/components/search-bar";
+
 import { db } from "@/db";
 import { clubs, coaches } from "@/db/schema";
 import { sql } from "drizzle-orm";
@@ -15,10 +17,13 @@ import { sql } from "drizzle-orm";
 export async function ReviewsHeader({
   active,
   action,
+  q,
 }: {
   active: "clubs" | "coaches";
   /** The add button for whichever half you're on; omitted when signed out. */
   action?: { href: string; label: string };
+  /** Current search text, so the box keeps what was typed. */
+  q?: string;
 }) {
   const [[{ clubCount }], [{ coachCount }]] = await Promise.all([
     db.select({ clubCount: sql<number>`count(*)::int` }).from(clubs),
@@ -49,6 +54,17 @@ export async function ReviewsHeader({
           </Link>
         )}
       </div>
+
+      {/* Searches whichever half you are on — the tabs are the scope, so one
+          box does not need to explain which of the two it applies to. */}
+      <SearchBar
+        className="mt-4"
+        defaultValue={q}
+        label={active === "clubs" ? "Search clubs" : "Search coaches"}
+        placeholder={
+          active === "clubs" ? "Search clubs by name or city" : "Search coaches by name or club"
+        }
+      />
 
       {/* A single segmented control rather than two loose pills, so the two
           halves read as one switch instead of two unrelated links. */}
