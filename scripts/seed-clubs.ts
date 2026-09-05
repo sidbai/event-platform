@@ -72,6 +72,84 @@ const SEATTLE_CLUBS: {
     website: "https://www.snohomishunited.com",
     logo: `${B}/snohomish-united/logo-Kx4tsB2L34XohwA5Kl6czWO93UyXkN.png`,
   },
+  // --- The rest of the RCL full membership, added Sep 2026. -------------
+  //
+  // Source is Washington Youth Soccer's own member list, not recollection:
+  // https://washingtonyouthsoccer.org/leagues/regional-club-league/
+  //
+  // "RCL full member" is the scope because it is a definition someone else
+  // maintains — a radius around Seattle would be arguable and would need
+  // re-litigating every time a club is added.
+  //
+  // Cities come from each club's own site. Two deliberate near-misses caught
+  // here: a search confidently placed Washington Rush in the South Sound when
+  // it is the North County (Snohomish) club, and "Sound FC" is also the name
+  // of a men's USL League Two side in Tacoma — unrelated to this youth club in
+  // Woodinville. Both would have been wrong on a page that hosts reviews of a
+  // real organisation.
+  {
+    name: "Blackhills FC",
+    city: "Olympia",
+    website: "https://www.blackhillsfc.org",
+    logo: null,
+  },
+  {
+    name: "Cascade FC",
+    city: "Snoqualmie",
+    website: "https://www.cascadefc.org",
+    logo: null,
+  },
+  {
+    name: "Harbor Soccer Club",
+    city: "Gig Harbor",
+    website: "https://www.harborsoccerclub.com",
+    logo: null,
+  },
+  {
+    name: "Highline Premier FC",
+    city: "Burien",
+    website: "https://www.highlinepremier.com",
+    logo: null,
+  },
+  {
+    // Kitsap, Mason and Jefferson counties; the club names no single city.
+    name: "Kitsap Alliance FC",
+    city: null,
+    website: "https://www.kitsapalliancefc.com",
+    logo: null,
+  },
+  {
+    name: "Northwest United FC",
+    city: "Burlington",
+    website: "https://www.nwunited.org",
+    logo: null,
+  },
+  {
+    name: "Sound Football Club",
+    city: "Woodinville",
+    website: "https://soundfc.org",
+    logo: null,
+  },
+  {
+    name: "Valor Soccer",
+    city: "Maple Valley",
+    website: "https://www.valorsoccer.com",
+    logo: null,
+  },
+  {
+    // Their own site states no city, only "North County", so this stays blank
+    // rather than borrowing one from a third-party directory.
+    name: "Washington Rush",
+    city: null,
+    website: "https://www.washingtonrush.com",
+    logo: null,
+  },
+  {
+    name: "Whatcom FC Rangers",
+    city: "Bellingham",
+    website: "https://whatcomfcrangers.org",
+    logo: null,
+  },
 ];
 
 /**
