@@ -15,6 +15,7 @@ import {
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { checkRateLimit } from "@/features/rate-limit";
+import { allowAnonymousReview } from "@/features/reviews/anon-gate";
 import { isOurBlobUrl, isPendingClubUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
@@ -93,11 +94,24 @@ export async function saveReview(
   _prev: ClubResult,
   formData: FormData,
 ): Promise<ClubResult> {
+  /*
+   * Signed in or not. An account is the stronger check and keeps the
+   * one-per-person rule and the ability to edit; without one, the captcha and
+   * a limit keyed on the connection stand in for it. Following Rate My
+   * Professors, which takes anonymous ratings of named people and accepts that
+   * it cannot then edit or trace them.
+   */
   const user = await getCurrentUser();
-  if (!user) return { error: "Sign in to write a review." };
 
-  const gate = await checkRateLimit("review:create", user);
-  if (!gate.ok) return { error: gate.message };
+  if (user) {
+    const gate = await checkRateLimit("review:create", user);
+    if (!gate.ok) return { error: gate.message };
+  } else {
+    const gate = await allowAnonymousReview(
+      String(formData.get("captchaToken") ?? "") || null,
+    );
+    if (!gate.ok) return { error: gate.error };
+  }
 
   const club = await db.query.clubs.findFirst({
     where: eq(clubs.slug, slug),
@@ -125,24 +139,44 @@ export async function saveReview(
   if (body.length > BODY_MAX) fieldErrors.body = "That's too long.";
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  await ensureAnonHandle(user.id, user.anonHandle);
+  if (user) {
+    await ensureAnonHandle(user.id, user.anonHandle);
 
-  // One review per person per club: writing again edits the one you have.
-  await db
-    .insert(reviews)
-    .values({
+    // One review per person per club: writing again edits the one you have.
+    await db
+      .insert(reviews)
+      .values({
+        subjectType: "club",
+        subjectId: club.id,
+        authorId: user.id,
+        ratings,
+        reviewerRole: reviewerRole!,
+        title,
+        body,
+      })
+      .onConflictDoUpdate({
+        target: [reviews.subjectType, reviews.subjectId, reviews.authorId],
+        set: {
+          ratings,
+          reviewerRole: reviewerRole!,
+          title,
+          body,
+          updatedAt: new Date(),
+        },
+      });
+  } else {
+    // A plain insert: with no author there is nothing for the upsert to
+    // conflict on, and nothing to go back and edit later. That is the trade.
+    await db.insert(reviews).values({
       subjectType: "club",
       subjectId: club.id,
-      authorId: user.id,
+      authorId: null,
       ratings,
       reviewerRole: reviewerRole!,
       title,
       body,
-    })
-    .onConflictDoUpdate({
-      target: [reviews.subjectType, reviews.subjectId, reviews.authorId],
-      set: { ratings, reviewerRole: reviewerRole!, title, body, updatedAt: new Date() },
     });
+  }
 
   revalidatePath(`/clubs/${slug}`);
   revalidatePath("/clubs");
