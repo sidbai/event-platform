@@ -56,6 +56,11 @@ export default async function ClubsPage({
                 <TeamCrest src={club.crestUrl} size={56} />
                 <div className="min-w-0">
                   <div className="font-medium leading-snug">{club.name}</div>
+                  {club.pinned && (
+                    <div className="text-[11px] font-medium text-brand-text">
+                      Popular
+                    </div>
+                  )}
                   {club.city && (
                     <div className="text-xs text-muted">{club.city}</div>
                   )}

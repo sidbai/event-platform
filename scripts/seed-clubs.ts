@@ -184,15 +184,6 @@ const SEATTLE_CLUBS: {
     logo: `${B}/everett-youth-soccer-club/logo-6msGCj8qTBZEOjx0nAFQwjWGtEKIFS.png`,
   },
   {
-    // No logo: fcedmonds.net redirects to skyc.net, the Sno-King site that
-    // runs this programme, and the only mark there is Sno-King's own. A club
-    // page carrying its parent's logo would be worse than carrying none.
-    name: "FC Edmonds",
-    city: "Edmonds",
-    website: "https://www.fcedmonds.net",
-    logo: null,
-  },
-  {
     name: "Lake Washington Premier FC",
     city: "Kirkland",
     website: "https://www.lwpfc.org",
@@ -310,15 +301,6 @@ const SEATTLE_CLUBS: {
     logo: `${B}/bvb-international-academy-washington/logo-yZvJH3SuxnmOCzYWW9JfMHdtQZO7nX.png`,
   },
   {
-    // Also known as Issaquah Soccer Club. "issaquah-soccer-club" stays in the
-    // retired list below: that row was seeded from a guessed name, and this is
-    // the club under the name it actually trades as.
-    name: "Liverpool FC International Academy Washington",
-    city: "Issaquah",
-    website: "https://www.lfciawashington.com",
-    logo: `${B}/liverpool-fc-international-academy-washington/logo-APopASZO4wxMKZlduoAo9tbFXuK67R.png`,
-  },
-  {
     name: "Pumas Seattle",
     city: "Seattle",
     website: "https://pumasseattle.com",
@@ -329,14 +311,6 @@ const SEATTLE_CLUBS: {
     city: "Issaquah",
     website: "https://www.rayadosnw.com",
     logo: `${B}/rayados-soccer-academy-northwest/logo-hPHenNZIz1Ye2BJLDkBGa0Mm3L9xCf.png`,
-  },
-  {
-    // Club America's PNW branch. No website of its own to check, so the city
-    // is the one it names itself by and the logo is left to the app.
-    name: "Nido Aguila Club America Seattle",
-    city: "Seattle",
-    website: null,
-    logo: null,
   },
 ];
 
@@ -354,6 +328,12 @@ const RETIRED_SLUGS = [
   // were restored when WPL clubs came into scope — they must stay out of this
   // list or the seeder would delete them again on the next run.
   "issaquah-fc",
+  // Removed Sep 2026. Liverpool FC IA Washington has closed; the other two
+  // are gone at the club's request. FC Edmonds was always the thinnest entry
+  // here — its domain only ever redirected to Sno-King, which runs it.
+  "liverpool-fc-international-academy-washington",
+  "nido-aguila-club-america-seattle",
+  "fc-edmonds",
 ];
 
 async function main() {
