@@ -12,15 +12,38 @@ import {
 
 const MB = (n: number) => `${Math.round(n / (1024 * 1024))}MB`;
 
+/**
+ * The image's real pixel size, read before it is sent.
+ *
+ * Worth the extra step because the alternative is guessing: a page that does
+ * not know an image's shape has to force one, which is how a portrait photo
+ * ends up cropped through the middle.
+ */
+async function measure(file: File): Promise<{ width: number; height: number } | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const size = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return size;
+  } catch {
+    // An animated GIF or an odd encoding can refuse to decode here. The upload
+    // itself is fine; the page just falls back to a fixed shape for it.
+    return null;
+  }
+}
+
 export function ImageUpload({
   target,
   onUploaded,
+  onMeasured,
   onCleared,
   hasImage,
   label = "Upload a photo",
 }: {
   target: UploadTarget;
   onUploaded: (url: string) => Promise<void>;
+  /** Its pixel size, when the browser could read it. */
+  onMeasured?: (size: { width: number; height: number } | null) => void;
   onCleared?: () => Promise<void>;
   hasImage: boolean;
   label?: string;
@@ -46,6 +69,7 @@ export function ImageUpload({
 
     setBusy(true);
     try {
+      const size = onMeasured ? await measure(file) : null;
       // addRandomSuffix keeps this unique; the server validates the prefix.
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-60);
       const blob = await upload(`${uploadPrefix(target)}/${safeName}`, file, {
@@ -54,6 +78,7 @@ export function ImageUpload({
         clientPayload: JSON.stringify(target),
       });
       await onUploaded(blob.url);
+      onMeasured?.(size);
       startTransition(() => {});
     } catch (e) {
       setError((e as Error).message || "That didn't upload.");

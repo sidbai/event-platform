@@ -44,6 +44,8 @@ export default async function EditNewsPage({
           body: post.body,
           category: post.category,
           coverUrl: post.coverUrl,
+          coverWidth: post.coverWidth,
+          coverHeight: post.coverHeight,
           published: post.status === "published",
         }}
       />
