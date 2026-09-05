@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { requireUser } from "@/features/auth";
 import { reviewCoach } from "@/features/coaches/actions";
 import { recentSeasons } from "@/features/coaches/constants";
+import { canReviewCoach } from "@/features/coaches/claim";
 import { getCoach, myCoachReview } from "@/features/coaches/queries";
 import { CoachReviewForm } from "@/features/coaches/review-form";
 import type { Ratings } from "@/features/reviews/constants";
@@ -22,6 +23,8 @@ export default async function ReviewCoachPage({
 
   const coach = await getCoach(slug);
   if (!coach) notFound();
+  // A coach who has claimed their page cannot review themselves.
+  if (!canReviewCoach(coach, { id: user.id, admin: false })) notFound();
 
   const existing = await myCoachReview(coach.id, user.id);
 

@@ -3,7 +3,15 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { coachEdits, coaches, clubs, reviewVotes, reviews } from "@/db/schema";
+import {
+  clubs,
+  coachClaims,
+  coachEdits,
+  coaches,
+  reviewReplies,
+  reviewVotes,
+  reviews,
+} from "@/db/schema";
 import { publicName } from "@/features/auth";
 import { averageRatings, type Ratings } from "@/features/reviews/constants";
 
@@ -143,6 +151,14 @@ export async function listCoachReviews(coachId: string, userId: string | null) {
       )
     : new Set<string>();
 
+  const replies = new Map(
+    (
+      await db.query.reviewReplies.findMany({
+        where: inArray(reviewReplies.reviewId, ids),
+      })
+    ).map((rep) => [rep.reviewId, rep]),
+  );
+
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -158,6 +174,37 @@ export async function listCoachReviews(coachId: string, userId: string | null) {
     helpful: byReview.get(r.id) ?? 0,
     votedByMe: mineVotes.has(r.id),
     mine: Boolean(userId && r.author?.id === userId),
+    reply: replies.get(r.id) ?? null,
+  }));
+}
+
+/** This user's claim on this coach, if they have made one. */
+export async function myClaim(coachId: string, userId: string) {
+  return db.query.coachClaims.findFirst({
+    where: and(eq(coachClaims.coachId, coachId), eq(coachClaims.userId, userId)),
+    columns: { status: true },
+  });
+}
+
+/** Claims waiting on an admin. */
+export async function pendingCoachClaims() {
+  const rows = await db.query.coachClaims.findMany({
+    where: eq(coachClaims.status, "pending"),
+    orderBy: [desc(coachClaims.createdAt)],
+    with: {
+      coach: { columns: { name: true, slug: true, claimedBy: true } },
+      user: { columns: { displayName: true, name: true, username: true, email: true } },
+    },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    note: c.note,
+    createdAt: c.createdAt,
+    coach: c.coach,
+    // The admin needs a real identity to judge a claim against, so this one
+    // place deliberately shows the account rather than a pseudonym.
+    who: c.user ? publicName(c.user) : "Someone",
+    email: c.user?.email ?? null,
   }));
 }
 
