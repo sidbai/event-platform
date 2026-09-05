@@ -60,6 +60,18 @@ export async function reportedReviews() {
   // system turns into a way to bury criticism.
   const rows = await db.query.reviews.findMany({
     where: inArray(reviews.id, counts.map((c) => c.reviewId)),
+    // Named rather than left open. Moderating a review needs its text, not its
+    // author: an admin deciding whether something crosses a line should not
+    // have who wrote it sitting in the same object, and an unrestricted select
+    // is how that ends up on screen the next time this list grows a field.
+    columns: {
+      id: true,
+      subjectType: true,
+      subjectId: true,
+      title: true,
+      body: true,
+      hiddenAt: true,
+    },
   });
 
   // Reviews are polymorphic, so the subject is resolved by hand. Only club

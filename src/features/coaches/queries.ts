@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { publicReview } from "@/features/reviews/anonymise";
 import {
   clubs,
   coachClaims,
@@ -189,21 +190,21 @@ export async function listCoachReviews(coachId: string, userId: string | null) {
     ).map((rep) => [rep.reviewId, rep]),
   );
 
+  // publicReview decides what may leave with the author's identity attached.
+  // The context fields below are the reviewer's own words about their team and
+  // season — deliberately optional at the form, because in one metro area they
+  // narrow who could have written this far more than any handle does.
   return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    body: r.body,
+    ...publicReview(r, {
+      userId,
+      helpful: byReview.get(r.id) ?? 0,
+      votedByMe: mineVotes.has(r.id),
+    }),
     ratings: r.ratings as Ratings,
-    reviewerRole: r.reviewerRole,
     teamLabel: r.teamLabel,
     season: r.season,
     yearsWith: r.yearsWith,
     recommends: r.recommends,
-    anonHandle: r.author?.anonHandle ?? "anon",
-    createdAt: r.createdAt,
-    helpful: byReview.get(r.id) ?? 0,
-    votedByMe: mineVotes.has(r.id),
-    mine: Boolean(userId && r.author?.id === userId),
     reply: replies.get(r.id) ?? null,
   }));
 }

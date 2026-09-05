@@ -7,6 +7,8 @@ import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
 
 import { publicName } from "@/features/auth";
 
+import { publicReview } from "@/features/reviews/anonymise";
+
 import { averageRatings, type Ratings } from "./constants";
 import { clubDirectoryOrder } from "./order";
 
@@ -151,17 +153,16 @@ export async function listReviews(clubId: string, userId: string | null) {
       )
     : new Set<string>();
 
+  // publicReview decides what may leave with the author's identity attached.
+  // Its tests fail if that ever grows a name, so keep new fields out of it
+  // unless they are safe to show a stranger.
   return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    body: r.body,
+    ...publicReview(r, {
+      userId,
+      helpful: byReview.get(r.id) ?? 0,
+      votedByMe: mineVotes.has(r.id),
+    }),
     ratings: ratingsOf(r),
-    reviewerRole: r.reviewerRole,
-    anonHandle: r.author?.anonHandle ?? "anon",
-    createdAt: r.createdAt,
-    helpful: byReview.get(r.id) ?? 0,
-    votedByMe: mineVotes.has(r.id),
-    mine: Boolean(userId && r.author?.id === userId),
   }));
 }
 
