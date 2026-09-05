@@ -3,20 +3,27 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
 import { RatingBreakdown, Stars } from "@/features/clubs/stars";
 import { HelpfulButton, ReportControl } from "@/features/clubs/review-card";
 import { coachRoleLabel } from "@/features/coaches/constants";
 import {
+  removeReply,
+  replyToReview,
   reportCoachReview,
+  requestCoachClaim,
   revertCoach,
   toggleCoachHelpful,
 } from "@/features/coaches/actions";
+import { canRemoveReply, canReplyToReview, canRequestClaim } from "@/features/coaches/claim";
+import { ClaimForm, ReplyForm } from "@/features/coaches/reply-form";
 import {
   coachHistory,
   coachRecommendation,
   coachSummary,
   getCoach,
   listCoachReviews,
+  myClaim,
 } from "@/features/coaches/queries";
 import {
   COACH_SCALES,
@@ -66,7 +73,14 @@ export default async function CoachPage({
     coachHistory(coach.id),
   ]);
 
+  // Must carry the real admin flag: it is what lets an admin moderate a
+  // reply. It never grants the right to author one — canReplyToReview is
+  // identity, not permission.
+  const viewer = user ? { id: user.id, admin: isAdmin(user) } : null;
+  const claim = user ? await myClaim(coach.id, user.id) : null;
   const mayEdit = Boolean(user);
+  const isCoach = canReplyToReview(coach, viewer);
+  const mayClaim = canRequestClaim(coach, viewer, claim?.status ?? null);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -97,12 +111,15 @@ export default async function CoachPage({
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href={`/coaches/${slug}/review`}
-            className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-          >
-            Share your experience
-          </Link>
+          {/* Nobody reviews themselves — the action refuses it too. */}
+          {!isCoach && (
+            <Link
+              href={`/coaches/${slug}/review`}
+              className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+            >
+              Share your experience
+            </Link>
+          )}
           {mayEdit && (
             <Link
               href={`/coaches/${slug}/edit`}
@@ -112,6 +129,17 @@ export default async function CoachPage({
             </Link>
           )}
         </div>
+        {isCoach && (
+          <p className="mt-3 rounded-md bg-brand-soft px-3 py-2 text-sm text-brand-soft-text">
+            This is your page. You can respond publicly to any review here.
+          </p>
+        )}
+        {claim?.status === "pending" && (
+          <p className="mt-3 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
+            Your claim is waiting on an admin.
+          </p>
+        )}
+        {mayClaim && <ClaimForm action={requestCoachClaim.bind(null, slug)} />}
       </header>
 
       <section className="mt-6 rounded-xl border border-line bg-card p-5">
@@ -268,7 +296,39 @@ export default async function CoachPage({
                   action={reportCoachReview.bind(null, slug, r.id)}
                   reasons={reportReasonsFor("coach")}
                 />
+                {isCoach && !r.reply && (
+                  <ReplyForm action={replyToReview.bind(null, slug, r.id)} />
+                )}
               </div>
+
+              {/* The right of reply: the coach's answer sits with the review
+                  rather than replacing it, and says nothing about who wrote
+                  the review. */}
+              {r.reply && (
+                <div className="mt-3 rounded-lg border-l-2 border-brand bg-elevated px-4 py-3">
+                  <div className="text-xs font-medium">
+                    Response from {coach.name}
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                    {r.reply.body}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    {isCoach && (
+                      <ReplyForm
+                        action={replyToReview.bind(null, slug, r.id)}
+                        existing={r.reply.body}
+                      />
+                    )}
+                    {canRemoveReply(r.reply.authorId, viewer) && (
+                      <form action={removeReply.bind(null, slug, r.id)}>
+                        <button className="text-xs text-muted hover:text-red-600">
+                          Remove response
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>

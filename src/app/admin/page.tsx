@@ -12,7 +12,12 @@ import {
 import { dismissReviewReports, hideReview } from "@/features/clubs/actions";
 import { hideComment } from "@/features/discussion/actions";
 import { approveEvent, rejectEvent } from "@/features/events/actions";
-import { restoreReview } from "@/features/coaches/actions";
+import {
+  approveCoachClaim,
+  rejectCoachClaim,
+  restoreReview,
+} from "@/features/coaches/actions";
+import { pendingCoachClaims } from "@/features/coaches/queries";
 import { approveNewsPost, rejectNewsPost } from "@/features/news/actions";
 import { pendingNews } from "@/features/news/queries";
 
@@ -22,13 +27,15 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [events, news, reports, reviewReports, clubEdits] = await Promise.all([
-    pendingEvents(),
-    pendingNews(),
-    reportedComments(),
-    reportedReviews(),
-    recentClubEdits(),
-  ]);
+  const [events, news, claims, reports, reviewReports, clubEdits] =
+    await Promise.all([
+      pendingEvents(),
+      pendingNews(),
+      pendingCoachClaims(),
+      reportedComments(),
+      reportedReviews(),
+      recentClubEdits(),
+    ]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -122,6 +129,55 @@ export default async function AdminPage() {
                     />
                     <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                       Send back
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Coach claims{" "}
+          {claims.length > 0 && <span className="text-muted">({claims.length})</span>}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Approving lets this person respond publicly to reviews about them. It
+          does not let them edit or remove any review.
+        </p>
+        {claims.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {claims.map((c) => (
+              <li key={c.id} className="rounded-lg border border-line p-3">
+                <div className="text-sm">
+                  <span className="font-medium">{c.who}</span>
+                  {c.email && <span className="text-muted"> · {c.email}</span>}
+                  <span className="text-muted"> says they are </span>
+                  <Link
+                    href={`/coaches/${c.coach?.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {c.coach?.name}
+                  </Link>
+                </div>
+                {c.note && (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
+                    {c.note}
+                  </p>
+                )}
+                <div className="mt-2 flex gap-4 text-sm">
+                  <form action={approveCoachClaim.bind(null, c.id)}>
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
+                      Approve
+                    </button>
+                  </form>
+                  <form action={rejectCoachClaim.bind(null, c.id)}>
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
+                      Reject
                     </button>
                   </form>
                 </div>

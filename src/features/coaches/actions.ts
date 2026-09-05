@@ -5,7 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { coachEdits, coaches, reviewReports, reviewVotes, reviews } from "@/db/schema";
+import {
+  coachClaims,
+  coachEdits,
+  coaches,
+  reviewReplies,
+  reviewReports,
+  reviewVotes,
+  reviews,
+} from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { ensureAnonHandle } from "@/features/clubs/anon";
@@ -20,6 +28,12 @@ import { slugify } from "@/lib/slug";
 
 import { canEditCoach } from "./access";
 import { parseCoachRole } from "./constants";
+import {
+  canRemoveReply,
+  canReplyToReview,
+  canRequestClaim,
+  canReviewCoach,
+} from "./claim";
 import { validateCoachReview } from "./review-rules";
 
 const NAME_MAX = 80;
@@ -191,9 +205,11 @@ export async function reviewCoach(
 
   const coach = await db.query.coaches.findFirst({
     where: eq(coaches.slug, slug),
-    columns: { id: true },
+    columns: { id: true, claimedBy: true },
   });
   if (!coach) return { error: "That coach is gone." };
+  if (!canReviewCoach(coach, { id: user.id, admin: false }))
+    return { error: "You can't review yourself." };
 
   const ratings = readRatings("coach", formData);
   const reviewerRole = parseReviewerRole(formData.get("reviewerRole"));
@@ -338,4 +354,153 @@ export async function restoreReview(reviewId: string): Promise<void> {
   await db.delete(reviewReports).where(eq(reviewReports.reviewId, reviewId));
   await db.update(reviews).set({ hiddenAt: null }).where(eq(reviews.id, reviewId));
   revalidatePath("/admin");
+}
+
+
+/** Ask to be recognised as this coach. An admin decides. */
+export async function requestCoachClaim(
+  slug: string,
+  _prev: ReviewResult,
+  formData: FormData,
+): Promise<ReviewResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to claim this page." };
+
+  const coach = await db.query.coaches.findFirst({
+    where: eq(coaches.slug, slug),
+    columns: { id: true, claimedBy: true },
+  });
+  if (!coach) return { error: "That coach is gone." };
+
+  const existing = await db.query.coachClaims.findFirst({
+    where: and(eq(coachClaims.coachId, coach.id), eq(coachClaims.userId, user.id)),
+    columns: { status: true },
+  });
+  if (!canRequestClaim(coach, { id: user.id, admin: false }, existing?.status ?? null))
+    return { error: "This page can't be claimed right now." };
+
+  const note = String(formData.get("note") ?? "").trim().slice(0, 1000);
+  if (note.length < 10)
+    return { fieldErrors: { note: "Tell us how we can tell it's you." } };
+
+  await db.insert(coachClaims).values({ coachId: coach.id, userId: user.id, note });
+
+  revalidatePath(`/coaches/${slug}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Admin: confirm a claim, which grants the right of reply and nothing else. */
+export async function approveCoachClaim(claimId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  const claim = await db.query.coachClaims.findFirst({
+    where: eq(coachClaims.id, claimId),
+    with: { coach: { columns: { slug: true, claimedBy: true } } },
+  });
+  // Never hand a page to a second person: an existing holder has to be
+  // cleared deliberately first.
+  if (!claim || claim.coach?.claimedBy) return;
+
+  await db
+    .update(coaches)
+    .set({ claimedBy: claim.userId })
+    .where(eq(coaches.id, claim.coachId));
+  await db
+    .update(coachClaims)
+    .set({ status: "approved", decidedBy: user!.id, decidedAt: new Date() })
+    .where(eq(coachClaims.id, claimId));
+
+  revalidatePath(`/coaches/${claim.coach!.slug}`);
+  revalidatePath("/admin");
+}
+
+/** Admin: refuse a claim. The record stays, so a pattern of asking is visible. */
+export async function rejectCoachClaim(claimId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+
+  await db
+    .update(coachClaims)
+    .set({ status: "rejected", decidedBy: user!.id, decidedAt: new Date() })
+    .where(eq(coachClaims.id, claimId));
+
+  revalidatePath("/admin");
+}
+
+/** Admin: release a claimed page, e.g. when the wrong person got it. */
+export async function releaseCoachClaim(slug: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!isAdmin(user)) return;
+  await db.update(coaches).set({ claimedBy: null }).where(eq(coaches.slug, slug));
+  revalidatePath(`/coaches/${slug}`);
+  revalidatePath("/admin");
+}
+
+/**
+ * The coach's public answer to one review.
+ *
+ * Writing again edits the answer already there — one reply per review, so a
+ * thread cannot turn into an argument with an anonymous reviewer.
+ */
+export async function replyToReview(
+  slug: string,
+  reviewId: string,
+  _prev: ReviewResult,
+  formData: FormData,
+): Promise<ReviewResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to reply." };
+
+  const coach = await db.query.coaches.findFirst({
+    where: eq(coaches.slug, slug),
+    columns: { id: true, claimedBy: true },
+  });
+  if (!coach) return { error: "That coach is gone." };
+  if (!canReplyToReview(coach, { id: user.id, admin: false }))
+    return { error: "Only this coach can reply here." };
+
+  // The review has to be one of this coach's, or a claim would be a licence to
+  // reply anywhere.
+  const review = await db.query.reviews.findFirst({
+    where: and(
+      eq(reviews.id, reviewId),
+      eq(reviews.subjectType, "coach"),
+      eq(reviews.subjectId, coach.id),
+    ),
+    columns: { id: true },
+  });
+  if (!review) return { error: "That review is gone." };
+
+  const body = String(formData.get("body") ?? "").trim();
+  if (body.length < 10) return { fieldErrors: { body: "Say a little more." } };
+  if (body.length > 2000) return { fieldErrors: { body: "That's too long." } };
+
+  await db
+    .insert(reviewReplies)
+    .values({ reviewId, authorId: user.id, body })
+    .onConflictDoUpdate({
+      target: reviewReplies.reviewId,
+      set: { body, updatedAt: new Date() },
+    });
+
+  revalidatePath(`/coaches/${slug}`);
+  return { ok: true };
+}
+
+/** Take a reply down — its author, or an admin moderating it. */
+export async function removeReply(slug: string, reviewId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const reply = await db.query.reviewReplies.findFirst({
+    where: eq(reviewReplies.reviewId, reviewId),
+    columns: { authorId: true },
+  });
+  if (!reply) return;
+  if (!canRemoveReply(reply.authorId, { id: user.id, admin: isAdmin(user) })) return;
+
+  await db.delete(reviewReplies).where(eq(reviewReplies.reviewId, reviewId));
+  revalidatePath(`/coaches/${slug}`);
 }

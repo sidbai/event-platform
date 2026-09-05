@@ -611,6 +611,17 @@ export const coaches = pgTable(
     role: coachRole("role").notNull().default("head"),
     /** e.g. {"Boys 2013","Girls 2014"} — what they actually coach. */
     ageGroups: text("age_groups").array(),
+    /**
+     * The person this entry is about, once an admin has confirmed it.
+     *
+     * Set only through the claim queue — never self-serve, because claiming a
+     * coach page is claiming the right to answer reviews about a named person.
+     * The holder can reply to reviews and nothing else: not edit them, not hide
+     * them, and not review themselves.
+     */
+    claimedBy: uuid("claimed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -620,6 +631,46 @@ export const coaches = pgTable(
     ...timestamps,
   },
   (t) => [index("coaches_club_idx").on(t.clubId)],
+);
+
+export const claimStatus = pgEnum("claim_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+/**
+ * A request to be recognised as the coach an entry describes.
+ *
+ * Kept as its own table rather than a flag so the decision is on the record:
+ * who asked, what they said, who decided and when. Rejected claims stay,
+ * because a pattern of someone trying to claim a page that is not theirs is
+ * exactly what an admin needs to see.
+ */
+export const coachClaims = pgTable(
+  "coach_claims",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => coaches.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** How they say we can tell it is them. Not shown publicly. */
+    note: text("note"),
+    status: claimStatus("status").notNull().default("pending"),
+    decidedBy: uuid("decided_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One open or settled request per person per coach; asking again edits it.
+    unique("coach_claims_coach_user_uq").on(t.coachId, t.userId),
+    index("coach_claims_status_idx").on(t.status, t.createdAt),
+  ],
 );
 
 /** A snapshot of a coach's details after each change. Mirrors club_edits. */
@@ -749,6 +800,40 @@ export const reviewReports = pgTable(
   },
   (t) => [primaryKey({ columns: [t.reviewId, t.reporterId] })],
 );
+
+/**
+ * The subject's public answer to a review. At most one per review.
+ *
+ * The single biggest fairness lever in the whole feature: someone reviewed by
+ * name can say their side, in the same place, without the review being edited
+ * or taken down. Keyed on the review rather than the subject so a club could
+ * answer one later without another table.
+ *
+ * It never carries anything about who wrote the review — replying must not
+ * become a way to work out who is talking.
+ */
+export const reviewReplies = pgTable("review_replies", {
+  reviewId: uuid("review_id")
+    .primaryKey()
+    .references(() => reviews.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  ...timestamps,
+});
+
+export const reviewRepliesRelations = relations(reviewReplies, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewReplies.reviewId],
+    references: [reviews.id],
+  }),
+}));
+
+export const coachClaimsRelations = relations(coachClaims, ({ one }) => ({
+  coach: one(coaches, { fields: [coachClaims.coachId], references: [coaches.id] }),
+  user: one(users, { fields: [coachClaims.userId], references: [users.id] }),
+}));
 
 export const clubsRelations = relations(clubs, ({ one }) => ({
   // No `reviews` relation: the join needs subject_type as well, which drizzle
