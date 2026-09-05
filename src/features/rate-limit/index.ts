@@ -36,6 +36,39 @@ export async function checkRateLimit(
   // Admins moderate in bursts; limiting them would only get in your own way.
   if (isAdmin(user)) return { ok: true };
 
+  return count(bucket, user.id, { failOpen: true });
+}
+
+/**
+ * The same allowance, for someone with no account.
+ *
+ * Fails CLOSED, unlike the signed-in path. That difference is the whole point:
+ * the comment above explains that limiting signed-in writes is abuse control
+ * sitting behind an auth check that already fails closed. An anonymous review
+ * has no such check behind it, so this counter IS the control, and a counter
+ * that waves everything through when the database hiccups is not one.
+ *
+ * A null subject means no usable client address — no header, or no secret
+ * configured — and is refused for the same reason.
+ */
+export async function checkAnonymousRateLimit(
+  bucket: Bucket,
+  subject: string | null,
+): Promise<RateVerdict> {
+  if (!subject) {
+    return {
+      ok: false,
+      message: "We couldn't verify this request. Try again, or sign in to post.",
+    };
+  }
+  return count(bucket, subject, { failOpen: false });
+}
+
+async function count(
+  bucket: Bucket,
+  subject: string,
+  { failOpen }: { failOpen: boolean },
+): Promise<RateVerdict> {
   const { limit, windowSeconds, message } = LIMITS[bucket];
   const now = new Date();
   const windowStart = windowStartFor(now, windowSeconds);
@@ -44,7 +77,7 @@ export async function checkRateLimit(
     // One statement, so two concurrent submissions cannot both read "4".
     const [row] = await db
       .insert(rateLimits)
-      .values({ bucket, subject: user.id, windowStart, count: 1 })
+      .values({ bucket, subject, windowStart, count: 1 })
       .onConflictDoUpdate({
         target: [rateLimits.bucket, rateLimits.subject, rateLimits.windowStart],
         set: { count: sql`${rateLimits.count} + 1` },
@@ -61,7 +94,11 @@ export async function checkRateLimit(
     );
     return { ok: false, message: `${message} Try again in about ${wait}.` };
   } catch {
-    return { ok: true };
+    if (failOpen) return { ok: true };
+    return {
+      ok: false,
+      message: "We couldn't check this request. Try again in a moment.",
+    };
   }
 }
 

@@ -797,9 +797,20 @@ export const reviews = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     subjectType: reviewSubject("subject_type").notNull(),
     subjectId: uuid("subject_id").notNull(),
-    authorId: uuid("author_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Who wrote it, when they were signed in.
+     *
+     * Null for an anonymous review, which is the point of allowing them: there
+     * is no account, so there is nothing to attach. The consequences are real
+     * and deliberate — an anonymous review cannot be edited by its author,
+     * cannot be counted against a one-per-person rule, and cannot be traced if
+     * someone later demands it be. Rate My Professors makes the same trade and
+     * says so outright: "we are unable to confirm what entry was submitted by
+     * a specific individual if you were not logged in".
+     */
+    authorId: uuid("author_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
 
     /** Scale key -> 1-5. Which keys are expected depends on subjectType. */
     ratings: jsonb("ratings").$type<Record<string, number>>().notNull(),
@@ -828,6 +839,15 @@ export const reviews = pgTable(
     ...timestamps,
   },
   (t) => [
+    /*
+     * One review per person per subject — for people we can identify.
+     *
+     * Postgres treats NULLs as distinct, so this constraint stops applying the
+     * moment author_id is null. That is not an oversight to fix later: it is
+     * exactly what anonymous means, and it is why the rate limiter below had
+     * to grow a fail-closed path keyed on the connection. Anonymous reviews
+     * are limited by that and by the captcha, never by this.
+     */
     unique("reviews_subject_author_uq").on(t.subjectType, t.subjectId, t.authorId),
     index("reviews_subject_idx").on(t.subjectType, t.subjectId, t.hiddenAt),
     check("reviews_ratings_ck", sql`review_ratings_valid(${t.ratings})`),

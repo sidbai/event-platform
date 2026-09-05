@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/features/auth";
 import { saveReview } from "@/features/clubs/actions";
 import { getClub, myReview } from "@/features/clubs/queries";
 import { ReviewForm } from "@/features/clubs/review-form";
+import { anonymousReviewsEnabled } from "@/features/reviews/captcha";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Write a review" };
@@ -45,6 +46,12 @@ export default async function ReviewPage({
         action={saveReview.bind(null, slug)}
         slug={slug}
         signedIn={Boolean(user)}
+        /* Only offered when the whole anonymous path is configured — the
+           server refuses it otherwise, so showing the widget would promise
+           something that cannot work. */
+        captchaSiteKey={
+          anonymousReviewsEnabled() ? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY! : null
+        }
         existing={
           existing
             ? {

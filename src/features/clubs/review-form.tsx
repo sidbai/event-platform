@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { CaptchaWidget } from "@/features/reviews/captcha-widget";
 import { draftKey } from "@/features/reviews/draft";
 import { useFormDraft } from "@/features/reviews/use-form-draft";
 
@@ -65,6 +66,7 @@ export function ReviewForm({
   existing,
   slug,
   signedIn,
+  captchaSiteKey,
 }: {
   action: Action;
   existing?: {
@@ -76,6 +78,8 @@ export function ReviewForm({
   /** Identifies the draft, so one club's review cannot restore under another. */
   slug: string;
   signedIn: boolean;
+  /** Set when anonymous posting is configured; the Turnstile site key. */
+  captchaSiteKey: string | null;
 }) {
   const [state, formAction, pending] = useActionState<ClubResult, FormData>(
     action,
@@ -175,10 +179,19 @@ export function ReviewForm({
           >
             {pending ? "Posting…" : existing ? "Update review" : "Post review"}
           </button>
+        ) : captchaSiteKey ? (
+          /* No account needed. The captcha stands in for one, and the note
+             below says what that costs the writer. */
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong disabled:opacity-50"
+          >
+            {pending ? "Posting…" : existing ? "Update review" : "Post review"}
+          </button>
         ) : (
-          /* An account is what keeps this one review per person and gives a
-             club someone to answer, but asking at the door costs the review.
-             So the ask lands here, with the draft already saved. */
+          /* Anonymous posting is not configured, so an account is the only way
+             through and the ask lands here, with the draft already saved. */
           <Link
             href={`/signin?next=${encodeURIComponent(`/clubs/${slug}/review`)}`}
             onClick={saveDraft}
@@ -190,12 +203,31 @@ export function ReviewForm({
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
       </div>
 
-      {!signedIn && (
-        <p className="text-xs text-muted">
-          Your draft is kept on this device — sign in and you will come back to
-          it. Reviews are posted anonymously; readers never see your name.
-        </p>
-      )}
+      {!signedIn &&
+        (captchaSiteKey ? (
+          <div className="space-y-2">
+            <CaptchaWidget siteKey={captchaSiteKey} />
+            <p className="text-xs text-muted">
+              Posting without an account. Readers never see who wrote a review
+              either way — but an anonymous one can&rsquo;t be edited or taken
+              down later, because there is nothing tying it to you.{" "}
+              <Link
+                href={`/signin?next=${encodeURIComponent(`/clubs/${slug}/review`)}`}
+                onClick={saveDraft}
+                className="text-brand-text hover:underline"
+              >
+                Sign in
+              </Link>{" "}
+              if you&rsquo;d rather keep that option. Your draft is kept either
+              way.
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-muted">
+            Your draft is kept on this device — sign in and you will come back
+            to it. Reviews are posted anonymously; readers never see your name.
+          </p>
+        ))}
     </form>
   );
 }

@@ -17,6 +17,7 @@ import {
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { checkRateLimit } from "@/features/rate-limit";
+import { allowAnonymousReview } from "@/features/reviews/anon-gate";
 import { ensureAnonHandle } from "@/features/clubs/anon";
 import {
   COACH_REPORTS_TO_AUTOHIDE,
@@ -209,17 +210,30 @@ export async function reviewCoach(
   formData: FormData,
 ): Promise<ReviewResult> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Sign in to write a review." };
 
-  const gate = await checkRateLimit("review:create", user);
-  if (!gate.ok) return { error: gate.message };
+  if (user) {
+    const gate = await checkRateLimit("review:create", user);
+    if (!gate.ok) return { error: gate.message };
+  } else {
+    const gate = await allowAnonymousReview(
+      String(formData.get("captchaToken") ?? "") || null,
+    );
+    if (!gate.ok) return { error: gate.error };
+  }
 
   const coach = await db.query.coaches.findFirst({
     where: eq(coaches.slug, slug),
     columns: { id: true, claimedBy: true },
   });
   if (!coach) return { error: "That coach is gone." };
-  if (!canReviewCoach(coach, { id: user.id, admin: false }))
+  /*
+   * A claimed coach still cannot review themselves — while signed in. Signed
+   * out there is nobody to compare against, so this check simply cannot run:
+   * a coach who signs out could review their own page. Rate My Professors has
+   * the identical hole, and closing it is not possible without the account
+   * that anonymity removes. The moderation queue is what catches it.
+   */
+  if (user && !canReviewCoach(coach, { id: user.id, admin: false }))
     return { error: "You can't review yourself." };
 
   const ratings = readRatings("coach", formData);
@@ -247,7 +261,27 @@ export async function reviewCoach(
   });
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  await ensureAnonHandle(user.id, user.anonHandle);
+  if (user) await ensureAnonHandle(user.id, user.anonHandle);
+
+  if (!user) {
+    // No author, so nothing to conflict on and nothing to edit later.
+    await db.insert(reviews).values({
+      subjectType: "coach",
+      subjectId: coach.id,
+      authorId: null,
+      ratings: ratings!,
+      reviewerRole: reviewerRole!,
+      title,
+      body,
+      teamLabel,
+      season,
+      yearsWith,
+      recommends,
+    });
+    revalidatePath(`/coaches/${slug}`);
+    revalidatePath("/coaches");
+    redirect(`/coaches/${slug}`);
+  }
 
   await db
     .insert(reviews)

@@ -1,0 +1,1 @@
+ALTER TABLE "reviews" ALTER COLUMN "author_id" DROP NOT NULL;
