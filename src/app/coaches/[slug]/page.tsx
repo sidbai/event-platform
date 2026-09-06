@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { setReviewHidden } from "@/features/clubs/actions";
 import { RatingBreakdown, Stars } from "@/features/clubs/stars";
 import { HelpfulButton, ReportControl } from "@/features/clubs/review-card";
 import { coachRoleLabel } from "@/features/coaches/constants";
@@ -69,7 +70,8 @@ export default async function CoachPage({
   const [summary, recommendation, reviews, history] = await Promise.all([
     coachSummary(coach.id),
     coachRecommendation(coach.id),
-    listCoachReviews(coach.id, user?.id ?? null),
+    // Admins see hidden reviews too, so a takedown stays reversible here.
+    listCoachReviews(coach.id, user?.id ?? null, isAdmin(user)),
     coachHistory(coach.id),
   ]);
 
@@ -216,8 +218,20 @@ export default async function CoachPage({
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">
           {reviews.map((r) => (
-            <li key={r.id} className="rounded-xl border border-line bg-card p-4">
+            <li
+              key={r.id}
+              className={
+                r.hidden
+                  ? "rounded-xl border border-amber-300 bg-amber-50/40 p-4"
+                  : "rounded-xl border border-line bg-card p-4"
+              }
+            >
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                {r.hidden && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                    Hidden — only admins see this
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-amber-500">
                   <Stars value={overallOf("coach", r.ratings)} />
                   <span className="tabular-nums text-ink">
@@ -296,6 +310,26 @@ export default async function CoachPage({
                   action={reportCoachReview.bind(null, slug, r.id)}
                   reasons={reportReasonsFor("coach")}
                 />
+                {viewer?.admin && (
+                  <form
+                    action={setReviewHidden.bind(
+                      null,
+                      r.id,
+                      !r.hidden,
+                      `/coaches/${slug}`,
+                    )}
+                  >
+                    <button
+                      className={
+                        r.hidden
+                          ? "text-xs text-muted hover:text-ink"
+                          : "text-xs text-muted hover:text-red-600"
+                      }
+                    >
+                      {r.hidden ? "Put it back up" : "Hide this review"}
+                    </button>
+                  </form>
+                )}
                 {isCoach && !r.reply && (
                   <ReplyForm action={replyToReview.bind(null, slug, r.id)} />
                 )}

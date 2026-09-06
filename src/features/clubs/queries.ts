@@ -14,9 +14,17 @@ import { clubDirectoryOrder } from "./order";
 
 const visible = isNull(reviews.hiddenAt);
 
-/** Reviews of clubs, never of another subject that shares an id. */
-const ofClub = (clubId: string) =>
-  and(eq(reviews.subjectType, "club"), eq(reviews.subjectId, clubId), visible);
+/**
+ * Reviews of clubs, never of another subject that shares an id.
+ *
+ * `includeHidden` is for admins only. A hidden review has to stay visible to
+ * whoever can put it back, or taking one down is a one-way door — the same
+ * reason the moderation queue keeps hidden reviews rather than filtering them.
+ */
+const ofClub = (clubId: string, includeHidden = false) =>
+  includeHidden
+    ? and(eq(reviews.subjectType, "club"), eq(reviews.subjectId, clubId))
+    : and(eq(reviews.subjectType, "club"), eq(reviews.subjectId, clubId), visible);
 
 /**
  * Ratings arrive as free-form JSON, since the scales vary per subject. Reading
@@ -123,9 +131,13 @@ export type ReviewCard = {
  * The author's account is loaded only to resolve their pseudonym and to mark
  * their own review — no user id, name or avatar reaches the caller.
  */
-export async function listReviews(clubId: string, userId: string | null) {
+export async function listReviews(
+  clubId: string,
+  userId: string | null,
+  includeHidden = false,
+) {
   const rows = await db.query.reviews.findMany({
-    where: ofClub(clubId),
+    where: ofClub(clubId, includeHidden),
     orderBy: [desc(reviews.createdAt)],
     with: { author: { columns: { id: true, anonHandle: true } } },
   });

@@ -36,6 +36,7 @@ describe("publicReview", () => {
       helpful: 3,
       votedByMe: false,
       mine: false,
+      hidden: false,
     });
   });
 
@@ -62,6 +63,13 @@ describe("publicReview", () => {
     expect(serialised).not.toContain("Jane Smith");
     expect(serialised).not.toContain("jane@example.com");
     expect(serialised).not.toContain("janesmith");
+  });
+
+  it("reports an admin takedown without leaking anything else", () => {
+    const down = { ...row, hiddenAt: new Date("2026-09-06T00:00:00Z") };
+    const out = publicReview(down, ctx);
+    expect(out.hidden).toBe(true);
+    expect(JSON.stringify(out)).not.toContain("Jane Smith");
   });
 
   it("says a review is yours without saying whose it is", () => {
