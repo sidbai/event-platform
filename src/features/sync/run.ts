@@ -7,6 +7,7 @@ import { events } from "@/db/schema";
 
 import { applySync, recordSyncFailure } from "./apply";
 import { athletes2events } from "./athletes2events";
+import { mayPoll } from "./policy";
 import type { ExternalEventProvider, SourceRef } from "./provider";
 
 /**
@@ -67,6 +68,17 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
   const provider = providerFor(event.sourcePlatform);
   if (!provider) {
     return { slug: event.slug, ok: false, detail: `no provider for ${event.sourcePlatform}` };
+  }
+
+  /*
+   * The single place every fetch passes through — the cron, a page view and
+   * an admin pressing refresh all arrive here. A rule enforced in one of
+   * those three and not the others is a rule that holds until somebody uses
+   * the fourth door.
+   */
+  const decision = mayPoll(event.sourcePlatform);
+  if (!decision.may) {
+    return { slug: event.slug, ok: false, detail: `not permitted — ${decision.reason}` };
   }
 
   /*

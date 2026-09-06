@@ -93,6 +93,10 @@ async function makeListing(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(async () => {
+  // The policy layer refuses every platform that has not said yes, which is
+  // all of them. These tests are about the claim, so they run with the same
+  // knowing exception the owner sets in production.
+  process.env.SYNC_OVERRIDE_PLATFORMS = "athletes2events";
   await truncateAll(db);
   await db
     .insert(eventKinds)
@@ -162,6 +166,39 @@ describe("syncIfDue", () => {
     // The sync itself set the cadence — being played, that is 20 minutes.
     expect((await syncIfDue(id, at(21)))?.ok).toBe(true);
     expect(fetches).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the policy gate", () => {
+  it("refuses to fetch a platform nobody has been given permission for", async () => {
+    // A2E's terms say "scrape or harvest data without permission". With the
+    // exception withdrawn, the connector stops on its own — no code change,
+    // no remembering, no deploy.
+    delete process.env.SYNC_OVERRIDE_PLATFORMS;
+    const id = await makeListing();
+
+    const report = await syncIfDue(id, NOW);
+
+    expect(report?.ok).toBe(false);
+    expect(report?.detail).toContain("not permitted");
+    expect(fetches).not.toHaveBeenCalled();
+  });
+
+  it("leaves the schedule it already has alone when it refuses", async () => {
+    // Refusing to refresh is not a reason to empty a page that parents are
+    // reading on a Saturday.
+    const id = await makeListing();
+    await syncIfDue(id, NOW);
+    const before = await db.select().from(matches).where(eq(matches.eventId, id));
+    expect(before.length).toBeGreaterThan(0);
+
+    delete process.env.SYNC_OVERRIDE_PLATFORMS;
+    await db.update(events).set({ nextSyncAt: at(-1) }).where(eq(events.id, id));
+    await syncIfDue(id, at(1));
+
+    expect(await db.select().from(matches).where(eq(matches.eventId, id))).toHaveLength(
+      before.length,
+    );
   });
 });
 

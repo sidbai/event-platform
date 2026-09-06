@@ -7,6 +7,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { connectSchedule, importPastedSchedule, refreshNow } from "@/features/sync/actions";
 import { ConnectForm, PasteForm, RefreshButton } from "@/features/sync/connect-form";
 import { formatAgo } from "@/features/sync/freshness";
+import { PROVIDER_POLICIES, mayPoll } from "@/features/sync/policy";
 import { listedEvents } from "@/features/sync/queries";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,36 @@ export default async function AdminSyncPage() {
                   {row.sourcePlatform} · {row.sourceEventId}
                 </span>
               </div>
+
+              {/* What we are allowed to do with this platform, next to what
+                  we are doing. The two drifting apart is the failure. */}
+              {(() => {
+                const decision = mayPoll(row.sourcePlatform!);
+                const policy = PROVIDER_POLICIES[row.sourcePlatform as never] as
+                  | (typeof PROVIDER_POLICIES)["athletes2events"]
+                  | undefined;
+                if (decision.may && !decision.overridden) return null;
+                return (
+                  <p
+                    className={`mt-1 text-xs ${decision.may ? "text-amber-700" : "text-muted"}`}
+                  >
+                    {decision.may
+                      ? `Polling anyway — SYNC_OVERRIDE_PLATFORMS covers ${row.sourcePlatform}.`
+                      : `Not polling — ${decision.reason}.`}{" "}
+                    {policy?.note}{" "}
+                    {policy?.termsUrl && (
+                      <a
+                        href={policy.termsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-text hover:underline"
+                      >
+                        terms
+                      </a>
+                    )}
+                  </p>
+                );
+              })()}
 
               <p className="mt-1 text-xs text-muted">
                 {row.lastSyncedAt
