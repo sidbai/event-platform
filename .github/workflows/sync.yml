@@ -1,0 +1,65 @@
+# Ask the site to refresh the external schedules that have come due.
+#
+# This is a Vercel cron job that does not live on Vercel. The cadence the
+# connector was designed around checks a tournament every twenty minutes while
+# it is being played, and a Hobby account may only run a cron once a day —
+# expressions more frequent than that are refused at deploy time. So the
+# schedule lives here, where it is free, and vercel.json keeps a daily tick as
+# a backstop for the day this repository goes quiet.
+#
+# GitHub's scheduler drifts by a few minutes under load, which does not matter
+# to a twenty-minute window. It also disables scheduled workflows in a
+# repository with no activity for sixty days, which would be silent — the
+# admin page at /admin/sync is where that shows up, as schedules that stop
+# being read.
+name: sync
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  # So a person can trigger one from the Actions tab without waiting.
+  workflow_dispatch:
+
+# One at a time. A slow run overlapping the next tick would double the
+# requests we make to somebody else's server, which is the one thing a
+# well-behaved crawler must not do.
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh what is due
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -uo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is not set on this repository."
+            echo "Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+
+          # Separated so a network failure reads as 000 rather than as the
+          # empty output of a command substitution that never ran.
+          code=$(curl -sS -m 120 -o response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://kingjuansoccer.com/api/cron/sync) || code=000
+
+          cat response.json 2>/dev/null || true
+          echo
+
+          if [ "$code" != "200" ]; then
+            echo "::error::/api/cron/sync answered $code"
+            exit 1
+          fi
+
+          # A 200 that reports failures is still a problem worth seeing: a
+          # connector whose platform changed its markup answers 200 here and
+          # fails every event inside it.
+          failed=$(python3 -c "import json;print(json.load(open('response.json')).get('failed',0))")
+          if [ "$failed" != "0" ]; then
+            echo "::warning::$failed event(s) failed to sync — see /admin/sync"
+          fi
