@@ -45,7 +45,7 @@ export default async function AdminSyncPage() {
             <li key={row.id} className="py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <Link
-                  href={`/events/${row.slug}/table`}
+                  href={`/events/${row.slug}#schedule`}
                   className="font-medium hover:underline"
                 >
                   {row.title}

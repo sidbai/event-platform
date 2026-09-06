@@ -23,8 +23,6 @@ export type Listing = {
   sourceUrl: string | null;
   scheduleUrl?: string | null;
   organizerId?: string | null;
-  /** Needed to link to a page we render for this event. */
-  slug?: string;
   /**
    * Whether we hold this event's fixtures ourselves — synced from the
    * platform that publishes them, or entered here.
@@ -87,28 +85,13 @@ export function safeSourceUrl(raw: string | null | undefined): string | null {
 }
 
 /**
- * What the page should offer as its main action.
- *
- * A listing sends people to the organizer. Anything else we run ourselves, so
- * the answer is null and the page keeps its own buttons.
- */
-export function primaryActionOf(
-  event: Listing,
-): { label: string; href: string } | null {
-  if (isRunHere(event)) return null;
-  const href = safeSourceUrl(event.sourceUrl);
-  // No usable link is still a listing — it just cannot promise a destination.
-  if (!href) return null;
-  return { label: "Details & registration", href };
-}
-
-/**
  * Where to see the fixtures and the table.
  *
- * The thing a parent actually came for. An event this platform runs keeps
- * both itself, at /events/<slug>/table, and needs nothing here; a listing
- * points wherever the organizer keeps them — usually a different system from
- * the one that took the entries.
+ * The thing a parent actually came for. Null whenever this page can show
+ * them itself — an event we run, or a listing we sync — because the fixtures
+ * are then further down the page; a listing we cannot read points wherever
+ * the organizer keeps them, usually a different system from the one that
+ * took the entries.
  *
  * Null rather than falling back to the organizer's homepage. "Schedule &
  * standings" that lands on a front page and leaves you hunting is a worse
@@ -120,23 +103,16 @@ export function scheduleActionOf(
   if (isRunHere(event)) return null;
 
   /*
-   * A listing we sync is no longer only a link. We hold its fixtures, its
-   * table and its matchday navigation, so somebody who came for the schedule
-   * should get ours — with a division they can pick and a team they can
-   * follow — rather than be sent off to find the same thing on a platform
-   * that does not know which age group their child plays in.
+   * A listing we sync is no longer only a link: its fixtures, its table and
+   * its matchday navigation are on this very page, further down. Offering to
+   * send the reader to the platform for the thing they are already looking at
+   * is worse than offering nothing.
    *
-   * Still attributed to the organizer, and still linking to them for
-   * entries. Whose tournament it is has not changed; only where the fixtures
-   * are read from has.
+   * Still attributed to the organizer, and still linking to them for entries.
+   * Whose tournament it is has not changed; only where the fixtures are read
+   * from has.
    */
-  if (event.hasFixtures && event.slug) {
-    return {
-      label: "Schedule & standings",
-      href: `/events/${event.slug}/table`,
-      external: false,
-    };
-  }
+  if (event.hasFixtures) return null;
 
   const href = safeSourceUrl(event.scheduleUrl);
   if (!href) return null;
