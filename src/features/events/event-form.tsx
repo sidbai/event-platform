@@ -13,15 +13,19 @@ const label = "block text-sm font-medium";
 export function EventForm({
   kinds,
   hostTeam,
+  defaultListing = false,
 }: {
   kinds: Kind[];
   hostTeam?: { slug: string; name: string } | null;
+  /** Preselected when arriving from the old "list someone else's" link. */
+  defaultListing?: boolean;
 }) {
   const [state, action, pending] = useActionState<EventFormResult, FormData>(
     (_prev, formData) => submitEvent(_prev, formData),
     {},
   );
   const [locationType, setLocationType] = useState("in_person");
+  const [listed, setListed] = useState(defaultListing);
   // A team event is usually internal, so start it private rather than
   // announcing training to the whole site by accident.
   const [visibility, setVisibility] = useState(hostTeam ? "private" : "public");
@@ -30,6 +34,44 @@ export function EventForm({
   return (
     <form action={action} className="mt-6 space-y-5">
       {hostTeam && <input type="hidden" name="hostTeam" value={hostTeam.slug} />}
+
+      {/*
+        Asked first, because it changes what the rest of the form is for.
+        Running it here means this platform takes the entries, keeps the
+        rosters and publishes the table; listing means pointing at somebody
+        else's page so families can find it. One form either way — the
+        difference is four fields, not a second way to make an event.
+      */}
+      <fieldset>
+        <legend className={label}>Who runs this event?</legend>
+        <div className="mt-2 flex flex-wrap gap-4 text-sm">
+          {(
+            [
+              ["me", "I do", "Entries, rosters and results live here."],
+              [
+                "someone-else",
+                "Someone else",
+                "A listing, so people can find it. Entries stay on their page.",
+              ],
+            ] as const
+          ).map(([value, title, hint]) => (
+            <label key={value} className="flex max-w-xs items-start gap-2">
+              <input
+                type="radio"
+                name="runBy"
+                value={value}
+                defaultChecked={listed ? value === "someone-else" : value === "me"}
+                onChange={() => setListed(value === "someone-else")}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium">{title}</span>
+                <span className="block text-xs text-muted">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div>
         <label className={label} htmlFor="title">
           Event name
@@ -139,6 +181,47 @@ export function EventForm({
         )}
       </fieldset>
 
+      {listed && (
+        <fieldset className="rounded-lg border border-line p-4">
+          <legend className="px-1 text-sm font-medium">Whose event is it?</legend>
+          <p className="text-xs text-muted">
+            Shown on the listing, with a link back to them. Entries, rosters
+            and results stay with them.
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={label} htmlFor="sourceName">
+                Organizer
+              </label>
+              <input
+                id="sourceName"
+                name="sourceName"
+                placeholder="Starfire Sports"
+                className={`mt-1 ${field}`}
+              />
+              {err.sourceName && (
+                <p className="mt-1 text-xs text-red-600">{err.sourceName}</p>
+              )}
+            </div>
+            <div>
+              <label className={label} htmlFor="sourceUrl">
+                Their page
+              </label>
+              <input
+                id="sourceUrl"
+                name="sourceUrl"
+                type="url"
+                placeholder="https://…"
+                className={`mt-1 ${field}`}
+              />
+              {err.sourceUrl && (
+                <p className="mt-1 text-xs text-red-600">{err.sourceUrl}</p>
+              )}
+            </div>
+          </div>
+        </fieldset>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className={label} htmlFor="ageGroup">
@@ -165,7 +248,7 @@ export function EventForm({
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
+      <label className={`flex items-center gap-2 text-sm ${listed ? "hidden" : ""}`}>
         <input type="checkbox" name="needsOpponent" />
         We&rsquo;re looking for an opponent
       </label>
@@ -177,7 +260,10 @@ export function EventForm({
         <textarea id="summary" name="summary" rows={3} className={`mt-1 ${field}`} />
       </div>
 
-      <fieldset>
+      {/* A listing is always public: it exists to be found, and offering to
+          hide one would be offering to keep somebody else's tournament
+          secret. */}
+      <fieldset className={listed ? "hidden" : ""}>
         <legend className={label}>Who can see it</legend>
         <div className="mt-2 space-y-2 text-sm">
           <label className="flex items-start gap-2">

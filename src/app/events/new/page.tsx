@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function NewEventPage({
   searchParams,
 }: {
-  searchParams: Promise<{ team?: string }>;
+  searchParams: Promise<{ team?: string; listing?: string }>;
 }) {
   await requireUser("/events/new");
-  const { team: teamSlug } = await searchParams;
+  const { team: teamSlug, listing } = await searchParams;
 
   const [kinds, hostTeam] = await Promise.all([
     db.query.eventKinds.findMany({
@@ -44,7 +44,7 @@ export default async function NewEventPage({
           ? "Everyone on the team will see it, even if you keep it private."
           : "A game, scrimmage, pickup run, tournament, watch party — anything. Fill in what you know."}
       </p>
-      <EventForm kinds={kinds} hostTeam={host} />
+      <EventForm kinds={kinds} hostTeam={host} defaultListing={listing === "1"} />
     </div>
   );
 }

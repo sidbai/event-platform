@@ -51,23 +51,47 @@ export async function submitEvent(
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
 
+  /*
+   * Whether this platform runs the event, or is listing somebody else's.
+   *
+   * One action rather than two. The listing path started life as its own
+   * function and was 69% the same code — the same rate limit, the same date
+   * parsing, the same venue upsert, the same slug. This repository has been
+   * bitten repeatedly by exactly that: three copies of the unique-slug loop
+   * that disagreed on their retry count, two ways of adding a team that
+   * produced different teams. The difference here is four fields and a
+   * couple of rules, which is data, not a second code path.
+   */
+  const listed = get("runBy") === "someone-else";
+
   const kind = get("kind");
   const title = get("title");
-  const locationType = get("locationType") || "in_person";
+  const locationType = listed ? "in_person" : get("locationType") || "in_person";
   const date = get("date");
   const endDate = get("endDate");
   const time = get("time");
   const venueName = get("venueName");
   const onlineUrl = get("onlineUrl");
 
+  const sourceName = get("sourceName");
+  const sourceUrl = get("sourceUrl");
+
   const fieldErrors: Record<string, string> = {};
   if (!title) fieldErrors.title = "Give the event a name.";
   if (!kind) fieldErrors.kind = "Pick a kind.";
   if (!date) fieldErrors.date = "Pick a date.";
+  if (listed) {
+    // The two that make it a listing rather than a claim about someone
+    // else's event: whose it is, and where to actually go.
+    if (!sourceName) fieldErrors.sourceName = "Say whose event this is.";
+    if (!safeSourceUrl(sourceUrl)) {
+      fieldErrors.sourceUrl = "Add the organizer's page, starting with https://";
+    }
+  }
   if (endDate && date && endDate < date) {
     fieldErrors.endDate = "The last day is before the first.";
   }
-  if (locationType === "in_person" && !venueName)
+  if (!listed && locationType === "in_person" && !venueName)
     fieldErrors.venueName = "Where is it?";
   if (locationType === "online" && !onlineUrl)
     fieldErrors.onlineUrl = "Add a link.";
@@ -93,7 +117,7 @@ export async function submitEvent(
   const endsAt = endDate ? zonedDate(endDate, "23:59", timezone) : null;
 
   let venueId: string | null = null;
-  if (locationType === "in_person") {
+  if (locationType === "in_person" && venueName) {
     const existing = await db.query.venues.findFirst({
       where: eq(venues.name, venueName),
     });
@@ -113,8 +137,9 @@ export async function submitEvent(
 
   // Hosting for a team: only its owner/manager/coach may put events on its
   // calendar, so a forged slug in the form gets dropped rather than trusted.
+  // Never on a listing — nobody here hosts somebody else's tournament.
   let hostTeamId: string | null = null;
-  const hostTeamSlug = get("hostTeam");
+  const hostTeamSlug = listed ? "" : get("hostTeam");
   if (hostTeamSlug) {
     const team = await db.query.teams.findFirst({
       where: eq(teams.slug, hostTeamSlug),
@@ -126,7 +151,9 @@ export async function submitEvent(
   }
 
   const admin = isAdmin(user);
-  const picked = get("visibility");
+  // A listing is always public: it exists to be found. Offering to hide one
+  // would be offering to keep somebody else's tournament secret.
+  const picked = listed ? "public" : get("visibility");
   const visibility = (
     ["public", "unlisted", "private"].includes(picked) ? picked : "public"
   ) as "public" | "unlisted" | "private";
@@ -137,7 +164,9 @@ export async function submitEvent(
   await db.insert(events).values({
     slug,
     kind,
-    modules: kindRow.defaultModules,
+    // A listing runs nothing here, so it gets none of the modules that offer
+    // entries, rosters or a table.
+    modules: listed ? [] : kindRow.defaultModules,
     title,
     summary: get("summary") || null,
     status: needsReview ? "pending" : "published",
@@ -152,8 +181,14 @@ export async function submitEvent(
     gender: get("gender") || null,
     level: get("level") || null,
     format: get("format") || null,
-    needsOpponent: formData.get("needsOpponent") === "on",
-    organizerId: user.id,
+    needsOpponent: !listed && formData.get("needsOpponent") === "on",
+    host: listed ? get("host") || sourceName : get("host") || null,
+    sourceName: listed ? sourceName : null,
+    sourceUrl: listed ? safeSourceUrl(sourceUrl) : null,
+    listedBy: listed ? user.id : null,
+    // No organizer on a listing: nobody here runs it. Claiming one later is
+    // exactly what sets this.
+    organizerId: listed ? null : user.id,
     hostTeamId,
   });
 
@@ -252,104 +287,3 @@ export async function setEventHidden(
   revalidatePath("/admin");
 }
 
-/**
- * List an event that happens somewhere else.
- *
- * Discovery is most of what a family wants from this site, and on day one
- * there is nothing to discover. So a tournament run by someone else can be
- * entered here from their own page, to be findable alongside everything else
- * — with their name on it and a link back to them.
- *
- * Reuses the same review rule as any other submission: an admin's listing is
- * published, anyone else's waits. Listing other people's events is exactly
- * where a stranger could do the most damage with the least effort.
- */
-export async function listExternalEvent(
-  _prev: EventFormResult,
-  formData: FormData,
-): Promise<EventFormResult> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Sign in to list an event." };
-
-  const gate = await checkRateLimit("event:create", user);
-  if (!gate.ok) return { error: gate.message };
-
-  const get = (k: string) => String(formData.get(k) ?? "").trim();
-
-  const kind = get("kind");
-  const title = get("title");
-  const date = get("date");
-  const endDate = get("endDate");
-  const sourceName = get("sourceName");
-  const sourceUrl = get("sourceUrl");
-
-  const fieldErrors: Record<string, string> = {};
-  if (!title) fieldErrors.title = "Give the event a name.";
-  if (!kind) fieldErrors.kind = "Pick a kind.";
-  if (!date) fieldErrors.date = "Pick a date.";
-  if (endDate && date && endDate < date) {
-    fieldErrors.endDate = "The last day is before the first.";
-  }
-  // The two that make it a listing rather than a claim about someone else's
-  // event: whose it is, and where to actually go.
-  if (!sourceName) fieldErrors.sourceName = "Say whose event this is.";
-  if (!safeSourceUrl(sourceUrl)) {
-    fieldErrors.sourceUrl = "Add the organizer's page, starting with https://";
-  }
-  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
-
-  const kindRow = await db.query.eventKinds.findFirst({
-    where: eq(eventKinds.slug, kind),
-  });
-  if (!kindRow) return { fieldErrors: { kind: "Unknown kind." } };
-
-  const timezone = get("timezone") || "America/Los_Angeles";
-  const startsAt = zonedDate(date, get("time") || "00:00", timezone);
-  const endsAt = endDate ? zonedDate(endDate, "23:59", timezone) : null;
-
-  let venueId: string | null = null;
-  const venueName = get("venueName");
-  if (venueName) {
-    const existing = await db.query.venues.findFirst({
-      where: eq(venues.name, venueName),
-    });
-    venueId =
-      existing?.id ??
-      (
-        await db
-          .insert(venues)
-          .values({ name: venueName, city: get("venueCity") || null })
-          .returning({ id: venues.id })
-      )[0].id;
-  }
-
-  const admin = isAdmin(user);
-  const slug = await uniqueSlug(slugify(title));
-
-  await db.insert(events).values({
-    slug,
-    kind,
-    modules: [],
-    title,
-    summary: get("summary") || null,
-    // Same rule as any submission: an admin's is live, anyone else's waits.
-    status: needsAdminReview(kind, "public", admin) ? "pending" : "published",
-    visibility: "public",
-    locationType: "in_person",
-    venueId,
-    startsAt,
-    endsAt,
-    timezone,
-    ageGroup: get("ageGroup") || null,
-    gender: get("gender") || null,
-    format: get("format") || null,
-    host: get("host") || sourceName,
-    sourceName,
-    sourceUrl: safeSourceUrl(sourceUrl),
-    listedBy: user.id,
-    // Deliberately no organizerId: nobody here runs this. Claiming it later is
-    // what sets one.
-  });
-
-  redirect(`/events/${slug}`);
-}
