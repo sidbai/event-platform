@@ -120,15 +120,7 @@ export async function applySync(
 
     // Private, because nobody has claimed it here. It exists so the schedule
     // has something to point at, not as a team page anyone is looking for.
-    const [team] = await db
-      .insert(teams)
-      .values({
-        slug: await uniqueTeamSlug(slugify(t.name).slice(0, 60)),
-        name: t.name,
-        visibility: "private",
-        originEventId: eventId,
-      })
-      .returning({ id: teams.id });
+    const team = await insertSyncedTeam(t.name, eventId);
 
     await db
       .insert(eventTeams)
@@ -210,6 +202,41 @@ export async function applySync(
     removed: gone.length,
     unchanged: false,
   };
+}
+
+/**
+ * A team row for a name a platform published.
+ *
+ * Retried, because picking a free slug is a read followed by a write and two
+ * syncs running at once will happily pick the same one — two tournaments in
+ * the same weekend both fielding a "Leon FC U10" is not a rare case, it is
+ * most weekends. The database has the unique constraint; this is what makes
+ * losing that race cost a second attempt instead of a whole sync.
+ */
+async function insertSyncedTeam(name: string, eventId: string) {
+  const base = slugify(name).slice(0, 60);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const [team] = await db
+        .insert(teams)
+        .values({
+          slug: await uniqueTeamSlug(base),
+          name,
+          visibility: "private",
+          originEventId: eventId,
+        })
+        .returning({ id: teams.id });
+      return team;
+    } catch (error) {
+      if (attempt >= 2 || !isUniqueViolation(error)) throw error;
+    }
+  }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && "code" in error && error.code === "23505"
+  );
 }
 
 /** Record a failed attempt without touching the schedule that is already there. */

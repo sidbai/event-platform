@@ -41,7 +41,13 @@ export type SyncedMatch = {
   sourceMatchId: string;
   division: string;
   group: string | null;
-  /** Local wall-clock date and time, as published. Given a zone by the caller. */
+  /**
+   * Local wall-clock date and time, given a zone by the caller.
+   *
+   * `2026-09-05` and `09:05` — an adapter normalises whatever its platform
+   * prints, so nothing downstream has to know that one of them writes
+   * "9:05 AM" and the next one "9.05am".
+   */
   date: string | null;
   time: string | null;
   homeTeamId: string | null;

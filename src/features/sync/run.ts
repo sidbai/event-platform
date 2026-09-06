@@ -86,6 +86,51 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
 }
 
 /**
+ * How long a claim holds before another caller may try again.
+ *
+ * Long enough that two readers arriving together do not both go and fetch the
+ * same tournament, short enough that a process killed mid-sync does not leave
+ * a schedule frozen for the rest of the afternoon.
+ */
+const LEASE_MS = 5 * 60_000;
+
+/**
+ * Refresh one listing, but only if it is due and nobody else is already on it.
+ *
+ * The claim is the `update ... where still due` itself: Postgres decides who
+ * gets the row, so a Saturday morning where forty parents open the same
+ * schedule at once produces one fetch, not forty. Whoever wins moves
+ * `nextSyncAt` out by the lease before doing any work; the sync then sets it
+ * properly, and a failure sets it from the cadence.
+ */
+export async function syncIfDue(eventId: string, now = new Date()): Promise<SyncReport | null> {
+  const claimed = await db
+    .update(events)
+    .set({ nextSyncAt: new Date(now.getTime() + LEASE_MS) })
+    .where(and(eq(events.id, eventId), isNotNull(events.sourcePlatform), due(now)))
+    .returning({ id: events.id });
+
+  if (claimed.length === 0) return null;
+  return syncEvent(eventId, now);
+}
+
+/**
+ * Due for a check: the moment it was given has passed, or it has never been
+ * read and nobody is reading it right now.
+ *
+ * The second half is what makes the claim work. "Never synced" on its own
+ * stays true no matter how many callers claim the row, so eight readers
+ * arriving together would all have gone and fetched; a claim moves
+ * `nextSyncAt` into the future, and that is what the losers now see.
+ */
+function due(now: Date) {
+  return or(
+    sql`${events.nextSyncAt} <= ${now.toISOString()}::timestamptz`,
+    and(sql`${events.lastSyncedAt} is null`, sql`${events.nextSyncAt} is null`),
+  );
+}
+
+/**
  * Every listing whose next check has come due.
  *
  * Bounded, because this runs inside one serverless invocation and a queue
@@ -93,17 +138,18 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
  * still due on the next tick.
  */
 export async function syncDueEvents(limit = 5, now = new Date()): Promise<SyncReport[]> {
-  const due = await db.query.events.findMany({
-    where: and(
-      isNotNull(events.sourcePlatform),
-      // Never synced, or scheduled for a moment that has passed.
-      or(sql`${events.lastSyncedAt} is null`, sql`${events.nextSyncAt} <= ${now.toISOString()}::timestamptz`),
-    ),
+  const candidates = await db.query.events.findMany({
+    where: and(isNotNull(events.sourcePlatform), due(now)),
     columns: { id: true },
     limit,
   });
 
   const reports: SyncReport[] = [];
-  for (const e of due) reports.push(await syncEvent(e.id, now));
+  for (const e of candidates) {
+    // Through the same claim as a page-triggered refresh, so a cron tick and a
+    // reader arriving at the same moment cannot both fetch the same event.
+    const report = await syncIfDue(e.id, now);
+    if (report) reports.push(report);
+  }
   return reports;
 }

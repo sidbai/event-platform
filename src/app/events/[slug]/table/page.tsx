@@ -1,10 +1,13 @@
 import { TeamCrest } from "@/components/team-crest";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
 import { canViewEvent } from "@/features/events/can-view";
+import { syncNote } from "@/features/sync/freshness";
+import { syncIfDue } from "@/features/sync/run";
 import { DivisionPicker } from "@/features/tournaments/division-picker";
 import { getLeague } from "@/features/tournaments/league-queries";
 import { byMatchday, currentMatchday } from "@/features/tournaments/matchdays";
@@ -63,6 +66,19 @@ export default async function LeagueTablePage({
   if (!(await canViewEvent(league, user))) notFound();
 
   const tz = league.timezone ?? "America/Los_Angeles";
+  const now = new Date();
+  const freshness = syncNote(league, now);
+
+  /*
+   * Somebody is looking at this schedule, which is the one moment its being
+   * current actually matters. The refresh runs after the response has gone,
+   * so the reader waits for nothing and sees this fetch's result on their next
+   * look; the claim inside syncIfDue means forty parents opening the same page
+   * on a Saturday morning produce one fetch between them.
+   */
+  if (league.sourcePlatform) {
+    after(() => syncIfDue(league.id, new Date()));
+  }
 
   /*
    * One division at a time, the way GotSport does it. A league can carry a
@@ -160,6 +176,14 @@ export default async function LeagueTablePage({
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">
         Schedule and standings
       </h1>
+
+      {freshness && (
+        <p
+          className={`mt-1 text-xs ${freshness.stale ? "text-amber-700" : "text-muted"}`}
+        >
+          {freshness.text}
+        </p>
+      )}
 
       {divisions.length > 1 && division && (
         <DivisionPicker
