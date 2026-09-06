@@ -27,23 +27,51 @@ export function requireTestDatabase(): string {
   return url;
 }
 
-/** Everything this suite writes, emptied in one statement. */
+/** The tables this suite writes, children before parents. */
+const TABLES = [
+  "event_tasks",
+  "event_registrations",
+  "matches",
+  "rosters",
+  "event_teams",
+  "event_divisions",
+  "team_members",
+  "events",
+  "teams",
+  "venues",
+  "users",
+];
+
+/**
+ * Empty everything this suite writes.
+ *
+ * Only the tables that actually exist. This helper sits on a branch where
+ * event_tasks does not, and naming a missing table fails the whole statement —
+ * so the list is filtered against the catalogue rather than assumed. It also
+ * means a table added later needs no change here beyond its name.
+ */
 export async function truncateAll(db: {
   execute: (q: ReturnType<typeof sql>) => Promise<unknown>;
 }) {
-  await db.execute(sql`
-    truncate table
-      event_tasks,
-      event_registrations,
-      matches,
-      rosters,
-      event_teams,
-      event_divisions,
-      team_members,
-      events,
-      teams,
-      venues,
-      users
-    restart identity cascade
-  `);
+  const rows = (await db.execute(sql`
+    select table_name from information_schema.tables
+    where table_schema = 'public' and table_name in ${sql`(${sql.join(
+      TABLES.map((t) => sql`${t}`),
+      sql`, `,
+    )})`}
+  `)) as unknown as { table_name: string }[];
+
+  const present = TABLES.filter((t) => rows.some((r) => r.table_name === t));
+  if (present.length === 0) {
+    throw new Error(
+      "No known tables found — is the schema built? See the db job in .github/workflows/ci.yml.",
+    );
+  }
+
+  await db.execute(
+    sql`truncate table ${sql.join(
+      present.map((t) => sql.identifier(t)),
+      sql`, `,
+    )} restart identity cascade`,
+  );
 }
