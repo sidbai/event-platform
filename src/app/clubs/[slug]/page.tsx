@@ -24,17 +24,18 @@ import {
 import { HelpfulButton, ReportControl } from "@/features/clubs/review-card";
 import { RatingBreakdown, Stars } from "@/features/clubs/stars";
 import { CreateLink } from "@/components/create-link";
+import { paginate, parsePage } from "@/features/pagination/paginate";
+import { Pager } from "@/features/pagination/pager";
 
 export const dynamic = "force-dynamic";
 
 /**
- * How many coaches sit inline before the rest fold away.
+ * Coaches per page on the roster.
  *
- * Enough to show the section is populated and to catch a familiar name;
- * not so many that the reviews this page exists for are pushed under a
- * directory. Seattle United lists 82.
+ * Enough to be worth a page, few enough that the roster stays a section of
+ * this page rather than becoming it — Seattle United lists 82.
  */
-const COACHES_SHOWN = 6;
+const COACHES_PER_PAGE = 10;
 
 export async function generateMetadata({
   params,
@@ -59,10 +60,13 @@ function fmt(d: Date) {
 
 export default async function ClubPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ coaches?: string }>;
 }) {
   const { slug } = await params;
+  const coachPage = parsePage((await searchParams).coaches);
   const [club, user] = await Promise.all([getClub(slug), getCurrentUser()]);
   if (!club) notFound();
   const admin = isAdmin(user);
@@ -77,6 +81,11 @@ export default async function ClubPage({
     coachesAtClub(club.id),
   ]);
   const mine = reviews.find((r) => r.mine);
+  const coachPagination = paginate(coaches.length, coachPage, COACHES_PER_PAGE);
+  const pagedCoaches = coaches.slice(
+    coachPagination.offset,
+    coachPagination.offset + coachPagination.perPage,
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -291,7 +300,7 @@ export default async function ClubPage({
         </ul>
       )}
 
-      <section className="mt-8">
+      <section id="coaches" className="mt-8 scroll-mt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold">Coaches at this club</h2>
           <CreateLink href="/coaches/new">Add a coach</CreateLink>
@@ -303,7 +312,7 @@ export default async function ClubPage({
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-line">
-            {coaches.slice(0, COACHES_SHOWN).map((c) => (
+            {pagedCoaches.map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/coaches/${c.slug}`}
@@ -326,38 +335,14 @@ export default async function ClubPage({
             ))}
           </ul>
         )}
-        {coaches.length > COACHES_SHOWN && (
-          /* A club can list eighty coaches. Inline that is not a section, it
-             is the page — which is how the reviews ended up below it. */
-          <details className="mt-2">
-            <summary className="cursor-pointer text-sm text-brand-text hover:underline">
-              Show all {coaches.length} coaches
-            </summary>
-            <ul className="mt-2 divide-y divide-line">
-              {coaches.slice(COACHES_SHOWN).map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/coaches/${c.slug}`}
-                    className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 transition-colors hover:bg-elevated"
-                  >
-                    <span>
-                      <span className="font-medium">{c.name}</span>{" "}
-                      <span className="text-sm text-muted">
-                        {coachRoleLabel(c.role)}
-                        {c.ageGroups.length > 0 && ` · ${c.ageGroups.join(", ")}`}
-                      </span>
-                    </span>
-                    <span className="text-xs text-muted">
-                      {c.reviewCount === 0
-                        ? "No reviews yet"
-                        : `${c.reviewCount} review${c.reviewCount === 1 ? "" : "s"}`}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <Pager
+          basePath={`/clubs/${slug}`}
+          params={{}}
+          pagination={coachPagination}
+          noun="coaches"
+          pageKey="coaches"
+          anchor="coaches"
+        />
       </section>
     </div>
   );
