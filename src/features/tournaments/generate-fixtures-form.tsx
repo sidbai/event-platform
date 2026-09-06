@@ -18,15 +18,21 @@ const field = "rounded-md border border-line bg-card px-2 py-1.5 text-sm";
 export function GenerateFixturesForm({
   action,
   divisions,
+  clearAction,
 }: {
   action: Action;
   divisions: { id: string; name: string; label: string | null }[];
+  /** Undo, for a season generated before the groups were set. */
+  clearAction: (divisionId: string) => Promise<ScoreResult>;
 }) {
   const [state, formAction, pending] = useActionState<ScoreResult, FormData>(
     action,
     {},
   );
   const [open, setOpen] = useState(false);
+  const [divisionId, setDivisionId] = useState(divisions[0]?.id ?? "");
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
 
   if (divisions.length === 0) return null;
 
@@ -53,7 +59,15 @@ export function GenerateFixturesForm({
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="text-xs text-muted">
           Division
-          <select name="divisionId" className={`mt-1 block ${field}`}>
+          <select
+            name="divisionId"
+            value={divisionId}
+            onChange={(e) => {
+              setDivisionId(e.target.value);
+              setClearError(null);
+            }}
+            className={`mt-1 block ${field}`}
+          >
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label ?? d.name}
@@ -112,6 +126,25 @@ export function GenerateFixturesForm({
           Fixtures created. They are on the schedule now.
         </p>
       )}
+      {clearError && <p className="mt-2 text-xs text-red-600">{clearError}</p>}
+
+      {/* Generating is one click and refuses to run twice; undoing it was one
+          click per match. Generating before the groups are set is the easy
+          mistake, so the way back belongs beside the way in. */}
+      <button
+        type="button"
+        disabled={clearing || !divisionId}
+        onClick={async () => {
+          setClearing(true);
+          setClearError(null);
+          const res = await clearAction(divisionId);
+          if (res.error) setClearError(res.error);
+          setClearing(false);
+        }}
+        className="mt-3 block text-xs text-muted hover:text-red-600 disabled:opacity-50"
+      >
+        {clearing ? "Deleting…" : "Delete this division's fixtures"}
+      </button>
     </form>
   );
 }
