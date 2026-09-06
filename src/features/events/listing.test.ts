@@ -4,7 +4,6 @@ import {
   attributionOf,
   isExternalListing,
   isRunHere,
-  primaryActionOf,
   safeSourceUrl,
   scheduleActionOf,
 } from "./listing";
@@ -93,29 +92,6 @@ describe("safeSourceUrl", () => {
   });
 });
 
-describe("what the page offers", () => {
-  it("sends a listing's visitors to the organizer", () => {
-    expect(primaryActionOf(listed)).toEqual({
-      label: "Details & registration",
-      href: "https://wpl-soccer.com/labor-day-cup",
-    });
-  });
-
-  it("leaves our own events to their own buttons", () => {
-    expect(primaryActionOf(native)).toBeNull();
-    expect(primaryActionOf({ ...listed, organizerId: "u1" })).toBeNull();
-  });
-
-  it("promises no destination it cannot reach", () => {
-    // A listing with an unusable link is still a listing; it just does not
-    // get a button that goes nowhere.
-    expect(primaryActionOf({ sourceName: "Rain City Cup", sourceUrl: null })).toBeNull();
-    expect(
-      primaryActionOf({ sourceName: "Rain City Cup", sourceUrl: "javascript:alert(1)" }),
-    ).toBeNull();
-  });
-});
-
 describe("the schedule link", () => {
   const withSchedule = {
     sourceName: "Crossfire Premier Soccer",
@@ -131,31 +107,22 @@ describe("the schedule link", () => {
     });
   });
 
-  it("sends a reader to our own schedule once we hold the fixtures", () => {
-    // The point of syncing one. Ours has a division to pick and a team to
-    // follow; theirs is a page of flight links that does not know which age
-    // group this parent's child plays in.
-    expect(
-      scheduleActionOf({
-        ...withSchedule,
-        slug: "labor-day-zf-challenge",
-        hasFixtures: true,
-      }),
-    ).toEqual({
-      label: "Schedule & standings",
-      href: "/events/labor-day-zf-challenge/table",
-      external: false,
-    });
+  it("offers nothing once we hold the fixtures ourselves", () => {
+    // They are on the event page, further down it. A button sending the
+    // reader to the platform for the thing they are already looking at is
+    // worse than no button.
+    expect(scheduleActionOf({ ...withSchedule, hasFixtures: true })).toBeNull();
   });
 
   it("still points at the platform when we hold nothing", () => {
-    // Connected but never read, or listed by hand: our page would be empty,
-    // and an empty schedule is worse than somebody else's full one.
-    expect(
-      scheduleActionOf({ ...withSchedule, slug: "x", hasFixtures: false })?.external,
-    ).toBe(true);
-    expect(scheduleActionOf({ ...withSchedule, hasFixtures: true })?.external).toBe(true);
+    // Connected but never read, or listed by hand: our section would be
+    // empty, and an empty schedule of ours is worse than a full one of
+    // theirs.
+    expect(scheduleActionOf({ ...withSchedule, hasFixtures: false })?.external).toBe(
+      true,
+    );
   });
+
 
   it("has nothing to add for an event we run", () => {
     // Ours keeps its own schedule at /events/<slug>/table.

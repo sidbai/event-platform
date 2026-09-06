@@ -12,14 +12,13 @@ import { canViewEvent } from "@/features/events/can-view";
 import { EventTags } from "@/features/events/event-tags";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
-import { getEventBySlug, type EventDetail } from "@/features/events/queries";
+import { getEventBySlug } from "@/features/events/queries";
 import { managedEntries } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
 import {
   attributionOf,
   isRunHere,
-  primaryActionOf,
   scheduleActionOf,
 } from "@/features/events/listing";
 import {
@@ -28,11 +27,9 @@ import {
 } from "@/features/registration/openness";
 import { divisionsForRegistration } from "@/features/registration/queries";
 import {
-  computeStandings,
-  rankStandings,
-  type StandingRow,
-  type StandingsConfig,
-} from "@/features/tournaments/standings";
+  ScheduleSection,
+  type ScheduleParams,
+} from "@/features/tournaments/schedule-section";
 
 export const dynamic = "force-dynamic";
 
@@ -60,18 +57,20 @@ export async function generateMetadata({
 
 type Champion = { division: string; champion: string; finalist: string; finalScore: string };
 type Sponsor = { name: string; url: string | null; tier: string };
-type TeamMeta = Map<
-  string,
-  { name: string; seed: number | null; crestUrl: string | null }
->;
 
 export default async function EventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<ScheduleParams>;
 }) {
   const { slug } = await params;
-  const [event, user] = await Promise.all([getEventBySlug(slug), getCurrentUser()]);
+  const [event, user, sp] = await Promise.all([
+    getEventBySlug(slug),
+    getCurrentUser(),
+    searchParams,
+  ]);
   if (!event) notFound();
 
   const canManage =
@@ -100,7 +99,6 @@ export default async function EventPage({
   // parent to register here would send them somewhere nothing is listening.
   const runHere = isRunHere(event);
   const attribution = attributionOf(event);
-  const offsite = primaryActionOf(event);
   const offsiteSchedule = scheduleActionOf({
     ...event,
     // A synced listing keeps its fixtures here, so the schedule link is ours.
@@ -255,44 +253,20 @@ export default async function EventPage({
         </p>
       )}
 
-      {(offsiteSchedule || offsite) && (
-        <p className="mt-4 flex flex-wrap items-center gap-3">
-          {/* Schedule first, and styled as the main action, because it is what
-              a parent came for. An event we run puts the same words in the
-              same place, pointing at our own table — whoever is running it
-              should not be something the reader has to think about. */}
-          {offsiteSchedule &&
-            (offsiteSchedule.external ? (
-              <a
-                href={offsiteSchedule.href}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className={scheduleButton}
-              >
-                {offsiteSchedule.label} →
-              </a>
-            ) : (
-              // Ours: a normal link, in the same place and the same words.
-              // Whoever is running the tournament should not be something the
-              // reader has to think about to find the fixtures.
-              <Link href={offsiteSchedule.href} className={scheduleButton}>
-                {offsiteSchedule.label} →
-              </Link>
-            ))}
-          {offsite && (
-            <a
-              href={offsite.href}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className={
-                offsiteSchedule
-                  ? "text-sm font-medium text-brand-text hover:underline"
-                  : "inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-              }
-            >
-              {offsite.label} →
-            </a>
-          )}
+      {offsiteSchedule && (
+        /* Only when the fixtures are not ours to show. Once we hold them they
+           are further down this page, and a button sending a parent off to
+           find the same thing somewhere else would be a worse answer to the
+           question they came with. */
+        <p className="mt-4">
+          <a
+            href={offsiteSchedule.href}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className={scheduleButton}
+          >
+            {offsiteSchedule.label} →
+          </a>
         </p>
       )}
 
@@ -324,12 +298,6 @@ export default async function EventPage({
 
       {takesEntries && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
-          <Link
-            href={`/events/${event.slug}/table`}
-            className="font-medium text-brand-text hover:underline"
-          >
-            Schedule and standings →
-          </Link>
           <Link
             href={`/events/${event.slug}/register`}
             className="font-medium text-brand-text hover:underline"
@@ -479,17 +447,14 @@ export default async function EventPage({
         </p>
       )}
 
-      {event.divisions.map((division) => (
-        <DivisionBlock
-          key={division.id}
-          division={division}
-          event={event}
-          config={{
-            goalCap: rules?.goalCapPerGame,
-            tiebreakers: rules?.tiebreakers,
-          }}
-        />
-      ))}
+      <ScheduleSection
+        event={event}
+        sp={sp}
+        config={{
+          goalCap: rules?.goalCapPerGame,
+          tiebreakers: rules?.tiebreakers,
+        }}
+      />
 
       {rules && (
         <section className="mt-10">
@@ -557,155 +522,6 @@ export default async function EventPage({
         revalidate={`/events/${event.slug}`}
         canModerate={canManage}
       />
-    </div>
-  );
-}
-
-function DivisionBlock({
-  division,
-  event,
-  config,
-}: {
-  division: EventDetail["divisions"][number];
-  event: EventDetail;
-  config: StandingsConfig;
-}) {
-  const teamsInDiv = event.eventTeams.filter((et) => et.divisionId === division.id);
-  const knockouts = event.matches.filter(
-    (m) => m.divisionId === division.id && m.stage === "ko",
-  );
-
-  const teamMeta: TeamMeta = new Map(
-    teamsInDiv.map((et) => [
-      et.team.id,
-      { name: et.team.name, seed: et.seed, crestUrl: et.team.crestUrl },
-    ]),
-  );
-
-  const groupLabels = [...new Set(teamsInDiv.map((et) => et.groupLabel ?? ""))].sort();
-  const groups = groupLabels.map((label) => {
-    const ids = teamsInDiv
-      .filter((et) => (et.groupLabel ?? "") === label)
-      .map((et) => et.team.id);
-    const groupMatches = event.matches
-      .filter(
-        (m) =>
-          m.divisionId === division.id &&
-          m.stage === "group" &&
-          (m.groupLabel ?? "") === label &&
-          m.homeTeamId != null &&
-          m.awayTeamId != null,
-      )
-      .map((m) => ({
-        homeTeamId: m.homeTeamId,
-        awayTeamId: m.awayTeamId,
-        homeScore: m.homeScore,
-        awayScore: m.awayScore,
-      }));
-    const table = computeStandings(groupMatches, ids, config);
-    return { label, ranked: rankStandings([...table.values()], groupMatches, config) };
-  });
-
-  return (
-    <section className="mt-10">
-      <h2 className="text-lg font-semibold">
-        {division.label ?? division.name}
-        {division.birthYears.length > 0 && (
-          <span className="ml-2 text-sm font-normal text-muted">
-            born {division.birthYears.join("/")}
-          </span>
-        )}
-      </h2>
-
-      <div className="mt-3 space-y-4">
-        {groups.map((group) => (
-          <div key={group.label}>
-            {groupLabels.length > 1 && (
-              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                Group {group.label}
-              </div>
-            )}
-            <StandingsTable rows={group.ranked} teamMeta={teamMeta} />
-          </div>
-        ))}
-      </div>
-
-      {knockouts.length > 0 && (
-        <div className="mt-4 space-y-1.5 text-sm">
-          {knockouts.map((m) => (
-            <div key={m.id} className="flex items-center gap-2">
-              <span className="w-14 shrink-0 text-xs uppercase tracking-wide text-muted">
-                {m.round}
-              </span>
-              <span className="flex flex-1 items-center justify-end gap-1.5 text-right">
-                {m.homeTeam?.name ?? m.homePlaceholder}
-                <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
-              </span>
-              <span className="font-semibold tabular-nums">
-                {m.homeScore}–{m.awayScore}
-              </span>
-              <span className="flex flex-1 items-center gap-1.5">
-                <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
-                {m.awayTeam?.name ?? m.awayPlaceholder}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function StandingsTable({
-  rows,
-  teamMeta,
-}: {
-  rows: StandingRow[];
-  teamMeta: TeamMeta;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm tabular-nums">
-        <thead>
-          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-            <th className="py-1.5 pr-2 font-medium">#</th>
-            <th className="py-1.5 pr-2 font-medium">Team</th>
-            <th className="px-2 py-1.5 text-right font-medium">P</th>
-            <th className="px-2 py-1.5 text-right font-medium">W</th>
-            <th className="px-2 py-1.5 text-right font-medium">D</th>
-            <th className="px-2 py-1.5 text-right font-medium">L</th>
-            <th className="px-2 py-1.5 text-right font-medium">GF</th>
-            <th className="px-2 py-1.5 text-right font-medium">GA</th>
-            <th className="py-1.5 pl-2 text-right font-medium">Pts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => {
-            const meta = teamMeta.get(row.teamId);
-            return (
-              <tr key={row.teamId} className="border-b border-line">
-                <td className="py-1.5 pr-2 text-muted">{i + 1}</td>
-                <td className="py-1.5 pr-2">
-                  <span className="flex items-center gap-2">
-                    <TeamCrest src={meta?.crestUrl} size={20} />
-                    <span>
-                      {meta?.seed === 1 && "🏆 "}
-                      {meta?.name ?? "—"}
-                    </span>
-                  </span>
-                </td>
-                <td className="px-2 py-1.5 text-right">{row.played}</td>
-                <td className="px-2 py-1.5 text-right">{row.won}</td>
-                <td className="px-2 py-1.5 text-right">{row.drawn}</td>
-                <td className="px-2 py-1.5 text-right">{row.lost}</td>
-                <td className="px-2 py-1.5 text-right">{row.gf}</td>
-                <td className="px-2 py-1.5 text-right">{row.ga}</td>
-                <td className="py-1.5 pl-2 text-right font-semibold">{row.points}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
