@@ -21,3 +21,60 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+
+  # Everything the pure suite cannot see. A query can build, typecheck, lint
+  # and pass every unit test, and still throw the moment a driver receives it —
+  # that is how a Date in a raw sql`` fragment took down the home feed. This job
+  # is the one that would have caught it.
+  db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: king_juan_soccer_test
+        ports:
+          - 5432:5432
+        # Without this the job races the container and connects to nothing.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/king_juan_soccer_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The migrations are part of what is under test: a broken one fails here
+      # rather than against the production database.
+      # Applied one file at a time rather than with `drizzle-kit migrate`.
+      #
+      # drizzle-kit wraps every pending migration in ONE transaction, and 0012
+      # adds values to the team_role enum that a later migration uses as a
+      # column default. Postgres 16 rejects that — "new enum values must be
+      # committed before they can be used" — so a from-scratch run fails even
+      # though production, which applied them a few at a time over months, is
+      # fine. psql autocommits each statement, which is what those months
+      # looked like.
+      #
+      # The consequence worth knowing: this job proves the SQL is valid and the
+      # resulting schema is right. It does not prove `pnpm db:migrate` can
+      # rebuild a database from zero on Postgres 16.
+      - name: Build the schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          for f in drizzle/*.sql; do
+            psql -h 127.0.0.1 -U postgres -q -v ON_ERROR_STOP=1 \
+              -f "$f" king_juan_soccer_test
+          done
+      - run: pnpm test:db
