@@ -179,28 +179,57 @@ export function endOfDay(at: Date, timeZone: string): Date {
   return parsed.ok && parsed.value ? parsed.value : at;
 }
 
+const DAY = 86_400_000;
+
 /**
- * When a template task wants doing, counted back from the first day.
+ * When each task on a starter list wants doing.
  *
- * Null when the event has no date yet: a due date derived from nothing is a
- * deadline nobody agreed to.
+ * The templates carry lead times — book fields 45 days out, publish the rules
+ * 14 days out, print score cards 3 days out — and those numbers are the useful
+ * part: they say what to do first. Subtracting them from the first day works
+ * only when there is a season's worth of runway left.
  *
- * A date that has already passed is pulled forward to the END of today rather
- * than to this instant. Importing the list a week before a tournament should
- * not produce a dozen tasks that were due last month — that reads as failure
- * before the organizer has done anything — but clamping to `now` is worse
- * still: the due date is then a millisecond in the past by the time the page
- * renders, and every single task comes up overdue on arrival.
+ * There usually is not. An organizer who imports the list a week before
+ * kick-off has every one of those dates in the past, and clamping each to
+ * today collapses the whole list to one deadline — which is not wrong,
+ * exactly, but throws away the ordering at the moment it matters most.
+ *
+ * So a short runway compresses rather than collapses. Forty-five days of
+ * preparation squeezed into seven keeps its shape: fields still come first,
+ * score cards still come last, and everything lands between today and the
+ * event. The dates stop being real deadlines and become an order of work,
+ * which is what a late list is for.
+ *
+ * Taken as a whole list rather than one task at a time, because the scale
+ * factor depends on the longest lead time in it.
  */
-export function dueDateFor(
-  daysBefore: number,
+export function scheduleChecklist(
+  templates: TaskTemplate[],
   startsAt: Date | null,
   now: Date,
   timeZone: string,
-): Date | null {
-  if (!startsAt) return null;
-  const due = new Date(startsAt.getTime() - daysBefore * 86_400_000);
-  return due.getTime() < now.getTime() ? endOfDay(now, timeZone) : due;
+): (Date | null)[] {
+  // A due date derived from nothing is a deadline nobody agreed to.
+  if (!startsAt) return templates.map(() => null);
+
+  const floor = endOfDay(now, timeZone);
+  const ceiling = endOfDay(startsAt, timeZone);
+  const clamp = (at: Date) =>
+    new Date(Math.min(Math.max(at.getTime(), floor.getTime()), ceiling.getTime()));
+
+  // The event has started. Whatever is left is due now, and pretending
+  // otherwise would put deadlines after the first whistle.
+  const runway = startsAt.getTime() - now.getTime();
+  if (runway <= 0) return templates.map(() => floor);
+
+  const maxLead = Math.max(1, ...templates.map((t) => t.daysBefore));
+  // Never stretch: a year of runway should not push "print the score cards"
+  // six months out. Only the squeeze is interesting.
+  const scale = Math.min(1, runway / (maxLead * DAY));
+
+  return templates.map((t) =>
+    clamp(endOfDay(new Date(startsAt.getTime() - t.daysBefore * DAY * scale), timeZone)),
+  );
 }
 
 export type ProgressItem = { status: TaskStatus };

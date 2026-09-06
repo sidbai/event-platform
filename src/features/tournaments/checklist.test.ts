@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   defaultChecklist,
-  dueDateFor,
+  endOfDay,
+  scheduleChecklist,
   isTaskCategory,
   overdue,
   progressOf,
@@ -63,38 +64,86 @@ describe("defaultChecklist", () => {
   });
 });
 
-describe("dueDateFor", () => {
-  it("counts back from the first day", () => {
-    const start = new Date("2026-11-01T16:00:00Z");
-    expect(dueDateFor(30, start, now, SEATTLE)?.toISOString()).toBe(
-      "2026-10-02T16:00:00.000Z",
+describe("scheduleChecklist", () => {
+  const league = defaultChecklist("league");
+  const days = (n: number) => new Date(now.getTime() + n * 86_400_000);
+
+  it("has no dates when the event has no date", () => {
+    // A deadline derived from nothing is one nobody agreed to.
+    expect(scheduleChecklist(league, null, now, SEATTLE)).toEqual(
+      league.map(() => null),
     );
   });
 
-  it("has no due date when the event has no date", () => {
-    // A deadline derived from nothing is one nobody agreed to.
-    expect(dueDateFor(30, null, now, SEATTLE)).toBeNull();
+  it("uses the templates' own lead times when there is room", () => {
+    // Six months out, "45 days before" means 45 days before.
+    const start = days(180);
+    const out = scheduleChecklist(league, start, now, SEATTLE);
+    const fields = league.findIndex((t) => t.daysBefore === 45);
+    const expected = endOfDay(new Date(start.getTime() - 45 * 86_400_000), SEATTLE);
+    expect(out[fields]?.toISOString()).toBe(expected.toISOString());
   });
 
-  it("pulls a date that has already passed forward to the end of today", () => {
-    // Importing the list a week before a tournament should not produce a dozen
-    // tasks that were already overdue.
-    const start = new Date("2026-09-12T16:00:00Z");
-    const due = dueDateFor(60, start, now, SEATTLE);
-    // 23:59 on Sep 5 in Seattle is 06:59 on Sep 6 UTC.
-    expect(due?.toISOString()).toBe("2026-09-06T06:59:00.000Z");
+  it("does not stretch a long runway", () => {
+    // A year of lead time should not push the last task months out; the
+    // templates are a minimum notice, not a schedule to fill.
+    const start = days(400);
+    const out = scheduleChecklist(league, start, now, SEATTLE);
+    for (const [i, due] of out.entries()) {
+      const natural = start.getTime() - league[i].daysBefore * 86_400_000;
+      expect(due!.getTime()).toBeLessThanOrEqual(endOfDay(new Date(natural), SEATTLE).getTime());
+    }
   });
 
-  it("does not make a freshly seeded task overdue on arrival", () => {
-    // The bug this replaced: clamping to `now` left every due date a
-    // millisecond in the past by the time the page rendered, so a brand new
-    // checklist came up entirely overdue.
-    const start = new Date("2026-09-12T16:00:00Z");
-    const tasks = defaultChecklist("league").map((t) => ({
-      status: "todo" as const,
-      dueAt: dueDateFor(t.daysBefore, start, now, SEATTLE),
-    }));
-    expect(overdue(tasks, new Date(now.getTime() + 5_000))).toEqual([]);
+  it("compresses a short runway instead of collapsing it", () => {
+    // The bug this replaces: a season a week away put every task on today,
+    // and the ordering the templates encode was lost.
+    const start = days(7);
+    const out = scheduleChecklist(league, start, now, SEATTLE);
+    expect(new Set(out.map((d) => d!.toISOString())).size).toBeGreaterThan(1);
+  });
+
+  it("keeps the order the lead times describe", () => {
+    const start = days(7);
+    const out = scheduleChecklist(league, start, now, SEATTLE);
+    const pairs = league
+      .map((t, i) => ({ lead: t.daysBefore, due: out[i]!.getTime() }))
+      .sort((a, b) => b.lead - a.lead);
+    for (let i = 1; i < pairs.length; i++) {
+      // Longer lead time means due no later than the task after it.
+      expect(pairs[i - 1].due).toBeLessThanOrEqual(pairs[i].due);
+    }
+  });
+
+  it("keeps every date between today and the event", () => {
+    const start = days(7);
+    const out = scheduleChecklist(league, start, now, SEATTLE);
+    for (const due of out) {
+      expect(due!.getTime()).toBeGreaterThanOrEqual(endOfDay(now, SEATTLE).getTime());
+      expect(due!.getTime()).toBeLessThanOrEqual(endOfDay(start, SEATTLE).getTime());
+    }
+  });
+
+  it("makes nothing overdue on arrival", () => {
+    // Clamping to `now` used to leave every date a millisecond in the past by
+    // the time the page rendered.
+    for (const offset of [1, 7, 60, 400]) {
+      const out = scheduleChecklist(league, days(offset), now, SEATTLE);
+      const tasks = out.map((dueAt) => ({ status: "todo" as const, dueAt }));
+      expect(overdue(tasks, new Date(now.getTime() + 5_000))).toEqual([]);
+    }
+  });
+
+  it("puts everything on today once the event has started", () => {
+    // Deadlines after the first whistle would be a schedule for nobody.
+    const out = scheduleChecklist(league, days(-1), now, SEATTLE);
+    for (const due of out) {
+      expect(due?.toISOString()).toBe(endOfDay(now, SEATTLE).toISOString());
+    }
+  });
+
+  it("has nothing to schedule for an empty list", () => {
+    expect(scheduleChecklist([], days(7), now, SEATTLE)).toEqual([]);
   });
 });
 

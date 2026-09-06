@@ -9,7 +9,7 @@ import { canManageEvent } from "@/features/events/can-manage";
 
 import {
   defaultChecklist,
-  dueDateFor,
+  scheduleChecklist,
   isTaskCategory,
   type TaskStatus,
 } from "./checklist";
@@ -55,12 +55,16 @@ export async function seedChecklist(slug: string): Promise<ChecklistResult> {
 
   const now = new Date();
   const tz = event.timezone ?? "America/Los_Angeles";
-  const rows = defaultChecklist(event.kind).map((t, i) => ({
+  const templates = defaultChecklist(event.kind);
+  // Scheduled as a list, not one at a time: how far apart these land depends
+  // on the longest lead time among them and how much runway is left.
+  const due = scheduleChecklist(templates, event.startsAt, now, tz);
+  const rows = templates.map((t, i) => ({
     eventId: event.id,
     title: t.title,
     detail: t.detail ?? null,
     category: t.category,
-    dueAt: dueDateFor(t.daysBefore, event.startsAt, now, tz),
+    dueAt: due[i],
     position: i,
   }));
 
