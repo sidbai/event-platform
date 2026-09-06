@@ -5,10 +5,12 @@ import { requireUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { AddMatchForm } from "@/features/tournaments/add-match-form";
 import { AddTeamForm } from "@/features/tournaments/add-team-form";
+import { GenerateFixturesForm } from "@/features/tournaments/generate-fixtures-form";
 import { MatchScoreRow } from "@/features/tournaments/match-score-row";
 import {
   addMatch,
   addTeamToEvent,
+  generateFixtures,
   deleteMatch,
   saveMatch,
 } from "@/features/tournaments/score-actions";
@@ -89,6 +91,10 @@ export default async function ScoresPage({
           ))}
         </ul>
         <AddTeamForm action={addTeamToEvent.bind(null, slug)} divisions={groups} />
+        <GenerateFixturesForm
+          action={generateFixtures.bind(null, slug)}
+          divisions={groups}
+        />
       </details>
 
       {groups.map((division) => {
