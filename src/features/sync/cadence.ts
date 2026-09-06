@@ -57,16 +57,18 @@ export function nextSyncAt(event: Syncable, now: Date): Date | null {
 /**
  * Whether a sync is due.
  *
- * A never-synced event is always due — that is the import, and waiting a day
- * to show a schedule somebody just asked for would be absurd.
+ * A never-synced event is due immediately — that is the import, and waiting a
+ * day to show a schedule somebody just asked for would be absurd. Unless it
+ * carries a time to look again: a caller that has claimed it writes one there
+ * before going off to fetch, so a schedule being read right now is not also
+ * due to be read by everybody else who opened the page.
  */
 export function isDue(
   event: { nextSyncAt: Date | null; lastSyncedAt: Date | null },
   now: Date,
 ): boolean {
-  if (event.lastSyncedAt === null) return true;
-  if (event.nextSyncAt === null) return false;
-  return event.nextSyncAt <= now;
+  if (event.nextSyncAt !== null) return event.nextSyncAt <= now;
+  return event.lastSyncedAt === null;
 }
 
 /**

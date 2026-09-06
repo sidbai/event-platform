@@ -26,6 +26,13 @@ export async function getLeague(slug: string) {
       visibility: true,
       hiddenAt: true,
       timezone: true,
+      startsAt: true,
+      endsAt: true,
+      // What the page needs to say how fresh a copied schedule is, and to
+      // decide whether to go and refresh it.
+      sourceName: true,
+      sourcePlatform: true,
+      lastSyncedAt: true,
       // Needed by canViewEvent, which decides whether a private league is
       // visible to this reader at all.
       organizerId: true,

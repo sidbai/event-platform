@@ -64,7 +64,13 @@ describe("isDue", () => {
     // That is the import: waiting a day to show a schedule somebody just
     // asked for would be absurd.
     expect(isDue({ nextSyncAt: null, lastSyncedAt: null }, now)).toBe(true);
-    expect(isDue({ nextSyncAt: at(24), lastSyncedAt: null }, now)).toBe(true);
+  });
+
+  it("stands aside while somebody else is already fetching it", () => {
+    // A caller that claims an event writes a time to look again before going
+    // off to fetch. Without this, "never synced" stays true for every reader
+    // who opens the page in the meantime and they all fetch it at once.
+    expect(isDue({ nextSyncAt: at(0.08), lastSyncedAt: null }, now)).toBe(false);
   });
 
   it("waits until the time it was given", () => {

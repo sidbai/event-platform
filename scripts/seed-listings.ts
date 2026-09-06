@@ -67,6 +67,7 @@ async function main() {
   const { eq } = await import("drizzle-orm");
   const { zonedDate } = await import("../src/lib/dates");
   const { safeSourceUrl } = await import("../src/features/events/listing");
+  const { detect } = await import("../src/features/sync/run");
 
   // Attributed to an admin when there is one, so a wrong listing has someone
   // to ask. Null is fine — the column allows it and the data is in the repo.
@@ -128,6 +129,14 @@ async function main() {
         )[0].id;
     }
 
+    /*
+     * A listing whose schedule lives on a platform we can read is one we can
+     * keep current, rather than a link we hope somebody clicks. Detected from
+     * the scheduleUrl that is already in the file — there is no second place
+     * to type the same identifier and get it wrong.
+     */
+    const ref = row.scheduleUrl ? detect(row.scheduleUrl) : null;
+
     const values = {
       slug: row.slug,
       kind: row.kind,
@@ -150,6 +159,9 @@ async function main() {
       sourceUrl: safeSourceUrl(row.sourceUrl),
       scheduleUrl: safeSourceUrl(row.scheduleUrl ?? null),
       listedBy: admin?.id ?? null,
+      // Only when this run detected one: a listing connected through the site
+      // must not be disconnected by a re-seed of the file it came from.
+      ...(ref ? { sourcePlatform: ref.platform, sourceEventId: ref.eventId } : {}),
       // Deliberately no organizerId: nobody here runs these. Claiming one is
       // what sets it.
     };
