@@ -80,11 +80,13 @@ const SOURCE = `(function(){
 /** The bookmarklet's source, ready to be saved as a bookmark's address. */
 export function copierBookmarklet(): string {
   const body = SOURCE.replace("__HEADER__", JSON.stringify(CANONICAL_HEADER));
-  // Minified only enough to fit a bookmark: comments and the indentation a
-  // reader of this file wants are not wanted in an address bar.
-  const compact = body
-    .replace(/^\s*\/\/.*$/gm, "")
-    .replace(/\n\s*/g, "")
-    .trim();
-  return `javascript:${encodeURIComponent(compact)}`;
+  /*
+   * The newlines stay. Collapsing them to save characters is what broke the
+   * first version of this: a trailing `// comment` swallowed the statement
+   * that followed it onto the same line, and the bookmarklet failed with a
+   * ReferenceError the moment anybody clicked it. encodeURIComponent turns a
+   * newline into %0A, which every browser accepts in a javascript: URL, so
+   * there was nothing to win and a whole class of bug to lose.
+   */
+  return `javascript:${encodeURIComponent(body.trim())}`;
 }
