@@ -89,8 +89,14 @@ function visibleEventsWhere(filters: EventFilters): SQL[] {
   // it the day after kickoff — the season would vanish from the listing while
   // it was still being played, and turn up under Past.
   const finishesAt = sql`coalesce(${events.endsAt}, ${events.startsAt})`;
-  if (filters.when === "upcoming") where.push(sql`${finishesAt} >= ${now}`);
-  else if (filters.when === "past") where.push(sql`${finishesAt} < ${now}`);
+  // The instant is passed as an ISO string with an explicit cast, not as a
+  // Date. Inside a raw sql`` fragment there is no column for drizzle to infer
+  // a type mapper from, so a Date reaches the driver unserialised and the
+  // query throws — which took down the home feed rather than any page about
+  // events.
+  const at = sql`${now.toISOString()}::timestamptz`;
+  if (filters.when === "upcoming") where.push(sql`${finishesAt} >= ${at}`);
+  else if (filters.when === "past") where.push(sql`${finishesAt} < ${at}`);
   else if (filters.when === "weekend") {
     // Still keyed on the start: the weekend filter answers "what begins this
     // weekend", not "what happens to be running through it".
