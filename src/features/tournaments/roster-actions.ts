@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { eventTeams, rosters } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
-import { isAdmin } from "@/features/auth/admin";
+import { canScheduleForTeam } from "@/features/teams/access";
 
 export type RosterResult = { error?: string; ok?: boolean };
 
@@ -23,8 +23,12 @@ export async function saveRoster(
     with: { team: { columns: { ownerId: true } }, division: true },
   });
   if (!entry) return { error: "Team not found in this event." };
-  if (entry.team.ownerId !== user.id && !isAdmin(user)) {
-    return { error: "Only the team's manager can edit the roster." };
+  // The same people who may enter a team may say who is playing for it:
+  // owner, manager or coach. Owner-only meant a coach who put the team in
+  // could not fill in the roster, and a team the organizer typed in had no
+  // owner at all, so nobody but an admin could touch it.
+  if (!(await canScheduleForTeam(entry.teamId))) {
+    return { error: "Only the team's staff can edit the roster." };
   }
 
   const names = formData.getAll("name").map((v) => String(v).trim());
