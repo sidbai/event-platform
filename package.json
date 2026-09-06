@@ -21,7 +21,8 @@
     "db:seed:wpl": "tsx scripts/seed-wpl-fixture.ts",
     "test:db": "vitest run --config vitest.db.config.mts",
     "db:seed:smoke": "tsx scripts/seed-smoke.ts",
-    "smoke": "scripts/smoke.sh"
+    "smoke": "scripts/smoke.sh",
+    "db:seed:listings": "tsx scripts/seed-listings.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
