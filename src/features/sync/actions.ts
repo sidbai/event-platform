@@ -18,11 +18,15 @@ export type ConnectResult = {
 };
 
 /**
- * Connect a listing to the platform that publishes its schedule.
+ * Point a listing at wherever its schedule is published.
  *
  * A URL somebody pastes, rather than a platform picker and an id field. The
  * id is already in the link an organizer sends you, and asking a person to
  * copy a number out of a URL into a form is asking them to get it wrong.
+ *
+ * Two outcomes, and the difference is not the admin's problem to work out
+ * beforehand: a platform we can read is connected and pulled in on the spot;
+ * anything else is kept as a link the event page can offer.
  *
  * Admin only. Connecting an event makes this application fetch somebody
  * else's server on a schedule, which is not a thing a signed-in stranger
@@ -40,11 +44,6 @@ export async function connectSchedule(
   if (!url) return { error: "That needs to be a full http(s) address." };
 
   const ref = detect(url);
-  if (!ref) {
-    return {
-      error: "We cannot read schedules from that site yet. Athletes2Events only, for now.",
-    };
-  }
 
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
@@ -56,6 +55,23 @@ export async function connectSchedule(
   // deleting fixtures that were never ours to delete.
   if (!event.sourceName) {
     return { error: "That is an event we run, not a listing. It has no upstream." };
+  }
+
+  /*
+   * A platform we cannot read still leaves us something worth having: the
+   * link itself, as a button on the event page. EventConnect answers
+   * robots.txt with `Disallow: /` and sells an API, so their schedules are
+   * not ours to fetch — but sending a parent straight to the fixtures beats
+   * sending them to an organizer's front page to hunt.
+   */
+  if (!ref) {
+    await db.update(events).set({ scheduleUrl: url }).where(eq(events.id, eventId));
+    revalidatePath("/admin/sync");
+    revalidatePath(`/events/${event.slug}`);
+    return {
+      detail:
+        "Saved as a link. We cannot read schedules from that site, so it will not refresh by itself.",
+    };
   }
 
   await db
@@ -77,7 +93,7 @@ export async function connectSchedule(
 
   const report = await syncEvent(eventId);
   revalidatePath("/admin/sync");
-  revalidatePath(`/events/${event.slug}/table`);
+  revalidatePath(`/events/${event.slug}`);
 
   return report.ok
     ? { detail: report.detail }
