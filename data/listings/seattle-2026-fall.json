@@ -1,0 +1,31 @@
+[
+  {
+    "slug": "labor-day-cup-2026",
+    "title": "Labor Day Cup 2026",
+    "kind": "tournament",
+    "startDate": "2026-09-04",
+    "endDate": "2026-09-07",
+    "venueName": "Starfire Sports",
+    "venueCity": "Tukwila",
+    "ageGroup": "U9–U19",
+    "gender": "Boys and Girls",
+    "format": "7v7 / 9v9 / 11v11",
+    "summary": "Premier and Select teams, U9 through U19. Most games at Starfire Sports in Tukwila, with select games at Valley Ridge.",
+    "sourceName": "Starfire Sports",
+    "sourceUrl": "https://www.starfiresports.com/event/labor-day-cup-2026/"
+  },
+  {
+    "slug": "labor-day-zf-challenge",
+    "title": "Labor Day ZF Challenge",
+    "kind": "tournament",
+    "startDate": "2026-09-05",
+    "endDate": "2026-09-07",
+    "venueName": "60 Acres Soccer Complex",
+    "venueCity": "Redmond",
+    "ageGroup": "Boys U8–U19, Girls U8–U15",
+    "gender": "Boys and Girls",
+    "summary": "Second annual. Recreational, Select and Premier teams in two divisions: recreational and lower-level select, and select and mid-level premier. All games at 60 Acres in Redmond.",
+    "sourceName": "Crossfire Premier Soccer",
+    "sourceUrl": "https://www.crossfiresoccer.org/tournaments/ldc/"
+  }
+]
