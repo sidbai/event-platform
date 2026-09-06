@@ -7,12 +7,15 @@ import { AddMatchForm } from "@/features/tournaments/add-match-form";
 import { AddTeamForm } from "@/features/tournaments/add-team-form";
 import { GenerateFixturesForm } from "@/features/tournaments/generate-fixtures-form";
 import { MatchScoreRow } from "@/features/tournaments/match-score-row";
+import { TeamGroupForm } from "@/features/tournaments/team-group-form";
 import {
   addMatch,
   addTeamToEvent,
+  clearFixtures,
   generateFixtures,
   deleteMatch,
   saveMatch,
+  setTeamGroup,
 } from "@/features/tournaments/score-actions";
 import { getEventForScoring } from "@/features/tournaments/score-queries";
 
@@ -78,22 +81,34 @@ export default async function ScoresPage({
         <summary className="cursor-pointer font-medium">
           Teams ({event.eventTeams.length})
         </summary>
-        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted">
+        {/* The bracket is editable here because a team that entered and was
+            accepted arrives without one, and a division's groups have to be
+            set before fixtures are drawn for them to come out right. */}
+        <ul className="mt-2 grid gap-1 sm:grid-cols-2">
           {event.eventTeams.map((et) => (
-            <li key={et.id}>
-              {et.team.name}
-              <span className="text-xs text-muted">
-                {" "}
-                {et.division?.name}
-                {et.groupLabel ? ` G${et.groupLabel}` : ""}
+            <li key={et.id} className="flex items-center gap-2">
+              <TeamGroupForm
+                action={setTeamGroup.bind(null, slug, et.id)}
+                groupLabel={et.groupLabel}
+              />
+              <span className="min-w-0 truncate">
+                {et.team.name}
+                <span className="ml-1 text-xs text-muted">{et.division?.name}</span>
               </span>
             </li>
           ))}
         </ul>
+        {event.eventTeams.length > 0 && (
+          <p className="mt-1 text-xs text-muted">
+            The boxes are brackets — teams sharing one play each other. Leave
+            them blank for a division that is a single group.
+          </p>
+        )}
         <AddTeamForm action={addTeamToEvent.bind(null, slug)} divisions={groups} />
         <GenerateFixturesForm
           action={generateFixtures.bind(null, slug)}
           divisions={groups}
+          clearAction={clearFixtures.bind(null, slug)}
         />
       </details>
 

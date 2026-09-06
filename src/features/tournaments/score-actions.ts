@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
@@ -232,8 +232,16 @@ export async function generateFixtures(
   }
   const legs = String(formData.get("legs") ?? "1") === "2" ? 2 : 1;
 
+  // Only group games count as "already generated". An organizer who pencils
+  // in the final at 3pm before drawing the group stage is doing something
+  // sensible, and blocking them because the division has *a* match confuses
+  // "this season already exists" with "this division has a fixture".
   const existing = await db.query.matches.findFirst({
-    where: and(eq(matches.eventId, event.id), eq(matches.divisionId, divisionId)),
+    where: and(
+      eq(matches.eventId, event.id),
+      eq(matches.divisionId, divisionId),
+      eq(matches.stage, "group"),
+    ),
     columns: { id: true },
   });
   if (existing) {
@@ -291,5 +299,87 @@ export async function generateFixtures(
 
   await touchEvent(event.id, eventSlug);
   revalidatePath(`/events/${eventSlug}/table`);
+  return { ok: true };
+}
+
+/**
+ * Put a team in a bracket, or take it out of one.
+ *
+ * A tournament division is usually several groups that each play themselves —
+ * the King Juan Cup runs two groups of four per age band — and until now the
+ * only way to set a team's group was to type the team in by hand on this page.
+ * A team that arrived the proper way, by entering and being accepted, had no
+ * group and no way to be given one, so a division of eight generated one
+ * round-robin of 28 games instead of two of six.
+ *
+ * Blank clears it, which is what a division with no groups wants.
+ */
+export async function setTeamGroup(
+  eventSlug: string,
+  eventTeamId: string,
+  _prev: ScoreResult,
+  formData: FormData,
+): Promise<ScoreResult> {
+  if (!(await canManageEvent({ slug: eventSlug }))) return { error: "Not allowed." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, eventSlug),
+    columns: { id: true },
+  });
+  if (!event) return { error: "Event not found." };
+
+  const label = String(formData.get("groupLabel") ?? "").trim().slice(0, 12);
+
+  await db
+    .update(eventTeams)
+    .set({ groupLabel: label || null })
+    // Scoped to the event as well as the row, so an id from one event cannot
+    // be driven from another event's page.
+    .where(and(eq(eventTeams.id, eventTeamId), eq(eventTeams.eventId, event.id)));
+
+  await touchEvent(event.id, eventSlug);
+  return { ok: true };
+}
+
+/**
+ * Delete every fixture in a division.
+ *
+ * Generating a season is one click and refuses to run twice; undoing it was
+ * twenty-eight. An organizer who generates before splitting the teams into
+ * groups — which is the easy mistake, since the groups have to be set first
+ * for it to come out right — otherwise has no way back.
+ *
+ * Refuses once anything has been played. A schedule with results in it is not
+ * a mistake to undo, and rebuilding it would throw away the scores.
+ */
+export async function clearFixtures(
+  eventSlug: string,
+  divisionId: string,
+): Promise<ScoreResult> {
+  if (!(await canManageEvent({ slug: eventSlug }))) return { error: "Not allowed." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, eventSlug),
+    columns: { id: true },
+  });
+  if (!event) return { error: "Event not found." };
+
+  const played = await db.query.matches.findFirst({
+    where: and(
+      eq(matches.eventId, event.id),
+      eq(matches.divisionId, divisionId),
+      isNotNull(matches.homeScore),
+    ),
+    columns: { id: true },
+  });
+  if (played) {
+    return { error: "Some of these games have scores. Delete those individually." };
+  }
+
+  await db
+    .delete(matches)
+    .where(and(eq(matches.eventId, event.id), eq(matches.divisionId, divisionId)));
+
+  await touchEvent(event.id, eventSlug);
   return { ok: true };
 }

@@ -63,11 +63,34 @@ export function AddMatchForm({
           </select>
         </label>
 
-        {round === "group" && (
+        {round === "group" ? (
           <label className="text-xs">
             <span className="block text-muted">Group</span>
             <input name="groupLabel" placeholder="1" className={`mt-0.5 w-16 ${field}`} />
           </label>
+        ) : (
+          // A knockout game is usually scheduled before anyone knows who is in
+          // it. The action has always accepted these; the form never offered
+          // them, so every semifinal printed as "TBD v TBD" when what a
+          // schedule needs to say is which group's winner turns up where.
+          <>
+            <label className="text-xs">
+              <span className="block text-muted">Home slot</span>
+              <input
+                name="homePlaceholder"
+                placeholder="Winner Group 1"
+                className={`mt-0.5 w-36 ${field}`}
+              />
+            </label>
+            <label className="text-xs">
+              <span className="block text-muted">Away slot</span>
+              <input
+                name="awayPlaceholder"
+                placeholder="Winner Group 2"
+                className={`mt-0.5 w-36 ${field}`}
+              />
+            </label>
+          </>
         )}
 
         <label className="text-xs">
