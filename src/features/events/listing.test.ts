@@ -131,6 +131,32 @@ describe("the schedule link", () => {
     });
   });
 
+  it("sends a reader to our own schedule once we hold the fixtures", () => {
+    // The point of syncing one. Ours has a division to pick and a team to
+    // follow; theirs is a page of flight links that does not know which age
+    // group this parent's child plays in.
+    expect(
+      scheduleActionOf({
+        ...withSchedule,
+        slug: "labor-day-zf-challenge",
+        hasFixtures: true,
+      }),
+    ).toEqual({
+      label: "Schedule & standings",
+      href: "/events/labor-day-zf-challenge/table",
+      external: false,
+    });
+  });
+
+  it("still points at the platform when we hold nothing", () => {
+    // Connected but never read, or listed by hand: our page would be empty,
+    // and an empty schedule is worse than somebody else's full one.
+    expect(
+      scheduleActionOf({ ...withSchedule, slug: "x", hasFixtures: false })?.external,
+    ).toBe(true);
+    expect(scheduleActionOf({ ...withSchedule, hasFixtures: true })?.external).toBe(true);
+  });
+
   it("has nothing to add for an event we run", () => {
     // Ours keeps its own schedule at /events/<slug>/table.
     expect(scheduleActionOf({ ...withSchedule, organizerId: "u1" })).toBeNull();

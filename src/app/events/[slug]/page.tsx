@@ -36,6 +36,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** The main action, whether it points at our schedule or the organizer's. */
+const scheduleButton =
+  "inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong";
+
 export async function generateMetadata({
   params,
 }: {
@@ -97,7 +101,11 @@ export default async function EventPage({
   const runHere = isRunHere(event);
   const attribution = attributionOf(event);
   const offsite = primaryActionOf(event);
-  const offsiteSchedule = scheduleActionOf(event);
+  const offsiteSchedule = scheduleActionOf({
+    ...event,
+    // A synced listing keeps its fixtures here, so the schedule link is ours.
+    hasFixtures: event.matches.length > 0,
+  });
   const takesEntries =
     runHere && (event.kind === "tournament" || event.kind === "league");
   const entryDivisions = takesEntries
@@ -253,16 +261,24 @@ export default async function EventPage({
               a parent came for. An event we run puts the same words in the
               same place, pointing at our own table — whoever is running it
               should not be something the reader has to think about. */}
-          {offsiteSchedule && (
-            <a
-              href={offsiteSchedule.href}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-            >
-              {offsiteSchedule.label} →
-            </a>
-          )}
+          {offsiteSchedule &&
+            (offsiteSchedule.external ? (
+              <a
+                href={offsiteSchedule.href}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className={scheduleButton}
+              >
+                {offsiteSchedule.label} →
+              </a>
+            ) : (
+              // Ours: a normal link, in the same place and the same words.
+              // Whoever is running the tournament should not be something the
+              // reader has to think about to find the fixtures.
+              <Link href={offsiteSchedule.href} className={scheduleButton}>
+                {offsiteSchedule.label} →
+              </Link>
+            ))}
           {offsite && (
             <a
               href={offsite.href}
