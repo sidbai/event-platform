@@ -396,6 +396,42 @@ export const rosters = pgTable("rosters", {
   note: text("note"),
 });
 
+// --- event_tasks: what still has to be arranged ------------------------
+
+export const eventTaskStatus = pgEnum("event_task_status", ["todo", "doing", "done"]);
+
+/**
+ * The organizer's checklist: fields, referees, goals, first aid.
+ *
+ * Not derived from anything. A schedule describes an event that is already
+ * running; this is the work that decides whether it runs at all, and today it
+ * lives in a spreadsheet or a group chat where nobody else can see it.
+ *
+ * `owner` is free text rather than a user reference on purpose. The person
+ * bringing the first-aid kit is a parent volunteer, and requiring them to hold
+ * an account before they can be written down would mean the field just stays
+ * empty.
+ */
+export const eventTasks = pgTable(
+  "event_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    detail: text("detail"),
+    category: text("category").notNull().default("other"),
+    status: eventTaskStatus("status").notNull().default("todo"),
+    owner: text("owner"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    /** Hand ordering within the list; ties fall back to creation time. */
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("event_tasks_event_idx").on(t.eventId, t.position)],
+);
+
 // --- matches: one game -------------------------------------------------
 
 export const matches = pgTable(
@@ -424,6 +460,10 @@ export const matches = pgTable(
 
 // --- relations ------------------------------------------------------
 
+export const eventTasksRelations = relations(eventTasks, ({ one }) => ({
+  event: one(events, { fields: [eventTasks.eventId], references: [events.id] }),
+}));
+
 export const eventsRelations = relations(events, ({ one, many }) => ({
   venue: one(venues, { fields: [events.venueId], references: [venues.id] }),
   hostTeam: one(teams, {
@@ -437,6 +477,7 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   kind: one(eventKinds, { fields: [events.kind], references: [eventKinds.slug] }),
   divisions: many(eventDivisions),
   eventTeams: many(eventTeams),
+  tasks: many(eventTasks),
   matches: many(matches),
 }));
 
