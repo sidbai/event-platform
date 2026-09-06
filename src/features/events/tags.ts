@@ -2,8 +2,13 @@ export type EventTag = {
   label: string;
   /** Prefixed to the label so a tag reads at a glance in a dense list. */
   emoji: string;
-  /** brand = what kind of thing it is, warn = needs attention, muted = detail */
-  tone: "brand" | "warn" | "muted";
+  /**
+   * brand = what kind of thing it is, warn = needs attention, muted = detail,
+   * outline = not one of ours. Outline is drawn rather than filled because it
+   * says something different in kind from the others: they describe the event,
+   * it describes our relationship to it.
+   */
+  tone: "brand" | "warn" | "muted" | "outline";
 };
 
 type TaggableEvent = {
@@ -13,6 +18,8 @@ type TaggableEvent = {
   format?: string | null;
   level?: string | null;
   needsOpponent?: boolean | null;
+  /** Set when the event is run by someone else and listed here. */
+  sourceName?: string | null;
   status?: string | null;
   visibility?: string | null;
   hostTeam?: { name: string } | null;
@@ -69,6 +76,13 @@ export function eventTags(event: TaggableEvent): EventTag[] {
       tone: "brand",
     },
   ];
+
+  // Second, straight after what kind of thing it is. Whether this platform
+  // runs the event decides what a reader can do about it — whether the entry
+  // button they are looking for exists here or on somebody else's site — so
+  // it belongs ahead of the details.
+  if (event.sourceName)
+    tags.push({ label: "External", emoji: "\u{1F517}", tone: "outline" });
 
   if (event.hostTeam?.name)
     tags.push({ label: event.hostTeam.name, emoji: "\u{1F6E1}\uFE0F", tone: "muted" });

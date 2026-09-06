@@ -92,3 +92,31 @@ describe("eventTags", () => {
     expect(new Set(tags.map((t) => t.label)).size).toBe(tags.length);
   });
 });
+
+describe("the external tag", () => {
+  const listed = { kind: "tournament", sourceName: "Starfire Sports" };
+
+  it("marks an event run by someone else", () => {
+    const labels = eventTags(listed).map((t) => t.label);
+    expect(labels).toContain("External");
+  });
+
+  it("says nothing on an event we run", () => {
+    expect(eventTags({ kind: "tournament" }).map((t) => t.label)).not.toContain(
+      "External",
+    );
+  });
+
+  it("comes straight after what kind of thing it is", () => {
+    // Whether entries happen here or on somebody else's site decides what a
+    // reader can do, so it outranks the age group and the format.
+    const tags = eventTags({ ...listed, ageGroup: "U9–U19", format: "7v7" });
+    expect(tags[0].label).toBe("Tournament");
+    expect(tags[1].label).toBe("External");
+  });
+
+  it("is drawn, not filled, because it is a different kind of fact", () => {
+    const tag = eventTags(listed).find((t) => t.label === "External");
+    expect(tag?.tone).toBe("outline");
+  });
+});

@@ -4,6 +4,7 @@ const TONE: Record<EventTag["tone"], string> = {
   brand: "bg-brand-soft text-brand-soft-text",
   warn: "bg-amber-50 text-amber-800",
   muted: "bg-elevated text-muted",
+  outline: "border border-dashed border-line text-muted",
 };
 
 export function EventTags({
