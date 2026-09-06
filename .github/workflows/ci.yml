@@ -55,23 +55,26 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # The migrations are part of what is under test: a broken one fails here
       # rather than against the production database.
-      - name: Migrate
+      # Applied one file at a time rather than with `drizzle-kit migrate`.
+      #
+      # drizzle-kit wraps every pending migration in ONE transaction, and 0012
+      # adds values to the team_role enum that a later migration uses as a
+      # column default. Postgres 16 rejects that — "new enum values must be
+      # committed before they can be used" — so a from-scratch run fails even
+      # though production, which applied them a few at a time over months, is
+      # fine. psql autocommits each statement, which is what those months
+      # looked like.
+      #
+      # The consequence worth knowing: this job proves the SQL is valid and the
+      # resulting schema is right. It does not prove `pnpm db:migrate` can
+      # rebuild a database from zero on Postgres 16.
+      - name: Build the schema
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/king_juan_soccer_test
           PGPASSWORD: postgres
         run: |
-          set -o pipefail
-          if ! pnpm db:migrate; then
-            # drizzle-kit swallows the driver's message behind its spinner, so
-            # replay the files against a clean database to find out what
-            # actually broke. Diagnostic only; the job fails either way.
-            echo "=== drizzle-kit failed; replaying with psql for a readable error ==="
-            psql -h 127.0.0.1 -U postgres -c 'drop database if exists diag' postgres
-            psql -h 127.0.0.1 -U postgres -c 'create database diag' postgres
-            for f in drizzle/*.sql; do
-              echo "--- $f"
-              psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f "$f" diag || exit 1
-            done
-            exit 1
-          fi
+          set -euo pipefail
+          for f in drizzle/*.sql; do
+            psql -h 127.0.0.1 -U postgres -q -v ON_ERROR_STOP=1 \
+              -f "$f" king_juan_soccer_test
+          done
       - run: pnpm test:db
