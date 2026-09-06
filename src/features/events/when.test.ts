@@ -102,3 +102,41 @@ describe("endDateHint", () => {
     expect(endDateHint("pickup")).toMatch(/more than one day/);
   });
 });
+
+describe("a season with no end date", () => {
+  const start = at("2026-09-12T16:00:00Z");
+
+  it("says it starts rather than printing one day", () => {
+    // Leagues mostly do not publish an end date — the RCL gives a kickoff
+    // weekend and leaves the rest to a schedule platform. A bare date makes a
+    // five-month season look like a single fixture.
+    expect(formatEventWhen(start, null, SEATTLE, "long", "league")).toBe(
+      "Season starts September 12, 2026",
+    );
+    expect(formatEventWhen(start, null, SEATTLE, "short", "league")).toBe(
+      "Season starts Sep 12, 2026",
+    );
+  });
+
+  it("leaves a league with a known end as a range", () => {
+    expect(
+      formatEventWhen(start, at("2026-11-21T23:00:00Z"), SEATTLE, "long", "league"),
+    ).toBe("September 12 – November 21, 2026");
+  });
+
+  it("says nothing of the sort about a one-day tournament", () => {
+    // A tournament with a start and no end really is one day; "starts" would
+    // invent an open end it does not have.
+    expect(formatEventWhen(start, null, SEATTLE, "long", "tournament")).toBe(
+      "Saturday, September 12, 2026",
+    );
+    expect(formatEventWhen(start, null, SEATTLE, "long", "pickup")).toBe(
+      "Saturday, September 12, 2026",
+    );
+    expect(formatEventWhen(start, null, SEATTLE)).toBe("Saturday, September 12, 2026");
+  });
+
+  it("still says TBD for a season with no date at all", () => {
+    expect(formatEventWhen(null, null, SEATTLE, "long", "league")).toBe("Date TBD");
+  });
+});

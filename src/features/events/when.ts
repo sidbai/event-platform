@@ -46,8 +46,24 @@ export function formatEventWhen(
   endsAt: Date | null,
   timeZone: string | null,
   style: WhenStyle = "long",
+  kind?: string | null,
 ): string {
   if (!startsAt) return "Date TBD";
+
+  /*
+   * A season with no end date is open-ended, not one day long.
+   *
+   * Leagues mostly do not publish an end: the RCL says "kickoff September
+   * 12th & 13th" and leaves the rest to a schedule platform, and the WPL only
+   * says it runs from after Labor Day to before Thanksgiving. Printing that
+   * as a bare date makes a five-month season look like a single fixture.
+   *
+   * Only leagues. A tournament with a start and no end really is one day, and
+   * saying "starts" about it would invent an open end it does not have.
+   */
+  if (kind === "league" && !endsAt) {
+    return `Season starts ${fmt(startsAt, timeZone, seasonStart(style))}`;
+  }
 
   const month = style === "long" ? "long" : "short";
   const single: Intl.DateTimeFormatOptions =
@@ -86,6 +102,12 @@ export function formatEventWhen(
   const tail = fmt(endsAt, timeZone, { month, day: "numeric", year: "numeric" });
   return `${head} – ${tail}`;
 }
+
+/** How the first day reads when it is all we know. */
+const seasonStart = (style: WhenStyle): Intl.DateTimeFormatOptions =>
+  style === "long"
+    ? { month: "long", day: "numeric", year: "numeric" }
+    : { month: "short", day: "numeric", year: "numeric" };
 
 /** Whether this event covers more than one day, in its own timezone. */
 export function isMultiDay(
