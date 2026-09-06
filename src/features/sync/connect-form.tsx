@@ -66,3 +66,45 @@ export function RefreshButton({ action, eventId }: { action: Action; eventId: st
     </form>
   );
 }
+
+/**
+ * Paste a schedule copied out of the platform's own page.
+ *
+ * A textarea rather than a file upload: what a person has after selecting a
+ * table in their browser is a clipboard, and asking them to save it as a file
+ * first is a step that loses most people.
+ */
+export function PasteForm({ action, eventId }: { action: Action; eventId: string }) {
+  const [state, formAction, pending] = useActionState<ConnectResult, FormData>(action, {});
+
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-xs text-muted hover:text-ink">
+        Paste a schedule instead
+      </summary>
+      <form action={formAction} className="mt-2 space-y-2">
+        <input type="hidden" name="eventId" value={eventId} />
+        <input
+          name="division"
+          placeholder="Division, for rows that don't say (e.g. Boys U12)"
+          className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-sm"
+        />
+        <textarea
+          name="schedule"
+          required
+          rows={6}
+          placeholder={"Select the schedule table on the platform's page, copy, and paste here.\nDate headings are used for the rows under them."}
+          className="w-full rounded-md border border-line bg-card px-2 py-1.5 font-mono text-xs"
+        />
+        <button
+          disabled={pending}
+          className="rounded-md border border-line px-2.5 py-1 text-xs hover:bg-elevated disabled:opacity-50"
+        >
+          {pending ? "Reading…" : "Import"}
+        </button>
+        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
+        {state.detail && <p className="text-xs text-muted">{state.detail}</p>}
+      </form>
+    </details>
+  );
+}

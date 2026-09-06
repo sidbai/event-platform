@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
-import { connectSchedule, refreshNow } from "@/features/sync/actions";
-import { ConnectForm, RefreshButton } from "@/features/sync/connect-form";
+import { connectSchedule, importPastedSchedule, refreshNow } from "@/features/sync/actions";
+import { ConnectForm, PasteForm, RefreshButton } from "@/features/sync/connect-form";
 import { formatAgo } from "@/features/sync/freshness";
 import { listedEvents } from "@/features/sync/queries";
 
@@ -81,6 +81,7 @@ export default async function AdminSyncPage() {
               )}
 
               <RefreshButton action={refreshNow} eventId={row.id} />
+              <PasteForm action={importPastedSchedule} eventId={row.id} />
             </li>
           ))}
         </ul>
@@ -103,6 +104,7 @@ export default async function AdminSyncPage() {
               eventId={row.id}
               current={row.scheduleUrl}
             />
+            <PasteForm action={importPastedSchedule} eventId={row.id} />
           </li>
         ))}
       </ul>
