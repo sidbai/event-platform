@@ -6,6 +6,7 @@ import {
   isRunHere,
   primaryActionOf,
   safeSourceUrl,
+  scheduleActionOf,
 } from "./listing";
 
 const native = { sourceName: null, sourceUrl: null };
@@ -112,5 +113,41 @@ describe("what the page offers", () => {
     expect(
       primaryActionOf({ sourceName: "Rain City Cup", sourceUrl: "javascript:alert(1)" }),
     ).toBeNull();
+  });
+});
+
+describe("the schedule link", () => {
+  const withSchedule = {
+    sourceName: "Crossfire Premier Soccer",
+    sourceUrl: "https://www.crossfiresoccer.org/tournaments/ldc/",
+    scheduleUrl: "https://crossfire.athletes2events.com/events/130/groups",
+  };
+
+  it("points at wherever the organizer keeps the fixtures", () => {
+    expect(scheduleActionOf(withSchedule)).toEqual({
+      label: "Schedule & standings",
+      href: "https://crossfire.athletes2events.com/events/130/groups",
+      external: true,
+    });
+  });
+
+  it("has nothing to add for an event we run", () => {
+    // Ours keeps its own schedule at /events/<slug>/table.
+    expect(scheduleActionOf({ ...withSchedule, organizerId: "u1" })).toBeNull();
+    expect(scheduleActionOf({ sourceName: null, sourceUrl: null })).toBeNull();
+  });
+
+  it("does not fall back to the organizer's front page", () => {
+    // A "Schedule & standings" link that lands somewhere you have to hunt is
+    // a worse promise than no link, because it was believed.
+    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: null })).toBeNull();
+    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: "" })).toBeNull();
+  });
+
+  it("refuses a schedule link that is not http", () => {
+    expect(
+      scheduleActionOf({ ...withSchedule, scheduleUrl: "javascript:alert(1)" }),
+    ).toBeNull();
+    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: "/events/x" })).toBeNull();
   });
 });
