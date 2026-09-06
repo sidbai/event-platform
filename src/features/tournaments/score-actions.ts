@@ -15,6 +15,7 @@ import {
 import { canManageEvent } from "@/features/events/can-manage";
 import { matchdayDates, roundRobin } from "./round-robin";
 import { zonedDate } from "@/lib/dates";
+import { uniqueTeamSlug } from "@/features/teams/slug";
 import { slugify } from "@/lib/slug";
 
 export type ScoreResult = { error?: string; ok?: boolean };
@@ -154,19 +155,7 @@ export async function addTeamToEvent(
   const divisionId = (formData.get("divisionId") as string) || null;
   const groupLabel = String(formData.get("groupLabel") ?? "").trim() || null;
 
-  const base = slugify(name) || "team";
-  let slug = base;
-  for (let i = 0; i < 60; i++) {
-    const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    const clash = await db.query.teams.findFirst({
-      where: eq(teams.slug, candidate),
-      columns: { id: true },
-    });
-    if (!clash) {
-      slug = candidate;
-      break;
-    }
-  }
+  const slug = await uniqueTeamSlug(slugify(name).slice(0, 60));
 
   const [team] = await db
     .insert(teams)
