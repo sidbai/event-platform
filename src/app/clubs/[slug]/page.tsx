@@ -25,6 +25,15 @@ import { CreateLink } from "@/components/create-link";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * How many coaches sit inline before the rest fold away.
+ *
+ * Enough to show the section is populated and to catch a familiar name;
+ * not so many that the reviews this page exists for are pushed under a
+ * directory. Seattle United lists 82.
+ */
+const COACHES_SHOWN = 6;
+
 export async function generateMetadata({
   params,
 }: {
@@ -181,43 +190,6 @@ export default async function ClubPage({
       {/* Coaches show a review COUNT, never a score. A column of numbers
           against named people is a leaderboard; the score belongs on the
           coach's own page, beside the context that makes it readable. */}
-      <section className="mt-8">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">Coaches at this club</h2>
-          <CreateLink href="/coaches/new">Add a coach</CreateLink>
-        </div>
-        {coaches.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            None listed yet — add one so people can share what working with them
-            was like.
-          </p>
-        ) : (
-          <ul className="mt-2 divide-y divide-line">
-            {coaches.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/coaches/${c.slug}`}
-                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 transition-colors hover:bg-elevated"
-                >
-                  <span>
-                    <span className="font-medium">{c.name}</span>{" "}
-                    <span className="text-sm text-muted">
-                      {coachRoleLabel(c.role)}
-                      {c.ageGroups.length > 0 && ` · ${c.ageGroups.join(", ")}`}
-                    </span>
-                  </span>
-                  <span className="text-xs text-muted">
-                    {c.reviewCount === 0
-                      ? "No reviews yet"
-                      : `${c.reviewCount} review${c.reviewCount === 1 ? "" : "s"}`}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">
           {reviews.map((r) => (
@@ -281,6 +253,75 @@ export default async function ClubPage({
           ))}
         </ul>
       )}
+
+      <section className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Coaches at this club</h2>
+          <CreateLink href="/coaches/new">Add a coach</CreateLink>
+        </div>
+        {coaches.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            None listed yet — add one so people can share what working with them
+            was like.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-line">
+            {coaches.slice(0, COACHES_SHOWN).map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/coaches/${c.slug}`}
+                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 transition-colors hover:bg-elevated"
+                >
+                  <span>
+                    <span className="font-medium">{c.name}</span>{" "}
+                    <span className="text-sm text-muted">
+                      {coachRoleLabel(c.role)}
+                      {c.ageGroups.length > 0 && ` · ${c.ageGroups.join(", ")}`}
+                    </span>
+                  </span>
+                  <span className="text-xs text-muted">
+                    {c.reviewCount === 0
+                      ? "No reviews yet"
+                      : `${c.reviewCount} review${c.reviewCount === 1 ? "" : "s"}`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {coaches.length > COACHES_SHOWN && (
+          /* A club can list eighty coaches. Inline that is not a section, it
+             is the page — which is how the reviews ended up below it. */
+          <details className="mt-2">
+            <summary className="cursor-pointer text-sm text-brand-text hover:underline">
+              Show all {coaches.length} coaches
+            </summary>
+            <ul className="mt-2 divide-y divide-line">
+              {coaches.slice(COACHES_SHOWN).map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/coaches/${c.slug}`}
+                    className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 transition-colors hover:bg-elevated"
+                  >
+                    <span>
+                      <span className="font-medium">{c.name}</span>{" "}
+                      <span className="text-sm text-muted">
+                        {coachRoleLabel(c.role)}
+                        {c.ageGroups.length > 0 && ` · ${c.ageGroups.join(", ")}`}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted">
+                      {c.reviewCount === 0
+                        ? "No reviews yet"
+                        : `${c.reviewCount} review${c.reviewCount === 1 ? "" : "s"}`}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </section>
     </div>
   );
 }
