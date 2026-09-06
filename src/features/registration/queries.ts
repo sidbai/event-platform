@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { eventDivisions, eventRegistrations } from "@/db/schema";
+import { eventDivisions, eventRegistrations, eventTeams } from "@/db/schema";
 
 import { opennessOf, type Openness } from "./openness";
 
@@ -71,17 +71,33 @@ export async function divisionsForRegistration(
   });
 }
 
-/** Every registration for an event, for the organizer to work through. */
+/**
+ * Every registration for an event, for the organizer to work through.
+ *
+ * Each row also carries whether the team actually holds a place — the
+ * event_teams row that accepting creates. The two normally agree, but a team
+ * that was un-accepted after its fixtures were drawn keeps its place on
+ * purpose, and the organizer should be able to see that rather than assume a
+ * declined team is out of the schedule.
+ */
 export async function registrationsForEvent(eventId: string) {
-  const rows = await db.query.eventRegistrations.findMany({
-    where: eq(eventRegistrations.eventId, eventId),
-    orderBy: [asc(eventRegistrations.createdAt)],
-    with: {
-      team: { columns: { name: true, slug: true, ageGroup: true } },
-      division: { columns: { name: true } },
-    },
-  });
-  return rows;
+  const [rows, entered] = await Promise.all([
+    db.query.eventRegistrations.findMany({
+      where: eq(eventRegistrations.eventId, eventId),
+      orderBy: [asc(eventRegistrations.createdAt)],
+      with: {
+        team: { columns: { name: true, slug: true, ageGroup: true } },
+        division: { columns: { name: true } },
+      },
+    }),
+    db.query.eventTeams.findMany({
+      where: eq(eventTeams.eventId, eventId),
+      columns: { teamId: true },
+    }),
+  ]);
+
+  const placed = new Set(entered.map((e) => e.teamId));
+  return rows.map((r) => ({ ...r, inCompetition: placed.has(r.teamId) }));
 }
 
 /** What this user's teams have already asked for, so the page can say so. */

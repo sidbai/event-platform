@@ -49,8 +49,8 @@ export default async function RegistrationsPage({
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Entries</h1>
       <p className="mt-1 text-sm text-muted">
-        Accepting a team is what takes a place in a division. Everything else
-        leaves the place open.
+        Accepting a team takes a place in the division and puts it in the
+        standings. Everything else leaves the place open.
       </p>
 
       <ul className="mt-6 space-y-1 text-sm">
@@ -93,6 +93,19 @@ export default async function RegistrationsPage({
                   {r.status}
                 </span>
               </div>
+
+              {/*
+                Normally the status says it all. This line only earns its space
+                when the two disagree — a team left in the competition after
+                being declined, because it already had fixtures and pulling it
+                out would leave matches naming a team with no standings row.
+              */}
+              {r.inCompetition && r.status !== "accepted" && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Still in the schedule — it already has fixtures. Delete those
+                  first if it really is out.
+                </p>
+              )}
 
               {r.note && (
                 <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
