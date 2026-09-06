@@ -50,7 +50,14 @@ export type SyncReport = {
 export async function syncEvent(eventId: string, now = new Date()): Promise<SyncReport> {
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
-    columns: { id: true, slug: true, sourcePlatform: true, sourceEventId: true, sourceUrl: true },
+    columns: {
+      id: true,
+      slug: true,
+      sourcePlatform: true,
+      sourceEventId: true,
+      sourceUrl: true,
+      scheduleUrl: true,
+    },
   });
   if (!event) return { slug: eventId, ok: false, detail: "event not found" };
   if (!event.sourcePlatform || !event.sourceEventId) {
@@ -62,12 +69,18 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
     return { slug: event.slug, ok: false, detail: `no provider for ${event.sourcePlatform}` };
   }
 
-  // The subdomain is part of the identity on platforms that give each club
-  // one, and it is recoverable from the URL the importer already stored.
-  const ref = (event.sourceUrl && provider.parseUrl(event.sourceUrl)) || {
-    platform: provider.platform,
-    eventId: event.sourceEventId,
-  };
+  /*
+   * The subdomain is part of the identity on platforms that give each club
+   * one, and it is recoverable from the URL that was pasted to connect this
+   * event. scheduleUrl first, because that is the platform's own page;
+   * sourceUrl is usually the organizer's website, which is a different system
+   * and parses to nothing.
+   */
+  const ref = (event.scheduleUrl && provider.parseUrl(event.scheduleUrl)) ||
+    (event.sourceUrl && provider.parseUrl(event.sourceUrl)) || {
+      platform: provider.platform,
+      eventId: event.sourceEventId,
+    };
 
   const result = await provider.fetch({ ...ref, eventId: event.sourceEventId });
   if (!result.ok) {

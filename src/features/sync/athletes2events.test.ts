@@ -173,3 +173,23 @@ describe("finding the flights of an event", () => {
     for (const l of links) expect(l).toContain("flight-id=");
   });
 });
+
+describe("identifying an event", () => {
+  it("keeps the club subdomain, which is half the identity", () => {
+    expect(
+      athletes2events.parseUrl("https://crossfire.athletes2events.com/events/130/groups"),
+    ).toEqual({ platform: "athletes2events", eventId: "130", subdomain: "crossfire" });
+  });
+
+  it("refuses to fetch without one rather than guess a club", () => {
+    // Event ids are numbered per club: 130 is one tournament on crossfire and
+    // a different one next door. A default would quietly show a parent
+    // somebody else's fixtures.
+    return expect(
+      athletes2events.fetch({ platform: "athletes2events", eventId: "130" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { kind: "unrecognised" },
+    });
+  });
+});

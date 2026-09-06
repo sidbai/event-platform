@@ -25,7 +25,10 @@ vi.mock("@/features/sync/athletes2events", () => ({
   athletes2events: {
     platform: "athletes2events",
     matches: () => true,
-    parseUrl: () => ({ platform: "athletes2events", eventId: "130" }),
+    parseUrl: (url: string) => {
+      const m = /https:\/\/([^.]+)\.athletes2events\.com\/events\/(\d+)/.exec(url);
+      return m ? { platform: "athletes2events", eventId: m[2], subdomain: m[1] } : null;
+    },
     fetch: (...args: unknown[]) => {
       fetches(...args);
       return Promise.resolve({
@@ -159,6 +162,26 @@ describe("syncIfDue", () => {
     // The sync itself set the cadence — being played, that is 20 minutes.
     expect((await syncIfDue(id, at(21)))?.ok).toBe(true);
     expect(fetches).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("which event a sync actually reads", () => {
+  it("takes the club subdomain from the schedule URL, not the organizer's site", async () => {
+    // Event ids are numbered per club on these platforms, so a ref without a
+    // subdomain is somebody else's tournament. The organizer's own website —
+    // sourceUrl — is a different system and parses to nothing.
+    const id = await makeListing({
+      sourceUrl: "https://www.crossfiresoccer.org/tournaments/ldc/",
+      scheduleUrl: "https://crossfire.athletes2events.com/events/130/groups",
+    });
+
+    await syncIfDue(id, NOW);
+
+    expect(fetches).toHaveBeenCalledWith({
+      platform: "athletes2events",
+      eventId: "130",
+      subdomain: "crossfire",
+    });
   });
 });
 

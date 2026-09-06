@@ -225,7 +225,24 @@ export const athletes2events: ExternalEventProvider = {
   },
 
   async fetch(ref: SourceRef): Promise<SyncResult> {
-    const base = `https://${ref.subdomain ?? "crossfire"}.${HOST}/events/${ref.eventId}`;
+    /*
+     * Every club has its own subdomain here, and event ids are numbered per
+     * club: 130 is one tournament on crossfire and a different one next door.
+     * There is no sensible default, and guessing one would quietly show a
+     * parent somebody else's fixtures — so a ref without a subdomain is a
+     * refusal, not a fallback.
+     */
+    if (!ref.subdomain) {
+      return {
+        ok: false,
+        error: {
+          kind: "unrecognised",
+          detail: "no club subdomain: connect this event with its schedule URL",
+        },
+      };
+    }
+
+    const base = `https://${ref.subdomain}.${HOST}/events/${ref.eventId}`;
 
     let groups: string;
     try {
