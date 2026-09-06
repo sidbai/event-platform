@@ -16,6 +16,7 @@ import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 import { managedEntries } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
+import { attributionOf, isRunHere, primaryActionOf } from "@/features/events/listing";
 import {
   describeOpenness,
   formatFee,
@@ -85,7 +86,14 @@ export default async function EventPage({
   // the places left and the closing date all lived a click deeper, so the
   // event page offered "Enter a team →" to people whose division shut in
   // August and said nothing to anyone deciding whether it was worth a look.
-  const takesEntries = event.kind === "tournament" || event.kind === "league";
+  // A listing points at somebody else's event. It must not offer entries,
+  // rosters or a table, because none of those are ours to keep — sending a
+  // parent to register here would send them somewhere nothing is listening.
+  const runHere = isRunHere(event);
+  const attribution = attributionOf(event);
+  const offsite = primaryActionOf(event);
+  const takesEntries =
+    runHere && (event.kind === "tournament" || event.kind === "league");
   const entryDivisions = takesEntries
     ? await divisionsForRegistration(event.id, new Date())
     : [];
@@ -211,6 +219,41 @@ export default async function EventPage({
       {/* Entries and a table are only a thing for the kinds that have
           divisions. A pickup game has none, and a link offering either would
           go nowhere useful. */}
+      {attribution && (
+        <p className="mt-6 rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">
+          {attribution.href ? (
+            <>
+              {attribution.text.replace(/^Listed from /, "Listed from ")}{" "}
+              — entries and details are on{" "}
+              <a
+                href={attribution.href}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-brand-text hover:underline"
+              >
+                their page
+              </a>
+              .
+            </>
+          ) : (
+            attribution.text
+          )}
+        </p>
+      )}
+
+      {offsite && (
+        <p className="mt-4">
+          <a
+            href={offsite.href}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+          >
+            {offsite.label} →
+          </a>
+        </p>
+      )}
+
       {entryDivisions.length > 0 && (
         <section className="mt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
@@ -276,7 +319,7 @@ export default async function EventPage({
         </p>
       )}
 
-      {myEntries.length > 0 && (
+      {runHere && myEntries.length > 0 && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
           {/* One link per team. A club with two age groups in the same Cup
               used to reach only the first, and the other roster had no route
@@ -364,7 +407,7 @@ export default async function EventPage({
         </div>
       )}
 
-      {event.divisions.length > 0 && (
+      {runHere && event.divisions.length > 0 && (
         <p className="mt-8 text-sm text-muted">
           Organizer tools:{" "}
           <Link
