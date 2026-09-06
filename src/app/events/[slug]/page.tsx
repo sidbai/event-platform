@@ -265,6 +265,12 @@ export default async function EventPage({
               >
                 Set up divisions and rules
               </Link>
+              <Link
+                href={`/events/${event.slug}/checklist`}
+                className="text-muted hover:text-ink"
+              >
+                Checklist
+              </Link>
             </>
           )}
         </p>

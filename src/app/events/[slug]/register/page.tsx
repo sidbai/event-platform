@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { getEventBySlug } from "@/features/events/queries";
-import { registerTeam } from "@/features/registration/actions";
+import { registerNewTeam, registerTeam } from "@/features/registration/actions";
 import { describeOpenness, formatFee } from "@/features/registration/openness";
 import {
   divisionsForRegistration,
@@ -122,6 +122,7 @@ export default async function RegisterPage({
 
                 <RegisterForm
                   action={registerTeam.bind(null, slug)}
+                  newTeamAction={registerNewTeam.bind(null, slug)}
                   divisionId={d.id}
                   teams={teams}
                   existing={Object.fromEntries(

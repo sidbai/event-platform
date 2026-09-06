@@ -1,6 +1,5 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -10,23 +9,13 @@ import { getCurrentUser } from "@/features/auth";
 import { isPendingCrestUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
+import { uniqueTeamSlug } from "./slug";
+
 export type TeamFormResult = {
   error?: string;
   fieldErrors?: Record<string, string>;
 };
 
-async function uniqueTeamSlug(base: string) {
-  const root = base || "team";
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? root : `${root}-${i + 1}`;
-    const clash = await db.query.teams.findFirst({
-      where: eq(teams.slug, candidate),
-      columns: { id: true },
-    });
-    if (!clash) return candidate;
-  }
-  return `${root}-${Date.now()}`;
-}
 
 export async function createTeam(
   _prev: TeamFormResult,
