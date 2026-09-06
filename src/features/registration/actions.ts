@@ -1,15 +1,23 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { eventDivisions, eventRegistrations, events, teamMembers } from "@/db/schema";
+import {
+  eventDivisions,
+  eventRegistrations,
+  eventTeams,
+  events,
+  matches,
+  teamMembers,
+} from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { checkRateLimit } from "@/features/rate-limit";
 
 import { opennessOf } from "./openness";
+import { participationFor, type RegistrationStatus } from "./participation";
 
 export type RegistrationResult = { error?: string; ok?: boolean };
 
@@ -116,6 +124,55 @@ export async function registerTeam(
   return { ok: true };
 }
 
+/**
+ * Give effect to a decision on an entry.
+ *
+ * The status is the record of what the organizer decided; event_teams is the
+ * team's place in the competition. Keeping them in step here is what makes
+ * "Accept" mean something — before this it only changed a label, and the team
+ * had to be typed in a second time on the scores page.
+ */
+async function syncParticipation(
+  eventId: string,
+  teamId: string,
+  divisionId: string,
+  status: RegistrationStatus,
+) {
+  const [existing, fixture] = await Promise.all([
+    db.query.eventTeams.findFirst({
+      where: and(eq(eventTeams.eventId, eventId), eq(eventTeams.teamId, teamId)),
+      columns: { id: true, divisionId: true },
+    }),
+    db.query.matches.findFirst({
+      where: and(
+        eq(matches.eventId, eventId),
+        or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId)),
+      ),
+      columns: { id: true },
+    }),
+  ]);
+
+  const change = participationFor(status, divisionId, {
+    participating: Boolean(existing),
+    divisionId: existing?.divisionId ?? null,
+    hasFixtures: Boolean(fixture),
+  });
+
+  if (change.action === "enter") {
+    await db
+      .insert(eventTeams)
+      .values({ eventId, teamId, divisionId: change.divisionId })
+      // Only the division moves. The standings columns are left alone, so
+      // re-filing a team mid-season does not wipe what it has played.
+      .onConflictDoUpdate({
+        target: [eventTeams.eventId, eventTeams.teamId],
+        set: { divisionId: change.divisionId },
+      });
+  } else if (change.action === "remove") {
+    await db.delete(eventTeams).where(eq(eventTeams.id, existing!.id));
+  }
+}
+
 /** Organizer or admin: decide on a registration. */
 export async function setRegistrationStatus(
   slug: string,
@@ -126,13 +183,23 @@ export async function setRegistrationStatus(
   if (!user) return;
   if (!(await canManageEvent({ slug }))) return;
 
+  const reg = await db.query.eventRegistrations.findFirst({
+    where: eq(eventRegistrations.id, registrationId),
+    columns: { eventId: true, divisionId: true, teamId: true },
+  });
+  if (!reg) return;
+
   await db
     .update(eventRegistrations)
     .set({ status, updatedAt: new Date() })
     .where(eq(eventRegistrations.id, registrationId));
 
+  await syncParticipation(reg.eventId, reg.teamId, reg.divisionId, status);
+
   revalidatePath(`/events/${slug}/register`);
   revalidatePath(`/events/${slug}/registrations`);
+  revalidatePath(`/events/${slug}/table`);
+  revalidatePath(`/events/${slug}/scores`);
 }
 
 /** The team's own way out, without needing the organizer. */
@@ -145,7 +212,7 @@ export async function withdrawRegistration(
 
   const reg = await db.query.eventRegistrations.findFirst({
     where: eq(eventRegistrations.id, registrationId),
-    columns: { teamId: true },
+    columns: { eventId: true, divisionId: true, teamId: true },
   });
   if (!reg) return;
 
@@ -164,6 +231,10 @@ export async function withdrawRegistration(
     .set({ status: "withdrawn", updatedAt: new Date() })
     .where(eq(eventRegistrations.id, registrationId));
 
+  await syncParticipation(reg.eventId, reg.teamId, reg.divisionId, "withdrawn");
+
   revalidatePath(`/events/${slug}/register`);
   revalidatePath(`/events/${slug}/registrations`);
+  revalidatePath(`/events/${slug}/table`);
+  revalidatePath(`/events/${slug}/scores`);
 }
