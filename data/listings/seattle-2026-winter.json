@@ -1,0 +1,59 @@
+[
+  {
+    "slug": "boo-fest-jamboree-2026",
+    "title": "Boo Fest Jamboree",
+    "kind": "jamboree",
+    "startDate": "2026-10-24",
+    "venueName": "Starfire Sports",
+    "venueCity": "Tukwila",
+    "ageGroup": "U6–U13",
+    "gender": "Boys and Girls",
+    "format": "4v4 indoor",
+    "summary": "One-day indoor 4v4 jamboree for boys and girls U6 through U13.",
+    "sourceName": "Starfire Sports",
+    "sourceUrl": "https://www.starfiresports.com/youth/youth-tournaments-jamborees/"
+  },
+  {
+    "slug": "turkey-shoot-jamboree-2026",
+    "title": "Turkey Shoot Jamboree",
+    "kind": "jamboree",
+    "startDate": "2026-11-28",
+    "venueName": "Starfire Sports",
+    "venueCity": "Tukwila",
+    "ageGroup": "U6–U13",
+    "gender": "Boys and Girls",
+    "format": "4v4 indoor",
+    "summary": "One-day indoor 4v4 jamboree for boys and girls U6 through U13, the Saturday after Thanksgiving.",
+    "sourceName": "Starfire Sports",
+    "sourceUrl": "https://www.starfiresports.com/youth/youth-tournaments-jamborees/"
+  },
+  {
+    "slug": "candy-cane-challenge-2026",
+    "title": "Candy Cane Challenge",
+    "kind": "tournament",
+    "startDate": "2026-12-11",
+    "endDate": "2026-12-23",
+    "venueName": "Starfire Sports",
+    "venueCity": "Tukwila",
+    "ageGroup": "U9–U15 and High School",
+    "gender": "Boys and Girls",
+    "format": "Indoor",
+    "summary": "Indoor tournament over two weeks in December, for boys and girls U9 through U15 plus high school.",
+    "sourceName": "Starfire Sports",
+    "sourceUrl": "https://www.starfiresports.com/youth/youth-tournaments-jamborees/"
+  },
+  {
+    "slug": "pacnw-winter-classic-2027",
+    "title": "PacNW Winter Classic 2027",
+    "kind": "tournament",
+    "startDate": "2027-01-08",
+    "endDate": "2027-01-18",
+    "venueName": "Starfire Sports Complex",
+    "venueCity": "Tukwila",
+    "ageGroup": "U10–U19",
+    "gender": "Boys and Girls",
+    "summary": "Two weekends: U10 and U12–U14 play January 8–10, U11 and U15–U19 play January 15–18. Registration deadline November 3, 2026.",
+    "sourceName": "Pacific Northwest Soccer Club",
+    "sourceUrl": "https://www.pacificnorthwestsoccerclub.org/winter-classic"
+  }
+]
