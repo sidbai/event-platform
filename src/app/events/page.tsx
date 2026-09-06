@@ -41,7 +41,7 @@ function EventList({
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-medium">{event.title}</span>
                 <span className="shrink-0 text-sm text-muted">
-                  {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short")}
+                  {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short", event.kind)}
 
                 </span>
               </div>

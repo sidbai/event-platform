@@ -145,7 +145,7 @@ export default async function EventPage({
         {event.summary && <p className="mt-3 text-muted">{event.summary}</p>}
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted">Date</dt>
-          <dd>{formatEventWhen(event.startsAt, event.endsAt, event.timezone)}</dd>
+          <dd>{formatEventWhen(event.startsAt, event.endsAt, event.timezone, "long", event.kind)}</dd>
           {event.venue && (
             <>
               <dt className="text-muted">Venue</dt>
