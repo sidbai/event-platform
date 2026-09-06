@@ -211,6 +211,28 @@ export default async function EventPage({
         </section>
       )}
 
+      {/* Entries are only a thing for the kinds that have divisions. A pickup
+          game has none, and a link offering to enter a team into one would go
+          nowhere useful. */}
+      {(event.kind === "tournament" || event.kind === "league") && (
+        <p className="mt-8 flex flex-wrap gap-4 text-sm">
+          <Link
+            href={`/events/${event.slug}/register`}
+            className="font-medium text-brand-text hover:underline"
+          >
+            Enter a team →
+          </Link>
+          {canManage && (
+            <Link
+              href={`/events/${event.slug}/registrations`}
+              className="text-muted hover:text-ink"
+            >
+              Manage entries
+            </Link>
+          )}
+        </p>
+      )}
+
       {myEntry && (
         <p className="mt-8 text-sm">
           <Link

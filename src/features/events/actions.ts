@@ -12,6 +12,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
 
 import { canManageEvent } from "./can-manage";
+import { needsAdminReview } from "./review-rule";
 
 export type EventFormResult = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -114,10 +115,7 @@ export async function submitEvent(
     ["public", "unlisted", "private"].includes(picked) ? picked : "public"
   ) as "public" | "unlisted" | "private";
 
-  // Review exists to gate what reaches the public list. An unlisted or private
-  // event isn't going there, so it would be pointless to make the organizer
-  // wait for approval before they can even invite anyone.
-  const needsReview = visibility === "public" && !admin;
+  const needsReview = needsAdminReview(kind, visibility, admin);
   const slug = await uniqueSlug(slugify(title));
 
   await db.insert(events).values({

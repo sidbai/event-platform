@@ -281,6 +281,25 @@ export const eventDivisions = pgTable(
     format: text("format"),
     rosterMin: integer("roster_min"),
     rosterMax: integer("roster_max"),
+    /**
+     * Entry fee in cents, or null for a free division.
+     *
+     * Integer cents rather than a decimal: money in a float is a bug waiting
+     * for a rounding error, and this is the shape Stripe wants if payment ever
+     * moves onto the platform. Nothing here takes money today — the fee is
+     * shown so a team knows what it is agreeing to, and the organizer collects
+     * it however they already do.
+     */
+    feeCents: integer("fee_cents"),
+    /** Accepted teams this division has room for. Null means no cap. */
+    capacity: integer("capacity"),
+    /** When teams may register. Null on either end means no bound. */
+    registrationOpensAt: timestamp("registration_opens_at", {
+      withTimezone: true,
+    }),
+    registrationClosesAt: timestamp("registration_closes_at", {
+      withTimezone: true,
+    }),
   },
   (t) => [unique("event_divisions_event_name_uq").on(t.eventId, t.name)],
 );
@@ -312,6 +331,59 @@ export const eventTeams = pgTable(
 );
 
 // --- rosters: players for an event_teams row ------------------------
+
+/**
+ * A team asking to be in a division, and how that request ended up.
+ *
+ * Deliberately NOT event_teams. That table carries standings, so a request
+ * that was never accepted would sit in it with a row of zeroes, and every
+ * standings query would have to remember to exclude it. A registration is an
+ * application; event_teams is participation. Accepting one creates the other.
+ */
+export const registrationStatus = pgEnum("registration_status", [
+  "requested",
+  "accepted",
+  "waitlisted",
+  "declined",
+  "withdrawn",
+]);
+
+export const eventRegistrations = pgTable(
+  "event_registrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    divisionId: uuid("division_id")
+      .notNull()
+      .references(() => eventDivisions.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    status: registrationStatus("status").notNull().default("requested"),
+    /** Who submitted it, for the organizer to reply to. */
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Anything the team wants the organizer to know. */
+    note: text("note"),
+    /**
+     * The fee as it stood when they registered.
+     *
+     * Snapshotted so raising a division's price later does not silently
+     * change what teams already registered were told they owed.
+     */
+    feeCentsAtRequest: integer("fee_cents_at_request"),
+    ...timestamps,
+  },
+  (t) => [
+    // One live registration per team per division; re-registering after
+    // withdrawing reuses the row rather than making a second one.
+    unique("event_registrations_division_team_uq").on(t.divisionId, t.teamId),
+    index("event_registrations_event_idx").on(t.eventId, t.status),
+  ],
+);
 
 export const rosters = pgTable("rosters", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -438,6 +510,24 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
     relationName: "teamOriginEvent",
   }),
 }));
+
+export const eventRegistrationsRelations = relations(
+  eventRegistrations,
+  ({ one }) => ({
+    event: one(events, {
+      fields: [eventRegistrations.eventId],
+      references: [events.id],
+    }),
+    division: one(eventDivisions, {
+      fields: [eventRegistrations.divisionId],
+      references: [eventDivisions.id],
+    }),
+    team: one(teams, {
+      fields: [eventRegistrations.teamId],
+      references: [teams.id],
+    }),
+  }),
+);
 
 export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   team: one(teams, { fields: [teamMembers.teamId], references: [teams.id] }),
