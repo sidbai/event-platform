@@ -17,9 +17,8 @@ const { db } = await import("@/db");
 const { eventDivisions, eventKinds, eventRegistrations, events, teams } = await import(
   "@/db/schema"
 );
-const { divisionsForRegistration, registrationsForEvent } = await import(
-  "@/features/registration/queries"
-);
+const { divisionsForRegistration, pendingEntriesForTeam, registrationsForEvent } =
+  await import("@/features/registration/queries");
 
 const NOW = new Date("2026-09-05T12:00:00Z");
 const days = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
@@ -173,5 +172,38 @@ describe("registrationsForEvent", () => {
     expect(r.team?.name).toBe("Eagleclaw FC B2014");
     expect(r.division?.name).toBe("N1 U13");
     expect(r.status).toBe("requested");
+  });
+});
+
+describe("pendingEntriesForTeam", () => {
+  it("lists what a team has entered but not been decided on", async () => {
+    // The team page builds its list from event_teams, which only exists once
+    // an organizer accepts — so without this a team that just entered reads
+    // "No events yet" at the moment it is most likely to look.
+    const eventId = await makeLeague();
+    const divisionId = await makeDivision(eventId, { name: "N1 U13" });
+    const teamId = await enter(eventId, divisionId, "Eagleclaw", "requested");
+
+    const rows = await pendingEntriesForTeam(teamId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].event?.title).toBe("WPL Fall");
+    expect(rows[0].division?.name).toBe("N1 U13");
+  });
+
+  it("leaves out accepted entries, which already show as participation", async () => {
+    const eventId = await makeLeague();
+    const divisionId = await makeDivision(eventId, { name: "N1 U13" });
+    const teamId = await enter(eventId, divisionId, "Eagleclaw", "accepted");
+
+    expect(await pendingEntriesForTeam(teamId)).toEqual([]);
+  });
+
+  it("has nothing for a team that has entered nothing", async () => {
+    const eventId = await makeLeague();
+    const divisionId = await makeDivision(eventId, { name: "N1 U13" });
+    await enter(eventId, divisionId, "Someone Else", "requested");
+
+    const [other] = await db.select().from(teams);
+    expect(await pendingEntriesForTeam(other.id)).toHaveLength(1);
   });
 });
