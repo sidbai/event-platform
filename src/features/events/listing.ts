@@ -23,6 +23,13 @@ export type Listing = {
   sourceUrl: string | null;
   scheduleUrl?: string | null;
   organizerId?: string | null;
+  /** Needed to link to a page we render for this event. */
+  slug?: string;
+  /**
+   * Whether we hold this event's fixtures ourselves — synced from the
+   * platform that publishes them, or entered here.
+   */
+  hasFixtures?: boolean;
 };
 
 /** An event that happens somewhere else and is listed here so it can be found. */
@@ -111,6 +118,26 @@ export function scheduleActionOf(
   event: Listing,
 ): { label: string; href: string; external: boolean } | null {
   if (isRunHere(event)) return null;
+
+  /*
+   * A listing we sync is no longer only a link. We hold its fixtures, its
+   * table and its matchday navigation, so somebody who came for the schedule
+   * should get ours — with a division they can pick and a team they can
+   * follow — rather than be sent off to find the same thing on a platform
+   * that does not know which age group their child plays in.
+   *
+   * Still attributed to the organizer, and still linking to them for
+   * entries. Whose tournament it is has not changed; only where the fixtures
+   * are read from has.
+   */
+  if (event.hasFixtures && event.slug) {
+    return {
+      label: "Schedule & standings",
+      href: `/events/${event.slug}/table`,
+      external: false,
+    };
+  }
+
   const href = safeSourceUrl(event.scheduleUrl);
   if (!href) return null;
   return { label: "Schedule & standings", href, external: true };
