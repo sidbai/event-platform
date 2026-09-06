@@ -78,14 +78,50 @@ export default async function Home() {
       {/* Kept a step above the cards below it so the page outline still reads,
           but small enough not to shout over the feed. */}
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        King Juan Soccer: A community platform for Seattle-area youth soccer.
-        More soccer, less effort!
+        Seattle youth soccer: find a game, or start one.
       </h1>
+      <p className="mt-2 text-sm text-muted">
+        Tournaments, leagues, scrimmages, pickup and camps around the Sound.
+      </p>
 
+      {/*
+        Two actions, because there are two things anyone comes here to do.
+        Until now there were three and all of them were Create — someone
+        arriving to find a game had nothing to press, which is the wrong half
+        of the product to leave without a door.
+
+        Equal weight for now. Discover deserves to be the primary action once
+        there is enough to discover; making it louder while the calendar is
+        nearly empty would just send more people to a short list.
+      */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <CreateLink href="/events/new">Start an event</CreateLink>
-        <CreateLink href="/community/new">Start a post</CreateLink>
-        {user && <CreateLink href="/news/new">Write a post</CreateLink>}
+        <Link
+          href="/events"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
+        >
+          <span aria-hidden>🔎</span> Find an event
+        </Link>
+        <CreateLink href="/events/new">Create an event</CreateLink>
+      </div>
+
+      {/* The rest, quieter: fewer people want them, and the ones who do are
+          usually coming back on purpose. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        <Link href="/community/new" className="hover:text-ink">
+          Start a discussion
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/events/list" className="hover:text-ink">
+          List someone else&rsquo;s event
+        </Link>
+        {user && (
+          <>
+            <span aria-hidden>·</span>
+            <Link href="/news/new" className="hover:text-ink">
+              Write a news post
+            </Link>
+          </>
+        )}
       </div>
 
       {items.length === 0 ? (
