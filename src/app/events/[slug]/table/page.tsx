@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { getCurrentUser } from "@/features/auth";
 import { canViewEvent } from "@/features/events/can-view";
+import { DivisionPicker } from "@/features/tournaments/division-picker";
 import { getLeague } from "@/features/tournaments/league-queries";
 import { byMatchday, currentMatchday } from "@/features/tournaments/matchdays";
 import { computeStandings, rankStandings } from "@/features/tournaments/standings";
@@ -160,19 +161,15 @@ export default async function LeagueTablePage({
         Schedule and standings
       </h1>
 
-      {divisions.length > 1 && (
-        <nav aria-label="Divisions" className="mt-4 flex flex-wrap gap-1.5">
-          {divisions.map((d) => (
-            <Link
-              key={d.id}
-              href={href({ division: d.id })}
-              aria-current={d.id === division?.id ? "page" : undefined}
-              className={d.id === division?.id ? on : off}
-            >
-              {d.label ?? d.name}
-            </Link>
-          ))}
-        </nav>
+      {divisions.length > 1 && division && (
+        <DivisionPicker
+          value={division.id}
+          options={divisions.map((d) => ({
+            id: d.id,
+            label: d.label ?? d.name,
+            href: href({ division: d.id }),
+          }))}
+        />
       )}
 
       {/* Schedule or standings, then which division, then which team — the
