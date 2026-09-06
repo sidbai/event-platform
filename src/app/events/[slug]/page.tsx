@@ -211,11 +211,17 @@ export default async function EventPage({
         </section>
       )}
 
-      {/* Entries are only a thing for the kinds that have divisions. A pickup
-          game has none, and a link offering to enter a team into one would go
-          nowhere useful. */}
+      {/* Entries and a table are only a thing for the kinds that have
+          divisions. A pickup game has none, and a link offering either would
+          go nowhere useful. */}
       {(event.kind === "tournament" || event.kind === "league") && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
+          <Link
+            href={`/events/${event.slug}/table`}
+            className="font-medium text-brand-text hover:underline"
+          >
+            Table and schedule →
+          </Link>
           <Link
             href={`/events/${event.slug}/register`}
             className="font-medium text-brand-text hover:underline"
