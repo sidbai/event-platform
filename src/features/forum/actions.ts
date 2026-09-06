@@ -17,8 +17,12 @@ import { isAdmin } from "@/features/auth/admin";
 
 import { canSetHidden } from "./visibility";
 import { slugify } from "@/lib/slug";
+import { zonedDate } from "@/lib/dates";
 
 import { FORUM_CATEGORIES, type ForumResult } from "./constants";
+
+/** Everything this platform runs is in Seattle; stated once rather than twice. */
+const TIMEZONE = "America/Los_Angeles";
 
 const TITLE_MAX = 140;
 const BODY_MAX = 8000;
@@ -218,8 +222,10 @@ export async function convertPostToEvent(
       locationType: locationType as "in_person" | "online" | "hybrid",
       venueId,
       onlineUrl: locationType === "online" ? onlineUrl : null,
-      startsAt: new Date(`${date}T${time || "00:00"}`),
-      timezone: "America/Los_Angeles",
+      // Read in the event's zone rather than the server's: this line stored a
+      // 9am kickoff as 9am UTC on Vercel, and showed it back as 2am.
+      startsAt: zonedDate(date, time || "00:00", TIMEZONE),
+      timezone: TIMEZONE,
       organizerId: post.authorId,
     })
     .returning({ id: events.id });

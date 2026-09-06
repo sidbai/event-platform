@@ -9,18 +9,9 @@ import {
   listEventsByTime,
 } from "@/features/events/queries";
 import { CreateLink } from "@/components/create-link";
+import { formatEventWhen } from "@/features/events/when";
 
 export const dynamic = "force-dynamic";
-
-function fmtDate(d: Date | null, tz: string | null) {
-  if (!d) return "Date TBD";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: tz ?? undefined,
-  }).format(d);
-}
 
 type Row = Awaited<ReturnType<typeof listEvents>>[number];
 
@@ -50,7 +41,7 @@ function EventList({
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-medium">{event.title}</span>
                 <span className="shrink-0 text-sm text-muted">
-                  {fmtDate(event.startsAt, event.timezone)}
+                  {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short")}
                 </span>
               </div>
               {event.venue && (
