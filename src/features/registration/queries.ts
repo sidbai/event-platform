@@ -11,7 +11,10 @@ export type DivisionWithOpenness = {
   id: string;
   name: string;
   label: string | null;
+  birthYears: number[];
   format: string | null;
+  rosterMin: number | null;
+  rosterMax: number | null;
   feeCents: number | null;
   capacity: number | null;
   registrationOpensAt: Date | null;
@@ -60,7 +63,10 @@ export async function divisionsForRegistration(
       id: d.id,
       name: d.name,
       label: d.label,
+      birthYears: d.birthYears,
       format: d.format,
+      rosterMin: d.rosterMin,
+      rosterMax: d.rosterMax,
       feeCents: d.feeCents,
       capacity: d.capacity,
       registrationOpensAt: d.registrationOpensAt,

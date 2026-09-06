@@ -38,3 +38,33 @@ export function CreateLink({
     </Link>
   );
 }
+
+/**
+ * The same offer, when it opens a form in place rather than navigating.
+ *
+ * Shares CreateLink's look on purpose: to a reader "+ Add a division" is one
+ * kind of action, and whether it happens to be a route or a disclosure is our
+ * implementation detail, not something the button should telegraph.
+ */
+export function CreateButton({
+  onClick,
+  children,
+  className = "",
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated ${className}`}
+    >
+      <span aria-hidden className="text-base leading-none">
+        +
+      </span>
+      {children}
+    </button>
+  );
+}

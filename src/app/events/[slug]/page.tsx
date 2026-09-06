@@ -14,6 +14,7 @@ import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 import { managedEntry } from "@/features/tournaments/roster-queries";
+import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import {
   computeStandings,
   rankStandings,
@@ -43,14 +44,6 @@ export async function generateMetadata({
 
 type Champion = { division: string; champion: string; finalist: string; finalScore: string };
 type Sponsor = { name: string; url: string | null; tier: string };
-type Rules = {
-  gameFormat: string;
-  advancement: string;
-  roster: string;
-  tiebreakers: string[];
-  goalCapPerGame?: number;
-};
-
 type TeamMeta = Map<
   string,
   { name: string; seed: number | null; crestUrl: string | null }
@@ -229,12 +222,20 @@ export default async function EventPage({
             Enter a team →
           </Link>
           {canManage && (
-            <Link
-              href={`/events/${event.slug}/registrations`}
-              className="text-muted hover:text-ink"
-            >
-              Manage entries
-            </Link>
+            <>
+              <Link
+                href={`/events/${event.slug}/registrations`}
+                className="text-muted hover:text-ink"
+              >
+                Manage entries
+              </Link>
+              <Link
+                href={`/events/${event.slug}/setup`}
+                className="text-muted hover:text-ink"
+              >
+                Set up divisions and rules
+              </Link>
+            </>
           )}
         </p>
       )}
@@ -366,23 +367,40 @@ export default async function EventPage({
       {rules && (
         <section className="mt-10">
           <h2 className="text-lg font-semibold">Rules</h2>
+          {/* Each row earns its place. These were seeded complete when only a
+              script could write them; now that an organizer fills them in, a
+              blank one would render a label with nothing under it. */}
           <dl className="mt-3 space-y-2 text-sm">
-            <div>
-              <dt className="text-muted">Format</dt>
-              <dd>{rules.gameFormat}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Advancement</dt>
-              <dd>{rules.advancement}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Roster</dt>
-              <dd>{rules.roster}</dd>
-            </div>
+            {rules.gameFormat && (
+              <div>
+                <dt className="text-muted">Format</dt>
+                <dd>{rules.gameFormat}</dd>
+              </div>
+            )}
+            {describePeriods(rules) && (
+              <div>
+                <dt className="text-muted">Game length</dt>
+                <dd>{describePeriods(rules)}</dd>
+              </div>
+            )}
+            {rules.advancement && (
+              <div>
+                <dt className="text-muted">Advancement</dt>
+                <dd>{rules.advancement}</dd>
+              </div>
+            )}
+            {rules.roster && (
+              <div>
+                <dt className="text-muted">Roster</dt>
+                <dd>{rules.roster}</dd>
+              </div>
+            )}
+            {rules.tiebreakers.length > 0 && (
             <div>
               <dt className="text-muted">Tiebreakers</dt>
               <dd>{rules.tiebreakers.join(" → ").replace(/_/g, " ")}</dd>
             </div>
+            )}
           </dl>
         </section>
       )}
