@@ -130,4 +130,18 @@ jobs:
         run: |
           pnpm start &
           ./scripts/smoke.sh http://127.0.0.1:3000 \
-            /events/smoke-league /events/smoke-league/table
+            /events/smoke-league \
+            '/events/smoke-league?view=standings' \
+            '/events/smoke-league?division=all&view=standings'
+
+          # The schedule used to live at /table. That URL is in links we have
+          # published, so it has to keep landing somewhere — and a redirect is
+          # the one thing the smoke script cannot express, since it insists on
+          # a 200.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://127.0.0.1:3000/events/smoke-league/table")
+          if [ "$code" != "308" ]; then
+            echo "/events/smoke-league/table answered $code, expected 308"
+            exit 1
+          fi
+          echo "  /events/smoke-league/table                    308 (redirect kept)"
