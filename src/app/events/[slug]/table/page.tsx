@@ -339,23 +339,31 @@ export default async function LeagueTablePage({
                 <ul className="mt-2 divide-y divide-line">
                   {sd.matches.map((m) => (
                     <li key={m.id} className="py-3 text-sm">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="flex flex-wrap items-center gap-2 font-medium">
-                          <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
-                          {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
-                          <span className="tabular-nums text-muted">
-                            {m.homeScore !== null && m.awayScore !== null
-                              ? `${m.homeScore} – ${m.awayScore}`
-                              : "v"}
-                          </span>
-                          <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
-                          {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
+                      {/* Where and when leads, then who is playing. Pushed to
+                          the right it was the last thing read on a wide screen
+                          and the second line on a narrow one, which is the
+                          wrong way round for a parent working out which pitch
+                          to walk to. */}
+                      <div className="text-xs text-muted">
+                        {[
+                          m.groupLabel ? `Bracket ${m.groupLabel}` : null,
+                          [fmtTime(m.kickoffAt, tz), m.field]
+                            .filter(Boolean)
+                            .join(" · "),
+                        ]
+                          .filter(Boolean)
+                          .join(" - ")}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 font-medium">
+                        <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
+                        {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
+                        <span className="tabular-nums text-muted">
+                          {m.homeScore !== null && m.awayScore !== null
+                            ? `${m.homeScore} – ${m.awayScore}`
+                            : "v"}
                         </span>
-                        <span className="text-xs text-muted">
-                          {fmtTime(m.kickoffAt, tz)}
-                          {m.field && ` · ${m.field}`}
-                          {m.groupLabel && ` · Bracket ${m.groupLabel}`}
-                        </span>
+                        <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
+                        {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
                       </div>
                     </li>
                   ))}
