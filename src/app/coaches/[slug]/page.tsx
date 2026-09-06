@@ -1,3 +1,4 @@
+import { CreateLink } from "@/components/create-link";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -115,12 +116,9 @@ export default async function CoachPage({
         <div className="mt-3 flex flex-wrap gap-2">
           {/* Nobody reviews themselves — the action refuses it too. */}
           {!isCoach && (
-            <Link
-              href={`/coaches/${slug}/review`}
-              className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-            >
+            <CreateLink href={`/coaches/${slug}/review`}>
               Share your experience
-            </Link>
+            </CreateLink>
           )}
           {mayEdit && (
             <Link

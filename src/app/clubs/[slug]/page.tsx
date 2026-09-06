@@ -113,12 +113,19 @@ export default async function ClubPage({
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Link
-            href={`/clubs/${slug}/review`}
-            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-          >
-            {mine ? "Edit your review" : "Write a review"}
-          </Link>
+          {/* The plus is for making one. Once you have written a review the
+              same control edits it, and a plus there would describe the wrong
+              action — so only the new case gets the pill. */}
+          {mine ? (
+            <Link
+              href={`/clubs/${slug}/review`}
+              className="rounded-full border border-line px-3 py-1 text-sm font-medium text-brand-text hover:bg-elevated"
+            >
+              Edit your review
+            </Link>
+          ) : (
+            <CreateLink href={`/clubs/${slug}/review`}>Write a review</CreateLink>
+          )}
           {mayEdit && (
             <Link
               href={`/clubs/${slug}/edit`}

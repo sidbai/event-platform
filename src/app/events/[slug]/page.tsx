@@ -220,7 +220,7 @@ export default async function EventPage({
             href={`/events/${event.slug}/table`}
             className="font-medium text-brand-text hover:underline"
           >
-            Table and schedule →
+            Schedule and standings →
           </Link>
           <Link
             href={`/events/${event.slug}/register`}

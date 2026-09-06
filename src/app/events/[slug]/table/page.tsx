@@ -9,7 +9,7 @@ import { byMatchday, currentMatchday } from "@/features/tournaments/matchdays";
 import { computeStandings, rankStandings } from "@/features/tournaments/standings";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Table and schedule" };
+export const metadata: Metadata = { title: "Schedule and standings" };
 
 function fmtDay(key: string, timeZone: string) {
   if (!key) return "Date to be confirmed";
@@ -156,7 +156,7 @@ export default async function LeagueTablePage({
         ← {league.title}
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-        Table and schedule
+        Schedule and standings
       </h1>
 
       {divisions.length > 1 && (
