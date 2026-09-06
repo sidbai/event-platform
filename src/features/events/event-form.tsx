@@ -219,6 +219,27 @@ export function EventForm({
               )}
             </div>
           </div>
+
+          <div className="mt-4">
+            <label className={label} htmlFor="scheduleUrl">
+              Schedule &amp; standings <span className="text-muted">(optional)</span>
+            </label>
+            <input
+              id="scheduleUrl"
+              name="scheduleUrl"
+              type="url"
+              placeholder="https://…"
+              className={`mt-1 ${field}`}
+            />
+            <p className="mt-1 text-xs text-muted">
+              Straight to the fixtures if they publish them separately — often
+              GotSport or a similar system. It is what most people open a
+              listing for, so it gets its own button.
+            </p>
+            {err.scheduleUrl && (
+              <p className="mt-1 text-xs text-red-600">{err.scheduleUrl}</p>
+            )}
+          </div>
         </fieldset>
       )}
 
