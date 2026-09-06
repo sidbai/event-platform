@@ -75,7 +75,6 @@ export async function submitEvent(
 
   const sourceName = get("sourceName");
   const sourceUrl = get("sourceUrl");
-  const scheduleUrl = get("scheduleUrl");
 
   const fieldErrors: Record<string, string> = {};
   if (!title) fieldErrors.title = "Give the event a name.";
@@ -87,11 +86,6 @@ export async function submitEvent(
     if (!sourceName) fieldErrors.sourceName = "Say whose event this is.";
     if (!safeSourceUrl(sourceUrl)) {
       fieldErrors.sourceUrl = "Add the organizer's page, starting with https://";
-    }
-    // Optional, but a value that cannot be linked to is a typo worth catching
-    // rather than dropping in silence.
-    if (scheduleUrl && !safeSourceUrl(scheduleUrl)) {
-      fieldErrors.scheduleUrl = "That link needs to start with https://";
     }
   }
   if (endDate && date && endDate < date) {
@@ -191,7 +185,6 @@ export async function submitEvent(
     host: listed ? get("host") || sourceName : get("host") || null,
     sourceName: listed ? sourceName : null,
     sourceUrl: listed ? safeSourceUrl(sourceUrl) : null,
-    scheduleUrl: listed ? safeSourceUrl(scheduleUrl) : null,
     listedBy: listed ? user.id : null,
     // No organizer on a listing: nobody here runs it. Claiming one later is
     // exactly what sets this.

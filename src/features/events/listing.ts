@@ -21,7 +21,6 @@
 export type Listing = {
   sourceName: string | null;
   sourceUrl: string | null;
-  scheduleUrl?: string | null;
   organizerId?: string | null;
 };
 
@@ -93,25 +92,4 @@ export function primaryActionOf(
   // No usable link is still a listing — it just cannot promise a destination.
   if (!href) return null;
   return { label: "Details & registration", href };
-}
-
-/**
- * Where to see the fixtures and the table.
- *
- * The thing a parent actually came for. An event this platform runs keeps
- * both itself, at /events/<slug>/table, and needs nothing here; a listing
- * points wherever the organizer keeps them — usually a different system from
- * the one that took the entries.
- *
- * Null rather than falling back to the organizer's homepage. "Schedule &
- * standings" that lands on a front page and leaves you hunting is a worse
- * promise than no link, because it was believed.
- */
-export function scheduleActionOf(
-  event: Listing,
-): { label: string; href: string; external: boolean } | null {
-  if (isRunHere(event)) return null;
-  const href = safeSourceUrl(event.scheduleUrl);
-  if (!href) return null;
-  return { label: "Schedule & standings", href, external: true };
 }

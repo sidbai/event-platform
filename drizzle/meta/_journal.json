@@ -267,13 +267,6 @@
       "when": 1788714985193,
       "tag": "0037_external_listings",
       "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1788720277526,
-      "tag": "0038_listing_schedule_url",
-      "breakpoints": true
     }
   ]
 }
