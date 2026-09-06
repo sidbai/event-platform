@@ -10,7 +10,6 @@ import {
 } from "@/features/events/queries";
 import { CreateLink } from "@/components/create-link";
 import { formatEventWhen } from "@/features/events/when";
-import { isExternalListing } from "@/features/events/listing";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +42,7 @@ function EventList({
                 <span className="font-medium">{event.title}</span>
                 <span className="shrink-0 text-sm text-muted">
                   {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short")}
-                  {/* A listing is somebody else's event; saying so in the list
-                      means nobody clicks through expecting to register here. */}
-                  {isExternalListing(event) && (
-                    <span className="ml-2 rounded-full border border-line px-1.5 py-0.5 text-[11px] text-muted">
-                      {event.sourceName}
-                    </span>
-                  )}
+
                 </span>
               </div>
               {event.venue && (
