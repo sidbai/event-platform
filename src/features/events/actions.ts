@@ -13,6 +13,7 @@ import { canScheduleForTeam } from "@/features/teams/access";
 import { zonedDate } from "@/lib/dates";
 
 import { canManageEvent } from "./can-manage";
+import { safeSourceUrl } from "./listing";
 import { needsAdminReview } from "./review-rule";
 
 export type EventFormResult = { error?: string; fieldErrors?: Record<string, string> };
@@ -249,4 +250,106 @@ export async function setEventHidden(
   revalidatePath(`/events/${slug}`);
   revalidatePath("/events");
   revalidatePath("/admin");
+}
+
+/**
+ * List an event that happens somewhere else.
+ *
+ * Discovery is most of what a family wants from this site, and on day one
+ * there is nothing to discover. So a tournament run by someone else can be
+ * entered here from their own page, to be findable alongside everything else
+ * — with their name on it and a link back to them.
+ *
+ * Reuses the same review rule as any other submission: an admin's listing is
+ * published, anyone else's waits. Listing other people's events is exactly
+ * where a stranger could do the most damage with the least effort.
+ */
+export async function listExternalEvent(
+  _prev: EventFormResult,
+  formData: FormData,
+): Promise<EventFormResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to list an event." };
+
+  const gate = await checkRateLimit("event:create", user);
+  if (!gate.ok) return { error: gate.message };
+
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+
+  const kind = get("kind");
+  const title = get("title");
+  const date = get("date");
+  const endDate = get("endDate");
+  const sourceName = get("sourceName");
+  const sourceUrl = get("sourceUrl");
+
+  const fieldErrors: Record<string, string> = {};
+  if (!title) fieldErrors.title = "Give the event a name.";
+  if (!kind) fieldErrors.kind = "Pick a kind.";
+  if (!date) fieldErrors.date = "Pick a date.";
+  if (endDate && date && endDate < date) {
+    fieldErrors.endDate = "The last day is before the first.";
+  }
+  // The two that make it a listing rather than a claim about someone else's
+  // event: whose it is, and where to actually go.
+  if (!sourceName) fieldErrors.sourceName = "Say whose event this is.";
+  if (!safeSourceUrl(sourceUrl)) {
+    fieldErrors.sourceUrl = "Add the organizer's page, starting with https://";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const kindRow = await db.query.eventKinds.findFirst({
+    where: eq(eventKinds.slug, kind),
+  });
+  if (!kindRow) return { fieldErrors: { kind: "Unknown kind." } };
+
+  const timezone = get("timezone") || "America/Los_Angeles";
+  const startsAt = zonedDate(date, get("time") || "00:00", timezone);
+  const endsAt = endDate ? zonedDate(endDate, "23:59", timezone) : null;
+
+  let venueId: string | null = null;
+  const venueName = get("venueName");
+  if (venueName) {
+    const existing = await db.query.venues.findFirst({
+      where: eq(venues.name, venueName),
+    });
+    venueId =
+      existing?.id ??
+      (
+        await db
+          .insert(venues)
+          .values({ name: venueName, city: get("venueCity") || null })
+          .returning({ id: venues.id })
+      )[0].id;
+  }
+
+  const admin = isAdmin(user);
+  const slug = await uniqueSlug(slugify(title));
+
+  await db.insert(events).values({
+    slug,
+    kind,
+    modules: [],
+    title,
+    summary: get("summary") || null,
+    // Same rule as any submission: an admin's is live, anyone else's waits.
+    status: needsAdminReview(kind, "public", admin) ? "pending" : "published",
+    visibility: "public",
+    locationType: "in_person",
+    venueId,
+    startsAt,
+    endsAt,
+    timezone,
+    ageGroup: get("ageGroup") || null,
+    gender: get("gender") || null,
+    format: get("format") || null,
+    host: get("host") || sourceName,
+    sourceName,
+    sourceUrl: safeSourceUrl(sourceUrl),
+    listedBy: user.id,
+    // Deliberately no organizerId: nobody here runs this. Claiming it later is
+    // what sets one.
+  });
+
+  redirect(`/events/${slug}`);
 }

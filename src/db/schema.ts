@@ -224,6 +224,24 @@ export const events = pgTable(
     result: jsonb("result"),
 
     host: text("host"),
+    /**
+     * Where this listing came from, when it is not ours to run.
+     *
+     * Set means the event happens elsewhere and we are a directory entry for
+     * it: someone typed it in from an organizer's own page so that a family
+     * searching here can find it. Null means the event lives here, with its
+     * entries, rosters and results on this platform.
+     *
+     * Kept as attribution rather than inferred from a missing organizer,
+     * because it has to be shown. Listing somebody else's tournament without
+     * saying whose it is, and without a way back to them, is the difference
+     * between a directory and a scrape.
+     */
+    sourceName: text("source_name"),
+    /** The page to actually register or read more — always theirs, not ours. */
+    sourceUrl: text("source_url"),
+    /** Who typed it in, so a wrong listing has someone to ask. */
+    listedBy: uuid("listed_by").references(() => users.id, { onDelete: "set null" }),
     discussionLocked: boolean("discussion_locked").notNull().default(false),
     metadata: jsonb("metadata"),
     ...timestamps,
