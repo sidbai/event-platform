@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatFee, opennessOf, type Division } from "./openness";
+import { formatFee, opennessOf, type Division, describeOpenness, type Openness } from "./openness";
 
 const NOW = new Date("2026-09-06T12:00:00Z");
 const div = (over: Partial<Division> = {}): Division => ({
@@ -89,5 +89,47 @@ describe("formatFee", () => {
 
   it("keeps them when there are", () => {
     expect(formatFee(79550)).toBe("$795.50");
+  });
+});
+
+describe("describeOpenness", () => {
+  const open = (spotsLeft: number | null): Openness => ({ open: true, spotsLeft });
+
+  it("says how many places are left, and when they go", () => {
+    expect(describeOpenness(open(2), 6, { closes: "Sep 30, 2026" })).toBe(
+      "2 places left · closes Sep 30, 2026",
+    );
+  });
+
+  it("counts one place in the singular", () => {
+    expect(describeOpenness(open(1), 7)).toBe("1 place left");
+  });
+
+  it("says only that it is open when there is no cap", () => {
+    // A count of places with no capacity would be a number invented to fill
+    // the sentence.
+    expect(describeOpenness(open(null), 3)).toBe("Open for entries");
+  });
+
+  it("names the date entries open, or says soon", () => {
+    const notYet: Openness = { open: false, reason: "not-yet", spotsLeft: null };
+    expect(describeOpenness(notYet, 0, { opens: "Jun 1, 2026" })).toBe(
+      "Entries open Jun 1, 2026",
+    );
+    expect(describeOpenness(notYet, 0)).toBe("Entries open soon");
+  });
+
+  it("says how full a full division is", () => {
+    const full: Openness = { open: false, reason: "full", spotsLeft: 0 };
+    expect(describeOpenness(full, 8)).toBe("Full — 8 teams entered");
+    expect(describeOpenness(full, 1)).toBe("Full — 1 team entered");
+  });
+
+  it("names the closing date when there is one", () => {
+    const closed: Openness = { open: false, reason: "closed", spotsLeft: 0 };
+    expect(describeOpenness(closed, 4, { closes: "Aug 28, 2026" })).toBe(
+      "Entries closed Aug 28, 2026",
+    );
+    expect(describeOpenness(closed, 4)).toBe("Entries closed");
   });
 });

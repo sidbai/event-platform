@@ -17,6 +17,11 @@ import { managedEntry } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
 import {
+  describeOpenness,
+  formatFee,
+} from "@/features/registration/openness";
+import { divisionsForRegistration } from "@/features/registration/queries";
+import {
   computeStandings,
   rankStandings,
   type StandingRow,
@@ -75,6 +80,15 @@ export default async function EventPage({
   const hasAttendance = event.modules.includes("attendance");
   const myEntry =
     user && hasRoster ? await managedEntry(event.id, user.id) : null;
+
+  // Whether a team can get in, on the page they land on. Previously the fee,
+  // the places left and the closing date all lived a click deeper, so the
+  // event page offered "Enter a team →" to people whose division shut in
+  // August and said nothing to anyone deciding whether it was worth a look.
+  const takesEntries = event.kind === "tournament" || event.kind === "league";
+  const entryDivisions = takesEntries
+    ? await divisionsForRegistration(event.id, new Date())
+    : [];
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -197,7 +211,33 @@ export default async function EventPage({
       {/* Entries and a table are only a thing for the kinds that have
           divisions. A pickup game has none, and a link offering either would
           go nowhere useful. */}
-      {(event.kind === "tournament" || event.kind === "league") && (
+      {entryDivisions.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Entries
+          </h2>
+          <ul className="mt-2 space-y-1 text-sm">
+            {entryDivisions.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium">{d.label ?? d.name}</span>
+                {d.format && <span className="text-muted">{d.format}</span>}
+                <span className="text-muted">· {formatFee(d.feeCents)}</span>
+                <span
+                  className={d.openness.open ? "text-brand-text" : "text-muted"}
+                >
+                  ·{" "}
+                  {describeOpenness(d.openness, d.acceptedCount, {
+                    opens: fmtDay(d.registrationOpensAt, event.timezone),
+                    closes: fmtDay(d.registrationClosesAt, event.timezone),
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {takesEntries && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
           <Link
             href={`/events/${event.slug}/table`}
@@ -571,4 +611,15 @@ function StandingsTable({
       </table>
     </div>
   );
+}
+
+/** A date as the entries list says it, in the event's own timezone. */
+function fmtDay(at: Date | null, timeZone: string | null) {
+  if (!at) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: timeZone ?? undefined,
+  }).format(at);
 }

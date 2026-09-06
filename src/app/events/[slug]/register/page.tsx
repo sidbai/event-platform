@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { getEventBySlug } from "@/features/events/queries";
 import { registerTeam } from "@/features/registration/actions";
-import { formatFee } from "@/features/registration/openness";
+import { describeOpenness, formatFee } from "@/features/registration/openness";
 import {
   divisionsForRegistration,
   myManagedTeams,
@@ -108,20 +108,7 @@ export default async function RegisterPage({
                 </div>
 
                 <div className="mt-1 text-xs text-muted">
-                  {d.openness.open ? (
-                    <>
-                      {d.openness.spotsLeft === null
-                        ? "Open for entries"
-                        : `${d.openness.spotsLeft} place${d.openness.spotsLeft === 1 ? "" : "s"} left`}
-                      {closes && ` · closes ${closes}`}
-                    </>
-                  ) : d.openness.reason === "not-yet" ? (
-                    <>Entries open{opens ? ` ${opens}` : " soon"}</>
-                  ) : d.openness.reason === "full" ? (
-                    <>Full — {d.acceptedCount} teams entered</>
-                  ) : (
-                    <>Entries closed{closes ? ` ${closes}` : ""}</>
-                  )}
+                  {describeOpenness(d.openness, d.acceptedCount, { opens, closes })}
                 </div>
 
                 {/* The fee is shown so a team knows the commitment; the

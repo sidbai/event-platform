@@ -49,3 +49,35 @@ export function formatFee(cents: number | null): string {
   if (cents % 100 === 0) return `$${cents / 100}`;
   return `$${(cents / 100).toFixed(2)}`;
 }
+
+/**
+ * Openness as a person would say it.
+ *
+ * Extracted from the entry page, which had it inline, once a second page
+ * needed to say the same thing. Two copies of this would drift into a division
+ * described as open on one page and closed on another, which is the kind of
+ * disagreement that costs a team its place.
+ *
+ * Dates arrive already formatted, because formatting them needs the event's
+ * timezone and this stays free of it.
+ */
+export function describeOpenness(
+  openness: Openness,
+  acceptedCount: number,
+  dates: { opens?: string | null; closes?: string | null } = {},
+): string {
+  if (openness.open) {
+    const head =
+      openness.spotsLeft === null
+        ? "Open for entries"
+        : `${openness.spotsLeft} place${openness.spotsLeft === 1 ? "" : "s"} left`;
+    return dates.closes ? `${head} · closes ${dates.closes}` : head;
+  }
+  if (openness.reason === "not-yet") {
+    return dates.opens ? `Entries open ${dates.opens}` : "Entries open soon";
+  }
+  if (openness.reason === "full") {
+    return `Full — ${acceptedCount} team${acceptedCount === 1 ? "" : "s"} entered`;
+  }
+  return dates.closes ? `Entries closed ${dates.closes}` : "Entries closed";
+}

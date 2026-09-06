@@ -16,6 +16,7 @@ import {
 } from "@/features/teams/invite-actions";
 import { myPendingTeamInvite } from "@/features/teams/invite-queries";
 import { hostedEvents } from "@/features/teams/queries";
+import { pendingEntriesForTeam } from "@/features/registration/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
@@ -39,6 +40,7 @@ export default async function TeamPage({
 }) {
   const { slug } = await params;
   const [team, user] = await Promise.all([getTeamBySlug(slug), getCurrentUser()]);
+  const pending = team ? await pendingEntriesForTeam(team.id) : [];
   if (!team) notFound();
   // A team someone created as private is members-only; teams auto-created for
   // an event stay open, since public standings link to them.
@@ -193,8 +195,41 @@ export default async function TeamPage({
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Tournaments</h2>
+
+        {/* Entries the organizer has not decided on yet. Without these the
+            page reads "No events yet" straight after a team has entered one,
+            which is the moment they are most likely to be looking. */}
+        {pending.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {pending.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg border border-dashed border-line p-3"
+              >
+                <div>
+                  <Link
+                    href={`/events/${r.event?.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {r.event?.title}
+                  </Link>
+                  <span className="text-sm text-muted">
+                    {" — "}
+                    {r.division?.label ?? r.division?.name}
+                  </span>
+                </div>
+                <span className="text-xs text-muted">
+                  {r.status === "waitlisted" ? "Waitlisted" : "Awaiting a decision"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {team.eventTeams.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">No events yet.</p>
+          pending.length === 0 && (
+            <p className="mt-2 text-sm text-muted">No events yet.</p>
+          )
         ) : (
           <ul className="mt-3 space-y-2">
             {team.eventTeams.map((et) => (

@@ -131,3 +131,29 @@ export async function myManagedTeams(userId: string) {
     .map((r) => r.team)
     .filter((t): t is NonNullable<typeof t> => t !== null);
 }
+
+/**
+ * Entries a team has made that have not become participation yet.
+ *
+ * A team that has just entered sees "No events yet" on its own page, because
+ * that list is built from event_teams — which only exists once an organizer
+ * accepts. True, but a dead spot immediately after the one action the team
+ * took, so the pending entries are shown alongside.
+ *
+ * Accepted entries are left out: those already have an event_teams row and
+ * would appear twice.
+ */
+export async function pendingEntriesForTeam(teamId: string) {
+  const rows = await db.query.eventRegistrations.findMany({
+    where: and(
+      eq(eventRegistrations.teamId, teamId),
+      inArray(eventRegistrations.status, ["requested", "waitlisted"]),
+    ),
+    orderBy: [asc(eventRegistrations.createdAt)],
+    with: {
+      event: { columns: { slug: true, title: true, startsAt: true, endsAt: true, timezone: true } },
+      division: { columns: { name: true, label: true } },
+    },
+  });
+  return rows;
+}
