@@ -1,3 +1,4 @@
+import { TeamCrest } from "@/components/team-crest";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -210,8 +211,9 @@ export default async function LeagueTablePage({
                 key={t.teamId}
                 href={href({ team: t.teamId })}
                 aria-current={t.teamId === team?.teamId ? "page" : undefined}
-                className={t.teamId === team?.teamId ? on : off}
+                className={`${t.teamId === team?.teamId ? on : off} inline-flex items-center gap-1.5`}
               >
+                <TeamCrest src={t.team?.crestUrl} size={14} />
                 {t.team?.name}
               </Link>
             ))}
@@ -245,8 +247,8 @@ export default async function LeagueTablePage({
             ],
             bracketMatches,
           );
-          const nameOf = (id: string) =>
-            bracketTeams.find((t) => t.teamId === id)?.team?.name ?? "—";
+          const teamOf = (id: string) =>
+            bracketTeams.find((t) => t.teamId === id)?.team ?? null;
 
           return (
             <section key={bracket || "all"} className="mt-8">
@@ -280,8 +282,13 @@ export default async function LeagueTablePage({
                         }
                       >
                         <td className="py-2">
-                          <span className="mr-2 tabular-nums text-muted">{i + 1}</span>
-                          {nameOf(r.teamId)}
+                          <span className="mr-2 tabular-nums text-muted">
+                            {i + 1}
+                          </span>
+                          <span className="inline-flex items-center gap-2 align-middle">
+                            <TeamCrest src={teamOf(r.teamId)?.crestUrl} size={18} />
+                            {teamOf(r.teamId)?.name ?? "—"}
+                          </span>
                         </td>
                         {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga].map((n, j) => (
                           <td key={j} className="px-2 py-2 text-right tabular-nums">
@@ -333,13 +340,15 @@ export default async function LeagueTablePage({
                   {sd.matches.map((m) => (
                     <li key={m.id} className="py-3 text-sm">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-medium">
+                        <span className="flex flex-wrap items-center gap-2 font-medium">
+                          <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
                           {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
-                          <span className="mx-2 tabular-nums text-muted">
+                          <span className="tabular-nums text-muted">
                             {m.homeScore !== null && m.awayScore !== null
                               ? `${m.homeScore} – ${m.awayScore}`
                               : "v"}
                           </span>
+                          <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
                           {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
                         </span>
                         <span className="text-xs text-muted">

@@ -35,14 +35,14 @@ export async function getLeague(slug: string) {
       divisions: { orderBy: (d) => [asc(d.name)] },
       eventTeams: {
         with: {
-          team: { columns: { id: true, name: true, slug: true } },
+          team: { columns: { id: true, name: true, slug: true, crestUrl: true } },
         },
       },
       matches: {
         orderBy: (m) => [asc(m.kickoffAt), asc(m.field)],
         with: {
-          homeTeam: { columns: { id: true, name: true } },
-          awayTeam: { columns: { id: true, name: true } },
+          homeTeam: { columns: { id: true, name: true, crestUrl: true } },
+          awayTeam: { columns: { id: true, name: true, crestUrl: true } },
         },
       },
       venue: { columns: { name: true } },
