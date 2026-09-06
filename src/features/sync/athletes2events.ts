@@ -24,6 +24,27 @@ import type {
 
 const HOST = "athletes2events.com";
 
+/**
+ * One polite request.
+ *
+ * Named so their logs can tell who we are and reach us — a directory reading
+ * somebody's public pages should be identifiable, not anonymous traffic they
+ * have to guess about.
+ */
+async function get(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      "user-agent":
+        "KingJuanSoccerBot/1.0 (+https://kingjuansoccer.com; youth soccer event directory)",
+      accept: "text/html",
+    },
+    // A sync that hangs holds a serverless invocation open until it is killed.
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
 /** Text of a cell, with the whitespace their template leaves behind. */
 const text = (el: HTMLElement | null | undefined) =>
   (el?.text ?? "").replace(/\s+/g, " ").trim();
@@ -190,19 +211,67 @@ export const athletes2events: ExternalEventProvider = {
 
   parseUrl(url) {
     try {
-      const m = new URL(url).pathname.match(/\/events\/(\d+)/);
-      return m ? { platform: "athletes2events", eventId: m[1] } : null;
+      const u = new URL(url);
+      const m = u.pathname.match(/\/events\/(\d+)/);
+      if (!m) return null;
+      return {
+        platform: "athletes2events",
+        eventId: m[1],
+        subdomain: u.hostname.replace(`.${HOST}`, ""),
+      };
     } catch {
       return null;
     }
   },
 
   async fetch(ref: SourceRef): Promise<SyncResult> {
-    // Left for the sync PR: this one is the parser and its tests, which is
-    // where the risk actually lives.
-    return {
-      ok: false,
-      error: { kind: "unreachable", detail: `not implemented for ${ref.eventId}` },
-    };
+    const base = `https://${ref.subdomain ?? "crossfire"}.${HOST}/events/${ref.eventId}`;
+
+    let groups: string;
+    try {
+      groups = await get(`${base}/groups`);
+    } catch (e) {
+      return { ok: false, error: { kind: "unreachable", detail: String(e) } };
+    }
+
+    const flights = parseFlightLinks(groups);
+    if (flights.length === 0) {
+      // A tournament always has at least one flight. None means the page is
+      // not the page we think it is.
+      return {
+        ok: false,
+        error: { kind: "unrecognised", detail: "no flight links on the groups page" },
+      };
+    }
+
+    const matches: SyncedMatch[] = [];
+    const teams = new Map<string, SyncedTeam>();
+
+    for (const href of flights) {
+      let page: string;
+      try {
+        page = await get(href);
+      } catch (e) {
+        // One flight failing is the whole sync failing. A partial schedule
+        // shown as complete is worse than no schedule: a parent whose game is
+        // in the missing flight concludes there is no game.
+        return { ok: false, error: { kind: "unreachable", detail: `${href}: ${e}` } };
+      }
+
+      let parsed;
+      try {
+        parsed = parseFlightPage(page);
+      } catch (e) {
+        return {
+          ok: false,
+          error: { kind: "unrecognised", detail: `${href}: ${e}` },
+        };
+      }
+
+      matches.push(...parsed.matches);
+      for (const t of parsed.teams) if (!teams.has(t.sourceTeamId)) teams.set(t.sourceTeamId, t);
+    }
+
+    return { ok: true, data: { source: ref, teams: [...teams.values()], matches } };
   },
 };

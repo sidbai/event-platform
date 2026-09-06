@@ -274,6 +274,13 @@
       "when": 1788720277526,
       "tag": "0038_listing_schedule_url",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788724864426,
+      "tag": "0039_external_sync",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,13 @@
 export type SourceRef = {
   platform: "athletes2events" | "eventconnect";
   eventId: string;
+  /**
+   * The club's own subdomain, where a platform gives each one.
+   *
+   * Athletes2Events does: crossfire.athletes2events.com. Without it the same
+   * event id on two clubs would collide.
+   */
+  subdomain?: string;
 };
 
 export type SyncedTeam = {

@@ -23,7 +23,8 @@
     "db:seed:smoke": "tsx scripts/seed-smoke.ts",
     "smoke": "scripts/smoke.sh",
     "db:seed:listings": "tsx scripts/seed-listings.ts",
-    "db:check": "tsx scripts/db-check.ts"
+    "db:check": "tsx scripts/db-check.ts",
+    "sync:event": "NODE_OPTIONS=--conditions=react-server tsx scripts/sync-event.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
