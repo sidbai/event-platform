@@ -28,10 +28,12 @@ export default async function AdminSyncPage() {
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Connected schedules</h1>
       <p className="mt-2 text-sm text-muted">
-        Events other people run. A connected one is read on a schedule and
-        whenever somebody opens it; the rest are a link and a date. Paste the
-        platform&rsquo;s own page for an event to connect it &mdash; the club and
-        the event id both come out of the link.
+        Events other people run. Paste the page where an event&rsquo;s schedule
+        is published: if it is a platform we can read, the fixtures are pulled
+        in and kept current by themselves. If it is not &mdash; EventConnect
+        refuses crawlers outright &mdash; the link is saved and the event page
+        offers it as a button, which still beats sending a parent to an
+        organizer&rsquo;s front page to hunt.
       </p>
 
       <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">
