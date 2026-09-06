@@ -47,7 +47,12 @@ export default async function LeagueTablePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ division?: string; day?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    division?: string;
+    team?: string;
+    day?: string;
+  }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -80,17 +85,63 @@ export default async function LeagueTablePage({
    */
   const brackets = [...new Set(teams.map((t) => t.groupLabel ?? ""))].sort();
 
-  const days = byMatchday(matches, tz);
-  const day = sp.day ?? currentMatchday(days, new Date(), tz) ?? "";
-  const shown = days.find((d) => d.key === day) ?? days[0] ?? null;
+  /*
+   * Which half opens depends on whether the thing has finished.
+   *
+   * A running league is asked "when do we play"; a finished tournament is
+   * asked "who won". Defaulting to the schedule of an event whose last match
+   * was in August would open on a page of results nobody is looking for.
+   */
+  const finished =
+    league.status === "completed" ||
+    (matches.length > 0 && matches.every((m) => m.homeScore !== null));
+  const view =
+    sp.view === "standings" || sp.view === "schedule"
+      ? sp.view
+      : finished
+        ? "standings"
+        : "schedule";
 
-  const href = (next: { division?: string; day?: string }) => {
+  // A team the reader picked, if it is actually in this division.
+  const team = teams.find((t) => t.teamId === sp.team) ?? null;
+
+  const teamMatches = team
+    ? matches.filter(
+        (m) => m.homeTeamId === team.teamId || m.awayTeamId === team.teamId,
+      )
+    : matches;
+
+  const days = byMatchday(teamMatches, tz);
+  const day = sp.day ?? currentMatchday(days, new Date(), tz) ?? "";
+  /*
+   * A chosen team shows its whole season, not one matchday of it. "When does
+   * my team play" is a question about the fixture list, and answering it one
+   * Saturday at a time makes the reader click through every week to find out.
+   */
+  const shownDays = team ? days : days.filter((d) => d.key === day);
+
+  const href = (next: {
+    view?: string;
+    division?: string;
+    team?: string | null;
+    day?: string;
+  }) => {
     const q = new URLSearchParams();
+    const vw = next.view ?? view;
+    if (vw !== (finished ? "standings" : "schedule")) q.set("view", vw);
     const dv = next.division ?? division?.id;
     if (dv) q.set("division", dv);
-    // Changing division resets the day: a matchday from one age group is
-    // rarely a matchday in another, and carrying it over lands on nothing.
-    if (next.division === undefined && next.day) q.set("day", next.day);
+    /*
+     * Changing division drops the team and the day. A team belongs to one
+     * division and a matchday in one age group is rarely a matchday in
+     * another, so carrying either across lands the reader on nothing.
+     */
+    if (next.division === undefined) {
+      const tm = next.team === null ? undefined : (next.team ?? team?.teamId);
+      if (tm) q.set("team", tm);
+      const dy = next.day ?? (next.team === undefined ? sp.day : undefined);
+      if (dy) q.set("day", dy);
+    }
     const s = q.toString();
     return s ? `/events/${slug}/table?${s}` : `/events/${slug}/table`;
   };
@@ -123,9 +174,53 @@ export default async function LeagueTablePage({
         </nav>
       )}
 
+      {/* Schedule or standings, then which division, then which team — the
+          order a reader narrows in, and the order GotSport puts them in. */}
+      <nav aria-label="View" className="mt-4 inline-flex rounded-lg border border-line bg-elevated p-0.5 text-sm">
+        {(["schedule", "standings"] as const).map((v) => (
+          <Link
+            key={v}
+            href={href({ view: v })}
+            aria-current={v === view ? "page" : undefined}
+            className={
+              v === view
+                ? "rounded-md bg-card px-3.5 py-1.5 font-medium capitalize text-ink shadow-sm"
+                : "rounded-md px-3.5 py-1.5 capitalize text-muted transition-colors hover:text-ink"
+            }
+          >
+            {v}
+          </Link>
+        ))}
+      </nav>
+
+      {teams.length > 1 && (
+        <nav aria-label="Teams" className="mt-3 flex flex-wrap gap-1.5">
+          <Link
+            href={href({ team: null })}
+            aria-current={team ? undefined : "page"}
+            className={team ? off : on}
+          >
+            All teams
+          </Link>
+          {teams
+            .slice()
+            .sort((a, b) => (a.team?.name ?? "").localeCompare(b.team?.name ?? ""))
+            .map((t) => (
+              <Link
+                key={t.teamId}
+                href={href({ team: t.teamId })}
+                aria-current={t.teamId === team?.teamId ? "page" : undefined}
+                className={t.teamId === team?.teamId ? on : off}
+              >
+                {t.team?.name}
+              </Link>
+            ))}
+        </nav>
+      )}
+
       {teams.length === 0 ? (
         <p className="mt-8 text-muted">No teams in this division yet.</p>
-      ) : (
+      ) : view === "standings" ? (
         brackets.map((bracket) => {
           const bracketTeams = teams.filter((t) => (t.groupLabel ?? "") === bracket);
           const ids = new Set(bracketTeams.map((t) => t.teamId));
@@ -176,7 +271,14 @@ export default async function LeagueTablePage({
                   </thead>
                   <tbody>
                     {rows.map((r, i) => (
-                      <tr key={r.teamId} className="border-b border-line">
+                      <tr
+                        key={r.teamId}
+                        className={
+                          r.teamId === team?.teamId
+                            ? "border-b border-line bg-brand-soft/40"
+                            : "border-b border-line"
+                        }
+                      >
                         <td className="py-2">
                           <span className="mr-2 tabular-nums text-muted">{i + 1}</span>
                           {nameOf(r.teamId)}
@@ -200,34 +302,35 @@ export default async function LeagueTablePage({
             </section>
           );
         })
-      )}
-
-      <section className="mt-10">
-        <h2 className="font-semibold">Schedule</h2>
-        {days.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">No fixtures yet.</p>
-        ) : (
-          <>
-            <nav aria-label="Matchdays" className="mt-3 flex flex-wrap gap-1.5">
+      ) : days.length === 0 ? (
+        <p className="mt-8 text-muted">No fixtures yet.</p>
+      ) : (
+        <section className="mt-6">
+          {/* Matchday tabs are for browsing a season. With one team picked the
+              whole fixture list is shown instead, so there is nothing to tab
+              between. */}
+          {!team && (
+            <nav aria-label="Matchdays" className="flex flex-wrap gap-1.5">
               {days.map((d) => (
                 <Link
                   key={d.key || "tbd"}
                   href={href({ day: d.key })}
-                  aria-current={d.key === shown?.key ? "page" : undefined}
-                  className={d.key === shown?.key ? on : off}
+                  aria-current={d.key === day ? "page" : undefined}
+                  className={d.key === day ? on : off}
                 >
                   {shortDay(d.key, tz)}
                 </Link>
               ))}
             </nav>
+          )}
 
-            {shown && (
-              <>
+          {shownDays.map((sd) => (
+              <div key={sd.key || "tbd"}>
                 <h3 className="mt-5 text-sm font-medium">
-                  {fmtDay(shown.key, tz)}
+                  {fmtDay(sd.key, tz)}
                 </h3>
                 <ul className="mt-2 divide-y divide-line">
-                  {shown.matches.map((m) => (
+                  {sd.matches.map((m) => (
                     <li key={m.id} className="py-3 text-sm">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <span className="font-medium">
@@ -248,11 +351,10 @@ export default async function LeagueTablePage({
                     </li>
                   ))}
                 </ul>
-              </>
-            )}
-          </>
-        )}
-      </section>
+              </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
