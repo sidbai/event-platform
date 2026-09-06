@@ -9,6 +9,9 @@ export function SiteFooter() {
           <Link href="/events" className="hover:text-ink">
             Events
           </Link>
+          <Link href="/guidelines" className="hover:text-ink">
+            Guidelines
+          </Link>
           <Link href="/privacy" className="hover:text-ink">
             Privacy
           </Link>

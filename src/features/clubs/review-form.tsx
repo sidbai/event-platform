@@ -219,6 +219,14 @@ export function ReviewForm({
               if you&rsquo;d rather keep that option. Your draft is kept either
               way.
             </p>
+            <p className="text-xs text-muted">
+              Please read the{" "}
+              <Link href="/guidelines" className="text-brand-text hover:underline">
+                review guidelines
+              </Link>{" "}
+              first — they are what a review is held to, and what it can be
+              removed for.
+            </p>
           </div>
         ) : (
           <p className="text-xs text-muted">
