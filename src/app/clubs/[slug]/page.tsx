@@ -4,12 +4,14 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser, publicName } from "@/features/auth";
+import { isAdmin } from "@/features/auth/admin";
 import { canEditClub } from "@/features/clubs/access";
 import { coachRoleLabel } from "@/features/coaches/constants";
 import { coachesAtClub } from "@/features/coaches/queries";
 import {
   reportReview,
   revertClub,
+  setReviewHidden,
   toggleHelpful,
 } from "@/features/clubs/actions";
 import { MIN_REVIEWS_FOR_SCORE, overallOf } from "@/features/clubs/constants";
@@ -63,10 +65,13 @@ export default async function ClubPage({
   const { slug } = await params;
   const [club, user] = await Promise.all([getClub(slug), getCurrentUser()]);
   if (!club) notFound();
+  const admin = isAdmin(user);
 
   const [summary, reviews, mayEdit, history, coaches] = await Promise.all([
     clubSummary(club.id),
-    listReviews(club.id, user?.id ?? null),
+    // Admins see hidden reviews too, badged, so a takedown can be undone from
+            // the page it happened on rather than only from the queue.
+            listReviews(club.id, user?.id ?? null, admin),
     canEditClub(),
     clubHistory(club.id),
     coachesAtClub(club.id),
@@ -193,8 +198,20 @@ export default async function ClubPage({
       {reviews.length > 0 && (
         <ul className="mt-8 space-y-3">
           {reviews.map((r) => (
-            <li key={r.id} className="rounded-xl border border-line bg-card p-4">
+            <li
+              key={r.id}
+              className={
+                r.hidden
+                  ? "rounded-xl border border-amber-300 bg-amber-50/40 p-4"
+                  : "rounded-xl border border-line bg-card p-4"
+              }
+            >
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                {r.hidden && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                    Hidden — only admins see this
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-amber-500">
                   <Stars value={overallOf("club", r.ratings)} />
                   <span className="tabular-nums text-ink">
@@ -241,6 +258,26 @@ export default async function ClubPage({
                       reported={false}
                       action={reportReview.bind(null, slug, r.id)}
                     />
+                  )}
+                  {admin && (
+                    <form
+                      action={setReviewHidden.bind(
+                        null,
+                        r.id,
+                        !r.hidden,
+                        `/clubs/${slug}`,
+                      )}
+                    >
+                      <button
+                        className={
+                          r.hidden
+                            ? "text-xs text-muted hover:text-ink"
+                            : "text-xs text-muted hover:text-red-600"
+                        }
+                      >
+                        {r.hidden ? "Put it back up" : "Hide this review"}
+                      </button>
+                    </form>
                   )}
                 </div>
               )}

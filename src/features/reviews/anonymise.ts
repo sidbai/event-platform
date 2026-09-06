@@ -18,6 +18,7 @@ export type AuthoredRow = {
   body: string;
   reviewerRole: string;
   createdAt: Date;
+  hiddenAt?: Date | null;
   author: { id: string; anonHandle: string | null } | null;
   /** Rows carry more than this — none of it is allowed through. */
   [extra: string]: unknown;
@@ -33,6 +34,8 @@ export type PublicReview = {
   helpful: number;
   votedByMe: boolean;
   mine: boolean;
+  /** Taken down by an admin. Only ever true in a list an admin is reading. */
+  hidden: boolean;
 };
 
 export function publicReview(
@@ -51,5 +54,6 @@ export function publicReview(
     helpful: ctx.helpful,
     votedByMe: ctx.votedByMe,
     mine: Boolean(ctx.userId && row.author?.id === ctx.userId),
+    hidden: row.hiddenAt instanceof Date,
   };
 }

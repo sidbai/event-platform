@@ -230,6 +230,33 @@ export async function reportReview(
   revalidatePath(`/clubs/${slug}`);
 }
 
+/**
+ * Admin: take a review down, or put it back.
+ *
+ * Hidden rather than deleted, so a decision can be reversed and so the review
+ * stays visible to whoever made it — a takedown nobody can inspect afterwards
+ * is indistinguishable from losing the data.
+ *
+ * `revalidate` is where the admin acted. Moderation used to be reachable only
+ * from the queue at /admin, which meant an admin reading a club page and
+ * seeing something bad had to report it to themselves first. Now the control
+ * is on the review, and the page it sits on needs refreshing too.
+ */
+export async function setReviewHidden(
+  reviewId: string,
+  hidden: boolean,
+  revalidate: string,
+): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user || !isAdmin(user)) return;
+  await db
+    .update(reviews)
+    .set({ hiddenAt: hidden ? new Date() : null })
+    .where(eq(reviews.id, reviewId));
+  revalidatePath("/admin");
+  if (revalidate !== "/admin") revalidatePath(revalidate);
+}
+
 /** Admin: hide a review without destroying it. */
 export async function hideReview(reviewId: string): Promise<void> {
   const user = await getCurrentUser();

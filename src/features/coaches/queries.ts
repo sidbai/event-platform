@@ -18,8 +18,11 @@ import { averageRatings, type Ratings } from "@/features/reviews/constants";
 
 const visible = isNull(reviews.hiddenAt);
 
-const ofCoach = (coachId: string) =>
-  and(eq(reviews.subjectType, "coach"), eq(reviews.subjectId, coachId), visible);
+/** `includeHidden` is for admins: see [[listReviews]] in clubs/queries. */
+const ofCoach = (coachId: string, includeHidden = false) =>
+  includeHidden
+    ? and(eq(reviews.subjectType, "coach"), eq(reviews.subjectId, coachId))
+    : and(eq(reviews.subjectType, "coach"), eq(reviews.subjectId, coachId), visible);
 
 export async function getCoach(slug: string) {
   return db.query.coaches.findFirst({
@@ -152,9 +155,13 @@ export async function coachRecommendation(coachId: string) {
  * Reviews of a coach, newest first. Same anonymity rule as clubs: the author
  * is loaded only to resolve their pseudonym and mark their own review.
  */
-export async function listCoachReviews(coachId: string, userId: string | null) {
+export async function listCoachReviews(
+  coachId: string,
+  userId: string | null,
+  includeHidden = false,
+) {
   const rows = await db.query.reviews.findMany({
-    where: ofCoach(coachId),
+    where: ofCoach(coachId, includeHidden),
     orderBy: [desc(reviews.createdAt)],
     with: { author: { columns: { id: true, anonHandle: true } } },
   });
