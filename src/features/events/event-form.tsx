@@ -84,6 +84,18 @@ export function EventForm({
         </div>
       </div>
 
+      <div>
+        <label className={label} htmlFor="endDate">
+          Last day <span className="text-muted">(optional)</span>
+        </label>
+        <input id="endDate" name="endDate" type="date" className={`mt-1 ${field}`} />
+        <p className="mt-1 text-xs text-muted">
+          A tournament runs for a few days and a league for a season. Leave it
+          empty for something that happens once.
+        </p>
+        {err.endDate && <p className="mt-1 text-xs text-red-600">{err.endDate}</p>}
+      </div>
+
       <fieldset>
         <legend className={label}>Location</legend>
         <div className="mt-2 flex gap-4 text-sm">
