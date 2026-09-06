@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CANONICAL_HEADER,
   bracketOf,
   isPlaceholderName,
   parsePastedDate,
@@ -198,5 +199,114 @@ describe("toSyncedEvent", () => {
   it("collapses a row pasted twice", () => {
     const data = toSyncedEvent([...matches, ...matches]);
     expect(data.matches).toHaveLength(matches.length);
+  });
+});
+
+describe("a paste that names its own columns", () => {
+  const header = CANONICAL_HEADER.join("\t");
+
+  it("reads each field by name instead of guessing at shape", () => {
+    // The whole point of the copier: no inference about where the kick-off
+    // ends and the division begins.
+    const text = [
+      header,
+      [
+        "Fri, Sep 4, 2026", "4:00 PM", "A1 vs A4", "Boys U14 White",
+        "IFC B14 Red", "1", "7", "Nido Aguila Seattle B12/13",
+        "Field 1", "Starfire Sports",
+      ].join("\t"),
+    ].join("\n");
+
+    expect(parsePastedSchedule(text, options).matches).toEqual([
+      {
+        division: "Boys U14 White",
+        date: "2026-09-04",
+        time: "16:00",
+        group: "A",
+        field: "Field 1 · Starfire Sports",
+        home: "IFC B14 Red",
+        away: "Nido Aguila Seattle B12/13",
+        homeScore: 1,
+        awayScore: 7,
+      },
+    ]);
+  });
+
+  it("gets the championship row right, which the shape-guessing path did not", () => {
+    // "Boys U14 Blue Final" is the slot and "Boys U14 Championships" the
+    // division. Collapsed into one cell there is no way to tell; in named
+    // columns there is nothing to tell apart.
+    const text = [
+      header,
+      [
+        "Mon, Sep 7, 2026", "1:00 PM", "Boys U14 Blue Final", "Boys U14 Championships",
+        "Boys U14 Blue - Group A - (1st Place)", "-", "-",
+        "Boys U14 Blue - Group B - (1st Place)", "Field 6", "Starfire Sports",
+      ].join("\t"),
+    ].join("\n");
+
+    const [m] = parsePastedSchedule(text, options).matches;
+    expect(m.division).toBe("Boys U14 Championships");
+    expect(m.group).toBeNull();
+    expect(m.homeScore).toBeNull();
+    expect(toSyncedEvent([m]).teams).toEqual([]);
+  });
+
+  it("still refuses a row missing a team", () => {
+    const text = [header, ["Fri, Sep 4, 2026", "4:00 PM", "", "", "Alpha", "", "", ""].join("\t")].join("\n");
+    const { matches, skipped } = parsePastedSchedule(text, options);
+    expect(matches).toEqual([]);
+    expect(skipped).toHaveLength(1);
+  });
+});
+
+describe("what the copier actually produces", () => {
+  /*
+   * Four rows as the bookmarklet emitted them from a real schedule page,
+   * kept verbatim. The point of the fixture is the column layout, and a
+   * layout invented here would agree with whatever this parser believes.
+   */
+  const real = [
+    CANONICAL_HEADER.join("\t"),
+    "Fri, Sep 4, 2026\t4:00 PM\tA1 vs A4\tBoys U14 White\tIFC B14 Red\t1\t7\tNido Aguila Seattle B12/13\tField 1\tStarfire Sports",
+    "Fri, Sep 4, 2026\t4:30 PM\t5 vs 1\tBoys U9 White\tSeattle Celtic B17 Gray\t2\t0\tEastside FC - BU9 - Maroon\tField 7A\tStarfire Sports",
+    "Fri, Sep 4, 2026\t5:30 PM\tA5 vs A3\tBoys U17 Red\tSound FC U17 MLS\t0\t2\tMt Rainier FC U17 EA\tVR 2\tValley Ridge Community Center & Ball Fields",
+    "Mon, Sep 7, 2026\t4:30 PM\tGirls U12 Red final\tGirls U12 Championships\tGirls U12 Red - (1st Place)\t\t\tGirls U12 Red - (2nd Place)\tField 9\tStarfire Sports",
+  ].join("\n");
+
+  it("reads every row, dropping none", () => {
+    const { matches, skipped } = parsePastedSchedule(real, options);
+    expect(matches).toHaveLength(4);
+    expect(skipped).toEqual([]);
+  });
+
+  it("puts each division where it belongs", () => {
+    const { matches } = parsePastedSchedule(real, options);
+    expect(matches.map((m) => m.division)).toEqual([
+      "Boys U14 White",
+      "Boys U9 White",
+      "Boys U17 Red",
+      "Girls U12 Championships",
+    ]);
+  });
+
+  it("keeps the two venues apart", () => {
+    // Starfire and Valley Ridge are twenty minutes apart. A parent at the
+    // wrong one has missed the game.
+    const { matches } = parsePastedSchedule(real, options);
+    expect(matches[2].field).toBe("VR 2 · Valley Ridge Community Center & Ball Fields");
+  });
+
+  it("reads a bracket where there is one and none where there isn't", () => {
+    const { matches } = parsePastedSchedule(real, options);
+    expect(matches.map((m) => m.group)).toEqual(["A", null, "A", null]);
+  });
+
+  it("turns the whole paste into something the writer takes", () => {
+    const data = toSyncedEvent(parsePastedSchedule(real, options).matches);
+    expect(data.teams).toHaveLength(6); // the final's two placeholders are not teams
+    expect(data.matches).toHaveLength(4);
+    expect(data.matches[3].homeTeamId).toBeNull();
+    expect(data.matches[0].time).toBe("16:00");
   });
 });

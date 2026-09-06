@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { connectSchedule, importPastedSchedule, refreshNow } from "@/features/sync/actions";
 import { ConnectForm, PasteForm, RefreshButton } from "@/features/sync/connect-form";
+import { CopierPanel } from "@/features/sync/copier-panel";
+import { copierBookmarklet } from "@/features/sync/copier";
 import { formatAgo } from "@/features/sync/freshness";
 import { listedEvents } from "@/features/sync/queries";
 
@@ -35,6 +37,8 @@ export default async function AdminSyncPage() {
         offers it as a button, which still beats sending a parent to an
         organizer&rsquo;s front page to hunt.
       </p>
+
+      <CopierPanel source={copierBookmarklet()} />
 
       <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">
         Connected ({connected.length})
