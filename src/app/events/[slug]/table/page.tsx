@@ -354,16 +354,27 @@ export default async function LeagueTablePage({
                           .filter(Boolean)
                           .join(" - ")}
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 font-medium">
-                        <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
-                        {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
-                        <span className="tabular-nums text-muted">
+                      {/* Three columns, so the score sits in the same place on
+                          every row. Wrapped in a flex row the score drifted
+                          with the length of the home team's name, and a column
+                          of fixtures could not be scanned down — which is the
+                          one thing a schedule is for. Home reads toward the
+                          score and away away from it, so the crests form two
+                          columns either side of it. */}
+                      <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-medium">
+                        <span className="flex items-center justify-end gap-2 text-right">
+                          {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
+                          <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
+                        </span>
+                        <span className="min-w-14 text-center tabular-nums text-muted">
                           {m.homeScore !== null && m.awayScore !== null
                             ? `${m.homeScore} – ${m.awayScore}`
                             : "v"}
                         </span>
-                        <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
-                        {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
+                        <span className="flex items-center gap-2">
+                          <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
+                          {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
+                        </span>
                       </div>
                     </li>
                   ))}
