@@ -80,6 +80,15 @@ export default async function AdminPage({
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
 
+      {/* Its own page rather than another section here: it is the one part of
+          admin that is operations rather than moderation, and it is where a
+          connector that has stopped working shows up. */}
+      <p className="mt-2 text-sm">
+        <Link href="/admin/sync" className="text-brand-text hover:underline">
+          Connected schedules →
+        </Link>
+      </p>
+
       <section className="mt-8">
         <h2 className="text-lg font-semibold">
           Pending events{" "}
