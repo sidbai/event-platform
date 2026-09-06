@@ -75,13 +75,21 @@ export function ProfileMenu({
               {item.label}
             </Link>
           ))}
+          {/*
+            No close-on-click here, unlike the links above.
+
+            children is the sign-out form. A click on its button bubbles to
+            this wrapper, and closing the menu from that handler re-renders and
+            unmounts the form — in the same event, before the browser has
+            dispatched submit. Whether the submission survives that comes down
+            to render timing, which differs between a dev server and a
+            production build, so this is a race rather than a reliable failure.
+
+            Nothing is lost by removing it: signing out navigates to "/", which
+            unmounts the whole menu anyway.
+          */}
           {children && (
-            <div
-              onClick={() => setOpen(false)}
-              className="mt-1 border-t border-line pt-1"
-            >
-              {children}
-            </div>
+            <div className="mt-1 border-t border-line pt-1">{children}</div>
           )}
         </div>
       )}
