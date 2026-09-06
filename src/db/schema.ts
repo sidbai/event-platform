@@ -240,6 +240,16 @@ export const events = pgTable(
     sourceName: text("source_name"),
     /** The page to actually register or read more — always theirs, not ours. */
     sourceUrl: text("source_url"),
+    /**
+     * Where the fixtures and the table live, when they live somewhere else.
+     *
+     * Separate from sourceUrl because they are usually different systems: a
+     * club's own page takes the entries, and the schedule sits in GotSport or
+     * Sports Affinity or Athletes2Events. It is also the thing a parent
+     * actually came for, and making them land on a homepage and hunt for it
+     * is most of the reason nobody uses a directory twice.
+     */
+    scheduleUrl: text("schedule_url"),
     /** Who typed it in, so a wrong listing has someone to ask. */
     listedBy: uuid("listed_by").references(() => users.id, { onDelete: "set null" }),
     discussionLocked: boolean("discussion_locked").notNull().default(false),

@@ -16,7 +16,12 @@ import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 import { managedEntries } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
-import { attributionOf, isRunHere, primaryActionOf } from "@/features/events/listing";
+import {
+  attributionOf,
+  isRunHere,
+  primaryActionOf,
+  scheduleActionOf,
+} from "@/features/events/listing";
 import {
   describeOpenness,
   formatFee,
@@ -92,6 +97,7 @@ export default async function EventPage({
   const runHere = isRunHere(event);
   const attribution = attributionOf(event);
   const offsite = primaryActionOf(event);
+  const offsiteSchedule = scheduleActionOf(event);
   const takesEntries =
     runHere && (event.kind === "tournament" || event.kind === "league");
   const entryDivisions = takesEntries
@@ -241,16 +247,36 @@ export default async function EventPage({
         </p>
       )}
 
-      {offsite && (
-        <p className="mt-4">
-          <a
-            href={offsite.href}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            className="inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-          >
-            {offsite.label} →
-          </a>
+      {(offsiteSchedule || offsite) && (
+        <p className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Schedule first, and styled as the main action, because it is what
+              a parent came for. An event we run puts the same words in the
+              same place, pointing at our own table — whoever is running it
+              should not be something the reader has to think about. */}
+          {offsiteSchedule && (
+            <a
+              href={offsiteSchedule.href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+            >
+              {offsiteSchedule.label} →
+            </a>
+          )}
+          {offsite && (
+            <a
+              href={offsite.href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className={
+                offsiteSchedule
+                  ? "text-sm font-medium text-brand-text hover:underline"
+                  : "inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+              }
+            >
+              {offsite.label} →
+            </a>
+          )}
         </p>
       )}
 
