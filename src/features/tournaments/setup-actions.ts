@@ -13,6 +13,8 @@ import {
 } from "@/db/schema";
 import { canManageEvent } from "@/features/events/can-manage";
 
+import { zonedDate } from "@/lib/dates";
+
 import { parseDivision } from "./division-input";
 import { parseRules, type Rules } from "./rules-input";
 
@@ -212,5 +214,49 @@ export async function saveRules(
     .where(eq(events.id, event.id));
 
   revalidateEvent(slug);
+  return { ok: true };
+}
+
+/**
+ * When the event runs.
+ *
+ * Separate from creating it: the form that makes an event asks for one date,
+ * and a tournament that turns out to run three days — or a league that runs to
+ * March — has no other way to say so afterwards. ends_at has been in the
+ * schema since the beginning with nothing ever writing it.
+ */
+export async function saveDates(
+  slug: string,
+  _prev: SetupResult,
+  formData: FormData,
+): Promise<SetupResult> {
+  if (!(await canManageEvent({ slug }))) return { error: "Not allowed." };
+
+  const event = await eventFor(slug);
+  if (!event) return { error: "Event not found." };
+
+  const raw = {
+    date: str(formData, "date"),
+    time: str(formData, "time"),
+    endDate: str(formData, "endDate"),
+  };
+  if (!raw.date) return { error: "Pick a first day.", values: raw };
+  if (raw.endDate && raw.endDate < raw.date) {
+    return { error: "The last day is before the first.", values: raw };
+  }
+
+  const tz = event.timezone ?? "America/Los_Angeles";
+  await db
+    .update(events)
+    .set({
+      startsAt: zonedDate(raw.date, raw.time || "00:00", tz),
+      // End of the named day, so a range covers the games played on it.
+      endsAt: raw.endDate ? zonedDate(raw.endDate, "23:59", tz) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, event.id));
+
+  revalidateEvent(slug);
+  revalidatePath("/events");
   return { ok: true };
 }

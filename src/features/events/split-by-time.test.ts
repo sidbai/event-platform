@@ -50,3 +50,48 @@ describe("splitByTime", () => {
     expect(upcoming.length + past.length).toBe(all.length);
   });
 });
+
+describe("splitByTime with an end date", () => {
+  const span = (start: string, end: string | null) => ({
+    startsAt: new Date(start),
+    endsAt: end ? new Date(end) : null,
+  });
+
+  it("keeps a season that is being played out of the past", () => {
+    // The case this exists for: a league that kicked off in August and runs
+    // to March was filed under "already happened" from its second day.
+    const { upcoming, past } = splitByTime(
+      [span("2026-08-01T16:00:00Z", "2027-03-14T23:00:00Z")],
+      now,
+    );
+    expect(upcoming).toHaveLength(1);
+    expect(past).toHaveLength(0);
+  });
+
+  it("moves it to the past once it has finished", () => {
+    const { upcoming, past } = splitByTime(
+      [span("2025-09-01T16:00:00Z", "2026-03-14T23:00:00Z")],
+      now,
+    );
+    expect(upcoming).toHaveLength(0);
+    expect(past).toHaveLength(1);
+  });
+
+  it("still keys on the start when there is no end", () => {
+    const { past } = splitByTime([span("2026-09-04T10:00:00Z", null)], now);
+    expect(past).toHaveLength(1);
+  });
+
+  it("sorts upcoming by when they start, not when they finish", () => {
+    // A season starting tomorrow and ending in March comes before a one-day
+    // tournament next month, even though it finishes long after.
+    const { upcoming } = splitByTime(
+      [
+        span("2026-10-03T16:00:00Z", "2026-10-03T23:00:00Z"),
+        span("2026-09-06T16:00:00Z", "2027-03-14T23:00:00Z"),
+      ],
+      now,
+    );
+    expect(upcoming[0].startsAt.toISOString()).toBe("2026-09-06T16:00:00.000Z");
+  });
+});

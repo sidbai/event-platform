@@ -15,6 +15,7 @@ import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
 import { managedEntry } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
+import { formatEventWhen } from "@/features/events/when";
 import {
   computeStandings,
   rankStandings,
@@ -48,17 +49,6 @@ type TeamMeta = Map<
   string,
   { name: string; seed: number | null; crestUrl: string | null }
 >;
-
-function fmtDate(d: Date | null, tz: string | null) {
-  if (!d) return null;
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: tz ?? undefined,
-  }).format(d);
-}
 
 export default async function EventPage({
   params,
@@ -133,7 +123,7 @@ export default async function EventPage({
         {event.summary && <p className="mt-3 text-muted">{event.summary}</p>}
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted">Date</dt>
-          <dd>{fmtDate(event.startsAt, event.timezone)}</dd>
+          <dd>{formatEventWhen(event.startsAt, event.endsAt, event.timezone)}</dd>
           {event.venue && (
             <>
               <dt className="text-muted">Venue</dt>

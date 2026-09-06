@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/features/auth";
 import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
+import { zonedDate } from "@/lib/dates";
 
 import { canManageEvent } from "./can-manage";
 import { needsAdminReview } from "./review-rule";
@@ -53,6 +54,7 @@ export async function submitEvent(
   const title = get("title");
   const locationType = get("locationType") || "in_person";
   const date = get("date");
+  const endDate = get("endDate");
   const time = get("time");
   const venueName = get("venueName");
   const onlineUrl = get("onlineUrl");
@@ -61,6 +63,9 @@ export async function submitEvent(
   if (!title) fieldErrors.title = "Give the event a name.";
   if (!kind) fieldErrors.kind = "Pick a kind.";
   if (!date) fieldErrors.date = "Pick a date.";
+  if (endDate && date && endDate < date) {
+    fieldErrors.endDate = "The last day is before the first.";
+  }
   if (locationType === "in_person" && !venueName)
     fieldErrors.venueName = "Where is it?";
   if (locationType === "online" && !onlineUrl)
@@ -72,9 +77,19 @@ export async function submitEvent(
   });
   if (!kindRow) return { fieldErrors: { kind: "Unknown kind." } };
 
-  const startsAt = time
-    ? new Date(`${date}T${time}`)
-    : new Date(`${date}T00:00`);
+  const timezone = get("timezone") || "America/Los_Angeles";
+
+  // Read in the event's own zone, not the server's.
+  //
+  // `new Date("2026-08-29T09:00")` uses whatever timezone the process runs in.
+  // That is Seattle on a laptop and UTC on Vercel, so a 9am kickoff typed by
+  // an organizer was being stored as 9am UTC and shown back to them as 2am.
+  // zonedDate exists for exactly this and was not being used here.
+  const startsAt = zonedDate(date, time || "00:00", timezone);
+  // The end of the last day rather than its start, so a range covers the day
+  // it names — "August 29–31" that stopped at midnight on the 31st would end
+  // before any of the 31st's games kicked off.
+  const endsAt = endDate ? zonedDate(endDate, "23:59", timezone) : null;
 
   let venueId: string | null = null;
   if (locationType === "in_person") {
@@ -130,7 +145,8 @@ export async function submitEvent(
     venueId,
     onlineUrl: locationType === "online" ? onlineUrl : null,
     startsAt,
-    timezone: get("timezone") || "America/Los_Angeles",
+    endsAt,
+    timezone,
     ageGroup: get("ageGroup") || null,
     gender: get("gender") || null,
     level: get("level") || null,

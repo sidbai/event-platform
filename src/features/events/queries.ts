@@ -83,9 +83,17 @@ function visibleEventsWhere(filters: EventFilters): SQL[] {
   if (filters.kind) where.push(eq(events.kind, filters.kind));
 
   const now = new Date();
-  if (filters.when === "upcoming") where.push(gte(events.startsAt, now));
-  else if (filters.when === "past") where.push(lte(events.startsAt, now));
+  // Measured from when an event FINISHES, falling back to its start.
+  //
+  // Once a league can run to March, "upcoming" keyed on the start date drops
+  // it the day after kickoff — the season would vanish from the listing while
+  // it was still being played, and turn up under Past.
+  const finishesAt = sql`coalesce(${events.endsAt}, ${events.startsAt})`;
+  if (filters.when === "upcoming") where.push(sql`${finishesAt} >= ${now}`);
+  else if (filters.when === "past") where.push(sql`${finishesAt} < ${now}`);
   else if (filters.when === "weekend") {
+    // Still keyed on the start: the weekend filter answers "what begins this
+    // weekend", not "what happens to be running through it".
     const { start, end } = weekendRange(now);
     where.push(gte(events.startsAt, start), lte(events.startsAt, end));
   }

@@ -5,10 +5,17 @@ import type { Metadata } from "next";
 import { canManageEvent } from "@/features/events/can-manage";
 import { getEventBySlug } from "@/features/events/queries";
 import { divisionsForRegistration } from "@/features/registration/queries";
+import { toLocalInput } from "@/features/tournaments/division-input";
+import { DatesForm } from "@/features/tournaments/dates-form";
 import { DivisionEditor } from "@/features/tournaments/division-editor";
 import { RulesForm } from "@/features/tournaments/rules-form";
 import type { Rules } from "@/features/tournaments/rules-input";
-import { deleteDivision, saveDivision, saveRules } from "@/features/tournaments/setup-actions";
+import {
+  deleteDivision,
+  saveDates,
+  saveDivision,
+  saveRules,
+} from "@/features/tournaments/setup-actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Set up" };
@@ -37,6 +44,9 @@ export default async function SetupPage({
   const divisions = await divisionsForRegistration(event.id, new Date());
   const meta = event.metadata as { rules?: Rules } | null;
   const timeZone = event.timezone ?? "America/Los_Angeles";
+  // Split once here rather than in the client component, so the date and time
+  // inputs are filled from the event's own zone rather than the viewer's.
+  const startLocal = toLocalInput(event.startsAt, timeZone);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -49,6 +59,21 @@ export default async function SetupPage({
       </p>
 
       <section className="mt-8">
+        <h2 className="text-lg font-semibold tracking-tight">Dates</h2>
+        <p className="mt-1 text-sm text-muted">
+          A tournament runs for days and a league for a season. Without a last
+          day both read as a single afternoon.
+        </p>
+        <DatesForm
+          kind={event.kind}
+          date={startLocal.slice(0, 10)}
+          time={startLocal.slice(11)}
+          endDate={toLocalInput(event.endsAt, timeZone).slice(0, 10)}
+          action={saveDates.bind(null, slug)}
+        />
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold tracking-tight">Divisions</h2>
         <p className="mt-1 text-sm text-muted">
           A team enters a division, not the event. Each one carries its own age
