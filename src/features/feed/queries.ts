@@ -4,7 +4,7 @@ import { listEvents } from "@/features/events/queries";
 import { listForumPosts } from "@/features/forum/queries";
 import { listNews } from "@/features/news/queries";
 
-import { dropSupersededPosts, mergeFeed } from "./merge";
+import { dropSupersededPosts, mergeFeed, startsWithinFeedWindow } from "./merge";
 
 type Common = { id: string; at: Date; href: string; title: string };
 
@@ -80,10 +80,24 @@ export async function homeFeed(
     comments: n.comments,
   }));
 
-  const eventItems: FeedItem[] = events.map((e) => ({
+  /*
+   * The feed runs from a week ahead back into the past.
+   *
+   * An event sits on that timeline by when it HAPPENS, not by when it was
+   * typed in. Ordering by createdAt meant six listings entered in one
+   * afternoon all landed at the top together, a tournament in January above
+   * a scrimmage on Saturday, because they were entered in that order.
+   *
+   * Anything further out than the window is not lost — /events is the
+   * calendar and is built for it. This is only what is worth putting on the
+   * front page.
+   */
+  const eventItems: FeedItem[] = events
+    .filter((e) => startsWithinFeedWindow(e.startsAt, now))
+    .map((e) => ({
     kind: "event",
     id: e.id,
-    at: e.createdAt,
+    at: e.startsAt ?? e.createdAt,
     href: `/events/${e.slug}`,
     title: e.title,
     startsAt: e.startsAt,
@@ -92,7 +106,11 @@ export async function homeFeed(
     event: e,
   }));
 
-  const eventIds = new Set(events.map((e) => e.id));
+  // Built from the events that made it through the window, not from every
+  // upcoming one. A post is only superseded by an event a reader can actually
+  // see here — otherwise a post converted to a tournament in January would
+  // vanish along with the tournament, and neither would be on the page.
+  const eventIds = new Set(eventItems.map((e) => e.id));
   const postItems: FeedItem[] = dropSupersededPosts(posts.rows, eventIds).map((p) => ({
     kind: "post",
     id: p.id,

@@ -45,9 +45,13 @@ describe("splitByTime", () => {
   });
 
   it("loses nothing", () => {
+    // Every event lands in exactly one of the three sections. The page shows
+    // all three, so anything falling between them would simply disappear.
     const all = [at("2020-01-01T00:00:00Z"), at(null), at("2027-01-01T00:00:00Z")];
-    const { upcoming, past } = splitByTime(all, now);
-    expect(upcoming.length + past.length).toBe(all.length);
+    const { upcoming, past, future } = splitByTime(all, now);
+    expect(upcoming.length + past.length + future.length).toBe(all.length);
+    const ids = [...upcoming, ...past, ...future];
+    expect(new Set(ids).size).toBe(all.length);
   });
 });
 
@@ -93,5 +97,52 @@ describe("splitByTime with an end date", () => {
       now,
     );
     expect(upcoming[0].startsAt.toISOString()).toBe("2026-09-06T16:00:00.000Z");
+  });
+});
+
+describe("splitByTime with a far-future section", () => {
+  const span = (start: string, end: string | null) => ({
+    startsAt: new Date(start),
+    endsAt: end ? new Date(end) : null,
+  });
+  const inDays = (n: number) =>
+    new Date(now.getTime() + n * 86_400_000).toISOString();
+
+  it("separates what is worth planning from what is worth browsing", () => {
+    const soon = span(inDays(3), inDays(4));
+    const far = span(inDays(150), inDays(152));
+    const { upcoming, future, past } = splitByTime([far, soon], now);
+
+    expect(upcoming).toEqual([soon]);
+    expect(future).toEqual([far]);
+    expect(past).toEqual([]);
+  });
+
+  it("keeps a season that is being played in upcoming, not future", () => {
+    // It started before the horizon, so it is happening now whatever its end
+    // date says.
+    const season = span(inDays(-20), inDays(160));
+    expect(splitByTime([season], now).upcoming).toEqual([season]);
+  });
+
+  it("orders the far ones soonest first, like a calendar", () => {
+    const march = span(inDays(180), null);
+    const january = span(inDays(120), null);
+    expect(splitByTime([march, january], now).future).toEqual([january, march]);
+  });
+
+  it("never files a date-less event under next year", () => {
+    // Nobody knows when it is, so it belongs with the things still to be
+    // sorted out rather than with January.
+    const tbd = { startsAt: null, endsAt: null };
+    const { upcoming, future } = splitByTime([tbd], now);
+    expect(upcoming).toEqual([tbd]);
+    expect(future).toEqual([]);
+  });
+
+  it("takes a different horizon when asked", () => {
+    const event = span(inDays(90), null);
+    expect(splitByTime([event], now).future).toHaveLength(1);
+    expect(splitByTime([event], now, 120).upcoming).toHaveLength(1);
   });
 });

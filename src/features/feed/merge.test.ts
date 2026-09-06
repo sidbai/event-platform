@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dropSupersededPosts, mergeFeed } from "./merge";
+import { dropSupersededPosts, mergeFeed, startsWithinFeedWindow } from "./merge";
 
 const at = (iso: string) => new Date(iso);
 
@@ -72,5 +72,47 @@ describe("dropSupersededPosts", () => {
   it("keeps every ordinary post", () => {
     const kept = dropSupersededPosts([post("p1"), post("p2")], new Set(["e1"]));
     expect(kept).toHaveLength(2);
+  });
+});
+
+describe("startsWithinFeedWindow", () => {
+  const now = new Date("2026-09-06T12:00:00Z").getTime();
+  const inDays = (n: number) => new Date(now + n * 86_400_000);
+
+  it("keeps what is happening this week", () => {
+    for (const d of [0, 1, 3, 6.9]) {
+      expect(startsWithinFeedWindow(inDays(d), now)).toBe(true);
+    }
+  });
+
+  it("leaves a tournament in January to the calendar", () => {
+    // Six listings entered in one afternoon all carry today's createdAt, so
+    // without this they take the whole front page and push down a scrimmage
+    // happening on Saturday.
+    expect(startsWithinFeedWindow(inDays(30), now)).toBe(false);
+    expect(startsWithinFeedWindow(inDays(120), now)).toBe(false);
+  });
+
+  it("keeps a tournament that is still being played", () => {
+    // A Thursday-to-Sunday tournament is the most current thing on the site
+    // on Sunday, and dropping it off the front page mid-tournament would be
+    // exactly backwards.
+    expect(startsWithinFeedWindow(inDays(-0.5), now)).toBe(true);
+    expect(startsWithinFeedWindow(inDays(-2), now)).toBe(true);
+  });
+
+  it("does not let a five-month league sit there for five months", () => {
+    // A season that kicked off in September is "upcoming" until March. The
+    // lower bound is what stops it pinning the front page for all of it.
+    expect(startsWithinFeedWindow(inDays(-20), now)).toBe(false);
+  });
+
+  it("treats an undated event as news, not as far off", () => {
+    expect(startsWithinFeedWindow(null, now)).toBe(true);
+  });
+
+  it("takes a different window when asked", () => {
+    expect(startsWithinFeedWindow(inDays(10), now)).toBe(false);
+    expect(startsWithinFeedWindow(inDays(10), now, 14)).toBe(true);
   });
 });
