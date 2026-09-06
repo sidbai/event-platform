@@ -252,6 +252,36 @@ export const events = pgTable(
     scheduleUrl: text("schedule_url"),
     /** Who typed it in, so a wrong listing has someone to ask. */
     listedBy: uuid("listed_by").references(() => users.id, { onDelete: "set null" }),
+
+    /*
+     * Where a listing's schedule is synced from, when it is.
+     *
+     * Set means a connector keeps this event's divisions, teams and matches
+     * up to date from the platform that hosts it — so it renders through the
+     * same schedule and standings pages as an event run here. Null means the
+     * listing is a pointer and nothing more.
+     *
+     * Nothing outside features/sync should branch on the platform name. It is
+     * here so a sync can find the event again, not so pages can special-case
+     * one host.
+     */
+    sourcePlatform: text("source_platform"),
+    /** The id that platform knows this event by. */
+    sourceEventId: text("source_event_id"),
+    /** When a sync last completed, whatever its outcome. */
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    /** When one should next be attempted; null once the event is long over. */
+    nextSyncAt: timestamp("next_sync_at", { withTimezone: true }),
+    /**
+     * What went wrong last time, or null.
+     *
+     * Kept rather than logged, because the page has to be able to say how
+     * fresh its schedule is. A stale schedule shown as current is the failure
+     * this whole feature has to avoid.
+     */
+    lastSyncError: text("last_sync_error"),
+    /** Digest of the last payload, so an unchanged fetch writes nothing. */
+    lastContentHash: text("last_content_hash"),
     discussionLocked: boolean("discussion_locked").notNull().default(false),
     metadata: jsonb("metadata"),
     ...timestamps,
@@ -347,6 +377,8 @@ export const eventTeams = pgTable(
     divisionId: uuid("division_id").references(() => eventDivisions.id),
     seed: integer("seed"),
     groupLabel: text("group_label"),
+    /** The hosting platform's id for this team, when the entry came from one. */
+    sourceTeamId: text("source_team_id"),
     played: integer("played").notNull().default(0),
     won: integer("won").notNull().default(0),
     drawn: integer("drawn").notNull().default(0),
@@ -482,6 +514,13 @@ export const matches = pgTable(
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
     status: matchStatus("status").notNull().default("scheduled"),
+    /**
+     * The hosting platform's id for this game.
+     *
+     * Also the marker for "a sync owns this row": a match without one was
+     * entered here by a person, and no connector may touch it.
+     */
+    sourceMatchId: text("source_match_id"),
   },
   (t) => [index("matches_event_idx").on(t.eventId)],
 );

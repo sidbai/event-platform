@@ -24,14 +24,27 @@ const fixture = (name: string) =>
 
 describe("recognising a URL somebody pasted", () => {
   it("takes an event page and finds the id", () => {
-    expect(
-      athletes2events.parseUrl("https://crossfire.athletes2events.com/events/130/groups"),
-    ).toEqual({ platform: "athletes2events", eventId: "130" });
-    expect(
-      athletes2events.parseUrl(
-        "https://crossfire.athletes2events.com/events/130/schedules?flight-id=2029",
-      ),
-    ).toEqual({ platform: "athletes2events", eventId: "130" });
+    for (const url of [
+      "https://crossfire.athletes2events.com/events/130/groups",
+      "https://crossfire.athletes2events.com/events/130/schedules?flight-id=2029",
+    ]) {
+      expect(athletes2events.parseUrl(url)).toEqual({
+        platform: "athletes2events",
+        eventId: "130",
+        subdomain: "crossfire",
+      });
+    }
+  });
+
+  it("keeps the club subdomain, because event ids only count within one", () => {
+    // Every club gets its own host, so event 130 at one club is a different
+    // tournament from event 130 at another. Dropping the subdomain would
+    // point a sync at somebody else's schedule.
+    const a = athletes2events.parseUrl("https://crossfire.athletes2events.com/events/130");
+    const b = athletes2events.parseUrl("https://someotherclub.athletes2events.com/events/130");
+    expect(a?.subdomain).toBe("crossfire");
+    expect(b?.subdomain).toBe("someotherclub");
+    expect(a).not.toEqual(b);
   });
 
   it("claims any club's subdomain, since every club gets its own", () => {
