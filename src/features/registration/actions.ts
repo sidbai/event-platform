@@ -11,10 +11,13 @@ import {
   events,
   matches,
   teamMembers,
+  teams,
 } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { checkRateLimit } from "@/features/rate-limit";
+import { uniqueTeamSlug } from "@/features/teams/slug";
+import { slugify } from "@/lib/slug";
 
 import { opennessOf } from "./openness";
 import { participationFor, type RegistrationStatus } from "./participation";
@@ -65,11 +68,28 @@ export async function registerTeam(
     return { error: "You can only enter a team you manage." };
   }
 
+  return recordEntry(slug, event.id, divisionId, teamId, user.id, note);
+}
+
+/**
+ * The half of entering a team that does not depend on where the team came
+ * from: is the division real, is it open, and record the request.
+ *
+ * Shared rather than copied, because there are now two doors into it — a team
+ * that already exists, and one created on the spot — and a capacity check that
+ * only guarded one of them would be a division that quietly overfills through
+ * the other.
+ */
+async function recordEntry(
+  slug: string,
+  eventId: string,
+  divisionId: string,
+  teamId: string,
+  userId: string,
+  note: string,
+): Promise<RegistrationResult> {
   const division = await db.query.eventDivisions.findFirst({
-    where: and(
-      eq(eventDivisions.id, divisionId),
-      eq(eventDivisions.eventId, event.id),
-    ),
+    where: and(eq(eventDivisions.id, divisionId), eq(eventDivisions.eventId, eventId)),
   });
   if (!division) return { error: "That division is gone." };
 
@@ -99,10 +119,10 @@ export async function registerTeam(
   await db
     .insert(eventRegistrations)
     .values({
-      eventId: event.id,
+      eventId,
       divisionId,
       teamId,
-      requestedBy: user.id,
+      requestedBy: userId,
       note: note || null,
       feeCentsAtRequest: division.feeCents,
     })
@@ -113,7 +133,7 @@ export async function registerTeam(
       set: {
         status: "requested",
         note: note || null,
-        requestedBy: user.id,
+        requestedBy: userId,
         feeCentsAtRequest: division.feeCents,
         updatedAt: new Date(),
       },
@@ -122,6 +142,75 @@ export async function registerTeam(
   revalidatePath(`/events/${slug}/register`);
   revalidatePath(`/events/${slug}`);
   return { ok: true };
+}
+
+/**
+ * Enter a team that does not exist yet.
+ *
+ * A tournament or league here is mostly community teams — a parent putting a
+ * neighbourhood side together for one weekend — and the entry form used to
+ * dead-end for exactly that person: "you don't manage a team yet", followed by
+ * a club-shaped form asking for a club, a city, an age group and a crest, and
+ * then a walk back to the event.
+ *
+ * So a name is enough. Everything else about the team can be filled in later,
+ * or never, and the entry is what the organizer actually needs.
+ */
+export async function registerNewTeam(
+  slug: string,
+  _prev: RegistrationResult,
+  formData: FormData,
+): Promise<RegistrationResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to enter a team." };
+
+  const gate = await checkRateLimit("event:create", user);
+  if (!gate.ok) return { error: gate.message };
+
+  const divisionId = String(formData.get("divisionId") ?? "");
+  const name = String(formData.get("teamName") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500);
+  if (!divisionId) return { error: "Pick a division." };
+  if (name.length < 2) return { error: "Give the team a name." };
+  if (name.length > 80) return { error: "That name is too long." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { id: true, status: true },
+  });
+  if (!event) return { error: "That event is gone." };
+  if (event.status !== "published" && event.status !== "completed") {
+    return { error: "This event isn't open for entries." };
+  }
+
+  // Checked before the team is made, so a closed division does not leave a
+  // stray team behind for someone to wonder about later.
+  const division = await db.query.eventDivisions.findFirst({
+    where: and(eq(eventDivisions.id, divisionId), eq(eventDivisions.eventId, event.id)),
+    columns: { id: true },
+  });
+  if (!division) return { error: "That division is gone." };
+
+  const [team] = await db
+    .insert(teams)
+    .values({
+      slug: await uniqueTeamSlug(slugify(name).slice(0, 60)),
+      name,
+      // Public, like any team someone creates deliberately. The private ones
+      // are the stubs an organizer types in on the scores page, which nobody
+      // has claimed.
+      visibility: "public",
+      originEventId: event.id,
+      ownerId: user.id,
+    })
+    .returning({ id: teams.id });
+
+  await db
+    .insert(teamMembers)
+    .values({ teamId: team.id, userId: user.id, role: "owner" })
+    .onConflictDoNothing();
+
+  return recordEntry(slug, event.id, divisionId, team.id, user.id, note);
 }
 
 /**
