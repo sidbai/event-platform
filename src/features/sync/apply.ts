@@ -57,7 +57,15 @@ export async function applySync(
   eventId: string,
   data: SyncedEvent,
   now: Date,
+  options: { prune?: boolean } = {},
 ): Promise<ApplyOutcome> {
+  /*
+   * A connector sees the whole event every time, so a fixture missing from
+   * what it read has been cancelled. A person pasting one division at a time
+   * has not cancelled the other thirty-three — pruning there would empty the
+   * schedule with every paste.
+   */
+  const prune = options.prune ?? true;
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     columns: { id: true, timezone: true, startsAt: true, endsAt: true, lastContentHash: true },
@@ -179,7 +187,9 @@ export async function applySync(
 
   // A fixture the platform no longer lists has been cancelled or renumbered.
   // Only ever synced rows: one entered by hand here is not ours to remove.
-  const gone = synced.filter((m) => !seen.has(m.sourceMatchId!)).map((m) => m.id);
+  const gone = prune
+    ? synced.filter((m) => !seen.has(m.sourceMatchId!)).map((m) => m.id)
+    : [];
   if (gone.length > 0) {
     await db.delete(matches).where(inArray(matches.id, gone));
   }

@@ -9,6 +9,8 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { safeSourceUrl } from "@/features/events/listing";
 
+import { parsePastedSchedule, toSyncedEvent } from "./paste";
+import { applySync } from "./apply";
 import { detect, syncEvent } from "./run";
 
 export type ConnectResult = {
@@ -119,4 +121,61 @@ export async function refreshNow(
   revalidatePath("/admin/sync");
 
   return report.ok ? { detail: report.detail } : { error: report.detail };
+}
+
+/**
+ * Import a schedule somebody copied out of their browser.
+ *
+ * The way in for a platform we cannot read: EventConnect refuses crawlers,
+ * A2E's terms require permission first, and some pages render their fixtures
+ * in JavaScript that never reaches an HTTP client at all. A person can see
+ * all of it, so a person can bring it here, and it lands in the same tables
+ * through the same writer as a connector's output.
+ *
+ * Never prunes. A connector sees the whole event each time; somebody pasting
+ * one flight has not cancelled the other thirty-three.
+ */
+export async function importPastedSchedule(
+  _prev: ConnectResult,
+  formData: FormData,
+): Promise<ConnectResult> {
+  const user = await getCurrentUser();
+  if (!user || !isAdmin(user)) return { error: "Not allowed." };
+
+  const eventId = String(formData.get("eventId") ?? "");
+  const text = String(formData.get("schedule") ?? "").trim();
+  if (!text) return { error: "Nothing pasted." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    columns: { id: true, slug: true, startsAt: true },
+  });
+  if (!event) return { error: "That event is gone." };
+
+  // Most schedules print "Sep 5" without a year, and the event's own start
+  // date is a better guess than today's — a January tournament pasted in
+  // December would otherwise land eleven months early.
+  const year = (event.startsAt ?? new Date()).getUTCFullYear();
+  const division = String(formData.get("division") ?? "").trim() || "Unassigned";
+
+  const { matches, skipped } = parsePastedSchedule(text, { division, year });
+  if (matches.length === 0) {
+    return {
+      error: `No fixtures found in that. ${skipped.length} line(s) did not look like games.`,
+    };
+  }
+
+  const out = await applySync(eventId, toSyncedEvent(matches), new Date(), {
+    prune: false,
+  });
+
+  revalidatePath("/admin/sync");
+  revalidatePath(`/events/${event.slug}`);
+
+  const detail = `${matches.length} fixtures, ${out.teams} new teams, ${out.divisions} divisions`;
+  return {
+    // Skipped lines are the headline when there are any: a row we could not
+    // read looks exactly like a game that was never scheduled.
+    detail: skipped.length > 0 ? `${detail} — ${skipped.length} line(s) skipped` : detail,
+  };
 }
