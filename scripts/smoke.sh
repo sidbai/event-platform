@@ -26,7 +26,11 @@ PATHS=("/" "/events" "/news" "/community" "/clubs" "/teams" "$@")
 # is the wrong thing to go looking for.
 echo "waiting for $BASE"
 for i in $(seq 1 60); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$BASE/" 2>/dev/null || echo 000)
+  # The || goes on the assignment, not inside the substitution: curl prints
+  # "000" itself when it cannot connect, so `$(curl ... || echo 000)` yields
+  # "000000" — which is not "000", so the wait ended immediately and every
+  # route was checked before the server had opened its socket.
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$BASE/" 2>/dev/null) || code=000
   if [ "$code" != "000" ]; then
     echo "answering after ${i}s (/ gave $code)"
     break
