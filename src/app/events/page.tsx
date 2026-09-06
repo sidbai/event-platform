@@ -83,7 +83,7 @@ export default async function EventsPage({
    * is a destination with results, standings and rosters. They are split into
    * two sections instead, so what you can still turn up to stays on top.
    */
-  const [{ upcoming, past, total }, kinds] = await Promise.all([
+  const [{ upcoming, past, future, total }, kinds] = await Promise.all([
     listEventsByTime({ ...(q ? { q } : {}), kind }),
     listEventKindFacets(q ? { q } : {}),
   ]);
@@ -166,14 +166,26 @@ export default async function EventsPage({
         </p>
       ) : (
         <>
+          {/*
+            Upcoming, then Past, then Future.
+            
+            Past sits above Future on purpose. A tournament that finished last
+            weekend has results somebody is looking for; one in January is
+            browsing. Sorting strictly by date would bury the first under the
+            second.
+          */}
           <EventList
             events={upcoming}
             // Only worth labelling when there is something to tell it apart from.
-            heading={past.length > 0 ? "Upcoming" : null}
+            heading={past.length > 0 || future.length > 0 ? "Upcoming" : null}
           />
           <EventList
             events={past}
-            heading={upcoming.length > 0 ? "Past" : null}
+            heading={upcoming.length > 0 || future.length > 0 ? "Past" : null}
+          />
+          <EventList
+            events={future}
+            heading={upcoming.length > 0 || past.length > 0 ? "Later on" : null}
           />
         </>
       )}

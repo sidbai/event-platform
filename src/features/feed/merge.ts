@@ -45,3 +45,43 @@ export function dropSupersededPosts<T extends { convertedEventId: string | null 
     (p) => p.convertedEventId === null || !eventIds.has(p.convertedEventId),
   );
 }
+
+/** How far ahead the front page looks. */
+export const FEED_WINDOW_DAYS = 7;
+/**
+ * And how far back a start date can be and still count as current.
+ *
+ * Three days, so a tournament running Thursday to Sunday is on the front
+ * page on Sunday — it is the single most current thing on the site that day.
+ * Short enough that a season which kicked off weeks ago does not qualify.
+ */
+const FEED_LOOKBACK_DAYS = 3;
+
+const DAY = 86_400_000;
+
+/**
+ * Whether an event belongs on the front page yet.
+ *
+ * The feed is a timeline around now, not a calendar. Six listings entered in
+ * one afternoon all carry today's createdAt, so without a window they take
+ * the whole front page — including a tournament in January, which nobody can
+ * act on and which pushes down a scrimmage happening on Saturday.
+ *
+ * The far ones are not lost; /events is the calendar and is built to show
+ * them. This is only about what is worth interrupting someone with.
+ *
+ * A lower bound as well as an upper one, because a league that kicked off in
+ * September and runs to March is "upcoming" for five months, and would
+ * otherwise sit at the top of the page for all of them.
+ */
+export function startsWithinFeedWindow(
+  startsAt: Date | null,
+  now: number,
+  days: number = FEED_WINDOW_DAYS,
+): boolean {
+  // No date is not a far-future event; it is something just posted, and the
+  // feed is where a reader would expect to find it.
+  if (!startsAt) return true;
+  const at = startsAt.getTime();
+  return at >= now - FEED_LOOKBACK_DAYS * DAY && at <= now + days * DAY;
+}
