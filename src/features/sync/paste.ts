@@ -123,6 +123,43 @@ function cells(line: string): string[] {
 const HEADER = /^(time|date|game|field|court|pitch|home|away|home team|away team|score|division|flight|location|venue|site)$/i;
 const VERSUS = /^(vs\.?|v|@|at|-|–)$/i;
 
+/**
+ * The columns the copier emits, in order.
+ *
+ * A schedule table packs the kick-off, the bracket slot and the division into
+ * one cell, and how that survives a browser copy decides where each ends —
+ * which is a guess. So the copier splits them into named columns instead, and
+ * a paste that carries this header is read by name rather than by shape.
+ */
+export const CANONICAL_HEADER = [
+  "date",
+  "time",
+  "slot",
+  "division",
+  "home",
+  "home_score",
+  "away_score",
+  "away",
+  "field",
+  "venue",
+] as const;
+
+type Canonical = (typeof CANONICAL_HEADER)[number];
+
+/** The column positions of a canonical header line, or null if it isn't one. */
+function readHeader(line: string): Map<Canonical, number> | null {
+  const columns = cells(line).map((c) => c.toLowerCase().replace(/\s+/g, "_"));
+  const found = new Map<Canonical, number>();
+  columns.forEach((c, i) => {
+    if ((CANONICAL_HEADER as readonly string[]).includes(c)) {
+      found.set(c as Canonical, i);
+    }
+  });
+  // Home and away are the two a fixture cannot do without; the rest are
+  // allowed to be missing, because not every platform prints all of them.
+  return found.has("home") && found.has("away") ? found : null;
+}
+
 export type PasteOptions = {
   /** What to call a row that does not say. Most pastes are one flight. */
   division: string;
@@ -136,9 +173,26 @@ export function parsePastedSchedule(text: string, options: PasteOptions): PasteR
   const skipped: string[] = [];
   let date: string | null = null;
 
+  let header: Map<Canonical, number> | null = null;
+
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
+
+    if (!header) {
+      const found = readHeader(line);
+      if (found) {
+        header = found;
+        continue;
+      }
+    }
+
+    if (header) {
+      const parsed = readCanonicalRow(cells(line), header, options);
+      if (parsed) matches.push(parsed);
+      else skipped.push(line);
+      continue;
+    }
 
     const columns = cells(line).filter((c) => c !== "");
     if (columns.length === 0) continue;
@@ -333,5 +387,40 @@ export function toSyncedEvent(matches: PastedMatch[]): SyncedEvent {
     source: { platform: "manual", eventId: "pasted" },
     teams: [...teams.values()],
     matches: synced,
+  };
+}
+
+/** A row from a paste that named its own columns. Nothing is inferred here. */
+function readCanonicalRow(
+  columns: string[],
+  header: Map<Canonical, number>,
+  options: PasteOptions,
+): PastedMatch | null {
+  const at = (key: Canonical) => {
+    const i = header.get(key);
+    return i === undefined ? "" : (columns[i] ?? "").trim();
+  };
+
+  const home = at("home");
+  const away = at("away");
+  if (!home || !away) return null;
+
+  const score = (key: Canonical) => {
+    const m = at(key).match(/^(\d{1,3})$/);
+    return m ? Number(m[1]) : null;
+  };
+
+  const field = [at("field"), at("venue")].filter(Boolean).join(" · ") || null;
+
+  return {
+    division: at("division") || options.division,
+    date: at("date") ? parsePastedDate(at("date"), options.year) : null,
+    time: parsePastedTime(at("time")),
+    group: bracketOf(at("slot")),
+    field,
+    home,
+    away,
+    homeScore: score("home_score"),
+    awayScore: score("away_score"),
   };
 }
