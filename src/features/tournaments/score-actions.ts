@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
@@ -13,6 +13,7 @@ import {
   teams,
 } from "@/db/schema";
 import { canManageEvent } from "@/features/events/can-manage";
+import { matchdayDates, roundRobin } from "./round-robin";
 import { zonedDate } from "@/lib/dates";
 import { slugify } from "@/lib/slug";
 
@@ -200,4 +201,106 @@ export async function deleteMatch(
 
   await db.delete(matches).where(eq(matches.id, matchId));
   await touchEvent(match.event.id, eventSlug);
+}
+
+
+/**
+ * Build a whole season of fixtures for one division at once.
+ *
+ * The alternative is what exists today: adding matches one at a time, which is
+ * fine for a weekend tournament and hopeless for a league. A ten team division
+ * playing everyone twice is ninety matches.
+ *
+ * Refuses to run when the division already has fixtures. Generating on top of
+ * an existing schedule would silently double a season, and the fix afterwards
+ * is deleting matches by hand — much worse than being told no.
+ */
+export async function generateFixtures(
+  eventSlug: string,
+  _prev: ScoreResult,
+  formData: FormData,
+): Promise<ScoreResult> {
+  if (!(await canManageEvent({ slug: eventSlug }))) return { error: "Not allowed." };
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, eventSlug),
+    columns: { id: true, timezone: true },
+  });
+  if (!event) return { error: "Event not found." };
+
+  const divisionId = String(formData.get("divisionId") ?? "");
+  if (!divisionId) return { error: "Pick a division." };
+
+  const startISO = String(formData.get("startDate") ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startISO)) {
+    return { error: "Give a first matchday, as a date." };
+  }
+
+  const time = String(formData.get("time") ?? "").trim() || "09:00";
+  const everyDays = Number(formData.get("everyDays") ?? 7);
+  if (!Number.isInteger(everyDays) || everyDays < 1 || everyDays > 60) {
+    return { error: "Rounds should be between 1 and 60 days apart." };
+  }
+  const legs = String(formData.get("legs") ?? "1") === "2" ? 2 : 1;
+
+  const existing = await db.query.matches.findFirst({
+    where: and(eq(matches.eventId, event.id), eq(matches.divisionId, divisionId)),
+    columns: { id: true },
+  });
+  if (existing) {
+    return {
+      error:
+        "That division already has fixtures. Delete them first if you want to rebuild the season.",
+    };
+  }
+
+  const entered = await db.query.eventTeams.findMany({
+    where: and(
+      eq(eventTeams.eventId, event.id),
+      eq(eventTeams.divisionId, divisionId),
+    ),
+    columns: { teamId: true, groupLabel: true },
+  });
+  if (entered.length < 2) {
+    return { error: "That division needs at least two teams." };
+  }
+
+  /*
+   * Brackets are scheduled separately, because a bracket is a group that plays
+   * itself — pairing across brackets would produce fixtures that count toward
+   * neither table.
+   */
+  const byBracket = new Map<string, string[]>();
+  for (const t of entered) {
+    const key = t.groupLabel ?? "";
+    byBracket.set(key, [...(byBracket.get(key) ?? []), t.teamId]);
+  }
+
+  const rows: (typeof matches.$inferInsert)[] = [];
+  for (const [bracket, teamIds] of byBracket) {
+    const rounds = roundRobin(teamIds, legs);
+    const dates = matchdayDates(startISO, rounds.length, everyDays);
+    for (const [i, round] of rounds.entries()) {
+      for (const p of round.pairings) {
+        rows.push({
+          eventId: event.id,
+          divisionId,
+          stage: "group",
+          round: `round-${round.round}`,
+          groupLabel: bracket || null,
+          kickoffAt: zonedDate(dates[i], time, event.timezone),
+          homeTeamId: p.homeTeamId,
+          awayTeamId: p.awayTeamId,
+          status: "scheduled",
+        });
+      }
+    }
+  }
+
+  if (rows.length === 0) return { error: "Nothing to schedule." };
+  await db.insert(matches).values(rows);
+
+  await touchEvent(event.id, eventSlug);
+  revalidatePath(`/events/${eventSlug}/table`);
+  return { ok: true };
 }
