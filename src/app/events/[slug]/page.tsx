@@ -13,7 +13,7 @@ import { EventTags } from "@/features/events/event-tags";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug, type EventDetail } from "@/features/events/queries";
-import { managedEntry } from "@/features/tournaments/roster-queries";
+import { managedEntries } from "@/features/tournaments/roster-queries";
 import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
 import {
@@ -78,8 +78,8 @@ export default async function EventPage({
   const rules = meta?.rules;
   const hasRoster = event.modules.includes("roster");
   const hasAttendance = event.modules.includes("attendance");
-  const myEntry =
-    user && hasRoster ? await managedEntry(event.id, user.id) : null;
+  const myEntries =
+    user && hasRoster ? await managedEntries(event.id, user.id) : [];
 
   // Whether a team can get in, on the page they land on. Previously the fee,
   // the places left and the closing date all lived a click deeper, so the
@@ -276,14 +276,20 @@ export default async function EventPage({
         </p>
       )}
 
-      {myEntry && (
-        <p className="mt-8 text-sm">
-          <Link
-            href={`/events/${event.slug}/roster`}
-            className="font-medium text-brand-text hover:underline"
-          >
-            Submit {myEntry.teamName}&rsquo;s roster →
-          </Link>
+      {myEntries.length > 0 && (
+        <p className="mt-8 flex flex-wrap gap-4 text-sm">
+          {/* One link per team. A club with two age groups in the same Cup
+              used to reach only the first, and the other roster had no route
+              to it at all. */}
+          {myEntries.map((entry) => (
+            <Link
+              key={entry.eventTeamId}
+              href={`/events/${event.slug}/roster?team=${entry.eventTeamId}`}
+              className="font-medium text-brand-text hover:underline"
+            >
+              Submit {entry.teamName}&rsquo;s roster →
+            </Link>
+          ))}
         </p>
       )}
 

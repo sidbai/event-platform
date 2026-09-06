@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/features/auth";
 import { canViewEvent } from "@/features/events/can-view";
 import { getEventBySlug } from "@/features/events/queries";
 import { PrintButton } from "@/features/tournaments/print-button";
+import { rostersForEvent } from "@/features/tournaments/roster-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,8 @@ export default async function CheckInSheet({
 
   const sponsors =
     (event.metadata as { sponsors?: { name: string }[] } | null)?.sponsors ?? [];
+
+  const rostersByTeam = await rostersForEvent(event.id);
 
   const divisions = event.divisions.map((division) => ({
     division,
@@ -71,13 +74,38 @@ export default async function CheckInSheet({
               </tr>
             </thead>
             <tbody>
-              {teams.map((et) => (
-                <tr key={et.id}>
-                  <td className="border border-neutral-400 px-2 py-2">{et.team.name}</td>
-                  <td className="border border-neutral-400 px-2 py-2 text-center text-lg">☐</td>
-                  <td className="border border-neutral-400 px-2 py-2"></td>
-                </tr>
-              ))}
+              {teams.map((et) => {
+                const players = rostersByTeam.get(et.id) ?? [];
+                return (
+                  <tr key={et.id}>
+                    <td className="border border-neutral-400 px-2 py-2 align-top">
+                      <div className="font-medium">{et.team.name}</div>
+                      {/* The players, so the sheet can be used for the roster
+                          verification the checklist asks for. A team that has
+                          not sent one in says so, which is itself the thing
+                          the organizer needs to chase. */}
+                      {players.length > 0 ? (
+                        <ol className="mt-1 columns-2 text-xs leading-5">
+                          {players.map((p, i) => (
+                            <li key={`${p.playerName}-${i}`}>
+                              ☐ {p.playerName}
+                              {p.birthYear ? ` (${p.birthYear})` : ""}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <div className="mt-1 text-xs italic text-neutral-500">
+                          No roster submitted
+                        </div>
+                      )}
+                    </td>
+                    <td className="border border-neutral-400 px-2 py-2 text-center align-top text-lg">
+                      ☐
+                    </td>
+                    <td className="border border-neutral-400 px-2 py-2 align-top"></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </section>
