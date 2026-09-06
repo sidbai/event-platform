@@ -44,6 +44,8 @@ type Listing = {
   sourceName: string;
   /** Their page, which is where entries actually happen. Required. */
   sourceUrl: string;
+  /** Straight to the fixtures, when the organizer publishes them separately. */
+  scheduleUrl?: string;
 };
 
 const TIMEZONE = "America/Los_Angeles";
@@ -84,6 +86,10 @@ async function main() {
       throw new Error(
         `${row.slug}: a listing needs a sourceName and an absolute http(s) sourceUrl`,
       );
+    }
+
+    if (row.scheduleUrl && !safeSourceUrl(row.scheduleUrl)) {
+      throw new Error(`${row.slug}: scheduleUrl must be an absolute http(s) URL`);
     }
 
     const kind = await db.query.eventKinds.findFirst({
@@ -142,6 +148,7 @@ async function main() {
       host: row.sourceName,
       sourceName: row.sourceName,
       sourceUrl: safeSourceUrl(row.sourceUrl),
+      scheduleUrl: safeSourceUrl(row.scheduleUrl ?? null),
       listedBy: admin?.id ?? null,
       // Deliberately no organizerId: nobody here runs these. Claiming one is
       // what sets it.
