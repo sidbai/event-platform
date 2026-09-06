@@ -246,6 +246,13 @@
       "when": 1788649355413,
       "tag": "0034_anonymous_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788658030290,
+      "tag": "0035_tournament_registration",
+      "breakpoints": true
     }
   ]
 }
