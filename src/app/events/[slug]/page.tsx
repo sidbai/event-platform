@@ -111,11 +111,7 @@ export default async function EventPage({
     new Date(),
   );
   const attribution = attributionOf(event);
-  const offsiteSchedule = scheduleActionOf({
-    ...event,
-    // A synced listing keeps its fixtures here, so the schedule link is ours.
-    hasFixtures: event.matches.length > 0,
-  });
+  const offsiteSchedule = scheduleActionOf(event);
   const isCompetition =
     runHere && (event.kind === "tournament" || event.kind === "league");
   /*
@@ -280,10 +276,9 @@ export default async function EventPage({
       )}
 
       {offsiteSchedule && (
-        /* Only when the fixtures are not ours to show. Once we hold them they
-           are further down this page, and a button sending a parent off to
-           find the same thing somewhere else would be a worse answer to the
-           question they came with. */
+        /* On every listing, including the ones we sync. What we hold is a copy
+           that was right when we last read it; the organizer's page is the one
+           that changes when a game moves. */
         <p className="mt-4">
           <a
             href={offsiteSchedule.href}
