@@ -70,6 +70,22 @@ describe("pathnameMatchesTarget", () => {
     expect(pathnameMatchesTarget("clubs/_pending/logo.png", mine)).toBe(false);
   });
 
+  it("keeps one event's logo out of another event's folder", () => {
+    /*
+     * The manage check at token time is per event, so if the path did not
+     * match the target an organizer could mint a token for their own event
+     * and write over somebody else's logo with it.
+     */
+    const mine = { kind: "event", eventSlug: "king-juan-cup-2026" } as const;
+    expect(pathnameMatchesTarget("events/king-juan-cup-2026/logo.png", mine)).toBe(
+      true,
+    );
+    expect(pathnameMatchesTarget("events/labor-day-cup-2026/logo.png", mine)).toBe(
+      false,
+    );
+    expect(pathnameMatchesTarget("clubs/rain-city-sc/logo.png", mine)).toBe(false);
+  });
+
   it("accepts a single file directly under the target's prefix", () => {
     expect(pathnameMatchesTarget("avatars/me.png", avatar)).toBe(true);
     expect(
@@ -146,6 +162,11 @@ describe("parseUploadTarget", () => {
     expect(parseUploadTarget('{"kind":"crest","teamSlug":"marymoor-united"}')).toEqual(
       { kind: "crest", teamSlug: "marymoor-united" },
     );
+    expect(parseUploadTarget('{"kind":"event","eventSlug":"king-juan-cup-2026"}')).toEqual(
+      { kind: "event", eventSlug: "king-juan-cup-2026" },
+    );
+    // an event target with no slug can't be permission-checked either
+    expect(parseUploadTarget('{"kind":"event"}')).toBeNull();
   });
 
   it("refuses anything else rather than guessing", () => {

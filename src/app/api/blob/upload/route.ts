@@ -7,6 +7,7 @@ import { teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { checkRateLimit } from "@/features/rate-limit";
 import { canEditClub } from "@/features/clubs/access";
+import { canManageEvent } from "@/features/events/can-manage";
 import { canManageTeam } from "@/features/teams/access";
 import {
   IMAGE_TYPES,
@@ -56,6 +57,14 @@ export async function POST(request: Request): Promise<NextResponse> {
         // URLs from there. Any signed-in user may write one.
         if (target.kind === "club" && !(await canEditClub()))
           throw new Error("You can't edit that club.");
+
+        // An event's mark is the organizer's to set, so the check is the same
+        // one that guards the rest of its setup.
+        if (
+          target.kind === "event" &&
+          !(await canManageEvent({ slug: target.eventSlug }))
+        )
+          throw new Error("You can't manage that event.");
 
         // "news" needs no extra check either: anyone signed in may write a
         // post, so anyone may attach a cover to the one they are drafting. The

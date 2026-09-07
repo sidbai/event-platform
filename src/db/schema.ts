@@ -223,6 +223,14 @@ export const events = pgTable(
     awayTeamId: uuid("away_team_id"),
     result: jsonb("result"),
 
+    /**
+     * A square mark for the event, uploaded by whoever manages it.
+     *
+     * Deliberately never fetched from the organizer's own site: a listing
+     * points at somebody else's event, and their logo is theirs to give. It
+     * is here because an organizer put it here.
+     */
+    logoUrl: text("logo_url"),
     host: text("host"),
     /**
      * Where this listing came from, when it is not ours to run.

@@ -5,8 +5,9 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { teams, users } from "@/db/schema";
+import { events, teams, users } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
+import { canManageEvent } from "@/features/events/can-manage";
 import { canManageTeam } from "@/features/teams/access";
 
 import { isOurBlobUrl } from "./blob";
@@ -91,4 +92,55 @@ export async function clearTeamCrest(slug: string): Promise<void> {
   revalidatePath(`/teams/${slug}`);
   revalidatePath(`/teams/${slug}/settings`);
   revalidatePath("/teams");
+}
+
+/**
+ * An event's square mark.
+ *
+ * Same shape as a team crest, with the event's own manage check: a listing is
+ * managed by whoever added it, and an event we run by its organizer. The old
+ * file is forgotten on replace, so a logo changed twice does not leave two
+ * orphans in the blob store.
+ */
+export async function setEventLogo(slug: string, url: string): Promise<void> {
+  if (!isOurBlobUrl(url)) return;
+  if (!(await canManageEvent({ slug }))) return;
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { id: true, logoUrl: true },
+  });
+  if (!event) return;
+
+  const replaced = event.logoUrl;
+  await db
+    .update(events)
+    .set({ logoUrl: url, updatedAt: new Date() })
+    .where(eq(events.id, event.id));
+  await forget(replaced);
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath(`/events/${slug}/edit`);
+  revalidatePath("/events");
+}
+
+export async function clearEventLogo(slug: string): Promise<void> {
+  if (!(await canManageEvent({ slug }))) return;
+
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { id: true, logoUrl: true },
+  });
+  if (!event) return;
+
+  const replaced = event.logoUrl;
+  await db
+    .update(events)
+    .set({ logoUrl: null, updatedAt: new Date() })
+    .where(eq(events.id, event.id));
+  await forget(replaced);
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath(`/events/${slug}/edit`);
+  revalidatePath("/events");
 }

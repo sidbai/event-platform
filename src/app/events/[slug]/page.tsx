@@ -15,6 +15,7 @@ import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
 import { canViewEvent } from "@/features/events/can-view";
+import { EventLogo } from "@/components/event-logo";
 import { EventTags } from "@/features/events/event-tags";
 import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
@@ -168,7 +169,14 @@ export default async function EventPage({
 
       <header className="mt-4">
         <EventTags event={event} />
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.title}</h1>
+        <div className="mt-2 flex items-start gap-4">
+          {/* Only when there is one: the emoji square earns its place in a
+              list of many events and would just be decoration here. */}
+          {event.logoUrl && (
+            <EventLogo src={event.logoUrl} kind={event.kind} size={72} />
+          )}
+          <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
+        </div>
         {event.titleZh && (
           <p className="mt-1 text-lg text-muted">{event.titleZh}</p>
         )}
