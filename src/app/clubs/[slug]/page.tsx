@@ -6,6 +6,7 @@ import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { canEditClub } from "@/features/clubs/access";
+import { teamsForClub } from "@/features/clubs/link-queries";
 import { coachRoleLabel } from "@/features/coaches/constants";
 import { coachesAtClub } from "@/features/coaches/queries";
 import {
@@ -71,7 +72,7 @@ export default async function ClubPage({
   if (!club) notFound();
   const admin = isAdmin(user);
 
-  const [summary, reviews, mayEdit, history, coaches] = await Promise.all([
+  const [summary, reviews, mayEdit, history, coaches, clubTeams] = await Promise.all([
     clubSummary(club.id),
     // Admins see hidden reviews too, badged, so a takedown can be undone from
             // the page it happened on rather than only from the queue.
@@ -79,6 +80,7 @@ export default async function ClubPage({
     canEditClub(),
     clubHistory(club.id),
     coachesAtClub(club.id),
+    teamsForClub(club.id),
   ]);
   const mine = reviews.find((r) => r.mine);
   const coachPagination = paginate(coaches.length, coachPage, COACHES_PER_PAGE);
@@ -305,6 +307,28 @@ export default async function ClubPage({
             </li>
           ))}
         </ul>
+      )}
+
+      {clubTeams.length > 0 && (
+        <section id="teams" className="mt-8 scroll-mt-6">
+          <h2 className="font-semibold">Teams</h2>
+          {/* Filed here by an admin from what the schedules carry, so this is
+              the club's teams as tournaments name them rather than as the
+              club would list them itself. */}
+          <p className="mt-1 text-sm text-muted">
+            {clubTeams.length} team{clubTeams.length === 1 ? "" : "s"} seen in
+            events on this site.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {clubTeams.map((t) => (
+              <li key={t.id} className="text-sm">
+                <Link href={`/teams/${t.slug}`} className="hover:underline">
+                  {t.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <section id="coaches" className="mt-8 scroll-mt-6">

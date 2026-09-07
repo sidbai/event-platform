@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { requireUser } from "@/features/auth";
+import { clubOptions } from "@/features/clubs/link-queries";
 import { createTeam } from "@/features/teams/create-actions";
 import { CreateTeamForm } from "@/features/teams/create-form";
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Create a team" };
 
 export default async function NewTeamPage() {
   await requireUser("/teams/new");
+  const clubs = await clubOptions();
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -21,7 +23,7 @@ export default async function NewTeamPage() {
         You&rsquo;ll be the owner. Once it exists you can invite managers,
         coaches and players, and put events on its calendar.
       </p>
-      <CreateTeamForm action={createTeam} />
+      <CreateTeamForm action={createTeam} clubs={clubs} />
     </div>
   );
 }

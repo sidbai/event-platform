@@ -299,11 +299,44 @@ export const teamVisibility = pgEnum("team_visibility", ["private", "public"]);
 /** Regional Club League and Washington Premier League, in ranked order. */
 export const clubLeague = pgEnum("club_league", ["rcl", "wpl"]);
 
-export const teams = pgTable("teams", {
+/**
+ * Whether a team belongs to a club, and whether we know.
+ *
+ * `club_id` alone cannot carry this. Null would mean both "formed outside any
+ * club" — a King Juan Cup side, a parent-organised team, a pickup crew — and
+ * "imported from a tournament and not yet matched to a club", which is every
+ * one of the teams a connector has created. Those need opposite treatment:
+ * one is finished, the other is a queue.
+ *
+ * The same conflation already bit this schema once. `teams.visibility` means
+ * both "keep out of the directory" and "members only", and view-decision.ts
+ * exists solely to tell them apart using origin_event_id.
+ */
+export const teamAffiliation = pgEnum("team_affiliation", [
+  /** Imported, and nobody has said which club it belongs to. The default. */
+  "unknown",
+  /** Belongs to the club in club_id. */
+  "club",
+  /** Formed outside any club, and someone has said so. */
+  "independent",
+]);
+
+export const teams = pgTable(
+  "teams",
+  {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
-  club: text("club"),
+  /**
+   * The club this team plays for.
+   *
+   * Restricted rather than cascading: a club page carries reviews about named
+   * coaches, and deleting one out from under forty teams should be refused
+   * until somebody has decided where those teams go. Nothing deletes a club
+   * today, so this costs nothing and says what we mean.
+   */
+  clubId: uuid("club_id").references(() => clubs.id, { onDelete: "restrict" }),
+  affiliation: teamAffiliation("affiliation").notNull().default("unknown"),
   ageGroup: text("age_group"),
   gender: text("gender"),
   city: text("city"),
@@ -322,7 +355,48 @@ export const teams = pgTable("teams", {
    */
   ownerId: uuid("owner_id").references(() => users.id),
   ...timestamps,
-});
+  },
+  (t) => [
+    index("teams_club_idx").on(t.clubId),
+    /*
+     * The two halves are one fact, so no code path can set half of it: a team
+     * is affiliated to a club exactly when it has one. Anything else is a
+     * state the queue would either skip forever or offer twice.
+     */
+    check(
+      "teams_affiliation_club_ck",
+      sql`(${t.affiliation} = 'club') = (${t.clubId} IS NOT NULL)`,
+    ),
+  ],
+);
+
+/**
+ * Names a club is known by, for matching imported teams to it.
+ *
+ * Crossfire enters tournaments as "XF", "Crossfire" and "Crossfire Select";
+ * Seattle United as itself, "Seattle United NW" and "SU". Without somewhere to
+ * write that down, every sync re-poses the same question and the answer lives
+ * only in whoever last looked at the queue.
+ *
+ * The alias is a normalised key, not a display name: lowercased with
+ * everything that is not a letter or a digit removed, the same way team names
+ * are normalised for the duplicate finder.
+ */
+export const clubAliases = pgTable(
+  "club_aliases",
+  {
+    alias: text("alias").primaryKey(),
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    /** Who said so, since an alias silently re-labels every future import. */
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("club_aliases_club_idx").on(t.clubId)],
+);
 
 /**
  * Slugs a team used to answer to.
@@ -633,6 +707,7 @@ export const teamMembers = pgTable(
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   eventTeams: many(eventTeams),
   members: many(teamMembers),
+  club: one(clubs, { fields: [teams.clubId], references: [clubs.id] }),
   originEvent: one(events, {
     fields: [teams.originEventId],
     references: [events.id],
@@ -1137,7 +1212,13 @@ export const coachClaimsRelations = relations(coachClaims, ({ one }) => ({
   user: one(users, { fields: [coachClaims.userId], references: [users.id] }),
 }));
 
-export const clubsRelations = relations(clubs, ({ one }) => ({
+export const clubAliasesRelations = relations(clubAliases, ({ one }) => ({
+  club: one(clubs, { fields: [clubAliases.clubId], references: [clubs.id] }),
+}));
+
+export const clubsRelations = relations(clubs, ({ one, many }) => ({
+  teams: many(teams),
+  aliases: many(clubAliases),
   // No `reviews` relation: the join needs subject_type as well, which drizzle
   // relations cannot express, and without it a coach review whose subject_id
   // collided with a club id would be counted as the club's. Reviews are

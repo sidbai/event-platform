@@ -12,7 +12,13 @@ type Action = (prev: TeamFormResult, formData: FormData) => Promise<TeamFormResu
 const field = "w-full rounded-md border border-line bg-card px-3 py-2 text-sm";
 const label = "block text-sm font-medium";
 
-export function CreateTeamForm({ action }: { action: Action }) {
+export function CreateTeamForm({
+  action,
+  clubs,
+}: {
+  action: Action;
+  clubs: { id: string; name: string }[];
+}) {
   const [state, formAction, pending] = useActionState<TeamFormResult, FormData>(
     action,
     {},
@@ -36,7 +42,18 @@ export function CreateTeamForm({ action }: { action: Action }) {
           <label className={label} htmlFor="club">
             Club <span className="text-muted">(optional)</span>
           </label>
-          <input id="club" name="club" className={`mt-1 ${field}`} />
+          {/* A team put together for a tournament has no club, and saying so
+              is different from not answering: it is the difference between a
+              finished record and one waiting for somebody to look at it. */}
+          <select id="club" name="club" className={`mt-1 ${field}`} defaultValue="">
+            <option value="">Not sure yet</option>
+            <option value="independent">Not with a club</option>
+            {clubs.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={label} htmlFor="city">
