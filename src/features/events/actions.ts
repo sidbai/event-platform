@@ -40,31 +40,48 @@ async function uniqueSlug(base: string) {
   return `${root}-${Date.now()}`;
 }
 
-export async function submitEvent(
-  _prev: EventFormResult,
+type ParsedEvent = {
+  listed: boolean;
+  kind: string;
+  defaultModules: string[];
+  title: string;
+  summary: string | null;
+  locationType: "in_person" | "online" | "hybrid";
+  onlineUrl: string | null;
+  startsAt: Date;
+  endsAt: Date | null;
+  timezone: string;
+  venueId: string | null;
+  ageGroup: string | null;
+  gender: string | null;
+  level: string | null;
+  format: string | null;
+  needsOpponent: boolean;
+  host: string | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  scheduleUrl: string | null;
+};
+
+/**
+ * Everything both making an event and editing one have to work out.
+ *
+ * Extracted rather than copied. The listing path was already 69% the same
+ * code as the running-it path and got folded into one action for that reason;
+ * an edit form reading the same fields would have been the third copy, and
+ * this repository has been bitten twice by exactly that — three unique-slug
+ * loops that disagreed on their retry count, two ways of adding a team that
+ * produced different teams.
+ *
+ * What it deliberately does not decide: the slug, the status, who owns the
+ * event. Those are set once when it is made and are not the form's business.
+ */
+async function parseEventForm(
   formData: FormData,
-): Promise<EventFormResult> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Sign in to submit an event." };
-
-  const gate = await checkRateLimit("event:create", user);
-  if (!gate.ok) return { error: gate.message };
-
+): Promise<{ fieldErrors: Record<string, string> } | { fields: ParsedEvent }> {
   const get = (k: string) => String(formData.get(k) ?? "").trim();
 
-  /*
-   * Whether this platform runs the event, or is listing somebody else's.
-   *
-   * One action rather than two. The listing path started life as its own
-   * function and was 69% the same code — the same rate limit, the same date
-   * parsing, the same venue upsert, the same slug. This repository has been
-   * bitten repeatedly by exactly that: three copies of the unique-slug loop
-   * that disagreed on their retry count, two ways of adding a team that
-   * produced different teams. The difference here is four fields and a
-   * couple of rules, which is data, not a second code path.
-   */
   const listed = get("runBy") === "someone-else";
-
   const kind = get("kind");
   const title = get("title");
   const locationType = listed ? "in_person" : get("locationType") || "in_person";
@@ -111,12 +128,13 @@ export async function submitEvent(
 
   const timezone = get("timezone") || "America/Los_Angeles";
 
-  // Read in the event's own zone, not the server's.
-  //
-  // `new Date("2026-08-29T09:00")` uses whatever timezone the process runs in.
-  // That is Seattle on a laptop and UTC on Vercel, so a 9am kickoff typed by
-  // an organizer was being stored as 9am UTC and shown back to them as 2am.
-  // zonedDate exists for exactly this and was not being used here.
+  /*
+   * Read in the event's own zone, not the server's.
+   *
+   * `new Date("2026-08-29T09:00")` uses whatever timezone the process runs in.
+   * That is Seattle on a laptop and UTC on Vercel, so a 9am kickoff typed by
+   * an organizer was being stored as 9am UTC and shown back to them as 2am.
+   */
   const startsAt = zonedDate(date, time || "00:00", timezone);
   // The end of the last day rather than its start, so a range covers the day
   // it names — "August 29–31" that stopped at midnight on the 31st would end
@@ -142,11 +160,51 @@ export async function submitEvent(
       )[0].id;
   }
 
+  return {
+    fields: {
+      listed,
+      kind,
+      defaultModules: kindRow.defaultModules,
+      title,
+      summary: get("summary") || null,
+      locationType: locationType as "in_person" | "online" | "hybrid",
+      onlineUrl: locationType === "online" ? onlineUrl : null,
+      startsAt,
+      endsAt,
+      timezone,
+      venueId,
+      ageGroup: get("ageGroup") || null,
+      gender: get("gender") || null,
+      level: get("level") || null,
+      format: get("format") || null,
+      needsOpponent: !listed && formData.get("needsOpponent") === "on",
+      host: listed ? get("host") || sourceName : get("host") || null,
+      sourceName: listed ? sourceName : null,
+      sourceUrl: listed ? safeSourceUrl(sourceUrl) : null,
+      scheduleUrl: listed ? safeSourceUrl(scheduleUrl) : null,
+    },
+  };
+}
+
+export async function submitEvent(
+  _prev: EventFormResult,
+  formData: FormData,
+): Promise<EventFormResult> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to submit an event." };
+
+  const gate = await checkRateLimit("event:create", user);
+  if (!gate.ok) return { error: gate.message };
+
+  const parsed = await parseEventForm(formData);
+  if ("fieldErrors" in parsed) return parsed;
+  const f = parsed.fields;
+
   // Hosting for a team: only its owner/manager/coach may put events on its
   // calendar, so a forged slug in the form gets dropped rather than trusted.
   // Never on a listing — nobody here hosts somebody else's tournament.
   let hostTeamId: string | null = null;
-  const hostTeamSlug = listed ? "" : get("hostTeam");
+  const hostTeamSlug = f.listed ? "" : String(formData.get("hostTeam") ?? "").trim();
   if (hostTeamSlug) {
     const team = await db.query.teams.findFirst({
       where: eq(teams.slug, hostTeamSlug),
@@ -160,46 +218,128 @@ export async function submitEvent(
   const admin = isAdmin(user);
   // A listing is always public: it exists to be found. Offering to hide one
   // would be offering to keep somebody else's tournament secret.
-  const picked = listed ? "public" : get("visibility");
+  const picked = f.listed ? "public" : String(formData.get("visibility") ?? "").trim();
   const visibility = (
     ["public", "unlisted", "private"].includes(picked) ? picked : "public"
   ) as "public" | "unlisted" | "private";
 
-  const needsReview = needsAdminReview(kind, visibility, admin);
-  const slug = await uniqueSlug(slugify(title));
+  const needsReview = needsAdminReview(f.kind, visibility, admin);
+  const slug = await uniqueSlug(slugify(f.title));
 
   await db.insert(events).values({
     slug,
-    kind,
+    kind: f.kind,
     // A listing runs nothing here, so it gets none of the modules that offer
     // entries, rosters or a table.
-    modules: listed ? [] : kindRow.defaultModules,
-    title,
-    summary: get("summary") || null,
+    modules: f.listed ? [] : f.defaultModules,
+    title: f.title,
+    summary: f.summary,
     status: needsReview ? "pending" : "published",
     visibility,
-    locationType: locationType as "in_person" | "online" | "hybrid",
-    venueId,
-    onlineUrl: locationType === "online" ? onlineUrl : null,
-    startsAt,
-    endsAt,
-    timezone,
-    ageGroup: get("ageGroup") || null,
-    gender: get("gender") || null,
-    level: get("level") || null,
-    format: get("format") || null,
-    needsOpponent: !listed && formData.get("needsOpponent") === "on",
-    host: listed ? get("host") || sourceName : get("host") || null,
-    sourceName: listed ? sourceName : null,
-    sourceUrl: listed ? safeSourceUrl(sourceUrl) : null,
-    scheduleUrl: listed ? safeSourceUrl(scheduleUrl) : null,
-    listedBy: listed ? user.id : null,
+    locationType: f.locationType,
+    venueId: f.venueId,
+    onlineUrl: f.onlineUrl,
+    startsAt: f.startsAt,
+    endsAt: f.endsAt,
+    timezone: f.timezone,
+    ageGroup: f.ageGroup,
+    gender: f.gender,
+    level: f.level,
+    format: f.format,
+    needsOpponent: f.needsOpponent,
+    host: f.host,
+    sourceName: f.sourceName,
+    sourceUrl: f.sourceUrl,
+    scheduleUrl: f.scheduleUrl,
+    listedBy: f.listed ? user.id : null,
     // No organizer on a listing: nobody here runs it. Claiming one later is
     // exactly what sets this.
-    organizerId: listed ? null : user.id,
+    organizerId: f.listed ? null : user.id,
     hostTeamId,
   });
 
+  redirect(`/events/${slug}`);
+}
+
+/**
+ * Change an event's own details after the fact.
+ *
+ * Whoever manages it: the organizer who typed the wrong date, or an admin
+ * fixing a listing somebody entered from a flyer. Until now nothing could —
+ * an event's title, summary, dates and venue were written once at submission
+ * and there was no page that could touch them again.
+ *
+ * Four things it deliberately leaves alone.
+ *
+ * The slug, because it is the URL: people have the link, and a title fixed
+ * from "Labour" to "Labor" is not a reason to break every link to it.
+ *
+ * Who runs it. Turning a listing into an event we run rewrites what the page
+ * offers, who owns it and which modules it has — that is claiming, which is
+ * its own thing, not a field on a form.
+ *
+ * Visibility, which has its own control on the page with its own rule about
+ * review. Two paths writing it would be two rules, and one of them would be
+ * the wrong one.
+ *
+ * And the status. A non-admin editing a public event does not send it back to
+ * the review queue: pulling a live tournament off the list because its
+ * organizer fixed a typo is a worse failure than the spam it would prevent,
+ * and an admin can already take an event down.
+ */
+export async function updateEvent(
+  slug: string,
+  _prev: EventFormResult,
+  formData: FormData,
+): Promise<EventFormResult> {
+  if (!(await canManageEvent({ slug }))) {
+    return { error: "You can't edit this event." };
+  }
+
+  const current = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { id: true, sourceName: true },
+  });
+  if (!current) return { error: "That event is gone." };
+
+  const parsed = await parseEventForm(formData);
+  if ("fieldErrors" in parsed) return parsed;
+  const f = parsed.fields;
+
+  // What it already is, not what the form says. A listing stays a listing.
+  const listed = current.sourceName !== null;
+
+  await db
+    .update(events)
+    .set({
+      kind: f.kind,
+      title: f.title,
+      summary: f.summary,
+      locationType: f.locationType,
+      venueId: f.venueId,
+      onlineUrl: f.onlineUrl,
+      startsAt: f.startsAt,
+      endsAt: f.endsAt,
+      timezone: f.timezone,
+      ageGroup: f.ageGroup,
+      gender: f.gender,
+      level: f.level,
+      format: f.format,
+      needsOpponent: f.needsOpponent,
+      host: f.host,
+      ...(listed
+        ? {
+            sourceName: f.sourceName,
+            sourceUrl: f.sourceUrl,
+            scheduleUrl: f.scheduleUrl,
+          }
+        : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, current.id));
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath("/events");
   redirect(`/events/${slug}`);
 }
 
