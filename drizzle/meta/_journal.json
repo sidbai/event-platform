@@ -337,6 +337,13 @@
       "when": 1788796489972,
       "tag": "0047_northshore_club",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788804366231,
+      "tag": "0048_smiling_beast",
+      "breakpoints": true
     }
   ]
 }

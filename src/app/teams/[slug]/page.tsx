@@ -22,6 +22,7 @@ import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { CreateLink } from "@/components/create-link";
 import { formatEventWhen } from "@/features/events/when";
+import { formatBirthYears } from "@/features/teams/age";
 import { formatRecord, recordFrom } from "@/features/teams/record";
 import { teamBySoleOldSlug } from "@/features/teams/merge";
 
@@ -137,8 +138,17 @@ export default async function TeamPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
           <p className="text-sm text-muted">
-            {[team.club?.name, team.ageGroup, team.city].filter(Boolean).join(" · ") ||
-              "Youth soccer team"}
+            {/* Birth years lead, and the age group follows only when there
+                are none: "2013/2014" still means the same children next
+                September and "U13" does not. */}
+            {[
+              team.club?.name,
+              formatBirthYears(team.birthYears) ?? team.ageGroup,
+              team.gender === "boys" ? "Boys" : team.gender === "girls" ? "Girls" : null,
+              team.city,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Youth soccer team"}
           </p>
         </div>
       </header>

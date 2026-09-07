@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "birth_years" integer[] DEFAULT '{}' NOT NULL;
