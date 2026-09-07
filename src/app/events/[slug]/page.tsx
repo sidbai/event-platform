@@ -352,6 +352,23 @@ export default async function EventPage({
         </p>
       )}
 
+      {/*
+        A listing has no entries, no rosters and no table of ours — but its
+        table is worked out here from the organizer's fixtures, and that
+        arithmetic depends on their scoring rules. So the one setup field a
+        listing does need stays reachable for whoever manages it.
+      */}
+      {!isCompetition && canManage && event.matches.length > 0 && (
+        <p className="mt-8 text-sm">
+          <Link
+            href={`/events/${event.slug}/setup`}
+            className="text-muted hover:text-ink"
+          >
+            Set up rules and scoring
+          </Link>
+        </p>
+      )}
+
       {runHere && myEntries.length > 0 && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
           {/* One link per team. A club with two age groups in the same Cup
@@ -493,6 +510,7 @@ export default async function EventPage({
         event={event}
         sp={sp}
         config={{
+          system: rules?.pointsSystem,
           goalCap: rules?.goalCapPerGame,
           tiebreakers: rules?.tiebreakers,
         }}

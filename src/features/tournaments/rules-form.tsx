@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { TIEBREAKERS, type Rules } from "./rules-input";
+import { POINTS_SYSTEMS } from "./standings";
 import type { SetupResult } from "./setup-actions";
 
 const field = "rounded-md border border-line bg-card px-2 py-1.5 text-sm";
@@ -73,6 +74,28 @@ export function RulesForm({
             />
           </label>
         </div>
+
+        <label className={labelCls}>
+          Points
+          <select
+            name="pointsSystem"
+            defaultValue={v("pointsSystem", rules?.pointsSystem) || "standard"}
+            className={`mt-1 block w-full ${field}`}
+          >
+            {Object.values(POINTS_SYSTEMS).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          {/* Spelled out rather than left to the name: "ten-point" tells an
+              organizer nothing about whether it is the one their tournament
+              plays, and picking the wrong one reorders every table. */}
+          <span className="mt-1 block text-xs text-muted">
+            {POINTS_SYSTEMS.standard.describe} Ten-point:{" "}
+            {POINTS_SYSTEMS["ten-point"].describe}
+          </span>
+        </label>
 
         <label className={labelCls}>
           Advancement

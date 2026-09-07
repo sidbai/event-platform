@@ -12,6 +12,7 @@
  */
 
 import type { Parsed } from "./division-input";
+import { POINTS_SYSTEMS, type PointsSystem } from "./standings";
 
 /**
  * The tiebreakers rankStandings can actually apply, in the order they are
@@ -35,6 +36,12 @@ export type Rules = {
   roster?: string;
   tiebreakers: string[];
   goalCapPerGame?: number;
+  /**
+   * How a result becomes points. Absent means three for a win — every table
+   * built before this field existed was computed that way, so reading the
+   * absence as anything else would silently restate old standings.
+   */
+  pointsSystem?: PointsSystem["id"];
   /** How many periods a game is played in, and how long each one is. */
   periods?: number;
   periodMinutes?: number;
@@ -42,6 +49,8 @@ export type Rules = {
 
 const isTiebreaker = (v: string): v is TiebreakerId =>
   TIEBREAKERS.some((t) => t.id === v);
+
+const isPointsSystem = (v: string): v is PointsSystem["id"] => v in POINTS_SYSTEMS;
 
 /**
  * Put chosen tiebreakers back into the order rankStandings applies them.
@@ -73,6 +82,7 @@ export function parseRules(form: {
   goalCap: string;
   periods: string;
   periodMinutes: string;
+  pointsSystem?: string;
 }): Parsed<Rules> {
   const cap = parseMinutes(form.goalCap, "Goal cap", 99);
   if (!cap.ok) return cap;
@@ -100,6 +110,12 @@ export function parseRules(form: {
   if (advancement) rules.advancement = advancement.slice(0, 300);
   if (roster) rules.roster = roster.slice(0, 300);
   if (cap.value !== null) rules.goalCapPerGame = cap.value;
+  // Only stored when it is not the default, so a table computed the ordinary
+  // way carries no claim about its scoring.
+  const system = (form.pointsSystem ?? "").trim();
+  if (system && isPointsSystem(system) && system !== "standard") {
+    rules.pointsSystem = system;
+  }
   if (periods.value !== null) rules.periods = periods.value;
   if (periodMinutes.value !== null) rules.periodMinutes = periodMinutes.value;
 

@@ -10,6 +10,7 @@ import { DivisionPicker } from "./division-picker";
 import { byMatchday, currentMatchday } from "./matchdays";
 import {
   computeStandings,
+  POINTS_SYSTEMS,
   rankStandings,
   type StandingRow,
   type StandingsConfig,
@@ -491,9 +492,19 @@ function DivisionStandings({
       {/* Said plainly, because a table is the most authoritative-looking
           thing on a page and a reader has no way to tell one from the other. */}
       <p className="mt-1 text-xs text-muted">
-        {official
-          ? "The organizer's own table."
-          : "Worked out from the results here — the organizer's own table may order it differently."}
+        {official ? (
+          "The organizer's own table."
+        ) : (
+          <>
+            Worked out from the results here — the organizer&rsquo;s own table may
+            order it differently.{" "}
+            {/* Which arithmetic, in the organizer's own terms. A ten-point
+                table and a three-point one differ by more than the numbers in
+                the column, and a coach checking whether we got it right needs
+                to see the rule we used. */}
+            {POINTS_SYSTEMS[config.system ?? "standard"].describe}
+          </>
+        )}
       </p>
 
       <div className="mt-2 space-y-4">

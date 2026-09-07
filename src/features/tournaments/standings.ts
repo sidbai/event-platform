@@ -21,7 +21,58 @@ export type StandingRow = {
   capGd: number;
 };
 
+/**
+ * How a competition turns results into points.
+ *
+ * Three points a win is the league convention and the assumption everywhere
+ * else in this file, but American youth tournaments very often use a
+ * ten-point system, where a win is worth six, a tie three, and the rest comes
+ * from goals scored and clean sheets. The two produce different tables from
+ * the same results — and different champions — so it is a property of the
+ * competition rather than a default anybody should inherit.
+ */
+export type PointsSystem = {
+  id: "standard" | "ten-point";
+  label: string;
+  win: number;
+  draw: number;
+  loss: number;
+  /** One point per goal scored, up to this many. Zero means goals earn none. */
+  goalPointsMax: number;
+  /** For conceding nothing. Awarded on a goalless draw too: both kept one. */
+  shutoutPoints: number;
+  /** Said plainly on the page, so an organizer can see whether it is theirs. */
+  describe: string;
+};
+
+export const POINTS_SYSTEMS: Record<PointsSystem["id"], PointsSystem> = {
+  standard: {
+    id: "standard",
+    label: "Three points for a win",
+    win: 3,
+    draw: 1,
+    loss: 0,
+    goalPointsMax: 0,
+    shutoutPoints: 0,
+    describe: "3 for a win, 1 for a draw.",
+  },
+  "ten-point": {
+    id: "ten-point",
+    label: "Ten-point system",
+    win: 6,
+    draw: 3,
+    loss: 0,
+    goalPointsMax: 3,
+    shutoutPoints: 1,
+    describe:
+      "6 for a win, 3 for a tie, 1 per goal scored up to 3, and 1 for a shutout — 10 at most.",
+  },
+};
+
 export type StandingsConfig = {
+  /** Which competition this is. Defaults to three points for a win. */
+  system?: PointsSystem["id"];
+  /** Overrides the system's win/draw/loss, for a competition that is neither. */
   points?: { win: number; draw: number; loss: number };
   /** per-game clamp for goal difference / goals for / goals against */
   goalCap?: number;
@@ -69,7 +120,12 @@ export function computeStandings(
   teamIds?: string[],
   config: StandingsConfig = {},
 ): Map<string, StandingRow> {
-  const points = config.points ?? DEFAULTS.points;
+  const system = POINTS_SYSTEMS[config.system ?? "standard"];
+  const points = config.points ?? {
+    win: system.win,
+    draw: system.draw,
+    loss: system.loss,
+  };
   const cap = config.goalCap ?? DEFAULTS.goalCap;
   const restrict = teamIds ? new Set(teamIds) : null;
 
@@ -104,6 +160,16 @@ export function computeStandings(
     away.capGa += Math.min(hs, cap);
     home.capGd += clamp(hs - as, -cap, cap);
     away.capGd += clamp(as - hs, -cap, cap);
+
+    /*
+     * The rest of a ten-point table: goals scored, capped so a 9-0 is worth
+     * no more than a 3-0, and a point for conceding nothing. Both are zero
+     * under three-points-for-a-win, so this costs that system nothing.
+     */
+    home.points += Math.min(hs, system.goalPointsMax);
+    away.points += Math.min(as, system.goalPointsMax);
+    if (as === 0) home.points += system.shutoutPoints;
+    if (hs === 0) away.points += system.shutoutPoints;
 
     if (hs > as) {
       home.won++;
