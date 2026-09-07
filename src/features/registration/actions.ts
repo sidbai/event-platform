@@ -52,9 +52,14 @@ export async function registerTeam(
     columns: { id: true, status: true },
   });
   if (!event) return { error: "That event is gone." };
-  // A pending event has not been approved; taking entries for it would be
-  // collecting commitments to something that may never run.
-  if (event.status !== "published" && event.status !== "completed") {
+  /*
+   * A pending event has not been approved; taking entries for it would be
+   * collecting commitments to something that may never run. A completed one
+   * used to be allowed here, which meant marking a tournament finished did
+   * nothing to stop entries arriving for it — the status said the event was
+   * over while the form kept taking teams.
+   */
+  if (event.status !== "published") {
     return { error: "This event isn't open for entries." };
   }
 
@@ -179,7 +184,8 @@ export async function registerNewTeam(
     columns: { id: true, status: true },
   });
   if (!event) return { error: "That event is gone." };
-  if (event.status !== "published" && event.status !== "completed") {
+  // Same as above: a finished event does not take teams.
+  if (event.status !== "published") {
     return { error: "This event isn't open for entries." };
   }
 

@@ -12,6 +12,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
 import { zonedDate } from "@/lib/dates";
 
+import { canMarkCompleted, canReopen } from "./completion";
 import { canManageEvent } from "./can-manage";
 import { safeSourceUrl } from "./listing";
 import { needsAdminReview } from "./review-rule";
@@ -262,6 +263,54 @@ export async function setEventVisibility(
   await db
     .update(events)
     .set({ visibility, status, updatedAt: new Date() })
+    .where(eq(events.slug, slug));
+
+  revalidatePath(`/events/${slug}`);
+  revalidatePath("/events");
+}
+
+
+/**
+ * Mark an event finished, or put it back.
+ *
+ * "Completed" already carried meaning — a Final results tag, a page that opens
+ * on the table rather than the fixture list, a listing that stays up because a
+ * finished tournament is a destination rather than an expired advert. Nothing
+ * could set it: only the admin review queue ever wrote a status, so every
+ * event stayed "published" forever and the distinction was decorative.
+ *
+ * Whoever manages the event, not admins alone. The organizer is the person
+ * who knows the last whistle went, and this says nothing an admin needs to
+ * approve — it is a statement about the past, not a request to publish
+ * something.
+ *
+ * Deliberately not automatic. A tournament whose last day has passed is
+ * usually over, but "usually" is how a league with a rain-delayed final gets
+ * archived while it is still being played. The page offers; a person decides.
+ */
+export async function setEventCompleted(
+  slug: string,
+  completed: boolean,
+): Promise<void> {
+  if (!(await canManageEvent({ slug }))) return;
+
+  const current = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    columns: { status: true },
+  });
+  if (!current) return;
+
+  // Only between running and finished. A draft was never announced, a pending
+  // one is not approved, and a cancelled event did not finish — it did not
+  // happen, which the page already says differently.
+  const allowed = completed
+    ? canMarkCompleted(current.status)
+    : canReopen(current.status);
+  if (!allowed) return;
+
+  await db
+    .update(events)
+    .set({ status: completed ? "completed" : "published", updatedAt: new Date() })
     .where(eq(events.slug, slug));
 
   revalidatePath(`/events/${slug}`);
