@@ -7,8 +7,8 @@
  *
  *   Athletes2Events  four admin paths disallowed, everything else allowed —
  *                    the same permission Google indexes those schedules
- *                    under. We read them. Their terms additionally ask for
- *                    permission, which has been requested; that is recorded
+ *                    under. We read them. Their terms separately ask for
+ *                    permission, which has not been sought; that is recorded
  *                    below rather than resolved by this file.
  *   EventConnect     a blanket Disallow, which refuses Googlebot as much as
  *                    us — no search engine has these schedules at all. We
@@ -54,7 +54,7 @@ export const PROVIDER_POLICIES = {
     robots: "allows",
     termsUrl: "https://athletes2events.com/web/terms-and-conditions",
     reviewedAt: "2026-09-06",
-    note: 'robots.txt disallows four admin paths and allows the rest, which is the permission Google indexes these schedules under — ask an AI about a team and it cites crossfire.athletes2events.com. The terms also say "scrape or harvest data without permission"; permission has been requested, and the owner\'s decision is that the machine-readable signal governs until they answer.',
+    note: 'robots.txt disallows four admin paths and allows the rest, which is the permission Google indexes these schedules under — ask an AI about a team and it cites crossfire.athletes2events.com. The terms separately ask for permission for scraping; no request has been made, and the owner\'s decision is that the machine-readable signal is the one we follow. If A2E ever asks us to stop, this becomes "refused" and the connector stops with it.',
   },
   eventconnect: {
     label: "EventConnect",

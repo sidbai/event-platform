@@ -27,7 +27,10 @@ describe("what we recorded about each platform", () => {
      */
     expect(PROVIDER_POLICIES.athletes2events.robots).toBe("allows");
     expect(PROVIDER_POLICIES.athletes2events.automatedAccess).toBe("allowed");
-    expect(PROVIDER_POLICIES.athletes2events.note).toMatch(/permission has been requested/);
+    // The note is a record, not a plan. It said permission "has been
+    // requested" when no request had been made — a policy file that describes
+    // something nobody did is worse than one that says nothing.
+    expect(PROVIDER_POLICIES.athletes2events.note).toMatch(/no request has been made/);
 
     expect(PROVIDER_POLICIES.eventconnect.robots).toBe("disallows");
     expect(PROVIDER_POLICIES.eventconnect.automatedAccess).toBe("refused");
