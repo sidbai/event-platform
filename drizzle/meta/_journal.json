@@ -323,6 +323,13 @@
       "when": 1788796487972,
       "tag": "0045_more_club_aliases",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788796488972,
+      "tag": "0046_wenatchee_sozo_clubs",
+      "breakpoints": true
     }
   ]
 }
