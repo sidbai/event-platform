@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
+import { parseAffiliation } from "@/features/clubs/affiliation";
+import { clubOptions } from "@/features/clubs/link-queries";
 import {
   eventOffers,
   eventTeams,
@@ -69,10 +71,12 @@ export async function updateTeam(
     return v === "" ? null : v;
   };
 
+  const clubIds = (await clubOptions()).map((c) => c.id);
+
   await db
     .update(teams)
     .set({
-      club: get("club"),
+      ...parseAffiliation(get("club"), clubIds),
       city: get("city"),
       ageGroup: get("ageGroup"),
       gender: get("gender"),

@@ -35,6 +35,7 @@ export async function getTeamBySlug(slug: string) {
         },
       },
       eventTeams: { with: { event: true, division: true } },
+      club: { columns: { slug: true, name: true } },
     },
   });
   if (!team) return null;

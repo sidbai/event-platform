@@ -12,12 +12,15 @@ const label = "block text-sm font-medium";
 
 export function TeamEditForm({
   action,
+  clubs,
   team,
 }: {
   action: Action;
+  clubs: { id: string; name: string }[];
   team: {
     visibility: string;
-    club: string | null;
+    /** The chosen club's id, or "independent", or "" for not said. */
+    club: string;
     city: string | null;
     ageGroup: string | null;
     gender: string | null;
@@ -36,7 +39,24 @@ export function TeamEditForm({
           <label className={label} htmlFor="club">
             Club
           </label>
-          <input id="club" name="club" defaultValue={team.club ?? ""} className={`mt-1 ${field}`} />
+          {/* A choice rather than a text box: the club is a page on this site
+              with its own coaches and reviews, and "Crossfire", "XF" and
+              "Crossfire Select" typed into a field are three clubs that do not
+              exist. A team formed for a tournament says so instead. */}
+          <select
+            id="club"
+            name="club"
+            defaultValue={team.club}
+            className={`mt-1 ${field}`}
+          >
+            <option value="">Not sure yet</option>
+            <option value="independent">Not with a club</option>
+            {clubs.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={label} htmlFor="city">

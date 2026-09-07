@@ -222,7 +222,10 @@ async function main() {
       .values({
         slug,
         name: t.name,
-        club: null,
+        // Put together for the cup, with no club above them — which is what
+        // 'independent' records. Left as 'unknown' they would sit in the
+        // admin queue forever waiting for a club that does not exist.
+        affiliation: "independent",
         ageGroup: t.division,
         gender: "coed",
         city: "Bellevue",

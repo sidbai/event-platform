@@ -75,7 +75,6 @@ async function main() {
       .values({
         slug,
         name,
-        club: row.club,
         city: row.city,
         ageGroup: "U13",
         gender: "boys",
@@ -83,7 +82,7 @@ async function main() {
       })
       .onConflictDoUpdate({
         target: teams.slug,
-        set: { name, club: row.club, city: row.city, ageGroup: "U13" },
+        set: { name, city: row.city, ageGroup: "U13" },
       })
       .returning({ id: teams.id });
 

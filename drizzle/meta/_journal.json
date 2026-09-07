@@ -288,6 +288,27 @@
       "when": 1788724864427,
       "tag": "0040_team_slug_history",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788795215170,
+      "tag": "0041_flawless_iron_fist",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788795223294,
+      "tag": "0042_many_changeling",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1788795224294,
+      "tag": "0043_seed_club_aliases",
+      "breakpoints": true
     }
   ]
 }

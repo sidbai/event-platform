@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser, publicName, requireUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { affiliationValue } from "@/features/clubs/affiliation";
+import { clubOptions } from "@/features/clubs/link-queries";
 import { canManageTeam } from "@/features/teams/access";
 import { deleteTeam, removeMember, updateTeam } from "@/features/teams/actions";
 import { DeleteTeamButton } from "@/features/teams/delete-team";
@@ -33,6 +35,8 @@ export default async function TeamSettingsPage({
   const team = await getTeamBySlug(slug);
   if (!team) notFound();
   if (!(await canManageTeam(team.id))) notFound();
+
+  const clubs = await clubOptions();
 
   const user = await getCurrentUser();
   // Admins administer teams they don't own — that is how a team created on
@@ -67,9 +71,10 @@ export default async function TeamSettingsPage({
 
       <TeamEditForm
         action={updateTeam.bind(null, slug)}
+        clubs={clubs}
         team={{
           visibility: team.visibility,
-          club: team.club,
+          club: affiliationValue(team),
           city: team.city,
           ageGroup: team.ageGroup,
           gender: team.gender,

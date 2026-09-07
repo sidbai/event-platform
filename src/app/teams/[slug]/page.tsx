@@ -111,7 +111,8 @@ export default async function TeamPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
           <p className="text-sm text-muted">
-            {[team.club, team.ageGroup, team.city].filter(Boolean).join(" · ") || "Youth soccer team"}
+            {[team.club?.name, team.ageGroup, team.city].filter(Boolean).join(" · ") ||
+              "Youth soccer team"}
           </p>
         </div>
       </header>
