@@ -309,6 +309,13 @@
       "when": 1788795224294,
       "tag": "0043_seed_club_aliases",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788796486972,
+      "tag": "0044_empty_eternals",
+      "breakpoints": true
     }
   ]
 }

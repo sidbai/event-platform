@@ -1,6 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+
+import { EventLogo } from "@/components/event-logo";
+import { ImageUpload } from "@/features/uploads/image-upload";
+import { clearEventLogo, setEventLogo } from "@/features/uploads/actions";
 import type { Metadata } from "next";
 
 import { db } from "@/db";
@@ -78,6 +82,17 @@ export default async function EditEventPage({
         ← {event.title}
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Edit event</h1>
+
+      <div className="mt-5 flex items-start gap-4">
+        <EventLogo src={event.logoUrl} kind={event.kind} size={64} />
+        <ImageUpload
+          target={{ kind: "event", eventSlug: slug }}
+          hasImage={Boolean(event.logoUrl)}
+          onUploaded={setEventLogo.bind(null, slug)}
+          onCleared={clearEventLogo.bind(null, slug)}
+          label="Upload a logo"
+        />
+      </div>
       <p className="mt-2 text-sm text-muted">
         Who runs it and who can see it are not here: the first is what claiming
         an event means, and the second has its own control on the event page.

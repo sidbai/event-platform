@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SearchBar } from "@/components/search-bar";
 
+import { EventLogo } from "@/components/event-logo";
 import { EventTags } from "@/features/events/event-tags";
 import {
   listEventKindFacets,
@@ -36,19 +37,23 @@ function EventList({
           <li key={event.id}>
             <Link
               href={`/events/${event.slug}`}
-              className="block py-4 transition-colors hover:bg-elevated"
+              className="flex gap-3 py-4 transition-colors hover:bg-elevated"
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium">{event.title}</span>
-                <span className="shrink-0 text-sm text-muted">
-                  {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short", event.kind)}
-
-                </span>
+              <EventLogo src={event.logoUrl} kind={event.kind} className="mt-0.5" />
+              {/* min-w-0 so a long title truncates instead of shoving the
+                  date off the row. */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-medium">{event.title}</span>
+                  <span className="shrink-0 text-sm text-muted">
+                    {formatEventWhen(event.startsAt, event.endsAt, event.timezone, "short", event.kind)}
+                  </span>
+                </div>
+                {event.venue && (
+                  <div className="mt-0.5 text-sm text-muted">{event.venue.name}</div>
+                )}
+                <EventTags event={event} className="mt-2" />
               </div>
-              {event.venue && (
-                <div className="mt-0.5 text-sm text-muted">{event.venue.name}</div>
-              )}
-              <EventTags event={event} className="mt-2" />
             </Link>
           </li>
         ))}
