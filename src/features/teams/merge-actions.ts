@@ -27,7 +27,9 @@ export async function confirmMerge(
   if (!user || !isAdmin(user)) return { error: "Not allowed." };
 
   try {
-    const out = await mergeTeams(survivorId, loserIds);
+    // The admin's id rides along: an alias binds every future import of that
+    // name, so who said so is worth keeping.
+    const out = await mergeTeams(survivorId, loserIds, user.id);
     revalidatePath("/admin/teams");
     revalidatePath(`/teams/${out.survivorSlug}`);
     return {

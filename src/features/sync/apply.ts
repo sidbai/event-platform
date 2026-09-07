@@ -12,10 +12,12 @@ import {
   eventTeams,
   events,
   matches,
+  teamAliases,
   teams,
 } from "@/db/schema";
 import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
 import { teamFactsFrom } from "@/features/teams/facts";
+import { normaliseTeamName } from "@/features/teams/merge-plan";
 import { uniqueTeamSlug } from "@/features/teams/slug";
 import { zonedDate } from "@/lib/dates";
 import { slugify } from "@/lib/slug";
@@ -131,6 +133,19 @@ export async function applySync(
   const aliasMap = new Map(aliasRows.map((r) => [r.alias, r.clubId]));
   const clubSlugById = new Map(clubRows.map((c) => [c.id, c.slug]));
 
+  /*
+   * Names an admin has already said belong to an existing team.
+   *
+   * Written when they merge two rows, so a question answered once is not
+   * asked every tournament: a platform that called a side "Little Warriors
+   * B15 B" this September will call it that next September too. Without this
+   * the connector mints a new row each time and the queue refills.
+   */
+  const teamAliasRows = await db
+    .select({ alias: teamAliases.alias, teamId: teamAliases.teamId })
+    .from(teamAliases);
+  const teamByAlias = new Map(teamAliasRows.map((r) => [r.alias, r.teamId]));
+
   const existingEntries = await db.query.eventTeams.findMany({
     where: eq(eventTeams.eventId, eventId),
     columns: { id: true, teamId: true, sourceTeamId: true },
@@ -149,6 +164,29 @@ export async function applySync(
         .update(eventTeams)
         .set({ divisionId: divisionByName.get(t.division) ?? null, groupLabel: t.group })
         .where(eq(eventTeams.id, known.id));
+      continue;
+    }
+
+    /*
+     * A name somebody has already bound to a team wins over making another.
+     *
+     * This is the merge queue paying for itself: the admin answered once,
+     * and every future import of that name lands on the same team instead of
+     * a row for them to fold in again.
+     */
+    const bound = teamByAlias.get(normaliseTeamName(t.name));
+    if (bound) {
+      teamIdBySource.set(t.sourceTeamId, bound);
+      await db
+        .insert(eventTeams)
+        .values({
+          eventId,
+          teamId: bound,
+          divisionId: divisionByName.get(t.division) ?? null,
+          groupLabel: t.group,
+          sourceTeamId: t.sourceTeamId,
+        })
+        .onConflictDoNothing();
       continue;
     }
 

@@ -22,8 +22,17 @@ vi.mock("next/cache", () => ({
 }));
 
 const { db } = await import("@/db");
-const { clubAliases, clubs, eventDivisions, eventKinds, eventTeams, events, matches, teams } =
-  await import("@/db/schema");
+const {
+  clubAliases,
+  clubs,
+  eventDivisions,
+  eventKinds,
+  eventTeams,
+  events,
+  matches,
+  teamAliases,
+  teams,
+} = await import("@/db/schema");
 const { applySync, contentHash, recordSyncFailure } = await import(
   "@/features/sync/apply"
 );
@@ -341,5 +350,58 @@ describe("what a synced team knows about itself", () => {
       columns: { clubId: true, affiliation: true },
     });
     expect(unplaced?.clubId).toBeNull();
+  });
+});
+
+describe("a name an admin already bound", () => {
+  it("lands on the existing team instead of making another", async () => {
+    /*
+     * The merge queue paying for itself. An admin folded this platform's
+     * name into an existing team once; every import after that should reach
+     * the same row rather than minting one for them to fold in again.
+     */
+    const [existing] = await db
+      .insert(teams)
+      .values({ slug: "xf-b0910-ecnl-1", name: "Crossfire B2009/10 ECNL I", visibility: "private" })
+      .returning({ id: teams.id });
+    await db
+      .insert(teamAliases)
+      .values({ alias: "xfb0910ecnl1", teamId: existing.id });
+
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    // No second row under the platform's spelling.
+    const minted = await db.query.teams.findMany({
+      where: eq(teams.name, "XF B09/10 ECNL 1"),
+      columns: { id: true },
+    });
+    expect(minted).toHaveLength(0);
+
+    // And the event entry points at the team the admin chose.
+    const entry = await db.query.eventTeams.findFirst({
+      where: eq(eventTeams.teamId, existing.id),
+      columns: { teamId: true, eventId: true, sourceTeamId: true },
+    });
+    expect(entry?.eventId).toBe(eventId);
+    expect(entry?.sourceTeamId).toBeTruthy();
+  });
+
+  it("still carries the team's fixtures", async () => {
+    const [existing] = await db
+      .insert(teams)
+      .values({ slug: "kept", name: "Kept Team", visibility: "private" })
+      .returning({ id: teams.id });
+    await db.insert(teamAliases).values({ alias: "xfb0910ecnl1", teamId: existing.id });
+
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    const played = await db.query.matches.findMany({
+      where: eq(matches.eventId, eventId),
+      columns: { homeTeamId: true, awayTeamId: true },
+    });
+    const ids = new Set(played.flatMap((m) => [m.homeTeamId, m.awayTeamId]));
+    expect(ids.has(existing.id)).toBe(true);
   });
 });
