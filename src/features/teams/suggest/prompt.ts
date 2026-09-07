@@ -62,3 +62,50 @@ export function buildPrompt(unmatched: SuggestTeam[], candidates: SuggestTeam[])
     'Return {"matches":[]} if none of them are the same team. Do not guess.',
   ].join("\n");
 }
+
+/**
+ * The handful of teams one import might already be.
+ *
+ * Asking about forty teams against the whole directory cost 66,460 input
+ * tokens and produced an empty answer: a thousand candidates in one prompt is
+ * not a question, it is a haystack. The same question against seven
+ * candidates costs 563 tokens and gets a considered reply.
+ *
+ * Ranked by the words the two names share, once the club's own words are
+ * discounted — the club is usually all they share, and it is the rest that
+ * decides.
+ */
+export function shortlist(
+  team: SuggestTeam,
+  candidates: SuggestTeam[],
+  limit = 12,
+): SuggestTeam[] {
+  const GENERIC = new Set([
+    "fc", "sc", "select", "academy", "premier", "boys", "girls", "united",
+    "club", "soccer",
+  ]);
+  const words = (v: string) =>
+    new Set(
+      v
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((w) => w.length > 1 && !GENERIC.has(w)),
+    );
+
+  const mine = words(team.name);
+  const scored = candidates.flatMap((c) => {
+    if (c.id === team.id) return [];
+    const theirs = words(c.name);
+    const shared = [...mine].filter((w) => theirs.has(w)).length;
+    // Same club counts for something even when the names share nothing:
+    // that is how a rebranded side stays in view.
+    const sameClub = team.club && c.club && team.club === c.club ? 1 : 0;
+    const score = shared + sameClub;
+    return score > 0 ? [{ c, score }] : [];
+  });
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => s.c);
+}
