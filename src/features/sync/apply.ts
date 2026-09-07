@@ -5,7 +5,17 @@ import { createHash } from "node:crypto";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 
 import { db } from "@/db";
-import { eventDivisions, eventTeams, events, matches, teams } from "@/db/schema";
+import {
+  clubAliases,
+  clubs,
+  eventDivisions,
+  eventTeams,
+  events,
+  matches,
+  teams,
+} from "@/db/schema";
+import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
+import { teamFactsFrom } from "@/features/teams/facts";
 import { uniqueTeamSlug } from "@/features/teams/slug";
 import { zonedDate } from "@/lib/dates";
 import { slugify } from "@/lib/slug";
@@ -105,6 +115,22 @@ export async function applySync(
   }
 
   // --- teams -------------------------------------------------------------
+
+  /*
+   * The directory, for filing a team under its club as it is created.
+   *
+   * Loaded once per sync rather than per team: this is forty rows, and the
+   * alternative is a query inside a loop that runs three hundred times for a
+   * club tournament.
+   */
+  const clubRows = await db.select({ id: clubs.id, name: clubs.name, slug: clubs.slug }).from(clubs);
+  const aliasRows = await db
+    .select({ alias: clubAliases.alias, clubId: clubAliases.clubId })
+    .from(clubAliases);
+  const clubIdx = clubIndex(clubRows);
+  const aliasMap = new Map(aliasRows.map((r) => [r.alias, r.clubId]));
+  const clubSlugById = new Map(clubRows.map((c) => [c.id, c.slug]));
+
   const existingEntries = await db.query.eventTeams.findMany({
     where: eq(eventTeams.eventId, eventId),
     columns: { id: true, teamId: true, sourceTeamId: true },
@@ -128,7 +154,11 @@ export async function applySync(
 
     // Private, because nobody has claimed it here. It exists so the schedule
     // has something to point at, not as a team page anyone is looking for.
-    const team = await insertSyncedTeam(t.name, eventId);
+    const team = await insertSyncedTeam(t.name, eventId, {
+      seasonStart: event.startsAt,
+      club: matchClub(t.name, aliasMap, clubIdx),
+      clubSlugById,
+    });
 
     await db
       .insert(eventTeams)
@@ -223,8 +253,31 @@ export async function applySync(
  * most weekends. The database has the unique constraint; this is what makes
  * losing that race cost a second attempt instead of a whole sync.
  */
-async function insertSyncedTeam(name: string, eventId: string) {
+async function insertSyncedTeam(
+  name: string,
+  eventId: string,
+  context: {
+    seasonStart: Date | null;
+    club: ClubMatch | null;
+    clubSlugById: Map<string, string>;
+  },
+) {
   const base = slugify(name).slice(0, 60);
+
+  /*
+   * What the name says, recorded as the row is written.
+   *
+   * These used to arrive only from backfill scripts, so a team imported
+   * after the last run had no club, no birth years and no gender — and the
+   * duplicate finder, which matches on exactly those, had nothing to work
+   * with for the newest rows. The facts belong where the row is made.
+   */
+  const clubId = context.club?.clubId ?? null;
+  const facts = teamFactsFrom(name, {
+    seasonStart: context.seasonStart,
+    clubSlug: clubId ? (context.clubSlugById.get(clubId) ?? null) : null,
+  });
+
   for (let attempt = 0; ; attempt++) {
     try {
       const [team] = await db
@@ -234,6 +287,10 @@ async function insertSyncedTeam(name: string, eventId: string) {
           name,
           visibility: "private",
           originEventId: eventId,
+          ...facts,
+          // affiliation and club_id are one fact in two columns; the CHECK
+          // constraint refuses either without the other.
+          ...(clubId ? { clubId, affiliation: "club" as const } : {}),
         })
         .returning({ id: teams.id });
       return team;
