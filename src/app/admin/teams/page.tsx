@@ -10,6 +10,12 @@ import {
   duplicateTeamGroups,
   proposedTeamMatches,
 } from "@/features/teams/merge-queries";
+import {
+  acceptSuggestion,
+  dismissSuggestion,
+} from "@/features/teams/suggest/actions";
+import { openSuggestions } from "@/features/teams/suggest/run";
+import { SuggestionButtons } from "@/features/teams/suggest/suggestion-buttons";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Duplicate teams" };
@@ -25,7 +31,10 @@ export default async function AdminTeamsPage() {
   for (const g of groups) {
     for (const member of [g.survivor, ...g.losers]) grouped.set(member.id, g.survivor.id);
   }
-  const proposals = await proposedTeamMatches(grouped);
+  const [proposals, suggestions] = await Promise.all([
+    proposedTeamMatches(grouped),
+    openSuggestions(),
+  ]);
   const rows = groups.reduce((n, g) => n + g.losers.length, 0);
 
   return (
@@ -101,6 +110,58 @@ export default async function AdminTeamsPage() {
             ))}
           </ul>
         </>
+      )}
+
+      {/*
+       * A model's guesses, kept apart from everything above.
+       *
+       * The sections before this are facts checked here: the same id, the
+       * same name, the same club and cohort. These are somebody else's
+       * opinion with a sentence attached, and they read differently for that
+       * reason — the rationale is shown, the model is named, and saying no is
+       * as easy as saying yes.
+       */}
+      {suggestions.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-lg font-semibold">Suggested by AI</h2>
+          <p className="mt-1 text-sm text-muted">
+            For teams the rules could not place. A guess, not a finding &mdash;
+            read both names before agreeing.
+          </p>
+          <ul className="mt-4 divide-y divide-line">
+            {suggestions.map((s) => (
+              <li key={s.id} className="py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm">
+                    <Link
+                      href={`/teams/${s.newTeamSlug}`}
+                      className="font-medium hover:underline"
+                    >
+                      {s.newTeamName}
+                    </Link>
+                    <span className="mx-2 text-muted">is</span>
+                    <Link
+                      href={`/teams/${s.existingTeamSlug}`}
+                      className="font-medium hover:underline"
+                    >
+                      {s.existingTeamName}
+                    </Link>
+                  </span>
+                  <span className="text-xs text-muted">
+                    {s.confidence} confidence · {s.model}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted">{s.why}</p>
+                <div className="mt-2">
+                  <SuggestionButtons
+                    accept={acceptSuggestion.bind(null, s.id)}
+                    dismiss={dismissSuggestion.bind(null, s.id)}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/*
