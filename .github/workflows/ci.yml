@@ -130,6 +130,7 @@ jobs:
         run: |
           pnpm start &
           ./scripts/smoke.sh http://127.0.0.1:3000 \
+            /robots.txt \
             /events/smoke-league \
             '/events/smoke-league?view=standings' \
             '/events/smoke-league?division=all&view=standings'

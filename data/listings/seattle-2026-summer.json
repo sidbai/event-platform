@@ -1,0 +1,60 @@
+[
+  {
+    "slug": "xf-summer-kickoff-2026",
+    "title": "XF Summer Kickoff 2026",
+    "kind": "tournament",
+    "startDate": "2026-05-30",
+    "endDate": "2026-05-31",
+    "venueName": "60 Acres Soccer Complex",
+    "venueCity": "Redmond",
+    "gender": "Boys and Girls",
+    "summary": "Seventh annual. Over 170 teams from Washington and Oregon, three games each across Saturday and Sunday with no playoffs — an early-season run-out rather than a title.",
+    "sourceName": "Crossfire Premier Soccer",
+    "sourceUrl": "https://www.crossfiresoccer.org/tournaments/summerkickoff/",
+    "scheduleUrl": "https://crossfire.athletes2events.com/events/75/groups"
+  },
+  {
+    "slug": "surf-cup-nw-2026-younger",
+    "title": "Surf Cup NW 2026 (U8–U12)",
+    "kind": "tournament",
+    "startDate": "2026-06-20",
+    "endDate": "2026-06-21",
+    "venueName": "60 Acres Soccer Complex",
+    "venueCity": "Redmond",
+    "ageGroup": "U8–U12",
+    "gender": "Boys and Girls",
+    "summary": "The younger weekend of Surf Cup NW, held in June for 2026 because of the World Cup. All games at 60 Acres in Redmond.",
+    "sourceName": "Surf Cup NW",
+    "sourceUrl": "https://surfcupnw.org",
+    "scheduleUrl": "https://crossfire.athletes2events.com/events/122/groups"
+  },
+  {
+    "slug": "surf-cup-nw-2026-older",
+    "title": "Surf Cup NW 2026 (U13–U19)",
+    "kind": "tournament",
+    "startDate": "2026-06-26",
+    "endDate": "2026-06-29",
+    "venueName": "60 Acres Soccer Complex",
+    "venueCity": "Redmond",
+    "ageGroup": "U13–U19",
+    "gender": "Boys and Girls",
+    "summary": "Over 600 teams from across the US and Canada, drawn from GA, MLS Next, ECNL, ECNL RL, EA and USYS National League. All games at 60 Acres in Redmond; the winner of the Best of the Northwest bracket goes to the Surf Cup Championship.",
+    "sourceName": "Surf Cup NW",
+    "sourceUrl": "https://surfcupnw.org",
+    "scheduleUrl": "https://crossfire.athletes2events.com/events/124/groups"
+  },
+  {
+    "slug": "zipfizz-cup-2026",
+    "title": "Zipfizz Cup 2026",
+    "kind": "tournament",
+    "startDate": "2026-08-14",
+    "endDate": "2026-08-16",
+    "venueName": "60 Acres Soccer Complex",
+    "venueCity": "Redmond",
+    "gender": "Boys and Girls",
+    "summary": "An estimated 220 teams of all levels, every game on the grass at 60 Acres in Redmond.",
+    "sourceName": "Crossfire Premier Soccer",
+    "sourceUrl": "https://www.crossfiresoccer.org/tournaments/zipfizz-cup/",
+    "scheduleUrl": "https://crossfire.athletes2events.com/events/123/groups"
+  }
+]
