@@ -357,6 +357,23 @@ export const teams = pgTable(
   birthYears: integer("birth_years").array().notNull().default([]),
   /** The label a tournament printed. Goes stale by design; birthYears does not. */
   ageGroup: text("age_group"),
+  /**
+   * Where the team plays — "ECNL 1", "RCL 2", "MLS Next", "Gold".
+   *
+   * Not decoration: 48 groups of teams here share a club, birth years and
+   * gender, and the tier is what separates them. Without it "Crossfire, boys,
+   * 2009/2010" names three different sides.
+   */
+  tier: text("tier"),
+  /**
+   * The club's own stream — "Select", "Academy", "Premier", or the branch a
+   * big club runs it through.
+   *
+   * Seattle United's Shoreline, Northwest and South teams are that club's
+   * select sides under another name, so the branch belongs in the same column
+   * as "Select" rather than beside it.
+   */
+  program: text("program"),
   gender: text("gender"),
   city: text("city"),
   crestUrl: text("crest_url"),
