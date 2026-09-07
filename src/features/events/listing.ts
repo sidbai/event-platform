@@ -23,11 +23,6 @@ export type Listing = {
   sourceUrl: string | null;
   scheduleUrl?: string | null;
   organizerId?: string | null;
-  /**
-   * Whether we hold this event's fixtures ourselves — synced from the
-   * platform that publishes them, or entered here.
-   */
-  hasFixtures?: boolean;
 };
 
 /** An event that happens somewhere else and is listed here so it can be found. */
@@ -108,36 +103,49 @@ export function safeSourceUrl(raw: string | null | undefined): string | null {
 }
 
 /**
- * Where to see the fixtures and the table.
+ * The organizer's own schedule, as a button.
  *
- * The thing a parent actually came for. Null whenever this page can show
- * them itself — an event we run, or a listing we sync — because the fixtures
- * are then further down the page; a listing we cannot read points wherever
- * the organizer keeps them, usually a different system from the one that
- * took the entries.
+ * Whose tournament it is decides where the last word on it lives. Even when
+ * we hold the fixtures — synced, or pasted in — ours is a copy that was
+ * current when we last read it, and a parent standing on a field at 8am
+ * wants the page the organizer changes, not our copy of it. So every listing
+ * carries this, and only an event we run has nothing to point at.
  *
- * Null rather than falling back to the organizer's homepage. "Schedule &
- * standings" that lands on a front page and leaves you hunting is a worse
- * promise than no link, because it was believed.
+ * The label says where the button goes rather than what the reader hopes to
+ * find, because the two are only the same when we have a schedule link:
+ *
+ *   with a schedule URL   "Schedule & standings on Starfire Sports"
+ *   with only the event   "View on Starfire Sports"
+ *
+ * Never a "Schedule & standings" button that lands on a front page. A promise
+ * that leaves you hunting is worse than no promise, because it was believed.
  */
 export function scheduleActionOf(
   event: Listing,
 ): { label: string; href: string; external: boolean } | null {
   if (isRunHere(event)) return null;
 
-  /*
-   * A listing we sync is no longer only a link: its fixtures, its table and
-   * its matchday navigation are on this very page, further down. Offering to
-   * send the reader to the platform for the thing they are already looking at
-   * is worse than offering nothing.
-   *
-   * Still attributed to the organizer, and still linking to them for entries.
-   * Whose tournament it is has not changed; only where the fixtures are read
-   * from has.
-   */
-  if (event.hasFixtures) return null;
+  const where = event.sourceName ? ` on ${event.sourceName}` : "";
 
-  const href = safeSourceUrl(event.scheduleUrl);
-  if (!href) return null;
-  return { label: "Schedule & standings", href, external: true };
+  const schedule = safeSourceUrl(event.scheduleUrl);
+  if (schedule) {
+    return { label: `Schedule & standings${where}`, href: schedule, external: true };
+  }
+
+  /*
+   * No schedule link, so the event's own page is the most specific thing we
+   * can offer — and it is still worth a button: it is where entries, times
+   * and any late change live. Named for what it is, so nobody presses it
+   * expecting a table.
+   */
+  const source = safeSourceUrl(event.sourceUrl);
+  if (source) {
+    return {
+      label: event.sourceName ? `View on ${event.sourceName}` : "View the organizer's page",
+      href: source,
+      external: true,
+    };
+  }
+
+  return null;
 }

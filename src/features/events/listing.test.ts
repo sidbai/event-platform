@@ -101,26 +101,35 @@ describe("the schedule link", () => {
 
   it("points at wherever the organizer keeps the fixtures", () => {
     expect(scheduleActionOf(withSchedule)).toEqual({
-      label: "Schedule & standings",
+      label: "Schedule & standings on Crossfire Premier Soccer",
       href: "https://crossfire.athletes2events.com/events/130/groups",
       external: true,
     });
   });
 
-  it("offers nothing once we hold the fixtures ourselves", () => {
-    // They are on the event page, further down it. A button sending the
-    // reader to the platform for the thing they are already looking at is
-    // worse than no button.
-    expect(scheduleActionOf({ ...withSchedule, hasFixtures: true })).toBeNull();
+  it("says where the button goes, not what the reader hopes to find", () => {
+    /*
+     * The label carries the platform's name because the button leaves this
+     * site. A synced listing shows the same fixtures further down the page,
+     * so a bare "Schedule & standings" would read as navigation within it.
+     */
+    expect(scheduleActionOf(withSchedule)?.label).toBe(
+      "Schedule & standings on Crossfire Premier Soccer",
+    );
   });
 
-  it("still points at the platform when we hold nothing", () => {
-    // Connected but never read, or listed by hand: our section would be
-    // empty, and an empty schedule of ours is worse than a full one of
-    // theirs.
-    expect(scheduleActionOf({ ...withSchedule, hasFixtures: false })?.external).toBe(
-      true,
-    );
+  it("offers the event's own page when there is no schedule link", () => {
+    /*
+     * Four of the ten listings have no schedule URL. Their event page is
+     * still where entries, times and late changes live — worth a button, as
+     * long as it is not named for a table it does not have.
+     */
+    const action = scheduleActionOf({ ...withSchedule, scheduleUrl: null });
+    expect(action).toEqual({
+      label: "View on Crossfire Premier Soccer",
+      href: "https://www.crossfiresoccer.org/tournaments/ldc/",
+      external: true,
+    });
   });
 
 
@@ -130,18 +139,38 @@ describe("the schedule link", () => {
     expect(scheduleActionOf({ sourceName: null, sourceUrl: null })).toBeNull();
   });
 
-  it("does not fall back to the organizer's front page", () => {
+  it("never calls the organizer's front page a schedule", () => {
     // A "Schedule & standings" link that lands somewhere you have to hunt is
-    // a worse promise than no link, because it was believed.
-    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: null })).toBeNull();
-    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: "" })).toBeNull();
+    // a worse promise than no link, because it was believed. It may still be
+    // offered — under its own name.
+    for (const scheduleUrl of [null, ""]) {
+      expect(scheduleActionOf({ ...withSchedule, scheduleUrl })?.label).toBe(
+        "View on Crossfire Premier Soccer",
+      );
+    }
+  });
+
+  it("offers nothing when there is nowhere to send anybody", () => {
+    expect(
+      scheduleActionOf({ sourceName: "Starfire Sports", sourceUrl: null }),
+    ).toBeNull();
   });
 
   it("refuses a schedule link that is not http", () => {
+    // It falls back to the event's page rather than to the bad link, and
+    // never to the bad link under a schedule's name.
+    for (const bad of ["javascript:alert(1)", "/events/x"]) {
+      expect(scheduleActionOf({ ...withSchedule, scheduleUrl: bad })?.href).toBe(
+        "https://www.crossfiresoccer.org/tournaments/ldc/",
+      );
+    }
     expect(
-      scheduleActionOf({ ...withSchedule, scheduleUrl: "javascript:alert(1)" }),
+      scheduleActionOf({
+        sourceName: "WPL",
+        sourceUrl: "javascript:alert(1)",
+        scheduleUrl: "javascript:alert(1)",
+      }),
     ).toBeNull();
-    expect(scheduleActionOf({ ...withSchedule, scheduleUrl: "/events/x" })).toBeNull();
   });
 });
 
