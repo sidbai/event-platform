@@ -24,7 +24,8 @@ const { eventKinds, eventTeams, events, matches, teamSlugs, teams, users } = awa
   "@/db/schema"
 );
 const { mergeTeams, teamBySoleOldSlug } = await import("@/features/teams/merge");
-const { eq } = await import("drizzle-orm");
+const { duplicateTeamGroups } = await import("@/features/teams/merge-queries");
+const { eq, sql } = await import("drizzle-orm");
 
 async function makeEvent(slug: string) {
   const [e] = await db
@@ -169,5 +170,73 @@ describe("mergeTeams", () => {
   it("refuses a merge with nothing in it", async () => {
     const only = await makeTeam("only");
     await expect(mergeTeams(only, [only])).rejects.toThrow(/nothing to merge/);
+  });
+});
+
+describe("a team that played two brackets of one event", () => {
+  /*
+   * The paste importer used to key teams "<division>|<name>", so a side that
+   * played a group stage and then the championship arrived twice and became
+   * two rows in the same event — 54 groups in production, every one a
+   * bracket. The importer now keys on the name; this is the recovery path for
+   * rows already written the old way.
+   */
+  it("groups as one team once the ids drop their division, and merges", async () => {
+    const cup = await makeEvent("spring-classic");
+    const first = await makeTeam("lwpfc-bu10-white-bichirs", {
+      name: "LWPFC BU10 White Bichirs",
+      originEventId: cup,
+    });
+    const second = await makeTeam("lwpfc-bu10-white-bichirs-2", {
+      name: "LWPFC BU10 White Bichirs",
+      originEventId: cup,
+    });
+    const rival = await makeTeam("nsc-bu10d", { name: "NSC BU10D", originEventId: cup });
+
+    // As the old importer wrote them: one team, two divisions, two ids.
+    await db.insert(eventTeams).values([
+      { eventId: cup, teamId: first, sourceTeamId: "boys u10|lwpfc bu10 white bichirs" },
+      {
+        eventId: cup,
+        teamId: second,
+        sourceTeamId: "boys u10 championships|lwpfc bu10 white bichirs",
+      },
+      { eventId: cup, teamId: rival, sourceTeamId: "boys u10|nsc bu10d" },
+    ]);
+    await db.insert(matches).values([
+      { eventId: cup, stage: "group", homeTeamId: first, awayTeamId: rival, homeScore: 3, awayScore: 1, status: "final" },
+      { eventId: cup, stage: "ko", homeTeamId: second, awayTeamId: rival, homeScore: 2, awayScore: 0, status: "final" },
+    ]);
+
+    // What migration 0050 does.
+    await db.execute(
+      sql`update event_teams set source_team_id = split_part(source_team_id, '|', 2) where source_team_id like '%|%'`,
+    );
+
+    const groups = (await duplicateTeamGroups()).filter(
+      (g) => g.because === "same source id",
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].losers).toHaveLength(1);
+
+    const out = await mergeTeams(
+      groups[0].survivor.id,
+      groups[0].losers.map((l) => l.id),
+    );
+    // Both games follow the surviving row; the second entry cannot come with
+    // it, since event_teams is unique on (event, team).
+    expect(out).toMatchObject({ merged: 1, matchesMoved: 1, entriesDropped: 1 });
+
+    const left = await db.query.teams.findMany({
+      where: eq(teams.name, "LWPFC BU10 White Bichirs"),
+      columns: { id: true },
+    });
+    expect(left).toHaveLength(1);
+
+    const played = await db.query.matches.findMany({
+      where: eq(matches.eventId, cup),
+      columns: { homeTeamId: true },
+    });
+    expect(new Set(played.map((m) => m.homeTeamId))).toEqual(new Set([left[0].id]));
   });
 });

@@ -166,6 +166,30 @@ describe("toSyncedEvent", () => {
     options,
   );
 
+  it("keeps a team playing two brackets as one team", () => {
+    /*
+     * The bug this replaced: teams were keyed by division and name, so a side
+     * that plays a group stage and then the championship bracket arrived
+     * under two division headings and became two team rows in one event.
+     * Fifty-four groups in production, every one of them a bracket.
+     */
+    const { matches: brackets } = parsePastedSchedule(
+      [
+        "Sat, Sep 5, 2026\t2 Games",
+        "9:00 AM A1 vs A2 Boys U10\tLWPFC BU10 White Bichirs\t3\t1\tNSC BU10D\tField 1",
+        "Sun, Sep 6, 2026\t2 Games",
+        "1:00 PM Final Boys U10 Championships\tLWPFC BU10 White Bichirs\t2\t0\tXF BU10 A\tField 2",
+      ].join("\n"),
+      options,
+    );
+    const data = toSyncedEvent(brackets);
+    const bichirs = data.teams.filter((t) => t.name === "LWPFC BU10 White Bichirs");
+    expect(bichirs).toHaveLength(1);
+    // It keeps the division it first appeared in — event_teams is unique on
+    // (event, team), so one team can hold one division per event.
+    expect(bichirs[0].division).toBe("Boys U10");
+  });
+
   it("makes a team out of every real name, once", () => {
     const data = toSyncedEvent(matches);
     expect(data.teams.map((t) => t.name).sort()).toEqual([
