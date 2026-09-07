@@ -71,9 +71,19 @@ export default async function TeamPage({
   const pendingInvite = await myPendingTeamInvite(team.id, user);
   const events = await hostedEvents(team.id, member || admin);
 
-  const back = isPrivate && team.originEvent
-    ? { href: `/events/${team.originEvent.slug}`, label: `← ${team.originEvent.title}` }
-    : { href: "/teams", label: "← All teams" };
+  /*
+   * Always the directory.
+   *
+   * This used to send an event-created team back to the tournament that made
+   * it, on the reasoning that no other page listed it so that is where the
+   * reader must have come from. That stopped being true when /teams began
+   * listing every team: a reader arriving from the directory, a search or a
+   * club page was offered "back" to a tournament they had never seen.
+   *
+   * Where the team came from is still worth saying, and the note below says
+   * it — with the event linked, so nothing that was reachable is lost.
+   */
+  const back = { href: "/teams", label: "← All teams" };
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -100,10 +110,21 @@ export default async function TeamPage({
         </div>
       )}
 
-      {isPrivate && (
+      {/*
+       * Where this page came from, which is also why it is thin: no bio, no
+       * roster, nobody running it. "Not listed in the public directory" was
+       * the old wording and is now simply false — these are listed.
+       */}
+      {isPrivate && team.originEvent && (
         <div className="mt-4 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
-          Event team{team.originEvent ? ` — created for ${team.originEvent.title}` : ""}. Not
-          listed in the public directory.
+          Read from the schedule for{" "}
+          <Link
+            href={`/events/${team.originEvent.slug}`}
+            className="text-brand-text hover:underline"
+          >
+            {team.originEvent.title}
+          </Link>
+          . Nobody runs this page yet.
         </div>
       )}
 
