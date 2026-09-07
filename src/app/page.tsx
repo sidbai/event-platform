@@ -78,12 +78,9 @@ export default async function Home() {
       {/* Kept a step above the cards below it so the page outline still reads,
           but small enough not to shout over the feed. */}
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        Seattle youth soccer: discover it, or create it.
+        Create. Discover. Play.
       </h1>
-      <p className="mt-2 text-sm text-muted">
-        Tournaments, leagues, scrimmages, pickup and camps around the Sound.
-        More soccer, more fun.
-      </p>
+      <p className="mt-2 text-sm text-muted">More soccer. Less logistics.</p>
 
       {/*
         Discover, then the three things a person can make. Until recently all
