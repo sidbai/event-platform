@@ -22,9 +22,8 @@ vi.mock("next/cache", () => ({
 }));
 
 const { db } = await import("@/db");
-const { eventDivisions, eventKinds, eventTeams, events, matches, teams } = await import(
-  "@/db/schema"
-);
+const { clubAliases, clubs, eventDivisions, eventKinds, eventTeams, events, matches, teams } =
+  await import("@/db/schema");
 const { applySync, contentHash, recordSyncFailure } = await import(
   "@/features/sync/apply"
 );
@@ -274,5 +273,73 @@ describe("contentHash", () => {
       matches: data.matches.map((m, i) => (i === 0 ? { ...m, homeScore: 99 } : m)),
     };
     expect(contentHash(revised)).not.toBe(contentHash(data));
+  });
+});
+
+describe("what a synced team knows about itself", () => {
+  /*
+   * These used to arrive only from backfill scripts, so a team imported
+   * after the last run had no club, no birth years and no gender — and the
+   * duplicate finder, which matches on exactly those, had nothing to work
+   * with for the newest rows. 173 teams were in that state in one day.
+   */
+  it("files the team under its club and reads its name as it writes the row", async () => {
+    const [club] = await db
+      .insert(clubs)
+      .values({ slug: "crossfire-premier", name: "Crossfire Premier" })
+      .returning({ id: clubs.id });
+    // The alias the admin queue would have saved: no XF team is called
+    // "Crossfire Premier", so nothing reaches the club without it.
+    await db.insert(clubAliases).values({ alias: "xf", clubId: club.id });
+
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    const xf = await db.query.teams.findFirst({
+      where: eq(teams.name, "XF B09/10 ECNL 1"),
+      columns: {
+        clubId: true,
+        affiliation: true,
+        birthYears: true,
+        gender: true,
+        tier: true,
+      },
+    });
+    expect(xf).toMatchObject({
+      clubId: club.id,
+      affiliation: "club",
+      birthYears: [2009, 2010],
+      gender: "boys",
+      tier: "ECNL 1",
+    });
+  });
+
+  it("derives the cohort from the age group and the event's season", async () => {
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    // A name with a U-number and no years of its own. The event starts in
+    // September 2026, so U17 is 2009/2010 — and the same team's sibling row
+    // "XF B09/10 ECNL 1" states those years outright, which is the check.
+    const byAge = await db.query.teams.findFirst({
+      where: eq(teams.name, "XF BU17 ECNL 2 - Heimbigner"),
+      columns: { birthYears: true, gender: true, tier: true },
+    });
+    expect(byAge).toMatchObject({
+      birthYears: [2009, 2010],
+      gender: "boys",
+      tier: "ECNL 2",
+    });
+  });
+
+  it("leaves a team no club matches unfiled rather than guessing", async () => {
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    const unplaced = await db.query.teams.findFirst({
+      where: eq(teams.affiliation, "unknown"),
+      columns: { clubId: true, affiliation: true },
+    });
+    expect(unplaced?.clubId).toBeNull();
   });
 });
