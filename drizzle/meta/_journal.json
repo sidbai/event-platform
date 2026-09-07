@@ -330,6 +330,13 @@
       "when": 1788796488972,
       "tag": "0046_wenatchee_sozo_clubs",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788796489972,
+      "tag": "0047_northshore_club",
+      "breakpoints": true
     }
   ]
 }
