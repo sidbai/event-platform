@@ -49,9 +49,25 @@ export function syncNote(
   },
   now: Date,
 ): SyncNote | null {
-  if (!event.sourcePlatform) return null;
-
   const from = event.sourceName ? ` from ${event.sourceName}` : "";
+
+  /*
+   * A schedule somebody pasted in. It has no platform because nothing is
+   * going to fetch it again, and that is exactly what has to be said: this is
+   * a snapshot of a moment, and it will be as wrong as the tournament is old.
+   *
+   * Without this a pasted schedule showed four hundred fixtures with nothing
+   * at all about where they came from — the one thing this whole file exists
+   * to prevent, reached by the door it was not watching.
+   */
+  if (!event.sourcePlatform) {
+    if (!event.lastSyncedAt) return null;
+    return {
+      text: `Imported${from} ${formatAgo(event.lastSyncedAt, now)} — it does not update by itself`,
+      stale: false,
+    };
+  }
+
   if (!event.lastSyncedAt) {
     return { text: `Not read${from} yet`, stale: true };
   }

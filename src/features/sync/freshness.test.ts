@@ -69,3 +69,37 @@ describe("syncNote", () => {
     });
   });
 });
+
+describe("a schedule somebody pasted in", () => {
+  const pasted = {
+    sourcePlatform: null,
+    sourceName: "Starfire Sports",
+    startsAt: ago(-2 * HOUR),
+    endsAt: null,
+  };
+
+  it("says where it came from and that it will not move", () => {
+    /*
+     * The gap this closes. A pasted schedule showed four hundred fixtures
+     * with nothing about their provenance, because the note was gated on
+     * having a platform — and the whole point of a paste is that there
+     * isn't one.
+     */
+    expect(syncNote({ ...pasted, lastSyncedAt: ago(2 * HOUR) }, now)).toEqual({
+      text: "Imported from Starfire Sports 2 hours ago — it does not update by itself",
+      stale: false,
+    });
+  });
+
+  it("never calls an import stale", () => {
+    // Stale means "we tried and could not". Nobody is trying, so the amber
+    // warning would be blaming a connector that does not exist.
+    const old = syncNote({ ...pasted, lastSyncedAt: ago(30 * DAY) }, now);
+    expect(old?.stale).toBe(false);
+    expect(old?.text).toContain("30 days ago");
+  });
+
+  it("still says nothing about an event that holds no schedule", () => {
+    expect(syncNote({ ...pasted, lastSyncedAt: null }, now)).toBeNull();
+  });
+});
