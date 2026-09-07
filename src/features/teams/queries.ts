@@ -102,7 +102,7 @@ export async function getTeamBySlug(slug: string) {
         },
       },
       eventTeams: { with: { event: true, division: true } },
-      club: { columns: { slug: true, name: true } },
+      club: { columns: { slug: true, name: true, crestUrl: true } },
     },
   });
   if (!team) return null;
@@ -122,10 +122,19 @@ export async function getTeamBySlug(slug: string) {
     where: or(eq(matches.homeTeamId, team.id), eq(matches.awayTeamId, team.id)),
     orderBy: [desc(matches.kickoffAt)],
     with: {
-      event: { columns: { slug: true, title: true } },
+      // The timezone comes along because a match's date is the organizer's
+      // date: a 6pm Sunday kickoff in Seattle is Monday in UTC, and a history
+      // that puts games on the wrong day is worse than one with no dates.
+      event: { columns: { slug: true, title: true, timezone: true } },
       division: { columns: { name: true } },
-      homeTeam: { columns: { name: true, slug: true, crestUrl: true } },
-      awayTeam: { columns: { name: true, slug: true, crestUrl: true } },
+      homeTeam: {
+        columns: { name: true, slug: true, crestUrl: true },
+        with: { club: { columns: { crestUrl: true } } },
+      },
+      awayTeam: {
+        columns: { name: true, slug: true, crestUrl: true },
+        with: { club: { columns: { crestUrl: true } } },
+      },
     },
   });
 
