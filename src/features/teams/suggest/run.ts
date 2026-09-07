@@ -6,7 +6,7 @@ import { and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs, teamAliases, teamMatchSuggestions, teams } from "@/db/schema";
 
-import { buildPrompt, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
+import { buildPrompt, shortlist, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
 import { parseSuggestions } from "./parse";
 
 /**
@@ -105,18 +105,37 @@ export async function suggestTeamMatches(
   const known = await knownTeams(new Set(unmatched.map((t) => t.id)));
   if (known.length === 0) return { asked: 0, suggested: 0, skipped: "Nothing to match against." };
 
-  const { text } = await generateText({
-    model: MODEL,
-    system: SYSTEM_PROMPT,
-    prompt: buildPrompt(unmatched, known),
-    // Same question, same answer, so a re-run does not churn the queue.
-    temperature: 0,
-  });
+  /*
+   * One question per team, against the dozen it might plausibly be.
+   *
+   * The first version asked about forty teams against the whole directory:
+   * 66,460 input tokens, and an empty answer. A thousand candidates in one
+   * prompt is not a question. Narrowed, the same ask costs a few hundred
+   * tokens and gets a considered reply — and a team with nothing that even
+   * resembles it is never asked about at all.
+   */
+  const suggestions = [];
+  let asked = 0;
+  for (const team of unmatched) {
+    const pool = shortlist(team, known);
+    if (pool.length === 0) continue;
+    asked++;
 
-  const suggestions = parseSuggestions(text, {
-    newIds: new Set(unmatched.map((t) => t.id)),
-    existingIds: new Set(known.map((t) => t.id)),
-  });
+    const { text } = await generateText({
+      model: MODEL,
+      system: SYSTEM_PROMPT,
+      prompt: buildPrompt([team], pool),
+      // Same question, same answer, so a re-run does not churn the queue.
+      temperature: 0,
+    });
+
+    suggestions.push(
+      ...parseSuggestions(text, {
+        newIds: new Set([team.id]),
+        existingIds: new Set(pool.map((t) => t.id)),
+      }),
+    );
+  }
 
   /*
    * A pair somebody already bound by hand is not a suggestion. The alias is
@@ -143,7 +162,7 @@ export async function suggestTeamMatches(
     written++;
   }
 
-  return { asked: unmatched.length, suggested: written };
+  return { asked, suggested: written };
 }
 
 /**
