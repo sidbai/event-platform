@@ -81,8 +81,9 @@ describe("robots.txt", () => {
     expect(rule.userAgent).toBe("*");
   });
 
-  it("promises no sitemap it does not have", () => {
-    // Pointing a crawler at a 404 is worse than pointing it at nothing.
-    expect(config.sitemap).toBeUndefined();
+  it("points at the sitemap now that there is one", () => {
+    // It said nothing while there was no sitemap, because pointing a crawler
+    // at a 404 is worse than pointing it at nothing.
+    expect(config.sitemap).toMatch(/\/sitemap\.xml$/);
   });
 });

@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { siteUrl } from "@/lib/site-url";
+
 /**
  * What we ask of other people's crawlers.
  *
@@ -49,8 +51,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    // No sitemap line until there is a sitemap. Pointing a crawler at a 404
-    // is worse than pointing it at nothing, and this file is the one place
-    // where being precise costs nothing.
+    sitemap: `${siteUrl()}/sitemap.xml`,
   };
 }
