@@ -12,11 +12,30 @@ if (!connectionString && process.env.NODE_ENV !== "production") {
 
 const globalForDb = globalThis as unknown as { __sql?: postgres.Sql };
 
-// postgres-js connects lazily, so an unset URL only bites on the first query.
+/*
+ * One client per process, in production too.
+ *
+ * It used to be cached only outside production, on the reasoning that a
+ * serverless instance evaluates the module once anyway. It does not always:
+ * anything that re-evaluates it opens a second pool nobody closes, and those
+ * connections idle until the platform reaps them.
+ *
+ * idle_timeout hands a connection back rather than holding it for the life of
+ * an instance that may serve one request an hour. connect_timeout turns a
+ * network stall into an error a page can report instead of a request that
+ * hangs until the platform kills it.
+ *
+ * prepare: false is required by any transaction-pooling proxy — a named
+ * statement prepared on one server connection is not there on the next.
+ */
 const client =
   globalForDb.__sql ??
-  postgres(connectionString ?? "postgresql://invalid", { prepare: false });
-if (process.env.NODE_ENV !== "production") globalForDb.__sql = client;
+  postgres(connectionString ?? "postgresql://invalid", {
+    prepare: false,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+globalForDb.__sql = client;
 
 export const db = drizzle(client, { schema, casing: "snake_case" });
 export type Db = typeof db;
