@@ -8,6 +8,7 @@ import { clubs, teamAliases, teamMatchSuggestions, teams } from "@/db/schema";
 
 import { buildPrompt, shortlist, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
 import { parseSuggestions } from "./parse";
+import { isRateLimited } from "./rate-limit";
 
 /**
  * Ask a model about the teams the rules could not place.
@@ -27,7 +28,11 @@ export type SuggestOutcome = {
   asked: number;
   suggested: number;
   skipped?: string;
+  /** Set when the run gave up early, with the reason a person can act on. */
+  stoppedEarly?: string;
 };
+
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Teams imported recently that nothing has matched to anything. */
 async function unmatchedTeams(sinceHours: number): Promise<SuggestTeam[]> {
@@ -116,25 +121,51 @@ export async function suggestTeamMatches(
    */
   const suggestions = [];
   let asked = 0;
+  let stoppedEarly: string | undefined;
+
   for (const team of unmatched) {
     const pool = shortlist(team, known);
     if (pool.length === 0) continue;
-    asked++;
 
-    const { text } = await generateText({
-      model: MODEL,
-      system: SYSTEM_PROMPT,
-      prompt: buildPrompt([team], pool),
-      // Same question, same answer, so a re-run does not churn the queue.
-      temperature: 0,
-    });
+    try {
+      const { text } = await generateText({
+        model: MODEL,
+        system: SYSTEM_PROMPT,
+        prompt: buildPrompt([team], pool),
+        // Same question, same answer, so a re-run does not churn the queue.
+        temperature: 0,
+      });
+      asked++;
+      suggestions.push(
+        ...parseSuggestions(text, {
+          newIds: new Set([team.id]),
+          existingIds: new Set(pool.map((t) => t.id)),
+        }),
+      );
+    } catch (error) {
+      /*
+       * One failed call must not throw away the answers already gathered.
+       *
+       * A rate limit is the expected failure on a free gateway tier — forty
+       * calls in a row is more than it allows — and it will not clear within
+       * this run, so there is nothing to gain by asking again. Everything
+       * answered so far is still written, and the run says why it stopped.
+       */
+      if (isRateLimited(error)) {
+        stoppedEarly =
+          `Rate-limited after ${asked} question(s). ` +
+          "Re-run to continue, or add credits at vercel.com/[team]/~/ai.";
+        break;
+      }
+      stoppedEarly = `Stopped after ${asked} question(s): ${
+        error instanceof Error ? error.message.slice(0, 120) : "unknown error"
+      }`;
+      break;
+    }
 
-    suggestions.push(
-      ...parseSuggestions(text, {
-        newIds: new Set([team.id]),
-        existingIds: new Set(pool.map((t) => t.id)),
-      }),
-    );
+    // Gentle on the gateway, since the limit is per minute and this is a
+    // background chore nobody is watching.
+    await pause(300);
   }
 
   /*
@@ -162,7 +193,7 @@ export async function suggestTeamMatches(
     written++;
   }
 
-  return { asked, suggested: written };
+  return { asked, suggested: written, stoppedEarly };
 }
 
 /**

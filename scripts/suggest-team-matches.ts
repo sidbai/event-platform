@@ -22,6 +22,9 @@ async function main() {
     console.log(
       `Asked about ${out.asked} team(s); ${out.suggested} suggestion(s) written to /admin/teams.`,
     );
+    // Said after the count, so a partial run reads as partial rather than as
+    // a failure that lost everything.
+    if (out.stoppedEarly) console.log(out.stoppedEarly);
   }
   process.exit(0);
 }
