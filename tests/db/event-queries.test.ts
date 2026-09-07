@@ -147,9 +147,12 @@ describe("listEventsByTime", () => {
       endsAt: days(-38),
     });
 
-    const { upcoming, past, total } = await listEventsByTime();
+    const { ongoing, upcoming, past, total } = await listEventsByTime();
     expect(total).toBe(2);
-    expect(upcoming.map((e) => e.slug)).toEqual(["running-league"]);
+    // Started twenty days ago and runs for another ninety: being played, not
+    // something to plan for.
+    expect(ongoing.map((e) => e.slug)).toEqual(["running-league"]);
+    expect(upcoming.map((e) => e.slug)).toEqual([]);
     expect(past.map((e) => e.slug)).toEqual(["old-cup"]);
   });
 
