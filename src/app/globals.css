@@ -27,12 +27,21 @@
   --header-fg: #ffffff;
   --gold: #d4af37;
 
-  --brand: #d4af37; /* filled buttons */
-  --brand-strong: #c29c26; /* button hover */
-  --on-brand: #131313; /* text on gold */
-  --brand-text: #8a6a15; /* links — a gold dark enough to read on white */
-  --brand-soft: #faf3da; /* gold tint for badges */
-  --brand-soft-text: #6b520f;
+  /*
+   * Orange, from the site's own mark — #fc6000 is 58% of the pixels in
+   * logo-mark.png. The gold it replaces came from King Juan Cup, and the cup
+   * keeps it above: this platform lists other people's tournaments too, and
+   * its buttons should match its own logo rather than one event's.
+   *
+   * Every pair here clears 4.5:1, checked rather than eyeballed — orange is
+   * the hue where that quietly fails. Ratios in comments.
+   */
+  --brand: #fc6000; /* filled buttons — 6.03:1 with --on-brand */
+  --brand-strong: #e85400; /* button hover — 5.12:1, so the label survives it */
+  --on-brand: #131313; /* text on orange; white would be 3.08:1 and fail */
+  --brand-text: #b83f00; /* links — 5.60:1 on the page, up from gold's 5.06 */
+  --brand-soft: #fff0e6; /* warm tint for badges */
+  --brand-soft-text: #8a2f00; /* 7.58:1 on that tint */
 
   --background: var(--page);
   --foreground: var(--ink);
