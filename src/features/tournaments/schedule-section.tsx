@@ -2,6 +2,9 @@ import Link from "next/link";
 
 import { TeamCrest } from "@/components/team-crest";
 import type { EventDetail } from "@/features/events/queries";
+import { safeSourceUrl } from "@/features/events/listing";
+import { syncNote } from "@/features/sync/freshness";
+import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 import { DivisionPicker } from "./division-picker";
 import { byMatchday, currentMatchday } from "./matchdays";
@@ -159,9 +162,44 @@ export function ScheduleSection({
 
   const inScope = showAll ? divisions : division ? [division] : [];
 
+  /*
+   * Where this came from, and how long ago.
+   *
+   * A schedule we copied is only as good as the last time we managed to read
+   * it, and a page that hides that is worse than one with no schedule: a
+   * parent trusts a fixture list precisely because it looks authoritative. The
+   * link goes with it — ours is the readable copy, theirs is the one that
+   * settles an argument about a kick-off time.
+   */
+  const note = syncNote(event, new Date());
+  const source = safeSourceUrl(event.scheduleUrl);
+  const platform = event.sourcePlatform
+    ? (PROVIDER_POLICIES[event.sourcePlatform as keyof typeof PROVIDER_POLICIES]?.label ??
+      null)
+    : null;
+
   return (
     <section id="schedule" className="mt-10 scroll-mt-4">
       <h2 className="text-lg font-semibold">Schedule and standings</h2>
+
+      {note && (
+        <p className={`mt-1 text-xs ${note.stale ? "text-amber-700" : "text-muted"}`}>
+          {note.text}
+          {source && (
+            <>
+              {" · "}
+              <a
+                href={source}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-brand-text hover:underline"
+              >
+                {platform ? `View on ${platform}` : "View the original"} ↗
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
       {divisions.length > 1 && (
         <DivisionPicker
