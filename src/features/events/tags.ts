@@ -87,25 +87,25 @@ function titleCase(s: string) {
  * gender of "coed" when that is already the default assumption for a listing.
  */
 export function eventTags(event: TaggableEvent, now = new Date()): EventTag[] {
-  const tags: EventTag[] = [
-    {
-      label: titleCase(event.kind.replace(/-/g, " ")),
-      emoji: kindEmoji(event.kind),
-      tone: "brand",
-    },
-  ];
+  const tags: EventTag[] = [];
 
   /*
-   * Second, because it decides whether the rest is worth reading. A parent
-   * scanning a list wants to know what they can still turn up to before they
-   * want to know the age group, and "is this on right now" is the one thing
-   * no other chip answers.
+   * First, ahead of even what kind of thing it is. A finished tournament and
+   * one starting on Saturday are different things to a reader before the
+   * difference between a tournament and a jamboree matters, and "is this on
+   * right now" is the one thing no other chip answers.
    */
   const lifecycle = lifecycleOf(
     { status: event.status, startsAt: event.startsAt ?? null, endsAt: event.endsAt ?? null },
     now,
   );
   if (lifecycle) tags.push(LIFECYCLE_TAG[lifecycle]);
+
+  tags.push({
+    label: titleCase(event.kind.replace(/-/g, " ")),
+    emoji: kindEmoji(event.kind),
+    tone: "brand",
+  });
 
   // Then whether this platform runs the event, which decides what a reader
   // can do about it — whether the entry button they are looking for exists
