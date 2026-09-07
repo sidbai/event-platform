@@ -1,13 +1,27 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { describeConnectionProblem } from "./connection-string";
 import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL;
-if (!connectionString && process.env.NODE_ENV !== "production") {
-  // Not fatal at build time (pages are dynamic; the adapter only needs the
-  // driver shape) — but every query will fail until this is set.
-  console.warn("DATABASE_URL is not set — database calls will fail.");
+
+/*
+ * Say what is wrong with the variable, rather than letting the driver say
+ * ERR_INVALID_URL against a redacted value on the line below.
+ *
+ * A missing URL is only a warning: the build renders pages that never query,
+ * and failing here would stop a checkout from building at all. A malformed
+ * one is fatal, because it is always a mistake in the value and every query
+ * will fail — better at module load, named, than as a 500 per request.
+ */
+const problem = describeConnectionProblem(connectionString);
+if (problem) {
+  if (connectionString === undefined || connectionString.trim() === "") {
+    console.warn(`${problem} Database calls will fail.`);
+  } else {
+    throw new Error(problem);
+  }
 }
 
 const globalForDb = globalThis as unknown as { __sql?: postgres.Sql };
