@@ -62,7 +62,6 @@ export default async function TeamPage({
   if (!(await canViewTeam(team, user?.id ?? null))) notFound();
 
   const mine = user && team.ownerId === user.id;
-  const isPrivate = team.visibility === "private";
   const admin = isAdmin(user);
   // Owner/manager only. Being on the roster is not permission to edit.
   const canEdit = await canManageTeam(team.id);
@@ -110,23 +109,6 @@ export default async function TeamPage({
         </div>
       )}
 
-      {/*
-       * Where this page came from, which is also why it is thin: no bio, no
-       * roster, nobody running it. "Not listed in the public directory" was
-       * the old wording and is now simply false — these are listed.
-       */}
-      {isPrivate && team.originEvent && (
-        <div className="mt-4 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
-          Read from the schedule for{" "}
-          <Link
-            href={`/events/${team.originEvent.slug}`}
-            className="text-brand-text hover:underline"
-          >
-            {team.originEvent.title}
-          </Link>
-          . Nobody runs this page yet.
-        </div>
-      )}
 
       <header className="mt-4 flex items-center gap-4">
         {/* A team's own crest, else its club's — read at render, so a club
@@ -142,6 +124,24 @@ export default async function TeamPage({
           </p>
         </div>
       </header>
+
+      {/*
+       * Said once, quietly, and only where it is true.
+       *
+       * This was a boxed notice naming the event that created the row, which
+       * went wrong twice over: it appeared on 963 of 966 team pages, where a
+       * notice that universal is chrome rather than information; and it named
+       * one event for teams that have played four, while the Tournaments
+       * section below already lists every one of them correctly.
+       *
+       * What is worth keeping is that nobody from the team wrote this page,
+       * so a reader does not take a thin one for the club's own.
+       */}
+      {!team.ownerId && (
+        <p className="mt-2 text-xs text-muted">
+          Compiled from tournament schedules — not maintained by the team.
+        </p>
+      )}
 
       {team.bio && <p className="mt-4 text-muted">{team.bio}</p>}
 
