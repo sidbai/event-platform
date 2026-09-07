@@ -51,7 +51,12 @@ export function parseBirthYears(name: string): number[] {
     const b = fullYear(pair[2]);
     // Consecutive years only. "U18/19" is an age range and "RCL 1/2" is a
     // tier; both would otherwise arrive here as a birth cohort.
-    if (b - a === 1 && a >= 1950 && a <= 2100) return [a, b];
+    //
+    // Either order: "Olympus 2010/09" and "MRFC B16/15 RED" write the older
+    // year second, and read strictly ascending they fell through to the
+    // single-year rule and lost a year each.
+    const [lo, hi] = a <= b ? [a, b] : [b, a];
+    if (hi - lo === 1 && lo >= 1950 && hi <= 2100) return [lo, hi];
   }
   const full = FULL.exec(name);
   if (full) return [fullYear(full[1])];
@@ -115,4 +120,42 @@ export function parseBirthYearsInput(raw: string | null | undefined): BirthYears
     return { ok: false, error: "Two birth years have to run consecutively." };
   }
   return { ok: true, years };
+}
+
+/** The U-number a name states — 13 for "XF U13 B13-14", null for none. */
+export function parseAgeGroup(name: string): number | null {
+  const m = /(?<![A-Za-z])[BG]?U-?(\d{1,2})(?![0-9])/i.exec(name);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n >= 4 && n <= 23 ? n : null;
+}
+
+/**
+ * Which season an event's age groups belong to.
+ *
+ * Not the calendar year. An age group belongs to a season, and clubs move to
+ * the next season's groups in the spring — a June tournament is already
+ * playing next season's U12, not this season's.
+ *
+ * Checked against every event here: across six tournaments from May to
+ * September 2026, 182 of the 185 teams that name both a U-number and their
+ * birth years agree on the same season, 2026. The cutoff below sits before
+ * all of them; where it belongs exactly, between January and May, this data
+ * cannot say and no event here falls there.
+ */
+export function seasonYearOf(startsAt: Date): number {
+  const year = startsAt.getUTCFullYear();
+  return startsAt.getUTCMonth() + 1 >= 5 ? year : year - 1;
+}
+
+/**
+ * The birth years a U-number means in a given season.
+ *
+ * U12 in the 2026 season is 2014/2015, because the cycle here runs August to
+ * July and a group therefore spans two calendar years. This is derived rather
+ * than stated, which is why the caller records it as such.
+ */
+export function birthYearsForAgeGroup(u: number, seasonYear: number): number[] {
+  const first = seasonYear - u;
+  return [first, first + 1];
 }

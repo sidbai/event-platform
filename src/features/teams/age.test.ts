@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  birthYearsForAgeGroup,
   formatBirthYears,
+  parseAgeGroup,
   parseBirthYears,
   parseBirthYearsInput,
   parseGender,
+  seasonYearOf,
 } from "./age";
 
 describe("parseBirthYears", () => {
@@ -17,6 +20,17 @@ describe("parseBirthYears", () => {
     expect(parseBirthYears("2015 Spuraways")).toEqual([2015]);
     expect(parseBirthYears("90+ B2013 Hutchison")).toEqual([2013]);
     expect(parseBirthYears("XF B09/10 ECNL 1")).toEqual([2009, 2010]);
+  });
+
+  it("reads a pair written oldest-last", () => {
+    /*
+     * Three teams in production write it this way — "Olympus 2010/09",
+     * "MRFC B16/15 RED", "BVBIA WA-EASTSIDE-G2015-2014" — and read strictly
+     * ascending they fell through to the single-year rule and lost a year.
+     */
+    expect(parseBirthYears("Olympus 2010/09")).toEqual([2009, 2010]);
+    expect(parseBirthYears("MRFC B16/15 RED")).toEqual([2015, 2016]);
+    expect(parseBirthYears("BVBIA WA-EASTSIDE-G2015-2014")).toEqual([2014, 2015]);
   });
 
   it("refuses a pair that is not two consecutive years", () => {
@@ -131,5 +145,59 @@ describe("parseBirthYearsInput", () => {
 
   it("refuses a number that is not a birth year", () => {
     expect(parseBirthYearsInput("1899").ok).toBe(false);
+  });
+});
+
+describe("deriving years from a U-number", () => {
+  it("reads the U-number a name states", () => {
+    expect(parseAgeGroup("XF, U14, B12 - 13, RCL 1, Plackov")).toBe(14);
+    expect(parseAgeGroup("Crossfire Select BU14 B")).toBe(14);
+    expect(parseAgeGroup("NSC BU10D Dragons")).toBe(10);
+    expect(parseAgeGroup("Allianz Burnaby")).toBeNull();
+  });
+
+  it("refuses a number that is not an age group", () => {
+    // "U2" and "U40" are a squad label or a typo, not a youth age group.
+    expect(parseAgeGroup("Some Team U2")).toBeNull();
+    expect(parseAgeGroup("Some Team U40")).toBeNull();
+  });
+
+  it("turns U12 in the 2026 season into 2014/2015", () => {
+    // The owner's own example, and the rule the imports agree on.
+    expect(birthYearsForAgeGroup(12, 2026)).toEqual([2014, 2015]);
+    expect(birthYearsForAgeGroup(13, 2026)).toEqual([2013, 2014]);
+    expect(birthYearsForAgeGroup(8, 2026)).toEqual([2018, 2019]);
+  });
+
+  it("puts a summer tournament in the season it is playing for", () => {
+    /*
+     * Clubs move to next season's age groups in the spring, so a June
+     * tournament is already playing the coming season's U12. Verified across
+     * six events from May to September 2026: 182 of 185 teams naming both a
+     * U-number and their years agree on season 2026.
+     */
+    expect(seasonYearOf(new Date("2026-06-26T00:00:00Z"))).toBe(2026);
+    expect(seasonYearOf(new Date("2026-05-01T00:00:00Z"))).toBe(2026);
+    expect(seasonYearOf(new Date("2026-09-05T00:00:00Z"))).toBe(2026);
+  });
+
+  it("puts a midwinter event in the season already running", () => {
+    // February 2027 is still the 2026 season. No event here falls in this
+    // range, so the cutoff is reasoned rather than measured.
+    expect(seasonYearOf(new Date("2027-02-10T00:00:00Z"))).toBe(2026);
+  });
+
+  it("agrees with what the names already say", () => {
+    // The check that made deriving defensible: where a name states both, the
+    // derivation reproduces it.
+    expect(birthYearsForAgeGroup(13, 2026)).toEqual(
+      parseBirthYears("Crossfire Select U13 B13-14 C"),
+    );
+    expect(birthYearsForAgeGroup(10, 2026)).toEqual(
+      parseBirthYears("XF U10 B16-17 RCL 3"),
+    );
+    expect(birthYearsForAgeGroup(8, 2026)).toEqual(
+      parseBirthYears("XF BU8 (18-19) RCL 1, Legg"),
+    );
   });
 });
