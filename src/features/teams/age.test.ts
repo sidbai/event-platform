@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ageGroupOf,
   birthYearsForAgeGroup,
   formatBirthYears,
+  parseAgeGroupFilter,
   parseAgeGroup,
   parseBirthYears,
   parseBirthYearsInput,
@@ -199,5 +201,53 @@ describe("deriving years from a U-number", () => {
     expect(birthYearsForAgeGroup(8, 2026)).toEqual(
       parseBirthYears("XF BU8 (18-19) RCL 1, Legg"),
     );
+  });
+});
+
+describe("age groups for a season", () => {
+  it("names the group a team is in this season", () => {
+    expect(ageGroupOf([2014, 2015], "boys", 2026)).toBe("BU12");
+    expect(ageGroupOf([2013, 2014], "girls", 2026)).toBe("GU13");
+  });
+
+  it("puts a single year and its pair in the same group", () => {
+    /*
+     * Both appear in the data: a name saying "B2014" and one saying "B14-15"
+     * describe the same children. Matching whole arrays would file them as
+     * different groups and split a club's squad in two.
+     */
+    expect(ageGroupOf([2014], "girls", 2026)).toBe("GU12");
+    expect(ageGroupOf([2014, 2015], "girls", 2026)).toBe("GU12");
+  });
+
+  it("moves the same team up a group next season", () => {
+    // The reason the label is computed and the years are stored.
+    expect(ageGroupOf([2014, 2015], "boys", 2026)).toBe("BU12");
+    expect(ageGroupOf([2014, 2015], "boys", 2027)).toBe("BU13");
+  });
+
+  it("has no group for a team missing either fact", () => {
+    expect(ageGroupOf([], "boys", 2026)).toBeNull();
+    expect(ageGroupOf([2014], null, 2026)).toBeNull();
+    // Coed teams exist here and belong to neither chip.
+    expect(ageGroupOf([2014], "coed", 2026)).toBeNull();
+  });
+
+  it("round-trips a chip back to the years it means", () => {
+    expect(parseAgeGroupFilter("BU12", 2026)).toEqual({
+      gender: "boys",
+      firstBirthYear: 2014,
+    });
+    expect(parseAgeGroupFilter("gu14", 2026)).toEqual({
+      gender: "girls",
+      firstBirthYear: 2012,
+    });
+  });
+
+  it("refuses anything that is not a group", () => {
+    expect(parseAgeGroupFilter("U12", 2026)).toBeNull();
+    expect(parseAgeGroupFilter("BU99", 2026)).toBeNull();
+    expect(parseAgeGroupFilter("", 2026)).toBeNull();
+    expect(parseAgeGroupFilter(null, 2026)).toBeNull();
   });
 });
