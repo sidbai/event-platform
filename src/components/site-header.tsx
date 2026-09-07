@@ -34,12 +34,12 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 bg-header text-header-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] print:hidden">
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-2 px-4 sm:px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          {/* Knockout version: the source lockup is drawn in near-black on
-              white, so its 卷 and half its ring vanish on this bar.
-              public/logo-lockup.png keeps the full original, wordmark and
-              all, for light surfaces. */}
+          {/* One file for both surfaces now. The old mark was drawn in
+              near-black on white, so it needed a knockout version to survive
+              this bar; this one is white and orange inside black outlines,
+              which reads on the dark header and on a white page alike. */}
           <Image
-            src="/logo-mark-dark.png"
+            src="/logo-mark.png"
             alt="King Juan Soccer"
             width={80}
             height={80}
