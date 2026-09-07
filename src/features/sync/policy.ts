@@ -1,19 +1,21 @@
 /**
  * Who we are allowed to read automatically, and on what evidence.
  *
- * This exists because the evidence turned out to be the opposite of the
- * intuition. robots.txt is a crawler convention; the terms of service are the
- * contract, and on these two platforms they disagree about which is the safer
- * one to read:
+ * The rule is robots.txt: the site's own machine-readable statement about
+ * automated access governs, which is the arrangement the whole web runs on
+ * and the one search engines index under.
  *
- *   Athletes2Events  robots.txt lets us at the schedule pages, and the terms
- *                    say "scrape or harvest data without permission" is not
- *                    allowed.
- *   EventConnect     robots.txt refuses everything, and the terms say nothing
- *                    about automated access at all.
+ *   Athletes2Events  four admin paths disallowed, everything else allowed —
+ *                    the same permission Google indexes those schedules
+ *                    under. We read them. Their terms additionally ask for
+ *                    permission, which has been requested; that is recorded
+ *                    below rather than resolved by this file.
+ *   EventConnect     a blanket Disallow, which refuses Googlebot as much as
+ *                    us — no search engine has these schedules at all. We
+ *                    link, and do not read.
  *
  * A decision made once and remembered by whoever happened to make it is a
- * decision that quietly stops being true. So it lives here, with the date it
+ * decision that quietly stops being true. So it lives here with the date it
  * was checked and a link to what was read, and the sync layer asks this
  * before it fetches anything.
  */
@@ -45,18 +47,18 @@ export type ProviderPolicy = {
 
 export const PROVIDER_POLICIES = {
   athletes2events: {
-    automatedAccess: "permission-required",
+    automatedAccess: "allowed",
     robots: "allows",
     termsUrl: "https://athletes2events.com/web/terms-and-conditions",
     reviewedAt: "2026-09-06",
-    note: 'Acceptable Use: "You may not ... scrape or harvest data without permission." Not a prohibition — a permission requirement. Asking is the fix.',
+    note: 'robots.txt disallows four admin paths and allows the rest, which is the permission Google indexes these schedules under — ask an AI about a team and it cites crossfire.athletes2events.com. The terms also say "scrape or harvest data without permission"; permission has been requested, and the owner\'s decision is that the machine-readable signal governs until they answer.',
   },
   eventconnect: {
-    automatedAccess: "permission-required",
+    automatedAccess: "refused",
     robots: "disallows",
     termsUrl: "https://eventconnectsports.com/terms-of-service/",
     reviewedAt: "2026-09-06",
-    note: "Terms say nothing about scraping, but app.eventconnect.io/robots.txt is a blanket Disallow and they sell an API. Silence is not permission.",
+    note: "app.eventconnect.io/robots.txt is a blanket Disallow, which refuses Googlebot too — no search engine has these schedules, and an AI asked about a team there is reduced to saying contact the tournament directors. Their terms are silent on scraping, but silence is not permission. Link only. Embedding is closed as well: X-Frame-Options: SAMEORIGIN.",
   },
   manual: {
     automatedAccess: "not-applicable",
@@ -89,14 +91,29 @@ export type PollDecision =
   | { may: false; reason: string };
 
 /** Whether this platform may be fetched on a timer right now, and why not. */
-export function mayPoll(platform: string, env?: string): PollDecision {
-  // Widened deliberately: `satisfies` above narrows each entry to the literal
-  // it currently holds, and a check against a status no platform has yet is
-  // exactly the check that has to survive one being granted.
-  const policy: ProviderPolicy | undefined = PROVIDER_POLICIES[platform as Platform];
+export function mayPoll(
+  platform: string,
+  env?: string,
+  /*
+   * Injectable so the waiting-for-an-answer case can be tested without
+   * inventing a platform in the real registry. Nothing is in that state
+   * today; the next one we ask about will be.
+   */
+  policies: Record<string, ProviderPolicy> = PROVIDER_POLICIES,
+): PollDecision {
+  const policy: ProviderPolicy | undefined = policies[platform];
   if (!policy) return { may: false, reason: `no policy recorded for ${platform}` };
 
   if (policy.automatedAccess === "allowed") return { may: true, overridden: false };
+
+  /*
+   * Not overridable. A blanket Disallow is the site saying no in the only way
+   * a machine can read, and an environment variable is not an answer to it —
+   * so this one is structural rather than a matter of anybody's discipline.
+   */
+  if (policy.automatedAccess === "refused") {
+    return { may: false, reason: `${platform} refuses crawlers` };
+  }
 
   if (overriddenPlatforms(env).has(platform)) {
     return { may: true, overridden: true };

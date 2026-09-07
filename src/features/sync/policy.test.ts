@@ -15,20 +15,47 @@ describe("what we recorded about each platform", () => {
     }
   });
 
-  it("does not read robots.txt as the answer", () => {
-    // The whole reason this file exists. A2E's robots.txt allows the schedule
-    // pages and its terms require permission; EventConnect is the other way
-    // round. Either one alone gives the wrong answer.
+  it("follows robots.txt, and records where the terms disagree", () => {
+    /*
+     * The owner's rule: the machine-readable signal governs. A2E's robots.txt
+     * allows the schedule pages — the same permission Google indexes them
+     * under — so we read them; its terms also ask for permission, which is
+     * noted and has been requested. EventConnect refuses every crawler
+     * including Googlebot, so we link and do not read.
+     */
     expect(PROVIDER_POLICIES.athletes2events.robots).toBe("allows");
-    expect(PROVIDER_POLICIES.athletes2events.automatedAccess).toBe("permission-required");
+    expect(PROVIDER_POLICIES.athletes2events.automatedAccess).toBe("allowed");
+    expect(PROVIDER_POLICIES.athletes2events.note).toMatch(/permission has been requested/);
+
     expect(PROVIDER_POLICIES.eventconnect.robots).toBe("disallows");
-    expect(PROVIDER_POLICIES.eventconnect.automatedAccess).toBe("permission-required");
+    expect(PROVIDER_POLICIES.eventconnect.automatedAccess).toBe("refused");
+  });
+
+  it("cannot be overridden into reading a platform that refuses crawlers", () => {
+    // The one line that must not be a matter of remembering: a blanket
+    // Disallow is the site saying no in the only way a machine can read, and
+    // an environment variable is not an answer to it.
+    expect(mayPoll("eventconnect", "eventconnect").may).toBe(false);
   });
 });
 
 describe("mayPoll", () => {
-  it("refuses a platform that has not said yes", () => {
-    const decision = mayPoll("athletes2events", "");
+  const waiting = {
+    gotsport: {
+      automatedAccess: "pending",
+      robots: "allows",
+      termsUrl: "https://example.test/terms",
+      reviewedAt: "2026-09-06",
+      note: "Asked, no answer yet — the state every new platform starts in.",
+    },
+  } as const;
+
+  it("reads a platform whose robots.txt allows it", () => {
+    expect(mayPoll("athletes2events", "")).toEqual({ may: true, overridden: false });
+  });
+
+  it("refuses a platform we have asked about but not heard from", () => {
+    const decision = mayPoll("gotsport", "", waiting);
     expect(decision.may).toBe(false);
     expect(decision).toHaveProperty("reason");
   });
@@ -39,20 +66,22 @@ describe("mayPoll", () => {
     expect(mayPoll("gotsport", "").may).toBe(false);
   });
 
-  it("lets the owner keep one running knowingly, and says that it is that", () => {
-    const decision = mayPoll("athletes2events", "athletes2events");
-    expect(decision).toEqual({ may: true, overridden: true });
+  it("lets the owner run one knowingly while waiting, and says that it is that", () => {
+    expect(mayPoll("gotsport", "gotsport", waiting)).toEqual({
+      may: true,
+      overridden: true,
+    });
   });
 
   it("does not let an override for one platform cover another", () => {
-    expect(mayPoll("eventconnect", "athletes2events").may).toBe(false);
+    expect(mayPoll("eventconnect", "gotsport").may).toBe(false);
   });
 
   it("ends when the override is taken away, without a code change", () => {
     // The point of putting it in the environment: an exception that has to be
     // restated to survive a deploy expires on its own.
-    expect(mayPoll("athletes2events", "athletes2events").may).toBe(true);
-    expect(mayPoll("athletes2events", undefined).may).toBe(false);
+    expect(mayPoll("gotsport", "gotsport", waiting).may).toBe(true);
+    expect(mayPoll("gotsport", undefined, waiting).may).toBe(false);
   });
 
   it("never polls data that arrives by hand", () => {

@@ -93,10 +93,6 @@ async function makeListing(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(async () => {
-  // The policy layer refuses every platform that has not said yes, which is
-  // all of them. These tests are about the claim, so they run with the same
-  // knowing exception the owner sets in production.
-  process.env.SYNC_OVERRIDE_PLATFORMS = "athletes2events";
   await truncateAll(db);
   await db
     .insert(eventKinds)
@@ -170,18 +166,25 @@ describe("syncIfDue", () => {
 });
 
 describe("the policy gate", () => {
-  it("refuses to fetch a platform nobody has been given permission for", async () => {
-    // A2E's terms say "scrape or harvest data without permission". With the
-    // exception withdrawn, the connector stops on its own — no code change,
-    // no remembering, no deploy.
-    delete process.env.SYNC_OVERRIDE_PLATFORMS;
-    const id = await makeListing();
+  it("will not fetch a platform whose robots.txt refuses crawlers", async () => {
+    // EventConnect answers robots.txt with a blanket Disallow, which refuses
+    // Googlebot as much as us. No environment variable is an answer to that,
+    // so the refusal is structural rather than a matter of discipline.
+    const id = await makeListing({ sourcePlatform: "eventconnect" });
 
     const report = await syncIfDue(id, NOW);
 
     expect(report?.ok).toBe(false);
-    expect(report?.detail).toContain("not permitted");
+    expect(report?.detail).toContain("refuses crawlers");
     expect(fetches).not.toHaveBeenCalled();
+  });
+
+  it("says why it refused rather than that no connector exists", async () => {
+    // There is no EventConnect connector either, and "we are not allowed to
+    // read this" is the more useful of the two answers.
+    const id = await makeListing({ sourcePlatform: "eventconnect" });
+    const report = await syncIfDue(id, NOW);
+    expect(report?.detail).not.toContain("no provider");
   });
 
   it("leaves the schedule it already has alone when it refuses", async () => {
@@ -192,8 +195,10 @@ describe("the policy gate", () => {
     const before = await db.select().from(matches).where(eq(matches.eventId, id));
     expect(before.length).toBeGreaterThan(0);
 
-    delete process.env.SYNC_OVERRIDE_PLATFORMS;
-    await db.update(events).set({ nextSyncAt: at(-1) }).where(eq(events.id, id));
+    await db
+      .update(events)
+      .set({ sourcePlatform: "eventconnect", nextSyncAt: at(-1) })
+      .where(eq(events.id, id));
     await syncIfDue(id, at(1));
 
     expect(await db.select().from(matches).where(eq(matches.eventId, id))).toHaveLength(

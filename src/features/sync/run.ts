@@ -65,20 +65,22 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
     return { slug: event.slug, ok: false, detail: "not a synced listing" };
   }
 
-  const provider = providerFor(event.sourcePlatform);
-  if (!provider) {
-    return { slug: event.slug, ok: false, detail: `no provider for ${event.sourcePlatform}` };
-  }
-
   /*
-   * The single place every fetch passes through — the cron, a page view and
-   * an admin pressing refresh all arrive here. A rule enforced in one of
-   * those three and not the others is a rule that holds until somebody uses
-   * the fourth door.
+   * Asked before anything else, including whether a connector even exists.
+   * "We are not allowed to read this" is a stronger and more useful answer
+   * than "we have not built it yet", and this is the single place every fetch
+   * passes through — the cron, a page view and an admin pressing refresh all
+   * arrive here. A rule enforced in one of those and not the others holds
+   * only until somebody uses the fourth door.
    */
   const decision = mayPoll(event.sourcePlatform);
   if (!decision.may) {
     return { slug: event.slug, ok: false, detail: `not permitted — ${decision.reason}` };
+  }
+
+  const provider = providerFor(event.sourcePlatform);
+  if (!provider) {
+    return { slug: event.slug, ok: false, detail: `no provider for ${event.sourcePlatform}` };
   }
 
   /*
