@@ -6,7 +6,9 @@ import { safeSourceUrl } from "@/features/events/listing";
 import { syncNote } from "@/features/sync/freshness";
 import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
-import { DivisionPicker } from "./division-picker";
+
+import { NavSelect } from "@/components/nav-select";
+
 import { byMatchday, currentMatchday } from "./matchdays";
 import {
   computeStandings,
@@ -203,7 +205,8 @@ export function ScheduleSection({
       )}
 
       {divisions.length > 1 && (
-        <DivisionPicker
+        <NavSelect
+          label="Division"
           value={showAll ? ALL_DIVISIONS : (division?.id ?? ALL_DIVISIONS)}
           options={[
             ...divisions.map((d) => ({
