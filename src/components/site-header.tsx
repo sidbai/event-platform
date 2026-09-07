@@ -25,6 +25,7 @@ export async function SiteHeader() {
   const sections = [
     { href: "/news", label: "News" },
     { href: "/events", label: "Events" },
+    { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
     { href: "/clubs", label: "Reviews" },
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),

@@ -1,11 +1,20 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
-import { TeamCrest } from "@/components/team-crest";
-import { getCurrentUser } from "@/features/auth";
-import { listTeams, myTeams } from "@/features/teams/queries";
 import { CreateLink } from "@/components/create-link";
+import { TeamCrest } from "@/components/team-crest";
+import { SearchBar } from "@/components/search-bar";
+import { getCurrentUser } from "@/features/auth";
+import { Pager } from "@/features/pagination/pager";
+import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
+import { listTeams, myTeams, teamCounts } from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Teams",
+  description:
+    "Youth soccer teams around Seattle — club teams and teams put together for a tournament, with the games they have played.",
+};
 
 type Card = {
   id: string;
@@ -14,20 +23,31 @@ type Card = {
   crestUrl: string | null;
   ageGroup: string | null;
   city: string | null;
+  club?: { name: string; crestUrl: string | null } | null;
 };
 
 function TeamCard({ team, note }: { team: Card; note?: string }) {
-  const meta = [team.ageGroup, team.city].filter(Boolean).join(" · ");
+  const meta = [team.club?.name, team.ageGroup, team.city].filter(Boolean).join(" · ");
   return (
     <li>
       <Link
         href={`/teams/${team.slug}`}
         className="flex items-center gap-3 rounded-lg border border-line p-3 transition-colors hover:bg-elevated"
       >
-        <TeamCrest src={team.crestUrl} size={36} />
+        {/*
+         * A team's own crest, else its club's.
+         *
+         * 22 of 966 teams have a crest and every club has one, so falling
+         * back is the difference between a directory of grey squares and a
+         * directory that looks like the clubs it lists. Read at render rather
+         * than copied into the row: a club changing its crest changes these
+         * with it, and re-filing a team under the right club fixes its badge
+         * with no backfill to remember.
+         */}
+        <TeamCrest src={team.crestUrl ?? team.club?.crestUrl} size={36} />
         <div className="min-w-0">
           <div className="truncate font-medium">{team.name}</div>
-          <div className="text-xs text-muted">
+          <div className="truncate text-xs text-muted">
             {[meta, note].filter(Boolean).join(" · ")}
           </div>
         </div>
@@ -36,15 +56,54 @@ function TeamCard({ team, note }: { team: Card; note?: string }) {
   );
 }
 
-export default async function TeamsPage() {
+const CATEGORIES = [
+  { key: "", label: "All" },
+  { key: "club", label: "Club teams" },
+  { key: "independent", label: "Community teams" },
+] as const;
+
+export default async function TeamsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; type?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const type = sp.type === "club" || sp.type === "independent" ? sp.type : "";
+
   const user = await getCurrentUser();
-  const [teams, mine] = await Promise.all([
-    listTeams(),
+  const [counts, mine] = await Promise.all([
+    teamCounts(q),
     user ? myTeams(user.id) : Promise.resolve([]),
   ]);
 
+  const first = await listTeams({
+    q,
+    affiliation: type,
+    window: { limit: PER_PAGE, offset: 0 },
+  });
+  const pagination = paginate(first.total, parsePage(sp.page));
+  const { rows: teams } =
+    pagination.offset === 0
+      ? first
+      : await listTeams({
+          q,
+          affiliation: type,
+          window: { limit: PER_PAGE, offset: pagination.offset },
+        });
+
   const mineIds = new Set(mine.map((t) => t.id));
   const others = teams.filter((t) => !mineIds.has(t.id));
+
+  /** Keeps the search when a category is picked, and the category when searching. */
+  const href = (next: { type?: string }) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    const t = next.type ?? type;
+    if (t) params.set("type", t);
+    const s = params.toString();
+    return s ? `/teams?${s}` : "/teams";
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -52,8 +111,46 @@ export default async function TeamsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
         <CreateLink href="/teams/new">Create a team</CreateLink>
       </div>
+      <p className="mt-1 text-sm text-muted">
+        Every team we have seen play — the ones entered here and the ones read
+        off the schedules of tournaments around Seattle.
+      </p>
 
-      {mine.length > 0 && (
+      <SearchBar
+        className="mt-4"
+        defaultValue={q}
+        label="Search teams"
+        placeholder="Search teams by name or city"
+      />
+
+      {/*
+       * A team is filed under a club by hand, so most are in neither category
+       * until somebody has looked. "All" leads and is the default for exactly
+       * that reason — a page opening on an empty category would read as a
+       * broken directory rather than an unfinished one.
+       */}
+      <nav aria-label="Team categories" className="mt-4 flex flex-wrap gap-1.5">
+        {CATEGORIES.map((c) => {
+          const on = c.key === type;
+          const n =
+            c.key === "" ? counts.all : c.key === "club" ? counts.club : counts.independent;
+          return (
+            <Link
+              key={c.key || "all"}
+              href={href({ type: c.key })}
+              className={
+                on
+                  ? "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
+                  : "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
+              }
+            >
+              {c.label} {n}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {mine.length > 0 && !q && !type && pagination.page === 1 && (
         <section className="mt-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
             Your teams
@@ -66,9 +163,7 @@ export default async function TeamsPage() {
                 // A private team is listed nowhere else, so say so here rather
                 // than leaving the owner wondering why nobody can find it.
                 note={
-                  team.visibility === "private"
-                    ? `${team.role} · private`
-                    : team.role
+                  team.visibility === "private" ? `${team.role} · private` : team.role
                 }
               />
             ))}
@@ -77,15 +172,12 @@ export default async function TeamsPage() {
       )}
 
       <section className="mt-8">
-        {mine.length > 0 && (
-          <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
-            All teams
-          </h2>
-        )}
-        <p className={mine.length > 0 ? "mt-2 text-sm text-muted" : "mt-1 text-sm text-muted"}>
-          {others.length === 0
-            ? "No public teams yet."
-            : `${others.length} public team${others.length === 1 ? "" : "s"}`}
+        <p className="text-sm text-muted">
+          {first.total === 0
+            ? q
+              ? "No teams match that."
+              : "No teams yet."
+            : `${first.total} team${first.total === 1 ? "" : "s"}`}
         </p>
 
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -101,6 +193,13 @@ export default async function TeamsPage() {
             />
           ))}
         </ul>
+
+        <Pager
+          basePath="/teams"
+          params={{ q, type: type || undefined }}
+          pagination={pagination}
+          noun="teams"
+        />
       </section>
     </div>
   );
