@@ -103,3 +103,122 @@ describe("King Juan Cup 2026 fixture", () => {
     expect(ranked.at(-1)!.teamId).toBe("Warriors GU12");
   });
 });
+
+describe("points systems", () => {
+  it("leaves three-points-for-a-win exactly as it was", () => {
+    // The default is not a system anybody selected: every table computed
+    // before this option existed must keep the numbers it had.
+    const rows = computeStandings([m("a", 2, 1, "b")]);
+    expect(rows.get("a")!.points).toBe(3);
+    expect(rows.get("b")!.points).toBe(0);
+  });
+
+  it("pays a ten-point win its six, its goals and its shutout", () => {
+    const rows = computeStandings([m("a", 3, 0, "b")], undefined, {
+      system: "ten-point",
+    });
+    // 6 win + 3 goals + 1 shutout
+    expect(rows.get("a")!.points).toBe(10);
+    expect(rows.get("b")!.points).toBe(0);
+  });
+
+  it("never pays more than ten for one game", () => {
+    // The cap is the point of the name. A 9–0 is worth what a 3–0 is worth,
+    // which is what stops a team running up the score against the weakest
+    // side in the group to win the group.
+    const rows = computeStandings([m("a", 9, 0, "b")], undefined, {
+      system: "ten-point",
+    });
+    expect(rows.get("a")!.points).toBe(10);
+  });
+
+  it("gives both sides the shutout point in a goalless tie", () => {
+    // 3 for the tie + 1 for conceding nothing. Both kept a clean sheet, so
+    // both are paid for it — 0–0 is four points each, not three.
+    const rows = computeStandings([m("a", 0, 0, "b")], undefined, {
+      system: "ten-point",
+    });
+    expect(rows.get("a")!.points).toBe(4);
+    expect(rows.get("b")!.points).toBe(4);
+  });
+
+  it("pays a tie its goals too", () => {
+    // 3 for the tie + 2 goals, and no shutout for either.
+    const rows = computeStandings([m("a", 2, 2, "b")], undefined, {
+      system: "ten-point",
+    });
+    expect(rows.get("a")!.points).toBe(5);
+    expect(rows.get("b")!.points).toBe(5);
+  });
+
+  it("pays a losing side for the goals it scored", () => {
+    // The part coaches notice: losing 3–2 is worth two points, and losing
+    // 3–0 is worth none.
+    const close = computeStandings([m("a", 3, 2, "b")], undefined, {
+      system: "ten-point",
+    });
+    expect(close.get("b")!.points).toBe(2);
+    const heavy = computeStandings([m("a", 3, 0, "b")], undefined, {
+      system: "ten-point",
+    });
+    expect(heavy.get("b")!.points).toBe(0);
+  });
+
+  it("crowns a different team from the same results", () => {
+    /*
+     * Why the option exists at all. Four teams, a full round robin:
+     *   A drew 0-0 with B and D, and beat C 2-0.
+     *   C lost to A, then beat B 2-1 and D 1-0.
+     * Three points a win makes C the champion on six — two wins beat one.
+     * The ten-point system pays A for three clean sheets and puts A top by
+     * one. Same results, different winner: showing the wrong table does not
+     * misplace a decimal, it names the wrong champion.
+     */
+    const matches = [
+      m("a", 0, 0, "b"),
+      m("a", 2, 0, "c"),
+      m("a", 0, 0, "d"),
+      m("b", 1, 2, "c"),
+      m("b", 0, 3, "d"),
+      m("c", 1, 0, "d"),
+    ];
+    const ids = ["a", "b", "c", "d"];
+
+    const standard = rankStandings(
+      [...computeStandings(matches, ids).values()],
+      matches,
+    );
+    expect(standard[0].teamId).toBe("c");
+    expect(standard[0].points).toBe(6);
+
+    const ten = rankStandings(
+      [...computeStandings(matches, ids, { system: "ten-point" }).values()],
+      matches,
+      { system: "ten-point" },
+    );
+    expect(ten[0].teamId).toBe("a");
+    expect(ten[0].points).toBe(17);
+    expect(ten[1].teamId).toBe("c");
+    expect(ten[1].points).toBe(16);
+  });
+
+  it("counts nothing for a game that has not been played", () => {
+    const rows = computeStandings(
+      [{ homeTeamId: "a", awayTeamId: "b", homeScore: null, awayScore: null }],
+      ["a", "b"],
+      { system: "ten-point" },
+    );
+    // A fixture with no score is not a goalless draw, so no shutout point.
+    expect(rows.get("a")!.points).toBe(0);
+    expect(rows.get("a")!.played).toBe(0);
+  });
+
+  it("still honours an explicit points override", () => {
+    // Two points for a win is a real thing in old league rules, and it must
+    // not silently pick up goal bonuses from the system beside it.
+    const rows = computeStandings([m("a", 4, 0, "b")], undefined, {
+      points: { win: 2, draw: 1, loss: 0 },
+    });
+    expect(rows.get("a")!.points).toBe(2);
+  });
+});

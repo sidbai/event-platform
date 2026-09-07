@@ -105,3 +105,37 @@ describe("describePeriods", () => {
     expect(describePeriods({ tiebreakers: [], periods: 2 })).toBeNull();
   });
 });
+
+describe("the points system", () => {
+  const form = {
+    gameFormat: "",
+    advancement: "",
+    roster: "",
+    tiebreakers: [],
+    goalCap: "",
+    periods: "",
+    periodMinutes: "",
+  };
+
+  it("stores a ten-point tournament as one", () => {
+    const r = parseRules({ ...form, pointsSystem: "ten-point" });
+    expect(r.ok && r.value.pointsSystem).toBe("ten-point");
+  });
+
+  it("stores nothing for the ordinary system", () => {
+    /*
+     * Absence is what every event written before this field means, and it is
+     * read as three points a win. Writing "standard" would leave two ways to
+     * say the same thing and invite one of them to drift.
+     */
+    const r = parseRules({ ...form, pointsSystem: "standard" });
+    expect(r.ok && "pointsSystem" in r.value).toBe(false);
+    expect(parseRules(form).ok).toBe(true);
+  });
+
+  it("ignores a system it cannot compute", () => {
+    // The select can only send these two, so anything else arrived by hand.
+    const r = parseRules({ ...form, pointsSystem: "twelve-point" });
+    expect(r.ok && "pointsSystem" in r.value).toBe(false);
+  });
+});

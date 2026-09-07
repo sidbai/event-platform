@@ -195,6 +195,7 @@ export async function saveRules(
     goalCap: str(formData, "goalCap"),
     periods: str(formData, "periods"),
     periodMinutes: str(formData, "periodMinutes"),
+    pointsSystem: str(formData, "pointsSystem"),
   };
   const tiebreakers = formData.getAll("tiebreakers").map(String);
 

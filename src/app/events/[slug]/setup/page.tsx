@@ -105,8 +105,8 @@ export default async function SetupPage({
       <section className="mt-10">
         <h2 className="text-lg font-semibold tracking-tight">Rules</h2>
         <p className="mt-1 text-sm text-muted">
-          Shown on the event page, and the tiebreakers are what order the
-          standings table.
+          Shown on the event page. The points system and the tiebreakers are
+          what build the standings table.
         </p>
         <RulesForm rules={meta?.rules ?? null} action={saveRules.bind(null, slug)} />
       </section>
