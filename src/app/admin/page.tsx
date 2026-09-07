@@ -87,6 +87,10 @@ export default async function AdminPage({
         <Link href="/admin/sync" className="text-brand-text hover:underline">
           Connected schedules →
         </Link>
+        {" · "}
+        <Link href="/admin/teams" className="text-brand-text hover:underline">
+          Duplicate teams →
+        </Link>
       </p>
 
       <section className="mt-8">

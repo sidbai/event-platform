@@ -281,6 +281,13 @@
       "when": 1788724864426,
       "tag": "0039_external_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788724864427,
+      "tag": "0040_team_slug_history",
+      "breakpoints": true
     }
   ]
 }

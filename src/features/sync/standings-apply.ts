@@ -22,9 +22,15 @@ export type StandingsOutcome = {
   unmatched: string[];
 };
 
-/** Loose enough for punctuation and case, strict enough not to merge two teams. */
+/**
+ * Loose enough for punctuation and case, strict enough not to merge two teams.
+ *
+ * Letters and digits of any script: stripping to [a-z0-9] deletes every
+ * non-Latin character, which made 烙饼FC and 吃饼FC the same string and would
+ * have attached one club's standing to another's row.
+ */
 function normalise(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 export async function applyPastedStandings(
