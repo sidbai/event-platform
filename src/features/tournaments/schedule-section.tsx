@@ -326,7 +326,7 @@ export function ScheduleSection({
                         every row and a column of fixtures can be scanned. */}
                     <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-medium">
                       <span className="flex items-center justify-end gap-2 text-right">
-                        {m.homeTeam?.name ?? m.homePlaceholder ?? "TBD"}
+                        <TeamLink team={m.homeTeam} fallback={m.homePlaceholder} />
                         <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
                       </span>
                       <span className="min-w-14 text-center tabular-nums text-muted">
@@ -336,7 +336,7 @@ export function ScheduleSection({
                       </span>
                       <span className="flex items-center gap-2">
                         <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
-                        {m.awayTeam?.name ?? m.awayPlaceholder ?? "TBD"}
+                        <TeamLink team={m.awayTeam} fallback={m.awayPlaceholder} />
                       </span>
                     </div>
                   </li>
@@ -347,6 +347,31 @@ export function ScheduleSection({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * A team's name on a fixture, as a way into that team's own page.
+ *
+ * These rows are the biggest surface on the site — a couple of thousand of
+ * them — and every name was flat text, so a parent reading their child's
+ * Saturday fixture had no route to the team's record or its other
+ * tournaments. A placeholder for a final nobody has qualified for yet stays
+ * flat, because there is nothing behind it to reach.
+ */
+function TeamLink({
+  team,
+  fallback,
+}: {
+  team: { name: string; slug?: string | null } | null;
+  fallback: string | null;
+}) {
+  if (!team) return <>{fallback ?? "TBD"}</>;
+  if (!team.slug) return <>{team.name}</>;
+  return (
+    <Link href={`/teams/${team.slug}`} className="hover:underline">
+      {team.name}
+    </Link>
   );
 }
 
