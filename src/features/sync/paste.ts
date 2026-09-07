@@ -330,8 +330,23 @@ function matchKey(m: PastedMatch): string {
   return [m.division, m.date ?? "tbd", m.home, m.away].join("|").toLowerCase();
 }
 
-function teamKey(division: string, name: string): string {
-  return `${division}|${name}`.toLowerCase();
+/**
+ * What makes a team one team, within one pasted event.
+ *
+ * The name alone, deliberately. Keyed by division as well, a side that plays
+ * a group stage and then a championship bracket arrives under two division
+ * headings and becomes two teams: "boys u10|lwpfc bu10 white bichirs" and
+ * "boys u10 championships|lwpfc bu10 white bichirs" were two rows for one
+ * club side, and that pattern accounted for 54 duplicate groups in
+ * production, every one of them a bracket.
+ *
+ * The cost is that a team can hold one division per event — event_teams is
+ * unique on (event, team) — so the first division a team appears in is the
+ * one it keeps. Names in these schedules carry the age group, so two teams
+ * sharing a name across divisions of one tournament are the same side.
+ */
+function teamKey(name: string): string {
+  return name.trim().toLowerCase();
 }
 
 /**
@@ -347,7 +362,7 @@ export function toSyncedEvent(matches: PastedMatch[]): SyncedEvent {
   for (const m of matches) {
     for (const name of [m.home, m.away]) {
       if (isPlaceholderName(name)) continue;
-      const key = teamKey(m.division, name);
+      const key = teamKey(name);
       if (!teams.has(key)) {
         teams.set(key, {
           sourceTeamId: key,
@@ -368,8 +383,8 @@ export function toSyncedEvent(matches: PastedMatch[]): SyncedEvent {
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const homeKey = teamKey(m.division, m.home);
-    const awayKey = teamKey(m.division, m.away);
+    const homeKey = teamKey(m.home);
+    const awayKey = teamKey(m.away);
 
     synced.push({
       sourceMatchId: key,
