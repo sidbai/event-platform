@@ -21,6 +21,7 @@ import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { CreateLink } from "@/components/create-link";
+import { formatRecord, recordFrom } from "@/features/teams/record";
 
 export const dynamic = "force-dynamic";
 
@@ -251,8 +252,27 @@ export default async function TeamPage({
                   </span>
                 </div>
                 <div className="text-sm tabular-nums text-muted">
-                  {fmtDate(et.event.startsAt)} · {et.won}W {et.drawn}D {et.lost}L ·{" "}
-                  {et.gf}–{et.ga} · {et.points} pts
+                  {fmtDate(et.event.startsAt)} ·{" "}
+                  {(() => {
+                    /*
+                     * The organizer's own figures when we hold them — an
+                     * imported standings table, or an event run here — and
+                     * otherwise counted from the games themselves. This line
+                     * used to read the stored columns unconditionally, which
+                     * a connector never fills, so every synced team showed
+                     * "0W 0D 0L · 0–0" directly above a list of its results.
+                     */
+                    if (et.played > 0) {
+                      return `${formatRecord(et)} · ${et.points} pts`;
+                    }
+                    const inThisEvent = team.matches.filter(
+                      (m) => m.eventId === et.eventId,
+                    );
+                    const record = recordFrom(inThisEvent, team.id);
+                    // No points: they are our arithmetic, not this
+                    // tournament's, and the page has no business claiming them.
+                    return record.played > 0 ? formatRecord(record) : "not played yet";
+                  })()}
                 </div>
               </li>
             ))}
@@ -262,7 +282,20 @@ export default async function TeamPage({
 
       {team.matches.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">Matches</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <h2 className="text-lg font-semibold">Matches</h2>
+            {/* The whole record in one line, because "how has this team been
+                doing" is the question the page is here to answer and it was
+                only answerable by counting the list below by eye. */}
+            {(() => {
+              const all = recordFrom(team.matches, team.id);
+              return all.played > 0 ? (
+                <p className="text-sm tabular-nums text-muted">
+                  {all.played} played · {formatRecord(all)}
+                </p>
+              ) : null;
+            })()}
+          </div>
           <ul className="mt-3 space-y-1 text-sm">
             {team.matches.map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />

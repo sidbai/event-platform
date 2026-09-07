@@ -34,13 +34,21 @@ export async function getTeamBySlug(slug: string) {
           },
         },
       },
-      eventTeams: {
-        orderBy: (et, { desc: d }) => [d(et.points)],
-        with: { event: true, division: true },
-      },
+      eventTeams: { with: { event: true, division: true } },
     },
   });
   if (!team) return null;
+
+  /*
+   * Newest tournament first, the way a history reads. This was ordered by
+   * points, which is zero for every team a connector created — so the order
+   * was whatever the database felt like returning. Sorted here rather than in
+   * the query because the date lives on the event, and a relational `with`
+   * cannot order a relation by its own relation's column.
+   */
+  team.eventTeams.sort(
+    (a, b) => (b.event.startsAt?.getTime() ?? 0) - (a.event.startsAt?.getTime() ?? 0),
+  );
 
   const playedMatches = await db.query.matches.findMany({
     where: or(eq(matches.homeTeamId, team.id), eq(matches.awayTeamId, team.id)),
