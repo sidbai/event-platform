@@ -324,6 +324,27 @@ export const teams = pgTable("teams", {
   ...timestamps,
 });
 
+/**
+ * Slugs a team used to answer to.
+ *
+ * A connector creates a row per event, so one side ends up as several teams
+ * with several slugs, and every fixture on the site links to one of them.
+ * Merging them without keeping the old addresses would turn roughly two
+ * thousand links into 404s, including whatever a search engine has indexed —
+ * and being findable is the entire point of these pages.
+ */
+export const teamSlugs = pgTable(
+  "team_slugs",
+  {
+    slug: text("slug").primaryKey(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("team_slugs_team_id_idx").on(t.teamId)],
+);
+
 // --- event_divisions: brackets within a tournament --------------------
 
 export const eventDivisions = pgTable(

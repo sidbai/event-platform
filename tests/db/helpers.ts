@@ -40,6 +40,7 @@ const TABLES = [
   "rosters",
   "event_teams",
   "event_divisions",
+  "team_slugs",
   "team_members",
   "events",
   "teams",

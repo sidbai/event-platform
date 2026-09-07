@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
@@ -22,6 +22,7 @@ import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { CreateLink } from "@/components/create-link";
 import { formatRecord, recordFrom } from "@/features/teams/record";
+import { teamBySoleOldSlug } from "@/features/teams/merge";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,18 @@ export default async function TeamPage({
 }) {
   const { slug } = await params;
   const [team, user] = await Promise.all([getTeamBySlug(slug), getCurrentUser()]);
+
+  /*
+   * A slug this team used to answer to. Merging duplicate rows retires the
+   * losers' addresses, and every fixture on the site links to a team by slug —
+   * so an old link redirects rather than 404s, and whatever search has indexed
+   * keeps working.
+   */
+  if (!team) {
+    const current = await teamBySoleOldSlug(slug);
+    if (current) permanentRedirect(`/teams/${current}`);
+  }
+
   const pending = team ? await pendingEntriesForTeam(team.id) : [];
   if (!team) notFound();
   // A team someone created as private is members-only; teams auto-created for
