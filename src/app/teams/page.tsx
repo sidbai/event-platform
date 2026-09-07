@@ -7,7 +7,12 @@ import { SearchBar } from "@/components/search-bar";
 import { getCurrentUser } from "@/features/auth";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
-import { listTeams, myTeams, teamCounts } from "@/features/teams/queries";
+import {
+  listTeams,
+  myTeams,
+  pinnedClubs,
+  teamCounts,
+} from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -65,21 +70,29 @@ const CATEGORIES = [
 export default async function TeamsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    club?: string;
+    page?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const type = sp.type === "club" || sp.type === "independent" ? sp.type : "";
+  const club = (sp.club ?? "").trim();
 
   const user = await getCurrentUser();
-  const [counts, mine] = await Promise.all([
-    teamCounts(q),
+  const [counts, pinned, mine] = await Promise.all([
+    teamCounts({ q, club }),
+    pinnedClubs(),
     user ? myTeams(user.id) : Promise.resolve([]),
   ]);
 
   const first = await listTeams({
     q,
     affiliation: type,
+    club,
     window: { limit: PER_PAGE, offset: 0 },
   });
   const pagination = paginate(first.total, parsePage(sp.page));
@@ -89,18 +102,21 @@ export default async function TeamsPage({
       : await listTeams({
           q,
           affiliation: type,
+          club,
           window: { limit: PER_PAGE, offset: pagination.offset },
         });
 
   const mineIds = new Set(mine.map((t) => t.id));
   const others = teams.filter((t) => !mineIds.has(t.id));
 
-  /** Keeps the search when a category is picked, and the category when searching. */
-  const href = (next: { type?: string }) => {
+  /** Keeps every other filter when one of them is changed. */
+  const href = (next: { type?: string; club?: string }) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     const t = next.type ?? type;
     if (t) params.set("type", t);
+    const c = next.club ?? club;
+    if (c) params.set("club", c);
     const s = params.toString();
     return s ? `/teams?${s}` : "/teams";
   };
@@ -120,8 +136,37 @@ export default async function TeamsPage({
         className="mt-4"
         defaultValue={q}
         label="Search teams"
-        placeholder="Search teams by name or city"
+        placeholder="Search teams by name or club"
       />
+
+      {/*
+       * The clubs an admin thought worth pinning, as one-click filters.
+       *
+       * Typing "Crossfire" is what somebody would do, and until the search
+       * learned to look at club names it found nothing — no Crossfire team is
+       * called that. These make the common case a click, and the pinned list
+       * is already the answer to "which clubs do people actually look for".
+       */}
+      {pinned.length > 0 && (
+        <nav aria-label="Clubs" className="mt-3 flex flex-wrap gap-1.5">
+          {pinned.map((c) => {
+            const on = c.slug === club;
+            return (
+              <Link
+                key={c.slug}
+                href={href({ club: on ? "" : c.slug })}
+                className={
+                  on
+                    ? "rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-on-brand"
+                    : "rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:bg-elevated"
+                }
+              >
+                {c.name}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       {/*
        * A team is filed under a club by hand, so most are in neither category
@@ -150,7 +195,7 @@ export default async function TeamsPage({
         })}
       </nav>
 
-      {mine.length > 0 && !q && !type && pagination.page === 1 && (
+      {mine.length > 0 && !q && !type && !club && pagination.page === 1 && (
         <section className="mt-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
             Your teams
@@ -174,7 +219,7 @@ export default async function TeamsPage({
       <section className="mt-8">
         <p className="text-sm text-muted">
           {first.total === 0
-            ? q
+            ? q || club
               ? "No teams match that."
               : "No teams yet."
             : `${first.total} team${first.total === 1 ? "" : "s"}`}
@@ -186,8 +231,8 @@ export default async function TeamsPage({
               key={team.id}
               team={team}
               note={
-                team.eventTeams.length > 0
-                  ? `${team.eventTeams.length} event${team.eventTeams.length > 1 ? "s" : ""}`
+                team.events > 0
+                  ? `${team.events} event${team.events > 1 ? "s" : ""}`
                   : undefined
               }
             />

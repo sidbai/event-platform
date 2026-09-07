@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { events, matches, teamMembers, teams } from "@/db/schema";
+import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
 
 /**
  * Teams anyone may see listed.
@@ -21,6 +21,8 @@ export type TeamFilter = {
   q?: string;
   /** 'club' or 'independent'; anything else means no filter. */
   affiliation?: string;
+  /** A club's slug, from the pinned chips. */
+  club?: string;
   window?: { limit: number; offset: number };
 };
 
@@ -29,33 +31,87 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-/** The team directory: what the /teams page lists, searches and pages. */
-export async function listTeams(filter: TeamFilter = {}) {
+/**
+ * How the directory is ordered.
+ *
+ * Pinned clubs' teams first, then anything else with a club, then the rest.
+ * The reason is what a stranger is here for: 966 rows alphabetical opens on
+ * "2015 Spuraways" and "90+ B17-18 Valdez", which tells them nothing about
+ * whether this site knows their league. Leading with the clubs an admin
+ * thought worth pinning answers that in the first screen.
+ *
+ * Alphabetical within each band, so the order is still predictable and a
+ * page-two link keeps meaning what it meant.
+ */
+const directoryOrder = [
+  sql`case
+    when ${clubs.pinned} then 0
+    when ${teams.clubId} is not null then 1
+    else 2
+  end`,
+  asc(teams.name),
+];
+
+function teamWhere(filter: TeamFilter) {
   const term = filter.q?.trim() ? `%${escapeLike(filter.q.trim())}%` : null;
   const affiliation =
     filter.affiliation === "club" || filter.affiliation === "independent"
       ? filter.affiliation
       : null;
 
-  const where = and(
+  return and(
     listable,
-    term ? or(ilike(teams.name, term), ilike(teams.city, term)) : undefined,
+    // The club's name is searched as well as the team's, because "Crossfire"
+    // is what somebody types and no Crossfire team is called that: they are
+    // "XF, U14, B12 - 13, RCL 1, Plackov".
+    term
+      ? or(ilike(teams.name, term), ilike(teams.city, term), ilike(clubs.name, term))
+      : undefined,
     affiliation ? eq(teams.affiliation, affiliation) : undefined,
+    filter.club ? eq(clubs.slug, filter.club) : undefined,
   );
+}
 
-  // Counted before slicing, so the pager sizes the whole result.
-  const total = await db.$count(teams, where);
-  const rows = await db.query.teams.findMany({
-    where,
-    orderBy: [asc(teams.name)],
-    limit: filter.window?.limit,
-    offset: filter.window?.offset,
-    with: {
-      eventTeams: { columns: { eventId: true } },
-      club: { columns: { slug: true, name: true, crestUrl: true } },
-    },
-  });
-  return { rows, total };
+/** The team directory: what the /teams page lists, searches and pages. */
+export async function listTeams(filter: TeamFilter = {}) {
+  const where = teamWhere(filter);
+
+  // Counted before slicing, so the pager sizes the whole result. The join has
+  // to be here too: the search and the club chips both reach into clubs.
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(teams)
+    .leftJoin(clubs, eq(clubs.id, teams.clubId))
+    .where(where);
+
+  const rows = await db
+    .select({
+      id: teams.id,
+      slug: teams.slug,
+      name: teams.name,
+      crestUrl: teams.crestUrl,
+      ageGroup: teams.ageGroup,
+      city: teams.city,
+      clubName: clubs.name,
+      clubCrestUrl: clubs.crestUrl,
+      events: sql<number>`(
+        select count(*) from event_teams et where et.team_id = ${teams.id}
+      )::int`,
+    })
+    .from(teams)
+    .leftJoin(clubs, eq(clubs.id, teams.clubId))
+    .where(where)
+    .orderBy(...directoryOrder)
+    .limit(filter.window?.limit ?? 1000)
+    .offset(filter.window?.offset ?? 0);
+
+  return {
+    total,
+    rows: rows.map(({ clubName, clubCrestUrl, ...team }) => ({
+      ...team,
+      club: clubName ? { name: clubName, crestUrl: clubCrestUrl } : null,
+    })),
+  };
 }
 
 /**
@@ -65,22 +121,32 @@ export async function listTeams(filter: TeamFilter = {}) {
  * "All 939" beside a list of two results describes a page nobody is looking
  * at, and invites a click that appears to lose the search.
  */
-export async function teamCounts(q?: string): Promise<{
-  all: number;
-  club: number;
-  independent: number;
-}> {
-  const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
-  const matching = and(
-    listable,
-    term ? or(ilike(teams.name, term), ilike(teams.city, term)) : undefined,
-  );
+export async function teamCounts(
+  filter: Omit<TeamFilter, "affiliation" | "window"> = {},
+): Promise<{ all: number; club: number; independent: number }> {
+  const count = async (affiliation?: string) => {
+    const [{ n }] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(teams)
+      .leftJoin(clubs, eq(clubs.id, teams.clubId))
+      .where(teamWhere({ ...filter, affiliation }));
+    return n;
+  };
   const [all, club, independent] = await Promise.all([
-    db.$count(teams, matching),
-    db.$count(teams, and(matching, eq(teams.affiliation, "club"))),
-    db.$count(teams, and(matching, eq(teams.affiliation, "independent"))),
+    count(),
+    count("club"),
+    count("independent"),
   ]);
   return { all, club, independent };
+}
+
+/** The clubs worth offering as a one-click filter. */
+export async function pinnedClubs(): Promise<{ slug: string; name: string }[]> {
+  return db
+    .select({ slug: clubs.slug, name: clubs.name })
+    .from(clubs)
+    .where(eq(clubs.pinned, true))
+    .orderBy(asc(clubs.name));
 }
 
 export async function getTeamBySlug(slug: string) {

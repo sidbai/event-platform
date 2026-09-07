@@ -15,7 +15,9 @@ requireTestDatabase();
 
 const { db } = await import("@/db");
 const { clubs, eventKinds, events, teams } = await import("@/db/schema");
-const { listTeams, teamCounts } = await import("@/features/teams/queries");
+const { listTeams, pinnedClubs, teamCounts } = await import(
+  "@/features/teams/queries"
+);
 
 let eventId: string;
 
@@ -166,7 +168,7 @@ describe("the categories", () => {
     await makeTeam({ slug: "xf-bu14", name: "XF BU14", clubId: club.id });
     await makeTeam({ slug: "celtic-b12", name: "Seattle Celtic B12" });
 
-    expect(await teamCounts("celtic")).toEqual({ all: 1, club: 0, independent: 0 });
+    expect(await teamCounts({ q: "celtic" })).toEqual({ all: 1, club: 0, independent: 0 });
     expect(await teamCounts()).toEqual({ all: 2, club: 1, independent: 0 });
   });
 
@@ -185,5 +187,79 @@ describe("paging", () => {
     expect(page.rows).toHaveLength(2);
     // The pager sizes itself from this; a page-sized total means one page.
     expect(page.total).toBe(5);
+  });
+});
+
+describe("finding a team by its club", () => {
+  let crossfire: string;
+
+  beforeEach(async () => {
+    const [c] = await db
+      .insert(clubs)
+      .values({ slug: "crossfire-premier", name: "Crossfire Premier", pinned: true })
+      .returning({ id: clubs.id });
+    crossfire = c.id;
+    await makeTeam({ slug: "xf-bu14", name: "XF BU14", clubId: crossfire });
+    await makeTeam({ slug: "celtic-b12", name: "Seattle Celtic B12" });
+  });
+
+  it("searches the club's name, not only the team's", () => {
+    /*
+     * "Crossfire" is what somebody types, and no Crossfire team is called
+     * that — they are "XF, U14, B12 - 13, RCL 1, Plackov". A search box
+     * offering to find teams by club has to actually look there.
+     */
+    return expect(names({ q: "crossfire" })).resolves.toEqual(["XF BU14"]);
+  });
+
+  it("filters to one club by slug, for the chips", async () => {
+    expect(await names({ club: "crossfire-premier" })).toEqual(["XF BU14"]);
+    expect(await names({ club: "seattle-united" })).toEqual([]);
+  });
+
+  it("counts the categories within the club filter too", async () => {
+    expect(await teamCounts({ club: "crossfire-premier" })).toEqual({
+      all: 1,
+      club: 1,
+      independent: 0,
+    });
+  });
+
+  it("offers only pinned clubs as chips", async () => {
+    await db
+      .insert(clubs)
+      .values({ slug: "valor-soccer", name: "Valor Soccer", pinned: false });
+    expect((await pinnedClubs()).map((c) => c.name)).toEqual(["Crossfire Premier"]);
+  });
+});
+
+describe("the order teams come back in", () => {
+  it("leads with pinned clubs, then any club, then the rest", async () => {
+    /*
+     * 966 rows alphabetical opens on "2015 Spuraways" and "90+ B17-18
+     * Valdez", which tells a stranger nothing about whether this site knows
+     * their league. The names here are chosen so alphabetical order would be
+     * the exact reverse of the right one.
+     */
+    const [pinnedClub] = await db
+      .insert(clubs)
+      .values({ slug: "crossfire-premier", name: "Crossfire Premier", pinned: true })
+      .returning({ id: clubs.id });
+    const [plainClub] = await db
+      .insert(clubs)
+      .values({ slug: "valor-soccer", name: "Valor Soccer", pinned: false })
+      .returning({ id: clubs.id });
+
+    await makeTeam({ slug: "aaa", name: "AAA Unplaced" });
+    await makeTeam({ slug: "mmm", name: "MMM Valor", clubId: plainClub.id });
+    await makeTeam({ slug: "zzz", name: "ZZZ Crossfire", clubId: pinnedClub.id });
+
+    expect(await names()).toEqual(["ZZZ Crossfire", "MMM Valor", "AAA Unplaced"]);
+  });
+
+  it("stays alphabetical inside a band, so a page link keeps its meaning", async () => {
+    await makeTeam({ slug: "b", name: "Bravo" });
+    await makeTeam({ slug: "a", name: "Alpha" });
+    expect(await names()).toEqual(["Alpha", "Bravo"]);
   });
 });
