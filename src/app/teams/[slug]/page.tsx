@@ -124,9 +124,14 @@ export default async function TeamPage({
                 are none: "2013/2014" still means the same children next
                 September and "U13" does not. */}
             {[
-              team.club?.name,
+              // The club's stream sits with the club, because "Crossfire
+              // Select" and "Seattle United Shoreline" are how people say it.
+              [team.club?.name, team.program].filter(Boolean).join(" ") || null,
               formatBirthYears(team.birthYears) ?? team.ageGroup,
               team.gender === "boys" ? "Boys" : team.gender === "girls" ? "Girls" : null,
+              // The tier is what tells this team from its club's other sides
+              // in the same age group — 48 groups here need it to differ.
+              team.tier,
               team.city,
             ]
               .filter(Boolean)

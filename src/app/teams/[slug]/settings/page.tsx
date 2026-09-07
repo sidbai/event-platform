@@ -76,6 +76,8 @@ export default async function TeamSettingsPage({
         team={{
           name: team.name,
           birthYears: formatBirthYears(team.birthYears) ?? "",
+          tier: team.tier ?? "",
+          program: team.program ?? "",
           visibility: team.visibility,
           club: affiliationValue(team),
           city: team.city,

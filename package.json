@@ -19,6 +19,7 @@
     "db:seed:coaches": "tsx scripts/seed-coaches.ts",
     "db:backfill:covers": "tsx scripts/backfill-news-cover-size.ts",
     "db:backfill:age": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-age.ts",
+    "db:backfill:naming": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-naming.ts",
     "db:backfill:clubs": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-clubs.ts",
     "db:seed:wpl": "tsx scripts/seed-wpl-fixture.ts",
     "test:db": "vitest run --config vitest.db.config.mts",

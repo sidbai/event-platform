@@ -99,6 +99,8 @@ export async function updateTeam(
     .set({
       name: name.name,
       birthYears: years.years,
+      tier: get("tier"),
+      program: get("program"),
       ...parseAffiliation(get("club"), clubIds),
       city: get("city"),
       ageGroup: get("ageGroup"),

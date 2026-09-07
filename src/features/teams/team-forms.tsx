@@ -21,6 +21,8 @@ export function TeamEditForm({
     name: string;
     /** Already formatted — "2013/2014", or empty. */
     birthYears: string;
+    tier: string;
+    program: string;
     visibility: string;
     /** The chosen club's id, or "independent", or "" for not said. */
     club: string;
@@ -103,6 +105,38 @@ export function TeamEditForm({
               The years the players were born. Outlives the age group.
             </p>
           )}
+        </div>
+
+        <div>
+          <label className={label} htmlFor="tier">
+            Tier
+          </label>
+          <input
+            id="tier"
+            name="tier"
+            defaultValue={team.tier}
+            placeholder="ECNL 1, RCL 2, MLS Next"
+            className={`mt-1 ${field}`}
+          />
+        </div>
+
+        <div>
+          <label className={label} htmlFor="program">
+            Program
+          </label>
+          <input
+            id="program"
+            name="program"
+            defaultValue={team.program}
+            placeholder="Select, Academy, Shoreline"
+            className={`mt-1 ${field}`}
+          />
+          {/* Named for what the club calls it, because that is what tells one
+              of its teams from another — Seattle United's Shoreline side is
+              its select team under the branch's name. */}
+          <p className="mt-1 text-xs text-muted">
+            The club&rsquo;s own stream, or its branch.
+          </p>
         </div>
 
         <div>

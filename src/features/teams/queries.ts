@@ -92,6 +92,8 @@ export async function listTeams(filter: TeamFilter = {}) {
       crestUrl: teams.crestUrl,
       ageGroup: teams.ageGroup,
       birthYears: teams.birthYears,
+      tier: teams.tier,
+      program: teams.program,
       city: teams.city,
       clubName: clubs.name,
       clubCrestUrl: clubs.crestUrl,

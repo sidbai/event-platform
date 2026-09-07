@@ -29,6 +29,8 @@ type Card = {
   crestUrl: string | null;
   ageGroup: string | null;
   birthYears?: number[];
+  tier?: string | null;
+  program?: string | null;
   city: string | null;
   club?: { name: string; crestUrl: string | null } | null;
 };
@@ -36,8 +38,9 @@ type Card = {
 function TeamCard({ team, note }: { team: Card; note?: string }) {
   // Birth years where we have them, the printed age group where we do not.
   const meta = [
-    team.club?.name,
+    [team.club?.name, team.program].filter(Boolean).join(" ") || null,
     formatBirthYears(team.birthYears) ?? team.ageGroup,
+    team.tier,
     team.city,
   ]
     .filter(Boolean)
