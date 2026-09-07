@@ -39,14 +39,17 @@ describe("splitByTime", () => {
     expect(past).toHaveLength(0);
   });
 
-  it("counts an event starting exactly now as upcoming", () => {
-    const { upcoming } = splitByTime([at(now.toISOString())], now);
-    expect(upcoming).toHaveLength(1);
+  it("counts an event starting exactly now as ongoing", () => {
+    // The whistle has gone. Somebody looking for what to do this afternoon
+    // should not have to read past everything starting next month to find it.
+    const { ongoing, upcoming } = splitByTime([at(now.toISOString())], now);
+    expect(ongoing).toHaveLength(1);
+    expect(upcoming).toHaveLength(0);
   });
 
   it("loses nothing", () => {
-    // Every event lands in exactly one of the three sections. The page shows
-    // all three, so anything falling between them would simply disappear.
+    // Every event lands in exactly one of the four sections. The page shows
+    // all four, so anything falling between them would simply disappear.
     const all = [at("2020-01-01T00:00:00Z"), at(null), at("2027-01-01T00:00:00Z")];
     const { upcoming, past, future } = splitByTime(all, now);
     expect(upcoming.length + past.length + future.length).toBe(all.length);
@@ -64,11 +67,11 @@ describe("splitByTime with an end date", () => {
   it("keeps a season that is being played out of the past", () => {
     // The case this exists for: a league that kicked off in August and runs
     // to March was filed under "already happened" from its second day.
-    const { upcoming, past } = splitByTime(
+    const { ongoing, past } = splitByTime(
       [span("2026-08-01T16:00:00Z", "2027-03-14T23:00:00Z")],
       now,
     );
-    expect(upcoming).toHaveLength(1);
+    expect(ongoing).toHaveLength(1);
     expect(past).toHaveLength(0);
   });
 
@@ -118,11 +121,13 @@ describe("splitByTime with a far-future section", () => {
     expect(past).toEqual([]);
   });
 
-  it("keeps a season that is being played in upcoming, not future", () => {
-    // It started before the horizon, so it is happening now whatever its end
-    // date says.
+  it("keeps a season that is being played out of the far section", () => {
+    // It started already, so it is happening now whatever its end date says —
+    // and "Later on" is for things to browse, not things underway.
     const season = span(inDays(-20), inDays(160));
-    expect(splitByTime([season], now).upcoming).toEqual([season]);
+    const { ongoing, future } = splitByTime([season], now);
+    expect(ongoing).toEqual([season]);
+    expect(future).toEqual([]);
   });
 
   it("orders the far ones soonest first, like a calendar", () => {
@@ -144,5 +149,49 @@ describe("splitByTime with a far-future section", () => {
     const event = span(inDays(90), null);
     expect(splitByTime([event], now).future).toHaveLength(1);
     expect(splitByTime([event], now, 120).upcoming).toHaveLength(1);
+  });
+});
+
+describe("the ongoing section", () => {
+  const span = (start: string, end: string | null) => ({
+    startsAt: new Date(start),
+    endsAt: end ? new Date(end) : null,
+  });
+  const inDays = (n: number) =>
+    new Date(now.getTime() + n * 86_400_000).toISOString();
+
+  it("holds what is being played, and nothing else", () => {
+    const live = span(inDays(-1), inDays(1));
+    const soon = span(inDays(3), inDays(4));
+    const done = span(inDays(-9), inDays(-8));
+    const far = span(inDays(200), null);
+
+    const out = splitByTime([live, soon, done, far], now);
+    expect(out.ongoing).toEqual([live]);
+    expect(out.upcoming).toEqual([soon]);
+    expect(out.past).toEqual([done]);
+    expect(out.future).toEqual([far]);
+  });
+
+  it("gives a one-day event with no end time the rest of its day", () => {
+    /*
+     * The disagreement this section exposed. A pickup game at six o'clock
+     * counted as over the moment it kicked off, while its chip said Ongoing —
+     * the same event reading "Ongoing" from inside the Past section. Both
+     * sides now ask endOf.
+     */
+    const kickedOffAnHourAgo = span(inDays(-1 / 24), null);
+    const out = splitByTime([kickedOffAnHourAgo], now);
+    expect(out.ongoing).toEqual([kickedOffAnHourAgo]);
+    expect(out.past).toEqual([]);
+  });
+
+  it("never calls a dateless event ongoing", () => {
+    // Nobody knows when it is, so it waits with the upcoming ones rather than
+    // claiming to be live.
+    const undated = { startsAt: null, endsAt: null };
+    const out = splitByTime([undated], now);
+    expect(out.ongoing).toEqual([]);
+    expect(out.upcoming).toEqual([undated]);
   });
 });

@@ -8,6 +8,8 @@
  * therefore not importable from a test — the same reason view-decision.ts and
  * claim.ts sit apart from their queries.
  */
+import { endOf } from "./completion";
+
 /** How far ahead still counts as something to plan around. */
 export const UPCOMING_HORIZON_DAYS = 60;
 
@@ -25,8 +27,14 @@ export function splitByTime<T extends { startsAt: Date | null; endsAt?: Date | n
    * Past the day after its first matchday — filed under "already happened"
    * for the six months it was actually being played. Tournaments have the
    * same problem in miniature over a long weekend.
+   *
+   * endOf is shared with the lifecycle chip on purpose. Two definitions of
+   * "finished" is two answers, and they were already disagreeing: a one-day
+   * event with no end time counted as over the moment it kicked off here,
+   * while the chip gave it the rest of the day. The same event would have
+   * read "Ongoing" from inside the Past section.
    */
-  const finishes = (e: T) => e.endsAt?.getTime() ?? e.startsAt?.getTime() ?? null;
+  const finishes = (e: T) => endOf({ startsAt: e.startsAt, endsAt: e.endsAt ?? null })?.getTime() ?? null;
   const starts = (e: T) => e.startsAt?.getTime() ?? null;
 
   const horizon = now.getTime() + horizonDays * DAY;
@@ -53,11 +61,22 @@ export function splitByTime<T extends { startsAt: Date | null; endsAt?: Date | n
     return start !== null && start > horizon;
   };
 
-  const upcoming = events.filter((e) => !over(e) && !far(e)).sort(soonest);
-  const future = events.filter((e) => !over(e) && far(e)).sort(soonest);
+  /*
+   * Being played right now, which is the one thing somebody might act on in
+   * the next hour. A dateless event is never ongoing — nobody knows when it
+   * is, so it waits with the upcoming ones rather than claiming to be live.
+   */
+  const live = (e: T) => {
+    const start = starts(e);
+    return start !== null && start <= now.getTime() && !over(e);
+  };
+
+  const ongoing = events.filter(live).sort(soonest);
+  const upcoming = events.filter((e) => !over(e) && !far(e) && !live(e)).sort(soonest);
+  const future = events.filter((e) => !over(e) && far(e) && !live(e)).sort(soonest);
   const past = events
     .filter(over)
     .sort((a, b) => (starts(b) ?? 0) - (starts(a) ?? 0));
 
-  return { upcoming, past, future };
+  return { ongoing, upcoming, past, future };
 }
