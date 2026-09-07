@@ -6,6 +6,7 @@ import {
   completionSuggestion,
   endOf,
   hasFinished,
+  lifecycleOf,
 } from "./completion";
 
 const now = new Date("2026-09-10T12:00:00Z");
@@ -108,5 +109,42 @@ describe("completionSuggestion", () => {
         status,
       ).toEqual({ suggest: false });
     }
+  });
+});
+
+describe("lifecycleOf", () => {
+  const dates = { startsAt: at(-1), endsAt: at(1) };
+
+  it("reads the calendar when nobody has said otherwise", () => {
+    expect(lifecycleOf({ startsAt: at(2), endsAt: at(4) }, now)).toBe("upcoming");
+    expect(lifecycleOf(dates, now)).toBe("ongoing");
+    expect(lifecycleOf({ startsAt: at(-4), endsAt: at(-2) }, now)).toBe("completed");
+  });
+
+  it("lets the organizer's mark win over the calendar", () => {
+    // A league whose final was rained off can be finished early, and the
+    // page should not argue with the person who was there.
+    expect(lifecycleOf({ ...dates, status: "completed" }, now)).toBe("completed");
+  });
+
+  it("says nothing about a cancelled event", () => {
+    // It did not finish — it did not happen, and the page says that already.
+    expect(lifecycleOf({ ...dates, status: "cancelled" }, now)).toBeNull();
+  });
+
+  it("says nothing about one nobody has scheduled", () => {
+    // A scrimmage with no date is not upcoming; it is unscheduled.
+    expect(lifecycleOf({ startsAt: null, endsAt: null }, now)).toBeNull();
+  });
+
+  it("counts the last day as still ongoing", () => {
+    // The boundary that matters: a parent checking on the Sunday of a
+    // three-day tournament is not reading about a finished event.
+    const lastDay = { startsAt: at(-2), endsAt: new Date(now.getTime() + 60_000) };
+    expect(lifecycleOf(lastDay, now)).toBe("ongoing");
+  });
+
+  it("treats a one-day event as ongoing all day", () => {
+    expect(lifecycleOf({ startsAt: at(-0.5), endsAt: null }, now)).toBe("ongoing");
   });
 });

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { eventTags } from "./tags";
 
-const labels = (e: Parameters<typeof eventTags>[0]) =>
-  eventTags(e).map((t) => t.label);
+const labels = (e: Parameters<typeof eventTags>[0], now?: Date) =>
+  eventTags(e, now).map((t) => t.label);
 
 describe("eventTags", () => {
   it("always leads with the kind", () => {
@@ -50,10 +50,42 @@ describe("eventTags", () => {
     expect(labels({ kind: "custom", visibility: "public" })).not.toContain("Public");
   });
 
-  it("notes completed and cancelled events", () => {
-    expect(labels({ kind: "tournament", status: "completed" })).toContain(
-      "Final results",
-    );
+  it("says where an event is in its own life", () => {
+    const now = new Date("2026-09-10T12:00:00Z");
+    const day = 24 * 60 * 60 * 1000;
+    const at = (days: number) => new Date(now.getTime() + days * day);
+
+    expect(
+      labels({ kind: "tournament", startsAt: at(5), endsAt: at(7) }, now),
+    ).toContain("Upcoming");
+    expect(
+      labels({ kind: "tournament", startsAt: at(-1), endsAt: at(1) }, now),
+    ).toContain("Ongoing");
+    expect(
+      labels({ kind: "tournament", startsAt: at(-7), endsAt: at(-5) }, now),
+    ).toContain("Completed");
+  });
+
+  it("lets the organizer's mark outrank the calendar", () => {
+    const now = new Date("2026-09-10T12:00:00Z");
+    const day = 24 * 60 * 60 * 1000;
+    expect(
+      labels(
+        {
+          kind: "tournament",
+          status: "completed",
+          startsAt: new Date(now.getTime() - day),
+          endsAt: new Date(now.getTime() + day),
+        },
+        now,
+      ),
+    ).toContain("Completed");
+  });
+
+  it("says nothing about the life of a cancelled or unscheduled event", () => {
+    // Cancelled did not finish, it did not happen; and an undated scrimmage
+    // is not upcoming, it is unscheduled.
+    expect(labels({ kind: "game", status: "cancelled" })).not.toContain("Completed");
     expect(labels({ kind: "game", status: "published" })).toEqual(["Game"]);
   });
 
