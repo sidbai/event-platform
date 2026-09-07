@@ -144,3 +144,43 @@ describe("the schedule link", () => {
     expect(scheduleActionOf({ ...withSchedule, scheduleUrl: "/events/x" })).toBeNull();
   });
 });
+
+describe("what a pasted link carries with it", () => {
+  it("drops the session of whoever copied it", () => {
+    /*
+     * The real one: an admin pasted an EventConnect schedule URL from their
+     * own signed-in browser, and it arrived with registration_id=2253984 on
+     * it. Stored as-is, every parent who pressed "Schedule & standings" went
+     * to that platform carrying one person's identifier.
+     */
+    expect(
+      safeSourceUrl(
+        "https://app.eventconnect.io/events/42108/scheduling-scoring?page-view=schedule&nav=hidden&registration_id=2253984",
+      ),
+    ).toBe(
+      "https://app.eventconnect.io/events/42108/scheduling-scoring?page-view=schedule&nav=hidden",
+    );
+  });
+
+  it("drops the campaign tags a link picks up in transit", () => {
+    expect(
+      safeSourceUrl("https://example.test/t?utm_source=news&utm_medium=email&flight=3"),
+    ).toBe("https://example.test/t?flight=3");
+  });
+
+  it("keeps the parameters the page actually needs", () => {
+    // page-view and flight-id are how these platforms address a page at all;
+    // stripping those would break the link this is trying to protect.
+    expect(safeSourceUrl("https://crossfire.athletes2events.com/events/130/groups")).toBe(
+      "https://crossfire.athletes2events.com/events/130/groups",
+    );
+    expect(
+      safeSourceUrl("https://x.test/schedules?team-id=6997&flight-id=1123"),
+    ).toBe("https://x.test/schedules?team-id=6997&flight-id=1123");
+  });
+
+  it("still refuses what it always refused", () => {
+    expect(safeSourceUrl("javascript:alert(1)?utm_source=x")).toBeNull();
+    expect(safeSourceUrl("/events/x")).toBeNull();
+  });
+});

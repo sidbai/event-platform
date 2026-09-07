@@ -71,6 +71,24 @@ export function attributionOf(event: Listing): Attribution | null {
  * way to hand a visitor something we did not intend — this field is the one
  * place on the page where a stranger chooses the destination.
  */
+/**
+ * Query parameters that belong to whoever copied the link, not to the page.
+ *
+ * A schedule URL is pasted from an admin's own browser, where they are signed
+ * in to the platform. EventConnect hands out `registration_id`; analytics
+ * hands out utm_*; a dozen others hand out a click id. Stored as-is, every
+ * visitor who follows that button arrives carrying one person's session.
+ *
+ * Not a security hole — none of these is a credential — but it is somebody's
+ * identifier published on a public page, and the link works without it.
+ */
+const PERSONAL_PARAMS = [
+  /^registration_id$/i,
+  /^utm_/i,
+  /^(fbclid|gclid|msclkid|mc_eid|_hs(enc|mi))$/i,
+  /^(session|sid|token|auth|user_?id|member_?id)$/i,
+];
+
 export function safeSourceUrl(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const trimmed = raw.trim();
@@ -78,6 +96,11 @@ export function safeSourceUrl(raw: string | null | undefined): string | null {
   try {
     const url = new URL(trimmed);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+    for (const key of [...url.searchParams.keys()]) {
+      if (PERSONAL_PARAMS.some((p) => p.test(key))) url.searchParams.delete(key);
+    }
+
     return url.toString();
   } catch {
     return null;
