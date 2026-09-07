@@ -12,6 +12,7 @@ import {
   listTeams,
   myTeams,
   pinnedClubs,
+  teamAgeGroups,
   teamCounts,
 } from "@/features/teams/queries";
 
@@ -86,6 +87,7 @@ export default async function TeamsPage({
     q?: string;
     type?: string;
     club?: string;
+    age?: string;
     page?: string;
   }>;
 }) {
@@ -93,11 +95,13 @@ export default async function TeamsPage({
   const q = (sp.q ?? "").trim();
   const type = sp.type === "club" || sp.type === "independent" ? sp.type : "";
   const club = (sp.club ?? "").trim();
+  const age = (sp.age ?? "").trim().toUpperCase();
 
   const user = await getCurrentUser();
-  const [counts, pinned, mine] = await Promise.all([
-    teamCounts({ q, club }),
+  const [counts, pinned, ageGroups, mine] = await Promise.all([
+    teamCounts({ q, club, age }),
     pinnedClubs(),
+    teamAgeGroups({ q, club }),
     user ? myTeams(user.id) : Promise.resolve([]),
   ]);
 
@@ -105,6 +109,7 @@ export default async function TeamsPage({
     q,
     affiliation: type,
     club,
+    age,
     window: { limit: PER_PAGE, offset: 0 },
   });
   const pagination = paginate(first.total, parsePage(sp.page));
@@ -115,6 +120,7 @@ export default async function TeamsPage({
           q,
           affiliation: type,
           club,
+          age,
           window: { limit: PER_PAGE, offset: pagination.offset },
         });
 
@@ -122,13 +128,15 @@ export default async function TeamsPage({
   const others = teams.filter((t) => !mineIds.has(t.id));
 
   /** Keeps every other filter when one of them is changed. */
-  const href = (next: { type?: string; club?: string }) => {
+  const href = (next: { type?: string; club?: string; age?: string }) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     const t = next.type ?? type;
     if (t) params.set("type", t);
     const c = next.club ?? club;
     if (c) params.set("club", c);
+    const a = next.age ?? age;
+    if (a) params.set("age", a);
     const s = params.toString();
     return s ? `/teams?${s}` : "/teams";
   };
@@ -181,6 +189,36 @@ export default async function TeamsPage({
       )}
 
       {/*
+       * Age groups, named for this season and computed from birth years.
+       *
+       * "BU12" is what a parent looks for and 2014/2015 is what we store, so
+       * the chip is the label and the filter is the fact — and next August
+       * the same chip means 2015/2016 without a row changing. Only groups
+       * that have teams are offered, so no chip leads to an empty page.
+       */}
+      {ageGroups.length > 0 && (
+        <nav aria-label="Age groups" className="mt-3 flex flex-wrap gap-1.5">
+          {ageGroups.map((g) => {
+            const on = g.value === age;
+            return (
+              <Link
+                key={g.value}
+                href={href({ age: on ? "" : g.value })}
+                className={
+                  on
+                    ? "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
+                    : "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
+                }
+              >
+                {g.label}{" "}
+                <span className={on ? "opacity-70" : "opacity-60"}>{g.count}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
+      {/*
        * A team is filed under a club by hand, so most are in neither category
        * until somebody has looked. "All" leads and is the default for exactly
        * that reason — a page opening on an empty category would read as a
@@ -207,7 +245,7 @@ export default async function TeamsPage({
         })}
       </nav>
 
-      {mine.length > 0 && !q && !type && !club && pagination.page === 1 && (
+      {mine.length > 0 && !q && !type && !club && !age && pagination.page === 1 && (
         <section className="mt-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
             Your teams
@@ -231,7 +269,7 @@ export default async function TeamsPage({
       <section className="mt-8">
         <p className="text-sm text-muted">
           {first.total === 0
-            ? q || club
+            ? q || club || age
               ? "No teams match that."
               : "No teams yet."
             : `${first.total} team${first.total === 1 ? "" : "s"}`}
@@ -253,7 +291,7 @@ export default async function TeamsPage({
 
         <Pager
           basePath="/teams"
-          params={{ q, type: type || undefined }}
+          params={{ q, type: type || undefined, club: club || undefined, age: age || undefined }}
           pagination={pagination}
           noun="teams"
         />

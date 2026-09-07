@@ -159,3 +159,44 @@ export function birthYearsForAgeGroup(u: number, seasonYear: number): number[] {
   const first = seasonYear - u;
   return [first, first + 1];
 }
+
+/**
+ * The age group a team is in this season — "BU12", "GU14", or null.
+ *
+ * Computed, never stored. That is the whole reason birth years are the
+ * column: the same team is BU12 this season and BU13 the next, and a stored
+ * label would have to be rewritten every August or quietly go wrong.
+ *
+ * Keyed on the first birth year, which makes {2014} and {2014, 2015} the same
+ * group. Both appear in the data — a name saying "B2014" and one saying
+ * "B14-15" describe the same children — and a rule matching whole arrays
+ * would put them in different groups.
+ */
+export function ageGroupOf(
+  birthYears: number[] | null | undefined,
+  gender: string | null | undefined,
+  seasonYear: number,
+): string | null {
+  if (!birthYears || birthYears.length === 0) return null;
+  if (gender !== "boys" && gender !== "girls") return null;
+  const u = seasonYear - birthYears[0];
+  if (u < 4 || u > 23) return null;
+  return `${gender === "boys" ? "B" : "G"}U${u}`;
+}
+
+export type AgeGroupFilter = { gender: "boys" | "girls"; firstBirthYear: number };
+
+/** "BU12" from a query string, as the years it means this season. */
+export function parseAgeGroupFilter(
+  raw: string | null | undefined,
+  seasonYear: number,
+): AgeGroupFilter | null {
+  const m = /^([BG])U(\d{1,2})$/i.exec((raw ?? "").trim());
+  if (!m) return null;
+  const u = Number(m[2]);
+  if (u < 4 || u > 23) return null;
+  return {
+    gender: m[1].toUpperCase() === "B" ? "boys" : "girls",
+    firstBirthYear: seasonYear - u,
+  };
+}

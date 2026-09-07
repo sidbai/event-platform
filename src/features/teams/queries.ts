@@ -5,6 +5,8 @@ import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from "
 import { db } from "@/db";
 import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
 
+import { ageGroupOf, parseAgeGroupFilter, seasonYearOf } from "./age";
+
 /**
  * Teams anyone may see listed.
  *
@@ -23,6 +25,8 @@ export type TeamFilter = {
   affiliation?: string;
   /** A club's slug, from the pinned chips. */
   club?: string;
+  /** An age group as this season names it — "BU12". */
+  age?: string;
   window?: { limit: number; offset: number };
 };
 
@@ -69,7 +73,67 @@ function teamWhere(filter: TeamFilter) {
       : undefined,
     affiliation ? eq(teams.affiliation, affiliation) : undefined,
     filter.club ? eq(clubs.slug, filter.club) : undefined,
+    ...ageWhere(filter.age),
   );
+}
+
+/**
+ * An age group, as the years it means this season.
+ *
+ * Matched on the first birth year rather than the whole array: {2014} and
+ * {2014, 2015} are the same children written two ways, and both are in the
+ * data. Postgres arrays are 1-indexed.
+ */
+function ageWhere(raw: string | undefined) {
+  const age = parseAgeGroupFilter(raw, seasonYearOf(new Date()));
+  if (!age) return [];
+  return [
+    eq(teams.gender, age.gender),
+    sql`${teams.birthYears}[1] = ${age.firstBirthYear}`,
+  ];
+}
+
+/**
+ * The age groups that actually have teams, newest-born first.
+ *
+ * Built from the data rather than listed, so the page never offers a chip
+ * that finds nothing — and so it shrinks and grows on its own as the
+ * directory does.
+ */
+export async function teamAgeGroups(
+  filter: Omit<TeamFilter, "age" | "window"> = {},
+): Promise<{ value: string; label: string; count: number }[]> {
+  const season = seasonYearOf(new Date());
+  const rows = await db
+    .select({
+      gender: teams.gender,
+      first: sql<number>`${teams.birthYears}[1]`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(teams)
+    .leftJoin(clubs, eq(clubs.id, teams.clubId))
+    // Counted inside whatever else is filtering, the same as the category
+    // chips: a "BU12 46" beside a club showing eight teams is a count of a
+    // page nobody is looking at.
+    .where(and(teamWhere({ ...filter, age: undefined }), sql`cardinality(${teams.birthYears}) > 0`))
+    .groupBy(teams.gender, sql`${teams.birthYears}[1]`);
+
+  const byGroup = new Map<string, number>();
+  for (const row of rows) {
+    const label = ageGroupOf([row.first], row.gender, season);
+    if (!label) continue;
+    byGroup.set(label, (byGroup.get(label) ?? 0) + row.n);
+  }
+
+  // Boys then girls, youngest first inside each. Sorted numerically, or
+  // "BU10" lands before "BU9" and the row reads as a shuffle.
+  return [...byGroup]
+    .map(([value, count]) => ({ value, label: value, count }))
+    .sort(
+      (a, b) =>
+        a.value[0].localeCompare(b.value[0]) ||
+        Number(a.value.slice(2)) - Number(b.value.slice(2)),
+    );
 }
 
 /** The team directory: what the /teams page lists, searches and pages. */
