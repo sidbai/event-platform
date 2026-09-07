@@ -5,6 +5,7 @@ import { CreateLink } from "@/components/create-link";
 import { TeamCrest } from "@/components/team-crest";
 import { SearchBar } from "@/components/search-bar";
 import { getCurrentUser } from "@/features/auth";
+import { formatBirthYears } from "@/features/teams/age";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 import {
@@ -27,12 +28,20 @@ type Card = {
   name: string;
   crestUrl: string | null;
   ageGroup: string | null;
+  birthYears?: number[];
   city: string | null;
   club?: { name: string; crestUrl: string | null } | null;
 };
 
 function TeamCard({ team, note }: { team: Card; note?: string }) {
-  const meta = [team.club?.name, team.ageGroup, team.city].filter(Boolean).join(" · ");
+  // Birth years where we have them, the printed age group where we do not.
+  const meta = [
+    team.club?.name,
+    formatBirthYears(team.birthYears) ?? team.ageGroup,
+    team.city,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <li>
       <Link

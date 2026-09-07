@@ -19,6 +19,7 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
 import { canManageTeam } from "./access";
+import { parseBirthYearsInput } from "./age";
 import { checkTeamName } from "./name";
 
 export type TeamFormResult = {
@@ -88,12 +89,16 @@ export async function updateTeam(
   const name = checkTeamName(String(formData.get("name") ?? ""));
   if (!name.ok) return { fieldErrors: { name: name.error } };
 
+  const years = parseBirthYearsInput(String(formData.get("birthYears") ?? ""));
+  if (!years.ok) return { fieldErrors: { birthYears: years.error } };
+
   const clubIds = (await clubOptions()).map((c) => c.id);
 
   await db
     .update(teams)
     .set({
       name: name.name,
+      birthYears: years.years,
       ...parseAffiliation(get("club"), clubIds),
       city: get("city"),
       ageGroup: get("ageGroup"),

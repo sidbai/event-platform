@@ -19,6 +19,8 @@ export function TeamEditForm({
   clubs: { id: string; name: string }[];
   team: {
     name: string;
+    /** Already formatted — "2013/2014", or empty. */
+    birthYears: string;
     visibility: string;
     /** The chosen club's id, or "independent", or "" for not said. */
     club: string;
@@ -81,6 +83,28 @@ export function TeamEditForm({
             ))}
           </select>
         </div>
+        <div>
+          <label className={label} htmlFor="birthYears">
+            Birth years
+          </label>
+          <input
+            id="birthYears"
+            name="birthYears"
+            defaultValue={team.birthYears}
+            placeholder="2013/2014"
+            className={`mt-1 ${field}`}
+          />
+          {state.fieldErrors?.birthYears ? (
+            <p className="mt-1 text-xs text-red-600">{state.fieldErrors.birthYears}</p>
+          ) : (
+            /* Why this and not "U13": the age group is a fact about a season,
+               and next season's U13 is a different set of children. */
+            <p className="mt-1 text-xs text-muted">
+              The years the players were born. Outlives the age group.
+            </p>
+          )}
+        </div>
+
         <div>
           <label className={label} htmlFor="city">
             City

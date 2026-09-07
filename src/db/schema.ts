@@ -345,6 +345,17 @@ export const teams = pgTable(
    */
   clubId: uuid("club_id").references(() => clubs.id, { onDelete: "restrict" }),
   affiliation: teamAffiliation("affiliation").notNull().default("unknown"),
+  /**
+   * The years the players were born, as event_divisions records them.
+   *
+   * "U13" is a fact about a team in a season, not about the team: next
+   * year's U13 is a different set of children, and a directory that outlives
+   * a season needs the durable one. An array because the age cycle here runs
+   * August to July, so a group spans two calendar years — {2013, 2014} — and
+   * would be a single year again if it ever went back to calendar years.
+   */
+  birthYears: integer("birth_years").array().notNull().default([]),
+  /** The label a tournament printed. Goes stale by design; birthYears does not. */
   ageGroup: text("age_group"),
   gender: text("gender"),
   city: text("city"),

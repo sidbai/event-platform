@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser, publicName, requireUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { affiliationValue } from "@/features/clubs/affiliation";
+import { formatBirthYears } from "@/features/teams/age";
 import { clubOptions } from "@/features/clubs/link-queries";
 import { canManageTeam } from "@/features/teams/access";
 import { deleteTeam, removeMember, updateTeam } from "@/features/teams/actions";
@@ -74,6 +75,7 @@ export default async function TeamSettingsPage({
         clubs={clubs}
         team={{
           name: team.name,
+          birthYears: formatBirthYears(team.birthYears) ?? "",
           visibility: team.visibility,
           club: affiliationValue(team),
           city: team.city,
