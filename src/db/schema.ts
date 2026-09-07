@@ -435,6 +435,43 @@ export const clubAliases = pgTable(
 );
 
 /**
+ * Pairs a model thinks are one team, waiting for a person to say.
+ *
+ * Kept in their own table rather than shown inline with the rules-based
+ * proposals, because they are a different kind of claim: those are facts this
+ * codebase checked, these are a guess with a sentence attached. A row here
+ * has never changed anything — accepting one runs the same merge an admin
+ * would have run by hand.
+ *
+ * Dismissed rather than deleted, so the same pair is not suggested again next
+ * import, and so the hit rate can be counted before anybody trusts it more.
+ */
+export const teamMatchSuggestions = pgTable(
+  "team_match_suggestions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    newTeamId: uuid("new_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    existingTeamId: uuid("existing_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    confidence: text("confidence").notNull(),
+    /** The model's one sentence, shown beside the pair. */
+    why: text("why").notNull(),
+    /** Which model said so, so a bad run can be told from a bad idea. */
+    model: text("model").notNull(),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One standing suggestion per pair, so a re-run updates rather than piles up.
+    unique("team_match_suggestions_pair_uq").on(t.newTeamId, t.existingTeamId),
+  ],
+);
+
+/**
  * Names a team is known by, written when somebody merges two rows into it.
  *
  * The other half of the merge queue. Retiring a slug keeps old links working;
