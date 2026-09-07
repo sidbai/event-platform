@@ -32,10 +32,11 @@ export default async function AdminSyncPage() {
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Connected schedules</h1>
       <p className="mt-2 text-sm text-muted">
         Events other people run. Paste the page where an event&rsquo;s schedule
-        is published: if it is a platform we can read, the fixtures are pulled
-        in and kept current by themselves. If it is not &mdash; EventConnect
-        refuses crawlers outright &mdash; the link is saved and the event page
-        offers it as a button, which still beats sending a parent to an
+        is published, and its robots.txt decides what happens: a site that lets
+        crawlers in gets read on a schedule and kept current by itself; one
+        that refuses &mdash; EventConnect answers with a blanket Disallow
+        &mdash; has its link saved instead, and the event page sends people
+        straight there. Either way beats sending a parent to an
         organizer&rsquo;s front page to hunt.
       </p>
 

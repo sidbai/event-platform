@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PROVIDER_POLICIES, mayPoll, overriddenPlatforms } from "./policy";
+import { PROVIDER_POLICIES, mayPoll, overriddenPlatforms, platformOf } from "./policy";
 
 describe("what we recorded about each platform", () => {
   it("keeps the evidence, not just the verdict", () => {
@@ -8,6 +8,8 @@ describe("what we recorded about each platform", () => {
     // and terms change: A2E's were updated four months ago.
     for (const [name, policy] of Object.entries(PROVIDER_POLICIES)) {
       expect(policy.reviewedAt, name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // Read by people, so it carries the platform's own capitalisation.
+      expect(policy.label, name).not.toBe(name);
       expect(policy.note.length, name).toBeGreaterThan(20);
       if (policy.automatedAccess !== "not-applicable") {
         expect(policy.termsUrl, name).toMatch(/^https:\/\//);
@@ -42,6 +44,7 @@ describe("what we recorded about each platform", () => {
 describe("mayPoll", () => {
   const waiting = {
     gotsport: {
+      label: "GotSport",
       automatedAccess: "pending",
       robots: "allows",
       termsUrl: "https://example.test/terms",
@@ -58,6 +61,12 @@ describe("mayPoll", () => {
     const decision = mayPoll("gotsport", "", waiting);
     expect(decision.may).toBe(false);
     expect(decision).toHaveProperty("reason");
+  });
+
+  it("names the platform as it names itself", () => {
+    const decision = mayPoll("eventconnect");
+    expect(decision.may).toBe(false);
+    expect(decision).toMatchObject({ reason: "EventConnect refuses crawlers" });
   });
 
   it("refuses a platform nobody has assessed at all", () => {
@@ -101,5 +110,32 @@ describe("overriddenPlatforms", () => {
   it("is empty when unset", () => {
     expect(overriddenPlatforms(undefined).size).toBe(0);
     expect(overriddenPlatforms("").size).toBe(0);
+  });
+});
+
+describe("platformOf", () => {
+  it("recognises a platform we can read", () => {
+    expect(platformOf("https://crossfire.athletes2events.com/events/130/groups")).toBe(
+      "athletes2events",
+    );
+  });
+
+  it("recognises one we cannot, which is the point", () => {
+    // Knowing it is EventConnect is what lets the admin be told their paste
+    // became a link because that site refuses crawlers — rather than leaving
+    // it indistinguishable from "we have not built that connector yet".
+    expect(
+      platformOf("https://app.eventconnect.io/events/42108/scheduling-scoring"),
+    ).toBe("eventconnect");
+  });
+
+  it("is not fooled by a lookalike host", () => {
+    expect(platformOf("https://athletes2events.com.evil.test/events/1")).toBeNull();
+    expect(platformOf("https://notathletes2events.com/events/1")).toBeNull();
+  });
+
+  it("has no opinion about a site nobody has assessed", () => {
+    expect(platformOf("https://system.gotsport.com/events/123")).toBeNull();
+    expect(platformOf("not a url")).toBeNull();
   });
 });

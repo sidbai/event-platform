@@ -11,6 +11,7 @@ import { safeSourceUrl } from "@/features/events/listing";
 
 import { parsePastedSchedule, toSyncedEvent } from "./paste";
 import { applySync } from "./apply";
+import { mayPoll, platformOf } from "./policy";
 import { detect, syncEvent } from "./run";
 
 export type ConnectResult = {
@@ -60,19 +61,32 @@ export async function connectSchedule(
   }
 
   /*
-   * A platform we cannot read still leaves us something worth having: the
-   * link itself, as a button on the event page. EventConnect answers
-   * robots.txt with `Disallow: /` and sells an API, so their schedules are
-   * not ours to fetch — but sending a parent straight to the fixtures beats
+   * One box, two outcomes, and robots.txt picks between them.
+   *
+   * A platform whose robots.txt lets us in gets connected and read on a
+   * schedule. One that refuses — or one nobody has assessed — still leaves us
+   * something worth having: the link itself, as the Schedule & standings
+   * button on the event page. Sending a parent straight to the fixtures beats
    * sending them to an organizer's front page to hunt.
+   *
+   * Asked of the policy rather than of the provider registry. "We have no
+   * connector for this" and "this site refuses crawlers" are different
+   * answers, they were only ever the same by coincidence, and the admin
+   * deserves to be told which one they got.
    */
-  if (!ref) {
+  const platform = platformOf(url);
+  const decision = platform ? mayPoll(platform) : null;
+
+  if (!ref || !decision?.may) {
     await db.update(events).set({ scheduleUrl: url }).where(eq(events.id, eventId));
     revalidatePath("/admin/sync");
     revalidatePath(`/events/${event.slug}`);
+
+    const why = decision
+      ? `${decision.may ? "We have no connector for it yet" : decision.reason}.`
+      : "We have not assessed that site.";
     return {
-      detail:
-        "Saved as a link. We cannot read schedules from that site, so it will not refresh by itself.",
+      detail: `Saved as a link — the event page will send people straight to it. ${why} It will not refresh by itself.`,
     };
   }
 
