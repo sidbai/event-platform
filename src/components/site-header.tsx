@@ -44,7 +44,7 @@ export async function SiteHeader() {
             width={80}
             height={80}
             priority
-            className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+            className="h-11 w-11 object-contain sm:h-12 sm:w-12"
           />
         </Link>
         {/* Search takes the middle on every size; the section links collapse
