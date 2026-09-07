@@ -6,7 +6,10 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { confirmMerge } from "@/features/teams/merge-actions";
 import { MergeButton } from "@/features/teams/merge-button";
-import { duplicateTeamGroups } from "@/features/teams/merge-queries";
+import {
+  duplicateTeamGroups,
+  proposedTeamMatches,
+} from "@/features/teams/merge-queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Duplicate teams" };
@@ -16,6 +19,13 @@ export default async function AdminTeamsPage() {
   if (!user || !isAdmin(user)) notFound();
 
   const groups = await duplicateTeamGroups();
+  // Which rows are already offered together, so the section below does not
+  // ask about a pair this one is already handling.
+  const grouped = new Map<string, string>();
+  for (const g of groups) {
+    for (const member of [g.survivor, ...g.losers]) grouped.set(member.id, g.survivor.id);
+  }
+  const proposals = await proposedTeamMatches(grouped);
   const rows = groups.reduce((n, g) => n + g.losers.length, 0);
 
   return (
@@ -92,6 +102,71 @@ export default async function AdminTeamsPage() {
           </ul>
         </>
       )}
+
+      {/*
+       * Pairs the platforms never spelled alike.
+       *
+       * The groups above are what a connector wrote twice; these are what two
+       * tournaments called by different names — "LWPFC B17/18 White Sharks"
+       * and "LWPFC White Sharks B17/18" are one side, and no exact rule will
+       * ever see it. Proposed within a club, with the facts used to rule pairs
+       * out rather than in: a club's A team is not its B team, and its ECNL
+       * side is not its RCL one.
+       *
+       * Confirming one writes the name against the survivor, so the next
+       * import lands on it instead of arriving here again.
+       */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">Possible matches</h2>
+        <p className="mt-1 text-sm text-muted">
+          Same club, same age group, same gender, and most of the name — but
+          spelled differently by two tournaments. Read both names: these are
+          proposals, and a merge cannot be undone.
+        </p>
+
+        {proposals.length === 0 ? (
+          <p className="mt-6 text-muted">Nothing else looks alike.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {proposals.slice(0, 40).map((p) => (
+              <li key={`${p.a.id}-${p.b.id}`} className="py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm">
+                    <Link href={`/teams/${p.a.slug}`} className="font-medium hover:underline">
+                      {p.a.name}
+                    </Link>
+                    <span className="mx-2 text-muted">and</span>
+                    <Link href={`/teams/${p.b.slug}`} className="font-medium hover:underline">
+                      {p.b.name}
+                    </Link>
+                  </span>
+                  <span className="text-xs text-muted">{p.because}</span>
+                </div>
+
+                {/* What each side would bring, so the choice of survivor is
+                    visible rather than implied. */}
+                <p className="mt-0.5 text-xs text-muted">
+                  {p.a.matches} matches over {p.a.events} event
+                  {p.a.events === 1 ? "" : "s"} · {p.b.matches} matches over{" "}
+                  {p.b.events} event{p.b.events === 1 ? "" : "s"}
+                </p>
+
+                <div className="mt-2">
+                  <MergeButton
+                    action={confirmMerge.bind(null, p.a.id, [p.b.id])}
+                    count={1}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {proposals.length > 40 && (
+          <p className="mt-3 text-xs text-muted">
+            {proposals.length - 40} more, once these are decided.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
