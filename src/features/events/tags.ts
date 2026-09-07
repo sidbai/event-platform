@@ -111,7 +111,7 @@ export function eventTags(event: TaggableEvent, now = new Date()): EventTag[] {
   // can do about it — whether the entry button they are looking for exists
   // here or on somebody else's site.
   if (event.sourceName)
-    tags.push({ label: "External", emoji: "\u{1F517}", tone: "outline" });
+    tags.push({ label: "External hosted", emoji: "\u{1F517}", tone: "outline" });
 
   if (event.hostTeam?.name)
     tags.push({ label: event.hostTeam.name, emoji: "\u{1F6E1}\uFE0F", tone: "muted" });

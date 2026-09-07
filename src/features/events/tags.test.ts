@@ -38,7 +38,7 @@ describe("eventTags", () => {
         },
         NOW,
       ),
-    ).toEqual(["Upcoming", "Tournament", "External", "U12"]);
+    ).toEqual(["Upcoming", "Tournament", "External hosted", "U12"]);
   });
 
   it("humanises hyphenated kinds", () => {
@@ -161,12 +161,12 @@ describe("the external tag", () => {
 
   it("marks an event run by someone else", () => {
     const labels = eventTags(listed).map((t) => t.label);
-    expect(labels).toContain("External");
+    expect(labels).toContain("External hosted");
   });
 
   it("says nothing on an event we run", () => {
     expect(eventTags({ kind: "tournament" }).map((t) => t.label)).not.toContain(
-      "External",
+      "External hosted",
     );
   });
 
@@ -175,11 +175,11 @@ describe("the external tag", () => {
     // reader can do, so it outranks the age group and the format.
     const tags = eventTags({ ...listed, ageGroup: "U9–U19", format: "7v7" });
     expect(tags[0].label).toBe("Tournament");
-    expect(tags[1].label).toBe("External");
+    expect(tags[1].label).toBe("External hosted");
   });
 
   it("is drawn, not filled, because it is a different kind of fact", () => {
-    const tag = eventTags(listed).find((t) => t.label === "External");
+    const tag = eventTags(listed).find((t) => t.label === "External hosted");
     expect(tag?.tone).toBe("outline");
   });
 });
