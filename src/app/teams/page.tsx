@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { CreateLink } from "@/components/create-link";
+import { NavSelect } from "@/components/nav-select";
 import { TeamCrest } from "@/components/team-crest";
 import { SearchBar } from "@/components/search-bar";
 import { getCurrentUser } from "@/features/auth";
@@ -98,8 +99,12 @@ export default async function TeamsPage({
   const age = (sp.age ?? "").trim().toUpperCase();
 
   const user = await getCurrentUser();
-  const [counts, pinned, ageGroups, mine] = await Promise.all([
+  const [counts, allAges, pinned, ageGroups, mine] = await Promise.all([
     teamCounts({ q, club, age }),
+    // Without the age filter, for the option that clears it: "All ages (29)"
+    // while showing 29 of 939 describes the page you are on, not the one the
+    // option leads to.
+    teamCounts({ q, club }),
     pinnedClubs(),
     teamAgeGroups({ q, club }),
     user ? myTeams(user.id) : Promise.resolve([]),
@@ -192,30 +197,28 @@ export default async function TeamsPage({
        * Age groups, named for this season and computed from birth years.
        *
        * "BU12" is what a parent looks for and 2014/2015 is what we store, so
-       * the chip is the label and the filter is the fact — and next August
-       * the same chip means 2015/2016 without a row changing. Only groups
-       * that have teams are offered, so no chip leads to an empty page.
+       * the option is the label and the filter is the fact — and next August
+       * the same option means 2015/2016 without a row changing. Only groups
+       * that have teams are offered, so nothing here leads to an empty page.
+       *
+       * A dropdown, not chips: twenty-five of them wrapped to three lines and
+       * pushed the teams below the fold, which is a lot of furniture in front
+       * of the thing somebody came to read.
        */}
       {ageGroups.length > 0 && (
-        <nav aria-label="Age groups" className="mt-3 flex flex-wrap gap-1.5">
-          {ageGroups.map((g) => {
-            const on = g.value === age;
-            return (
-              <Link
-                key={g.value}
-                href={href({ age: on ? "" : g.value })}
-                className={
-                  on
-                    ? "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
-                    : "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
-                }
-              >
-                {g.label}{" "}
-                <span className={on ? "opacity-70" : "opacity-60"}>{g.count}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <NavSelect
+          label="Age group"
+          className="mt-3"
+          value={age || "all"}
+          options={[
+            { id: "all", label: `All ages (${allAges.all})`, href: href({ age: "" }) },
+            ...ageGroups.map((g) => ({
+              id: g.value,
+              label: `${g.label} (${g.count})`,
+              href: href({ age: g.value }),
+            })),
+          ]}
+        />
       )}
 
       {/*
