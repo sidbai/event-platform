@@ -73,6 +73,7 @@ export default async function TeamSettingsPage({
         action={updateTeam.bind(null, slug)}
         clubs={clubs}
         team={{
+          name: team.name,
           visibility: team.visibility,
           club: affiliationValue(team),
           city: team.city,

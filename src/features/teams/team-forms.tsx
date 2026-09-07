@@ -18,6 +18,7 @@ export function TeamEditForm({
   action: Action;
   clubs: { id: string; name: string }[];
   team: {
+    name: string;
     visibility: string;
     /** The chosen club's id, or "independent", or "" for not said. */
     club: string;
@@ -34,6 +35,28 @@ export function TeamEditForm({
 
   return (
     <form action={formAction} className="mt-4 space-y-4">
+      <div>
+        <label className={label} htmlFor="name">
+          Team name
+        </label>
+        <input
+          id="name"
+          name="name"
+          defaultValue={team.name}
+          className={`mt-1 ${field}`}
+        />
+        {state.fieldErrors?.name && (
+          <p className="mt-1 text-xs text-red-600">{state.fieldErrors.name}</p>
+        )}
+        {/* Said once, here, because the address is the thing people have
+            already shared and a rename leaving it behind looks like a bug
+            unless you know it is deliberate. */}
+        <p className="mt-1 text-xs text-muted">
+          The team&rsquo;s web address stays the same, so existing links keep
+          working.
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="club">
