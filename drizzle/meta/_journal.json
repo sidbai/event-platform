@@ -316,6 +316,13 @@
       "when": 1788796486972,
       "tag": "0044_empty_eternals",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788796487972,
+      "tag": "0045_more_club_aliases",
+      "breakpoints": true
     }
   ]
 }
