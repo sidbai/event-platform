@@ -19,8 +19,13 @@ import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 
 import { canManageTeam } from "./access";
+import { checkTeamName } from "./name";
 
-export type TeamFormResult = { error?: string; ok?: boolean };
+export type TeamFormResult = {
+  error?: string;
+  ok?: boolean;
+  fieldErrors?: Record<string, string>;
+};
 
 async function ownerOnly(slug: string) {
   const user = await getCurrentUser();
@@ -71,11 +76,24 @@ export async function updateTeam(
     return v === "" ? null : v;
   };
 
+  /*
+   * The name is editable because an imported one is whatever a platform
+   * published — "XF, U14, B12 - 13, RCL 1, Plackov" — and the coach who runs
+   * that team should be able to write it the way people say it.
+   *
+   * The slug does not follow. Every fixture, standings row and search result
+   * links to a team by slug, and changing it on a rename would move a page
+   * that other pages point at, to save an address nobody types.
+   */
+  const name = checkTeamName(String(formData.get("name") ?? ""));
+  if (!name.ok) return { fieldErrors: { name: name.error } };
+
   const clubIds = (await clubOptions()).map((c) => c.id);
 
   await db
     .update(teams)
     .set({
+      name: name.name,
       ...parseAffiliation(get("club"), clubIds),
       city: get("city"),
       ageGroup: get("ageGroup"),

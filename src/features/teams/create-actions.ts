@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/features/auth";
 import { isPendingCrestUrl } from "@/features/uploads/blob";
 import { slugify } from "@/lib/slug";
 
+import { checkTeamName } from "./name";
 import { uniqueTeamSlug } from "./slug";
 
 export type TeamFormResult = {
@@ -27,9 +28,9 @@ export async function createTeam(
   if (!user) return { error: "Sign in to create a team." };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
-  const name = get("name");
-  if (name.length < 2) return { fieldErrors: { name: "Give the team a name." } };
-  if (name.length > 80) return { fieldErrors: { name: "That name is too long." } };
+  const checked = checkTeamName(get("name"));
+  if (!checked.ok) return { fieldErrors: { name: checked.error } };
+  const name = checked.name;
 
   const visibility = get("visibility") === "private" ? "private" : "public";
 
