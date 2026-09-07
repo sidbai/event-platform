@@ -190,9 +190,23 @@ export async function mergeTeams(
    *
    * Every other address still resolves here, so nothing breaks either way.
    */
-  const best = [survivor.slug, ...losers.map((l) => l.slug)].sort(
-    (a, b) => a.length - b.length || a.localeCompare(b),
-  )[0];
+  /*
+   * Only a numbered copy of the survivor's own slug, though.
+   *
+   * The shortest of all of them was wrong the moment an admin could merge two
+   * teams they picked themselves: folding "Warriors BU11 Bravo" into
+   * "Warriors BU11 Attack" left a team named Attack living at
+   * /teams/warriors-bu11-bravo, because bravo is the shorter string. The URL
+   * said one team and the page said another.
+   *
+   * What this rule is for is the suffix: xf-gu13-rcl1-4 settling back onto
+   * xf-gu13-rcl1. So a loser's slug is only adopted when it is the same slug
+   * with a number on the end.
+   */
+  const stem = (slug: string) => slug.replace(/-\d+$/, "");
+  const best = [survivor.slug, ...losers.map((l) => l.slug)]
+    .filter((slug) => stem(slug) === stem(survivor.slug))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))[0];
 
   if (best !== survivor.slug) {
     // Free the name before taking it: it is still held by the retired row.

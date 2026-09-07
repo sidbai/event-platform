@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { confirmMerge } from "@/features/teams/merge-actions";
+import { ManualMerge } from "@/features/teams/manual-merge";
 import { MergeButton } from "@/features/teams/merge-button";
 import {
   duplicateTeamGroups,
@@ -111,6 +112,25 @@ export default async function AdminTeamsPage() {
           </ul>
         </>
       )}
+
+      {/*
+       * For the two teams somebody already knows are one.
+       *
+       * Everything else on this page waits to be offered a pair. This does
+       * not — a coach says two rows are the same side, or an admin knows a
+       * club's junior programme by another name, and neither the rules nor a
+       * model will ever work that out.
+       */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">Merge two teams yourself</h2>
+        <p className="mt-1 text-sm text-muted">
+          When you already know. The team you keep holds the history; the other
+          one&rsquo;s matches move across and its old address redirects. This
+          cannot be undone, and the folded-in name will point at the survivor on
+          every future import.
+        </p>
+        <ManualMerge />
+      </section>
 
       {/*
        * A model's guesses, kept apart from everything above.

@@ -304,3 +304,31 @@ describe("a merge teaches the next import", () => {
       .toBeUndefined();
   });
 });
+
+describe("which address the surviving team keeps", () => {
+  it("drops the numbered suffix a connector gave it", async () => {
+    // What the rule is for: xf-gu13-rcl1-4 settling back onto xf-gu13-rcl1.
+    const numbered = await makeTeam("xf-gu13-rcl1-4", { name: "XF GU13 RCL1" });
+    const bare = await makeTeam("xf-gu13-rcl1", { name: "XF GU13 RCL1" });
+    const out = await mergeTeams(numbered, [bare]);
+    expect(out.survivorSlug).toBe("xf-gu13-rcl1");
+  });
+
+  it("keeps its own address when the other team is a different team", async () => {
+    /*
+     * The bug the manual merge found: folding "Warriors BU11 Bravo" into
+     * "Warriors BU11 Attack" moved the survivor to /teams/warriors-bu11-bravo
+     * because bravo is the shorter string. The page said Attack and the URL
+     * said Bravo.
+     */
+    const keep = await makeTeam("warriors-bu11-attack", {
+      name: "Warriors BU11 Attack",
+    });
+    const fold = await makeTeam("warriors-bu11-bravo", { name: "Warriors BU11 Bravo" });
+    const out = await mergeTeams(keep, [fold]);
+    expect(out.survivorSlug).toBe("warriors-bu11-attack");
+
+    // And the folded-in address still redirects, as it always did.
+    expect(await teamBySoleOldSlug("warriors-bu11-bravo")).toBe("warriors-bu11-attack");
+  });
+});
