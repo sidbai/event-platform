@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
@@ -45,6 +46,10 @@ export default function RootLayout({
         <SiteHeader />
         <div className="flex-1">{children}</div>
         <SiteFooter />
+        {/* Page views only, and no cookie of its own — the one this site sets
+            is still the one that keeps you signed in. Last in the body so it
+            never delays anything a reader is waiting for. */}
+        <Analytics />
       </body>
     </html>
   );

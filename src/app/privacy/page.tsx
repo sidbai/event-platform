@@ -45,9 +45,11 @@ export default function PrivacyPage() {
         <p>
           <strong>Technical information.</strong> Our hosting provider records
           standard server logs (IP address, browser type, pages requested,
-          timestamps) for security and reliability. We set one cookie to keep
-          you signed in. We do not use advertising or cross-site tracking
-          cookies.
+          timestamps) for security and reliability. We also count page views,
+          so we can tell which parts of the site are worth keeping — that
+          counting sets no cookie and does not follow you to other sites. We
+          set one cookie to keep you signed in. We do not use advertising or
+          cross-site tracking cookies.
         </p>
 
         <h2 className="text-lg font-semibold text-ink">

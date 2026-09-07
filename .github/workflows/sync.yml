@@ -1,23 +1,22 @@
 # Ask the site to refresh the external schedules that have come due.
 #
-# This is a Vercel cron job that does not live on Vercel. The cadence the
-# connector was designed around checks a tournament every twenty minutes while
-# it is being played, and a Hobby account may only run a cron once a day —
-# expressions more frequent than that are refused at deploy time. So the
-# schedule lives here, where it is free, and vercel.json keeps a daily tick as
-# a backstop for the day this repository goes quiet.
+# This used to be the ten-minute tick, because a Vercel Hobby account may only
+# run a cron once a day and the connector's live window is twenty minutes. The
+# project is on Pro now, so vercel.json does it properly and this no longer
+# runs on a schedule — two pollers would mean two requests to somebody else's
+# server for every one we need.
 #
-# GitHub's scheduler drifts by a few minutes under load, which does not matter
-# to a twenty-minute window. It also disables scheduled workflows in a
-# repository with no activity for sixty days, which would be silent — the
-# admin page at /admin/sync is where that shows up, as schedules that stop
-# being read.
+# Kept for the hand-triggered case, which turned out to matter more than
+# expected: it is how four backfilled tournaments were pulled in without
+# waiting, and how you check a connector after changing it. Run it from the
+# Actions tab.
+#
+# Worth knowing if the schedule ever comes back here: GitHub delays scheduled
+# workflows under load, and we measured 110 minutes between consecutive ticks
+# of a supposedly ten-minute cron.
 name: sync
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"
-  # So a person can trigger one from the Actions tab without waiting.
   workflow_dispatch:
 
 # One at a time. A slow run overlapping the next tick would double the
