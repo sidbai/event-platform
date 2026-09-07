@@ -78,21 +78,25 @@ export default async function Home() {
       {/* Kept a step above the cards below it so the page outline still reads,
           but small enough not to shout over the feed. */}
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        Seattle youth soccer: find a game, or start one.
+        Seattle youth soccer: discover it, or create it.
       </h1>
       <p className="mt-2 text-sm text-muted">
         Tournaments, leagues, scrimmages, pickup and camps around the Sound.
+        More soccer, more fun.
       </p>
 
       {/*
-        Two actions, because there are two things anyone comes here to do.
-        Until now there were three and all of them were Create — someone
-        arriving to find a game had nothing to press, which is the wrong half
-        of the product to leave without a door.
+        Discover, then the three things a person can make. Until recently all
+        of these were Create and someone arriving to find a game had nothing to
+        press, which is the wrong half of the product to leave without a door.
 
-        Equal weight for now. Discover deserves to be the primary action once
-        there is enough to discover; making it louder while the calendar is
-        nearly empty would just send more people to a short list.
+        The three creates sit at one weight because they are one decision — "I
+        have something to put here" — and burying two of them in small grey
+        text answered that decision on the reader's behalf.
+
+        Equal weight with Discover for now. Discover deserves to be the primary
+        action once there is enough to discover; making it louder while the
+        calendar is nearly empty would just send more people to a short list.
       */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Link
@@ -102,26 +106,11 @@ export default async function Home() {
           <span aria-hidden>🔎</span> Find an event
         </Link>
         <CreateLink href="/events/new">Create an event</CreateLink>
-      </div>
-
-      {/* The rest, quieter: fewer people want them, and the ones who do are
-          usually coming back on purpose. */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <Link href="/community/new" className="hover:text-ink">
-          Start a discussion
-        </Link>
-        <span aria-hidden>·</span>
-        <Link href="/events/list" className="hover:text-ink">
-          List someone else&rsquo;s event
-        </Link>
-        {user && (
-          <>
-            <span aria-hidden>·</span>
-            <Link href="/news/new" className="hover:text-ink">
-              Write a news post
-            </Link>
-          </>
-        )}
+        <CreateLink href="/community/new">Create a community post</CreateLink>
+        {/* Not gated on being signed in, the way the other two are not: each
+            of these pages asks for a sign-in and returns you to it, so hiding
+            the door only makes the site look smaller than it is. */}
+        <CreateLink href="/news/new">Write a news post</CreateLink>
       </div>
 
       {items.length === 0 ? (

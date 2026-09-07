@@ -6,8 +6,39 @@ const labels = (e: Parameters<typeof eventTags>[0], now?: Date) =>
   eventTags(e, now).map((t) => t.label);
 
 describe("eventTags", () => {
-  it("always leads with the kind", () => {
+  const NOW = new Date("2026-09-10T12:00:00Z");
+  const DAY = 24 * 60 * 60 * 1000;
+  const on = (days: number) => new Date(NOW.getTime() + days * DAY);
+
+  it("leads with where the event is in its life", () => {
+    /*
+     * Ahead of even what kind of thing it is. A finished tournament and one
+     * starting on Saturday are different things to a reader before the
+     * difference between a tournament and a jamboree matters.
+     */
+    expect(
+      labels({ kind: "tournament", startsAt: on(-1), endsAt: on(1) }, NOW)[0],
+    ).toBe("Ongoing");
+  });
+
+  it("leads with the kind when there is no life to report", () => {
+    // An undated pickup game has nothing to say about upcoming or finished.
     expect(labels({ kind: "pickup" })[0]).toBe("Pickup");
+  });
+
+  it("keeps the whole row in one order", () => {
+    expect(
+      labels(
+        {
+          kind: "tournament",
+          startsAt: on(3),
+          endsAt: on(5),
+          sourceName: "Starfire Sports",
+          ageGroup: "U12",
+        },
+        NOW,
+      ),
+    ).toEqual(["Upcoming", "Tournament", "External", "U12"]);
   });
 
   it("humanises hyphenated kinds", () => {

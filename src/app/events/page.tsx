@@ -92,13 +92,7 @@ export default async function EventsPage({
     <div className="mx-auto max-w-3xl px-5 py-10">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
-        <CreateLink href="/events/new">Start an event</CreateLink>
-        <Link
-          href="/events/list"
-          className="shrink-0 text-sm text-muted hover:text-ink"
-        >
-          List someone else&rsquo;s
-        </Link>
+        <CreateLink href="/events/new">Create an event</CreateLink>
       </div>
 
       <SearchBar
