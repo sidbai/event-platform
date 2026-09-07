@@ -35,6 +35,8 @@ export type AutomatedAccess =
   | "not-applicable";
 
 export type ProviderPolicy = {
+  /** What the platform calls itself, for anything a person reads. */
+  label: string;
   automatedAccess: AutomatedAccess;
   /** What robots.txt says about the pages we would read. */
   robots: "allows" | "disallows" | "not-applicable";
@@ -47,6 +49,7 @@ export type ProviderPolicy = {
 
 export const PROVIDER_POLICIES = {
   athletes2events: {
+    label: "Athletes2Events",
     automatedAccess: "allowed",
     robots: "allows",
     termsUrl: "https://athletes2events.com/web/terms-and-conditions",
@@ -54,6 +57,7 @@ export const PROVIDER_POLICIES = {
     note: 'robots.txt disallows four admin paths and allows the rest, which is the permission Google indexes these schedules under — ask an AI about a team and it cites crossfire.athletes2events.com. The terms also say "scrape or harvest data without permission"; permission has been requested, and the owner\'s decision is that the machine-readable signal governs until they answer.',
   },
   eventconnect: {
+    label: "EventConnect",
     automatedAccess: "refused",
     robots: "disallows",
     termsUrl: "https://eventconnectsports.com/terms-of-service/",
@@ -61,6 +65,7 @@ export const PROVIDER_POLICIES = {
     note: "app.eventconnect.io/robots.txt is a blanket Disallow, which refuses Googlebot too — no search engine has these schedules, and an AI asked about a team there is reduced to saying contact the tournament directors. Their terms are silent on scraping, but silence is not permission. Link only. Embedding is closed as well: X-Frame-Options: SAMEORIGIN.",
   },
   manual: {
+    label: "Entered by hand",
     automatedAccess: "not-applicable",
     robots: "not-applicable",
     termsUrl: null,
@@ -112,7 +117,7 @@ export function mayPoll(
    * so this one is structural rather than a matter of anybody's discipline.
    */
   if (policy.automatedAccess === "refused") {
-    return { may: false, reason: `${platform} refuses crawlers` };
+    return { may: false, reason: `${policy.label} refuses crawlers` };
   }
 
   if (overriddenPlatforms(env).has(platform)) {
@@ -123,7 +128,30 @@ export function mayPoll(
     may: false,
     reason:
       policy.automatedAccess === "not-applicable"
-        ? `${platform} is not fetched`
-        : `${platform}: ${policy.automatedAccess}`,
+        ? `${policy.label} is not fetched`
+        : `${policy.label}: ${policy.automatedAccess}`,
   };
+}
+
+/**
+ * Which platform a URL belongs to, whether or not we can read it.
+ *
+ * Separate from the provider registry on purpose. Recognising EventConnect
+ * and having a connector for EventConnect are different questions, and only
+ * the first one lets an admin be told *why* their paste became a link rather
+ * than a sync. Without this, "their robots.txt refuses crawlers" and "we have
+ * not built that yet" look identical from the outside.
+ */
+const HOSTS: { pattern: RegExp; platform: Platform }[] = [
+  { pattern: /(^|\.)athletes2events\.com$/i, platform: "athletes2events" },
+  { pattern: /(^|\.)eventconnect\.io$/i, platform: "eventconnect" },
+];
+
+export function platformOf(url: string): Platform | null {
+  try {
+    const { hostname } = new URL(url);
+    return HOSTS.find((h) => h.pattern.test(hostname))?.platform ?? null;
+  } catch {
+    return null;
+  }
 }
