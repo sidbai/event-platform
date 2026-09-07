@@ -372,7 +372,18 @@ export default async function EventPage({
       {/* Visibility used to be fixed at submission with no way back. */}
       {canManage && (
         <div className="mt-8 rounded-lg border border-line bg-card p-4">
-          <p className="text-sm font-medium">Who can see this event</p>
+          {/* Reachable for anything the viewer manages — a listing an admin is
+              fixing, a pickup game, a scrimmage — not just the kinds that take
+              entries. A typo in a title is not a tournament-only problem. */}
+          <p className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-sm font-medium">Who can see this event</span>
+            <Link
+              href={`/events/${event.slug}/edit`}
+              className="text-sm font-medium text-brand-text hover:underline"
+            >
+              Edit details →
+            </Link>
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {(
               [
