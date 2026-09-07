@@ -435,6 +435,37 @@ export const clubAliases = pgTable(
 );
 
 /**
+ * Names a team is known by, written when somebody merges two rows into it.
+ *
+ * The other half of the merge queue. Retiring a slug keeps old links working;
+ * this keeps the *next import* from asking the same question again — a
+ * platform that calls a side "Little Warriors B15 B" will call it that next
+ * season too, and without somewhere to write it down, every tournament
+ * re-poses a question already answered.
+ *
+ * Only names a person confirmed by merging. Nothing here is inferred: two
+ * clubs in one region both fielding a "Warriors" is exactly the binding that
+ * must not happen on its own.
+ */
+export const teamAliases = pgTable(
+  "team_aliases",
+  {
+    /** Normalised the same way the duplicate finder normalises: letters and
+     * digits only, lowercased, Unicode-aware. */
+    alias: text("alias").primaryKey(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    /** Who confirmed it, since an alias silently binds every future import. */
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("team_aliases_team_id_idx").on(t.teamId)],
+);
+
+/**
  * Slugs a team used to answer to.
  *
  * A connector creates a row per event, so one side ends up as several teams

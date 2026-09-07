@@ -25,6 +25,7 @@ const { eventKinds, eventTeams, events, matches, teamSlugs, teams, users } = awa
 );
 const { mergeTeams, teamBySoleOldSlug } = await import("@/features/teams/merge");
 const { duplicateTeamGroups } = await import("@/features/teams/merge-queries");
+const { teamAliases } = await import("@/db/schema");
 const { eq, sql } = await import("drizzle-orm");
 
 async function makeEvent(slug: string) {
@@ -238,5 +239,68 @@ describe("a team that played two brackets of one event", () => {
       columns: { homeTeamId: true },
     });
     expect(new Set(played.map((m) => m.homeTeamId))).toEqual(new Set([left[0].id]));
+  });
+});
+
+describe("a merge teaches the next import", () => {
+  it("records the folded-in name against the survivor", async () => {
+    /*
+     * The point of the whole exercise: a platform that called a side "Little
+     * Warriors B15 B" this September will call it that next September, and
+     * without somewhere to write the answer down, every tournament re-poses
+     * a question an admin already answered.
+     */
+    const keep = await makeTeam("warriors-b14-15-ea", { name: "Warriors B14/15 EA" });
+    const dupe = await makeTeam("little-warriors-b15-b", {
+      name: "Little Warriors B15 B",
+    });
+    await mergeTeams(keep, [dupe]);
+
+    const alias = await db.query.teamAliases.findFirst({
+      where: eq(teamAliases.alias, "littlewarriorsb15b"),
+      columns: { teamId: true },
+    });
+    expect(alias?.teamId).toBe(keep);
+  });
+
+  it("does not record the survivor's own name", async () => {
+    /*
+     * It needs no help — a row arriving under it groups by name in the queue
+     * already — and an alias binds without asking, which is more than a name
+     * two clubs in one region might both use has earned.
+     */
+    const keep = await makeTeam("warriors", { name: "Warriors" });
+    const dupe = await makeTeam("warriors-b14", { name: "Warriors B14 Red" });
+    await mergeTeams(keep, [dupe]);
+
+    const own = await db.query.teamAliases.findFirst({
+      where: eq(teamAliases.alias, "warriors"),
+    });
+    expect(own).toBeUndefined();
+  });
+
+  it("re-points an alias when a later merge moves the team", async () => {
+    const first = await makeTeam("first", { name: "First Team" });
+    const second = await makeTeam("second", { name: "Second Team" });
+    const dupe = await makeTeam("shared", { name: "Shared Name FC" });
+
+    await mergeTeams(first, [dupe]);
+    const again = await makeTeam("shared-2", { name: "Shared Name FC" });
+    await mergeTeams(second, [again]);
+
+    const alias = await db.query.teamAliases.findFirst({
+      where: eq(teamAliases.alias, "sharednamefc"),
+      columns: { teamId: true },
+    });
+    expect(alias?.teamId).toBe(second);
+  });
+
+  it("keeps a name too short to identify anyone out of it", async () => {
+    // Same bar the duplicate finder uses: "FC" is not a name.
+    const keep = await makeTeam("keeper", { name: "Keeper FC" });
+    const dupe = await makeTeam("fc", { name: "FC" });
+    await mergeTeams(keep, [dupe]);
+    expect(await db.query.teamAliases.findFirst({ where: eq(teamAliases.alias, "fc") }))
+      .toBeUndefined();
   });
 });

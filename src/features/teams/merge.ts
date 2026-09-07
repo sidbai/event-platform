@@ -9,9 +9,12 @@ import {
   eventTeams,
   matches,
   teamMembers,
+  teamAliases,
   teamSlugs,
   teams,
 } from "@/db/schema";
+
+import { nameIsDistinctive, normaliseTeamName } from "./merge-plan";
 
 /**
  * Fold several team rows into one.
@@ -38,6 +41,8 @@ export type MergeResult = {
 export async function mergeTeams(
   survivorId: string,
   loserIds: string[],
+  /** Who confirmed it, recorded against the aliases this writes. */
+  byUserId: string | null = null,
 ): Promise<MergeResult> {
   const ids = loserIds.filter((id) => id !== survivorId);
   if (ids.length === 0) throw new Error("nothing to merge");
@@ -50,7 +55,7 @@ export async function mergeTeams(
 
   const losers = await db.query.teams.findMany({
     where: inArray(teams.id, ids),
-    columns: { id: true, slug: true, ownerId: true },
+    columns: { id: true, slug: true, name: true, ownerId: true },
   });
 
   /*
@@ -149,6 +154,27 @@ export async function mergeTeams(
       .insert(teamSlugs)
       .values({ slug: loser.slug, teamId: survivorId })
       .onConflictDoUpdate({ target: teamSlugs.slug, set: { teamId: survivorId } });
+
+    /*
+     * And the name, so the next import does not ask again.
+     *
+     * The slug above keeps old links working; this is what makes the merge
+     * worth doing twice over. A platform calling a side "Little Warriors B15
+     * B" will call it that next season, and the connector binds it to this
+     * team instead of minting a row for somebody to merge by hand again.
+     *
+     * The survivor's own name is deliberately not recorded. It needs no help
+     * — a row arriving under it groups by name in the queue already — and an
+     * alias binds without asking, which is too much to do with a name two
+     * clubs in one region might both use.
+     */
+    const alias = normaliseTeamName(loser.name);
+    if (nameIsDistinctive(alias)) {
+      await db
+        .insert(teamAliases)
+        .values({ alias, teamId: survivorId, createdBy: byUserId ?? null })
+        .onConflictDoUpdate({ target: teamAliases.alias, set: { teamId: survivorId } });
+    }
 
     await db.delete(teams).where(eq(teams.id, loser.id));
   }
