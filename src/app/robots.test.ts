@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import robots from "./robots";
 
-const rule = Array.isArray(robots().rules) ? robots().rules[0] : robots().rules;
-const disallow = [((rule as { disallow?: string | string[] }).disallow ?? [])].flat();
+const config = robots();
+const rule = Array.isArray(config.rules) ? config.rules[0] : config.rules;
+const disallow = [rule.disallow ?? []].flat();
 
 /** robots.txt wildcards, as a crawler reads them: * is any run of characters. */
 const blocks = (path: string) =>
@@ -76,12 +77,12 @@ describe("robots.txt", () => {
   it("says allow before it says anything else", () => {
     // Being found is the point. A directory nobody can index is a directory
     // of things nobody can discover.
-    expect((rule as { allow?: string }).allow).toBe("/");
-    expect((rule as { userAgent?: string }).userAgent).toBe("*");
+    expect(rule.allow).toBe("/");
+    expect(rule.userAgent).toBe("*");
   });
 
   it("promises no sitemap it does not have", () => {
     // Pointing a crawler at a 404 is worse than pointing it at nothing.
-    expect(robots().sitemap).toBeUndefined();
+    expect(config.sitemap).toBeUndefined();
   });
 });
