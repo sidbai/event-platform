@@ -79,3 +79,35 @@ export function completionSuggestion(
     unplayed: event.fixtures.filter((f) => f.homeScore === null).length,
   };
 }
+
+/** Where an event is in its own life, as a reader would say it. */
+export type Lifecycle = "upcoming" | "ongoing" | "completed";
+
+/**
+ * Upcoming, ongoing, or completed.
+ *
+ * Two sources, and they answer different questions. The calendar knows
+ * whether the football has been played; the organizer's mark knows whether
+ * they have called it done. The mark wins when it is set — a league whose
+ * final was rained off can be finished early, and one still handing out
+ * trophies on the Monday is not upcoming again just because its end date
+ * slipped.
+ *
+ * Null for a cancelled event, which did not happen rather than finish, and
+ * for one with no dates at all — a scrimmage nobody has scheduled is not
+ * "upcoming", it is unscheduled.
+ */
+export function lifecycleOf(
+  event: Schedulelike & { status?: string | null },
+  now: Date,
+): Lifecycle | null {
+  if (event.status === "cancelled") return null;
+  if (event.status === "completed") return "completed";
+
+  const end = endOf(event);
+  if (!event.startsAt || !end) return null;
+
+  if (now.getTime() < event.startsAt.getTime()) return "upcoming";
+  if (now.getTime() > end.getTime()) return "completed";
+  return "ongoing";
+}

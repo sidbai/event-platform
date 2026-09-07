@@ -14,7 +14,10 @@ export function EventTags({
   event: Parameters<typeof eventTags>[0];
   className?: string;
 }) {
-  const tags = eventTags(event);
+  // Evaluated per render rather than per module load: "Ongoing" is only true
+  // for the hours it is true, and a cached clock would leave a tournament
+  // live on the page for a week.
+  const tags = eventTags(event, new Date());
   return (
     <ul className={`flex flex-wrap items-center gap-1.5 ${className}`}>
       {tags.map((t) => (

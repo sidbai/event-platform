@@ -115,8 +115,15 @@ export default async function EventPage({
     // A synced listing keeps its fixtures here, so the schedule link is ours.
     hasFixtures: event.matches.length > 0,
   });
-  const takesEntries =
+  const isCompetition =
     runHere && (event.kind === "tournament" || event.kind === "league");
+  /*
+   * Entries stop when the organizer marks the event finished. The action
+   * already refuses them; without this the page went on advertising divisions
+   * as "Open for entries" two lines under a Completed tag, which is the sort
+   * of contradiction a reader believes the wrong half of.
+   */
+  const takesEntries = isCompetition && event.status === "published";
   const entryDivisions = takesEntries
     ? await divisionsForRegistration(event.id, new Date())
     : [];
@@ -307,14 +314,19 @@ export default async function EventPage({
         </section>
       )}
 
-      {takesEntries && (
+      {/* The organizer's own tools outlive the event: entries close, but
+          rosters, the checklist and the setup are still worth reaching on the
+          Monday after. */}
+      {isCompetition && (
         <p className="mt-8 flex flex-wrap gap-4 text-sm">
-          <Link
-            href={`/events/${event.slug}/register`}
-            className="font-medium text-brand-text hover:underline"
-          >
-            Enter a team →
-          </Link>
+          {takesEntries && (
+            <Link
+              href={`/events/${event.slug}/register`}
+              className="font-medium text-brand-text hover:underline"
+            >
+              Enter a team →
+            </Link>
+          )}
           {canManage && (
             <>
               <Link

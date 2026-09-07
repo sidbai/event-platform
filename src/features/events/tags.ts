@@ -1,3 +1,5 @@
+import { lifecycleOf } from "./completion";
+
 export type EventTag = {
   label: string;
   /** Prefixed to the label so a tag reads at a glance in a dense list. */
@@ -22,6 +24,8 @@ type TaggableEvent = {
   sourceName?: string | null;
   status?: string | null;
   visibility?: string | null;
+  startsAt?: Date | null;
+  endsAt?: Date | null;
   hostTeam?: { name: string } | null;
 };
 
@@ -53,6 +57,20 @@ const KIND_EMOJI: Record<string, string> = {
   custom: "\u2728",
 };
 
+/**
+ * Where the event is in its own life.
+ *
+ * Ongoing is the only one that raises its voice, because it is the only one
+ * that changes what somebody does in the next hour. This replaces the old
+ * "Final results" chip — it said the same thing in a way that only made sense
+ * next to a table.
+ */
+const LIFECYCLE_TAG: Record<"upcoming" | "ongoing" | "completed", EventTag> = {
+  upcoming: { label: "Upcoming", emoji: "\u{1F5D3}\uFE0F", tone: "muted" },
+  ongoing: { label: "Ongoing", emoji: "\u{1F534}", tone: "warn" },
+  completed: { label: "Completed", emoji: "\u{1F3C1}", tone: "muted" },
+};
+
 /** The chip emoji for an event kind, so a filter chip matches the card's tag. */
 export function kindEmoji(kind: string): string {
   return KIND_EMOJI[kind] ?? "\u{1F4CD}";
@@ -68,7 +86,7 @@ function titleCase(s: string) {
  * Deliberately skips anything that carries no information: a blank field, or a
  * gender of "coed" when that is already the default assumption for a listing.
  */
-export function eventTags(event: TaggableEvent): EventTag[] {
+export function eventTags(event: TaggableEvent, now = new Date()): EventTag[] {
   const tags: EventTag[] = [
     {
       label: titleCase(event.kind.replace(/-/g, " ")),
@@ -77,10 +95,21 @@ export function eventTags(event: TaggableEvent): EventTag[] {
     },
   ];
 
-  // Second, straight after what kind of thing it is. Whether this platform
-  // runs the event decides what a reader can do about it — whether the entry
-  // button they are looking for exists here or on somebody else's site — so
-  // it belongs ahead of the details.
+  /*
+   * Second, because it decides whether the rest is worth reading. A parent
+   * scanning a list wants to know what they can still turn up to before they
+   * want to know the age group, and "is this on right now" is the one thing
+   * no other chip answers.
+   */
+  const lifecycle = lifecycleOf(
+    { status: event.status, startsAt: event.startsAt ?? null, endsAt: event.endsAt ?? null },
+    now,
+  );
+  if (lifecycle) tags.push(LIFECYCLE_TAG[lifecycle]);
+
+  // Then whether this platform runs the event, which decides what a reader
+  // can do about it — whether the entry button they are looking for exists
+  // here or on somebody else's site.
   if (event.sourceName)
     tags.push({ label: "External", emoji: "\u{1F517}", tone: "outline" });
 
@@ -114,8 +143,6 @@ export function eventTags(event: TaggableEvent): EventTag[] {
       tone: "muted",
     });
 
-  if (event.status === "completed")
-    tags.push({ label: "Final results", emoji: "\u{1F3C1}", tone: "muted" });
   if (event.status === "cancelled")
     tags.push({ label: "Cancelled", emoji: "\u26D4", tone: "warn" });
 
