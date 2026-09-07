@@ -139,6 +139,25 @@ describe("entering a team", () => {
     expect(rows[0].status).toBe("requested");
   });
 
+  it("refuses once the organizer has marked the event finished", async () => {
+    /*
+     * A completed event used to pass this check, so marking a tournament
+     * finished did nothing to stop teams entering it — the page said the
+     * event was over while the form kept taking them.
+     */
+    const organizer = await makeUser("organizer@test");
+    const manager = await makeUser("manager@test");
+    const { eventId, divisionId } = await makeLeague(organizer);
+    const teamId = await makeTeam("Eagleclaw FC", manager);
+    await db.update(events).set({ status: "completed" }).where(eq(events.id, eventId));
+
+    signedInUserId = manager;
+    const res = await registerTeam("wpl-fall", {}, form({ divisionId, teamId }));
+
+    expect(res.error).toMatch(/isn't open for entries/);
+    expect(await db.select().from(eventRegistrations)).toHaveLength(0);
+  });
+
   it("refuses once the window has closed", async () => {
     const organizer = await makeUser("organizer@test");
     const manager = await makeUser("manager@test");

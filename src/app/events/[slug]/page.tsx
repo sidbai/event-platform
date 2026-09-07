@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
-import { setEventHidden, setEventVisibility } from "@/features/events/actions";
+import {
+  setEventCompleted,
+  setEventHidden,
+  setEventVisibility,
+} from "@/features/events/actions";
+import { canMarkCompleted, canReopen, completionSuggestion } from "@/features/events/completion";
+import { CompletionControl } from "@/features/events/completion-control";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
@@ -98,6 +104,11 @@ export default async function EventPage({
   // rosters or a table, because none of those are ours to keep — sending a
   // parent to register here would send them somewhere nothing is listening.
   const runHere = isRunHere(event);
+  const completed = event.status === "completed";
+  const completion = completionSuggestion(
+    { ...event, fixtures: event.matches },
+    new Date(),
+  );
   const attribution = attributionOf(event);
   const offsiteSchedule = scheduleActionOf({
     ...event,
@@ -392,6 +403,14 @@ export default async function EventPage({
               </button>
             </form>
           )}
+          {(canMarkCompleted(event.status) || canReopen(event.status)) && (
+            <CompletionControl
+              action={setEventCompleted.bind(null, event.slug, !completed)}
+              completed={completed}
+              suggestion={completion}
+            />
+          )}
+
           <p className="mt-2 text-xs text-muted">
             {event.visibility === "public"
               ? "Listed on the events page and visible to everyone."
