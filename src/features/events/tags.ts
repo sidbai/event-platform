@@ -5,12 +5,17 @@ export type EventTag = {
   /** Prefixed to the label so a tag reads at a glance in a dense list. */
   emoji: string;
   /**
-   * brand = what kind of thing it is, warn = needs attention, muted = detail,
-   * outline = not one of ours. Outline is drawn rather than filled because it
-   * says something different in kind from the others: they describe the event,
-   * it describes our relationship to it.
+   * brand = what kind of thing it is, live = happening right now, warn = needs
+   * attention, muted = detail, outline = not one of ours. Outline is drawn
+   * rather than filled because it says something different in kind from the
+   * others: they describe the event, it describes our relationship to it.
+   *
+   * Live is its own tone rather than a reuse of warn. Amber is the colour this
+   * site uses for "something is wrong here" — a stale schedule, a cancelled
+   * event, a team still looking for an opponent — and a tournament being
+   * played is the opposite of a problem.
    */
-  tone: "brand" | "warn" | "muted" | "outline";
+  tone: "brand" | "live" | "warn" | "muted" | "outline";
 };
 
 type TaggableEvent = {
@@ -61,13 +66,14 @@ const KIND_EMOJI: Record<string, string> = {
  * Where the event is in its own life.
  *
  * Ongoing is the only one that raises its voice, because it is the only one
- * that changes what somebody does in the next hour. This replaces the old
- * "Final results" chip — it said the same thing in a way that only made sense
- * next to a table.
+ * that changes what somebody does in the next hour — green rather than amber,
+ * since a tournament being played is good news and this site paints its
+ * problems amber. Completed replaces the old "Final results" chip, which said
+ * the same thing in a way that only made sense next to a table.
  */
 const LIFECYCLE_TAG: Record<"upcoming" | "ongoing" | "completed", EventTag> = {
   upcoming: { label: "Upcoming", emoji: "\u{1F5D3}\uFE0F", tone: "muted" },
-  ongoing: { label: "Ongoing", emoji: "\u{1F534}", tone: "warn" },
+  ongoing: { label: "Ongoing", emoji: "\u{1F7E2}", tone: "live" },
   completed: { label: "Completed", emoji: "\u{1F3C1}", tone: "muted" },
 };
 

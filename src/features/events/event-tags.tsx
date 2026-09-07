@@ -2,6 +2,7 @@ import { eventTags, type EventTag } from "./tags";
 
 const TONE: Record<EventTag["tone"], string> = {
   brand: "bg-brand-soft text-brand-soft-text",
+  live: "bg-green-50 text-green-800",
   warn: "bg-amber-50 text-amber-800",
   muted: "bg-elevated text-muted",
   outline: "border border-dashed border-line text-muted",

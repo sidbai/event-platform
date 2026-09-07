@@ -21,6 +21,25 @@ describe("eventTags", () => {
     ).toBe("Ongoing");
   });
 
+  it("paints an event in progress green, not amber", () => {
+    /*
+     * Amber is this site's colour for something being wrong — a stale
+     * schedule, a cancelled event, a team with no opponent. A tournament
+     * being played is the opposite of a problem, and it shared a tone with
+     * them until now.
+     */
+    const live = eventTags(
+      { kind: "tournament", startsAt: on(-1), endsAt: on(1) },
+      NOW,
+    ).find((t) => t.label === "Ongoing");
+    expect(live?.tone).toBe("live");
+
+    const cancelled = eventTags({ kind: "game", status: "cancelled" }).find(
+      (t) => t.label === "Cancelled",
+    );
+    expect(cancelled?.tone).toBe("warn");
+  });
+
   it("leads with the kind when there is no life to report", () => {
     // An undated pickup game has nothing to say about upcoming or finished.
     expect(labels({ kind: "pickup" })[0]).toBe("Pickup");
