@@ -10,6 +10,8 @@ import { isAdmin } from "@/features/auth/admin";
 import { safeSourceUrl } from "@/features/events/listing";
 
 import { parsePastedSchedule, toSyncedEvent } from "./paste";
+import { applyPastedStandings } from "./standings-apply";
+import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 import { applySync } from "./apply";
 import { mayPoll, platformOf } from "./policy";
 import { detect, syncEvent } from "./run";
@@ -171,6 +173,37 @@ export async function importPastedSchedule(
   // December would otherwise land eleven months early.
   const year = (event.startsAt ?? new Date()).getUTCFullYear();
   const division = String(formData.get("division") ?? "").trim() || "Unassigned";
+
+  /*
+   * A standings table and a fixture list arrive through the same box, because
+   * asking somebody to say which they just copied is asking them to get it
+   * wrong. The header tells us: a table naming a team column and a points
+   * column is a standing, and nothing else is.
+   */
+  const firstLine = text.split(/\r?\n/).find((l) => l.trim()) ?? "";
+  if (readStandingsHeader(firstLine)) {
+    const { rows, skipped: dropped } = parsePastedStandings(text);
+    if (rows.length === 0) {
+      return { error: "That looks like a standings table, but no rows came out of it." };
+    }
+
+    const out = await applyPastedStandings(eventId, rows);
+    revalidatePath("/admin/sync");
+    revalidatePath(`/events/${event.slug}`);
+
+    if (out.updated === 0) {
+      return {
+        error: `None of those ${rows.length} teams are on this event. Is the schedule imported first, and is this the right division?`,
+      };
+    }
+
+    const missed = [...out.unmatched, ...dropped];
+    return {
+      detail:
+        `${out.updated} teams updated with the organizer's own table` +
+        (missed.length > 0 ? ` — ${missed.length} row(s) matched nothing here` : ""),
+    };
+  }
 
   const { matches, skipped } = parsePastedSchedule(text, { division, year });
   if (matches.length === 0) {

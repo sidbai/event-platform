@@ -381,6 +381,19 @@ function DivisionStandings({
     ]),
   );
 
+  /*
+   * Whose arithmetic this is.
+   *
+   * Computing a table from results is right for an event we run — they are
+   * our rules. For somebody else's tournament it is a guess: three points a
+   * win, goal difference capped at six, our tiebreaker order. A tournament
+   * that awards a bonus for a shutout produces a different table from the
+   * same results, and ours would be wrong in a way nobody on the page could
+   * see. So when the organizer's own table has been brought in, that is the
+   * one to show — and either way the page says which it is holding.
+   */
+  const official = teamsInDiv.some((et) => et.points > 0 || et.played > 0);
+
   const groupLabels = [...new Set(teamsInDiv.map((et) => et.groupLabel ?? ""))].sort();
   const groups = groupLabels.map((label) => {
     const ids = teamsInDiv
@@ -401,6 +414,36 @@ function DivisionStandings({
         homeScore: m.homeScore,
         awayScore: m.awayScore,
       }));
+    if (official) {
+      // Their order, kept as published — it encodes their tiebreakers, which
+      // is the whole reason for preferring their table over ours.
+      const ranked = teamsInDiv
+        .filter((et) => ids.includes(et.team.id))
+        .sort((a, b) => b.points - a.points || b.gf - b.ga - (a.gf - a.ga))
+        .map((et) => ({
+          teamId: et.team.id,
+          played: et.played,
+          won: et.won,
+          drawn: et.drawn,
+          lost: et.lost,
+          gf: et.gf,
+          ga: et.ga,
+          gd: et.gf - et.ga,
+          points: et.points,
+          /*
+           * The capped figures exist so our own tiebreakers can clamp a 9–0
+           * without rewarding it. An imported table has already been ordered
+           * by whoever published it, so nothing here re-sorts on them — they
+           * carry the plain numbers rather than pretending to a cap we did
+           * not apply.
+           */
+          capGf: et.gf,
+          capGa: et.ga,
+          capGd: et.gf - et.ga,
+        }));
+      return { label, ranked };
+    }
+
     const table = computeStandings(groupMatches, ids, config);
     return { label, ranked: rankStandings([...table.values()], groupMatches, config) };
   });
@@ -419,6 +462,14 @@ function DivisionStandings({
           )}
         </h3>
       )}
+
+      {/* Said plainly, because a table is the most authoritative-looking
+          thing on a page and a reader has no way to tell one from the other. */}
+      <p className="mt-1 text-xs text-muted">
+        {official
+          ? "The organizer's own table."
+          : "Worked out from the results here — the organizer's own table may order it differently."}
+      </p>
 
       <div className="mt-2 space-y-4">
         {groups.map((group) => (

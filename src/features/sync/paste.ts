@@ -176,8 +176,13 @@ export function parsePastedSchedule(text: string, options: PasteOptions): PasteR
   let header: Map<Canonical, number> | null = null;
 
   for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line) continue;
+    if (!raw.trim()) continue;
+    /*
+     * Only the trailing end. Trimming the whole line eats a leading empty
+     * cell, and a table whose first column is blank then shifts every value
+     * one place left — the games-played number read as the team's name.
+     */
+    const line = raw.replace(/\s+$/, "");
 
     if (!header) {
       const found = readHeader(line);
