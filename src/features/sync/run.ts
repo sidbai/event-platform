@@ -7,6 +7,7 @@ import { events } from "@/db/schema";
 
 import { applySync, recordSyncFailure } from "./apply";
 import { athletes2events } from "./athletes2events";
+import { mayPoll } from "./policy";
 import type { ExternalEventProvider, SourceRef } from "./provider";
 
 /**
@@ -62,6 +63,19 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
   if (!event) return { slug: eventId, ok: false, detail: "event not found" };
   if (!event.sourcePlatform || !event.sourceEventId) {
     return { slug: event.slug, ok: false, detail: "not a synced listing" };
+  }
+
+  /*
+   * Asked before anything else, including whether a connector even exists.
+   * "We are not allowed to read this" is a stronger and more useful answer
+   * than "we have not built it yet", and this is the single place every fetch
+   * passes through — the cron, a page view and an admin pressing refresh all
+   * arrive here. A rule enforced in one of those and not the others holds
+   * only until somebody uses the fourth door.
+   */
+  const decision = mayPoll(event.sourcePlatform);
+  if (!decision.may) {
+    return { slug: event.slug, ok: false, detail: `not permitted — ${decision.reason}` };
   }
 
   const provider = providerFor(event.sourcePlatform);

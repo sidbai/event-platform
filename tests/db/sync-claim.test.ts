@@ -165,6 +165,48 @@ describe("syncIfDue", () => {
   });
 });
 
+describe("the policy gate", () => {
+  it("will not fetch a platform whose robots.txt refuses crawlers", async () => {
+    // EventConnect answers robots.txt with a blanket Disallow, which refuses
+    // Googlebot as much as us. No environment variable is an answer to that,
+    // so the refusal is structural rather than a matter of discipline.
+    const id = await makeListing({ sourcePlatform: "eventconnect" });
+
+    const report = await syncIfDue(id, NOW);
+
+    expect(report?.ok).toBe(false);
+    expect(report?.detail).toContain("refuses crawlers");
+    expect(fetches).not.toHaveBeenCalled();
+  });
+
+  it("says why it refused rather than that no connector exists", async () => {
+    // There is no EventConnect connector either, and "we are not allowed to
+    // read this" is the more useful of the two answers.
+    const id = await makeListing({ sourcePlatform: "eventconnect" });
+    const report = await syncIfDue(id, NOW);
+    expect(report?.detail).not.toContain("no provider");
+  });
+
+  it("leaves the schedule it already has alone when it refuses", async () => {
+    // Refusing to refresh is not a reason to empty a page that parents are
+    // reading on a Saturday.
+    const id = await makeListing();
+    await syncIfDue(id, NOW);
+    const before = await db.select().from(matches).where(eq(matches.eventId, id));
+    expect(before.length).toBeGreaterThan(0);
+
+    await db
+      .update(events)
+      .set({ sourcePlatform: "eventconnect", nextSyncAt: at(-1) })
+      .where(eq(events.id, id));
+    await syncIfDue(id, at(1));
+
+    expect(await db.select().from(matches).where(eq(matches.eventId, id))).toHaveLength(
+      before.length,
+    );
+  });
+});
+
 describe("which event a sync actually reads", () => {
   it("takes the club subdomain from the schedule URL, not the organizer's site", async () => {
     // Event ids are numbered per club on these platforms, so a ref without a
