@@ -37,6 +37,7 @@ const { applySync, contentHash, recordSyncFailure } = await import(
   "@/features/sync/apply"
 );
 const { parseFlightPage } = await import("@/features/sync/athletes2events");
+const { parsePastedSchedule, toSyncedEvent } = await import("@/features/sync/paste");
 const { eq } = await import("drizzle-orm");
 
 const fixture = (name: string) =>
@@ -403,5 +404,79 @@ describe("a name an admin already bound", () => {
     });
     const ids = new Set(played.flatMap((m) => [m.homeTeamId, m.awayTeamId]));
     expect(ids.has(existing.id)).toBe(true);
+  });
+});
+
+describe("pasting the same schedule twice", () => {
+  /*
+   * The bookmarklet path, which is the one a person re-runs by hand — and
+   * the one that does not prune, since somebody pasting one division has not
+   * cancelled the other thirty-three. Everything here is about what a second
+   * paste of the same page does.
+   */
+  const PASTE = [
+    "Sat, Sep 5, 2026\t2 Games",
+    "9:00 AM A1 vs A2 Boys U10\tLWPFC BU10 White Bichirs\t3\t1\tNSC BU10D\tField 1",
+    "10:30 AM A3 vs A4 Boys U10\tXF BU10 A\t2\t2\tValor BU10 Gold\tField 2",
+  ].join("\n");
+
+  const pasted = (text: string) =>
+    toSyncedEvent(
+      parsePastedSchedule(text, {
+        year: 2026,
+        timeZone: "America/Los_Angeles",
+      }).matches,
+    );
+
+  it("changes nothing the second time", async () => {
+    const eventId = await makeListing();
+    const first = await applySync(eventId, pasted(PASTE), NOW, { prune: false });
+    expect(first.unchanged).toBe(false);
+
+    const before = {
+      teams: (await db.select().from(teams)).length,
+      matches: (await db.select().from(matches)).length,
+      entries: (await db.select().from(eventTeams)).length,
+    };
+
+    const second = await applySync(eventId, pasted(PASTE), new Date(), { prune: false });
+    expect(second.unchanged).toBe(true);
+
+    expect({
+      teams: (await db.select().from(teams)).length,
+      matches: (await db.select().from(matches)).length,
+      entries: (await db.select().from(eventTeams)).length,
+    }).toEqual(before);
+  });
+
+  it("updates a score rather than adding the fixture again", async () => {
+    // Re-pasting after results come in is the whole point of re-pasting.
+    const eventId = await makeListing();
+    await applySync(eventId, pasted(PASTE), NOW, { prune: false });
+
+    const revised = PASTE.replace("\t3\t1\t", "\t4\t1\t");
+    const out = await applySync(eventId, pasted(revised), new Date(), { prune: false });
+    expect(out.unchanged).toBe(false);
+
+    const rows = await db.select().from(matches);
+    expect(rows).toHaveLength(2);
+    expect(rows.some((m) => m.homeScore === 4)).toBe(true);
+  });
+
+  it("adds a second division without disturbing the first", async () => {
+    /*
+     * Why this path does not prune. Pasting Boys U11 after Boys U10 must
+     * leave U10 alone; pruning would empty the schedule with every paste.
+     */
+    const eventId = await makeListing();
+    await applySync(eventId, pasted(PASTE), NOW, { prune: false });
+
+    const second = [
+      "Sat, Sep 5, 2026\t1 Games",
+      "9:00 AM B1 vs B2 Boys U11\tXF BU11 Red\t1\t0\tNSC BU11A\tField 3",
+    ].join("\n");
+    await applySync(eventId, pasted(second), new Date(), { prune: false });
+
+    expect(await db.select().from(matches)).toHaveLength(3);
   });
 });
