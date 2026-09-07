@@ -14,7 +14,7 @@ import { kindEmoji } from "@/features/events/tags";
 export function EventLogo({
   src,
   kind,
-  size = 44,
+  size = 56,
   className = "",
 }: {
   src?: string | null;

@@ -21,6 +21,7 @@ import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { CreateLink } from "@/components/create-link";
+import { formatEventWhen } from "@/features/events/when";
 import { formatRecord, recordFrom } from "@/features/teams/record";
 import { teamBySoleOldSlug } from "@/features/teams/merge";
 
@@ -107,7 +108,11 @@ export default async function TeamPage({
       )}
 
       <header className="mt-4 flex items-center gap-4">
-        <TeamCrest src={team.crestUrl} size={64} />
+        {/* A team's own crest, else its club's — read at render, so a club
+            changing its logo changes every team under it and a team filed
+            under the right club gets the right badge with nothing to
+            backfill. 22 of 966 teams have a crest; every club does. */}
+        <TeamCrest src={team.crestUrl ?? team.club?.crestUrl} size={64} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
           <p className="text-sm text-muted">
@@ -343,26 +348,53 @@ function MatchRow({
         ? "text-red-600"
         : "text-muted";
 
+  /*
+   * Which competition, and when.
+   *
+   * A list of scores against names is unreadable for a team that has played
+   * four tournaments: "3–1 vs Seattle Celtic B12" says nothing about whether
+   * that was last weekend or last spring, or which cup it counted in. The
+   * date is the organizer's, not the reader's — see the query.
+   */
+  const round = match.stage === "ko" ? match.round : match.division?.name;
+  const when = match.kickoffAt
+    ? formatEventWhen(match.kickoffAt, null, match.event?.timezone ?? null, "short")
+    : null;
+
   return (
-    <li className="flex items-center gap-2">
-      <span className={`w-4 font-semibold ${resultColor}`}>{result}</span>
-      <span className="w-16 text-xs uppercase tracking-wide text-muted">
-        {match.stage === "ko" ? match.round : match.division?.name}
-      </span>
-      <span className="tabular-nums">
-        {us}–{them}
-      </span>
-      <span className="text-muted">vs</span>
-      <span className="flex items-center gap-1.5">
-        <TeamCrest src={opponent?.crestUrl} size={16} />
-        {opponent?.slug ? (
-          <Link href={`/teams/${opponent.slug}`} className="hover:underline">
-            {opponentName}
+    <li className="py-1.5">
+      <div className="flex items-center gap-2">
+        <span className={`w-4 font-semibold ${resultColor}`}>{result}</span>
+        <span className="tabular-nums">
+          {us}–{them}
+        </span>
+        <span className="text-muted">vs</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <TeamCrest
+            src={opponent?.crestUrl ?? opponent?.club?.crestUrl}
+            size={16}
+          />
+          {opponent?.slug ? (
+            <Link href={`/teams/${opponent.slug}`} className="truncate hover:underline">
+              {opponentName}
+            </Link>
+          ) : (
+            <span className="truncate">{opponentName}</span>
+          )}
+        </span>
+      </div>
+      {/* Indented under the result, so a column of scores stays scannable and
+          the context is there for the one row being read. */}
+      <div className="ml-6 text-xs text-muted">
+        {match.event?.slug ? (
+          <Link href={`/events/${match.event.slug}`} className="hover:underline">
+            {match.event.title}
           </Link>
-        ) : (
-          opponentName
-        )}
-      </span>
+        ) : null}
+        {[round, when].filter(Boolean).map((bit) => (
+          <span key={bit}> · {bit}</span>
+        ))}
+      </div>
     </li>
   );
 }
