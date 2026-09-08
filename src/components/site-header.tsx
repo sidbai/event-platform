@@ -33,7 +33,17 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-header text-header-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] print:hidden">
-      <div className="mx-auto flex h-16 max-w-3xl items-center justify-between gap-2 px-4 sm:px-5">
+      {/*
+        Wider than the page underneath it, and deliberately so.
+
+        The bar carries a logo, a search box and six section links; the pages
+        carry prose, and 768px is a reading measure rather than a layout. At
+        768 the search box was squeezed to 166px — half the 320 it asks for —
+        with 24px of slack in the whole bar. 1024 is the width where search
+        reaches full size and the links stop crowding it; past that the extra
+        is empty space between two groups that are already far apart.
+      */}
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4 sm:px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           {/* One file for both surfaces now. The old mark was drawn in
               near-black on white, so it needed a knockout version to survive
