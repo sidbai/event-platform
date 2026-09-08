@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
 import { teamFactsFrom } from "@/features/teams/facts";
+import { teamToBindTo } from "@/features/teams/binding";
 import { normaliseTeamName } from "@/features/teams/merge-plan";
 import { uniqueTeamSlug } from "@/features/teams/slug";
 import { zonedDate } from "@/lib/dates";
@@ -146,6 +147,25 @@ export async function applySync(
     .from(teamAliases);
   const teamByAlias = new Map(teamAliasRows.map((r) => [r.alias, r.teamId]));
 
+  /*
+   * Every team already here, for attaching a name we have seen before.
+   *
+   * Without this a new tournament mints a fresh row for every side, including
+   * the hundred already here from last month, and the queue asks somebody to
+   * put back together what the import just split — 177 of the 191 pairs
+   * waiting in it were exactly that.
+   */
+  const existingTeams = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      clubId: teams.clubId,
+      gender: teams.gender,
+      birthYears: teams.birthYears,
+      tier: teams.tier,
+    })
+    .from(teams);
+
   const existingEntries = await db.query.eventTeams.findMany({
     where: eq(eventTeams.eventId, eventId),
     columns: { id: true, teamId: true, sourceTeamId: true },
@@ -174,7 +194,34 @@ export async function applySync(
      * and every future import of that name lands on the same team instead of
      * a row for them to fold in again.
      */
-    const bound = teamByAlias.get(normaliseTeamName(t.name));
+    const facts = teamFactsFrom(t.name, {
+      seasonStart: event.startsAt,
+      clubSlug: null,
+    });
+    const club = matchClub(t.name, aliasMap, clubIdx);
+
+    /*
+     * An alias somebody wrote, or a team whose name and facts already match.
+     *
+     * The alias is a decision; the binding is a rule, and a stricter one than
+     * the queue's — the name must match exactly, nothing may contradict, and
+     * some fact must positively agree. Two bare "Warriors" rows agree about
+     * nothing and are left to a person, which is the case this must not take.
+     */
+    const bound =
+      teamByAlias.get(normaliseTeamName(t.name)) ??
+      teamToBindTo(
+        {
+          id: "incoming",
+          name: t.name,
+          clubId: club?.clubId ?? null,
+          gender: facts.gender,
+          birthYears: facts.birthYears,
+          tier: facts.tier,
+        },
+        existingTeams,
+      )?.id;
+
     if (bound) {
       teamIdBySource.set(t.sourceTeamId, bound);
       await db
@@ -194,8 +241,18 @@ export async function applySync(
     // has something to point at, not as a team page anyone is looking for.
     const team = await insertSyncedTeam(t.name, eventId, {
       seasonStart: event.startsAt,
-      club: matchClub(t.name, aliasMap, clubIdx),
+      club,
       clubSlugById,
+    });
+    // Bindable from here on, so a name repeated later in this same feed
+    // lands on the row just made rather than another copy of it.
+    existingTeams.push({
+      id: team.id,
+      name: t.name,
+      clubId: club?.clubId ?? null,
+      gender: facts.gender,
+      birthYears: facts.birthYears,
+      tier: facts.tier,
     });
 
     await db
