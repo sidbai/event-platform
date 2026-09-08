@@ -96,13 +96,23 @@ export function PasteForm({ action, eventId }: { action: Action; eventId: string
           placeholder={"Select the schedule table on the platform's page, copy, and paste here.\nDate headings are used for the rows under them."}
           className="w-full rounded-md border border-line bg-card px-2 py-1.5 font-mono text-xs"
         />
+        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
+
+        {/* Only after the dates were refused, and the paste is still in the
+            box above, so saying "yes, this one" is one tick and one click. */}
+        {state.confirmDates && (
+          <label className="flex items-center gap-2 text-xs text-amber-700">
+            <input type="checkbox" name="confirmDates" className="accent-brand" />
+            Import anyway — these fixtures really are this event&rsquo;s.
+          </label>
+        )}
+
         <button
           disabled={pending}
           className="rounded-md border border-line px-2.5 py-1 text-xs hover:bg-elevated disabled:opacity-50"
         >
           {pending ? "Reading…" : "Import"}
         </button>
-        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
         {state.detail && <p className="text-xs text-muted">{state.detail}</p>}
       </form>
     </details>

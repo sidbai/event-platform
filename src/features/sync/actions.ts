@@ -13,6 +13,7 @@ import { parsePastedSchedule, toSyncedEvent } from "./paste";
 import { applyPastedStandings } from "./standings-apply";
 import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 import { applySync } from "./apply";
+import { datesLookWrong, mismatchMessage } from "./date-guard";
 import { mayPoll, platformOf } from "./policy";
 import { detect, syncEvent } from "./run";
 
@@ -20,6 +21,13 @@ export type ConnectResult = {
   error?: string;
   /** What the sync did, when it worked: "128 matches, 34 new teams, 0 removed". */
   detail?: string;
+  /**
+   * The paste was refused only because its dates are not this event's, and
+   * saying so again would get it in. The form turns this into a tick-box:
+   * an admin who knows better is one click away, and an admin who pasted
+   * into the wrong form is told before it writes anything.
+   */
+  confirmDates?: boolean;
 };
 
 /**
@@ -164,7 +172,7 @@ export async function importPastedSchedule(
 
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
-    columns: { id: true, slug: true, startsAt: true },
+    columns: { id: true, slug: true, startsAt: true, endsAt: true },
   });
   if (!event) return { error: "That event is gone." };
 
@@ -173,6 +181,8 @@ export async function importPastedSchedule(
   // December would otherwise land eleven months early.
   const year = (event.startsAt ?? new Date()).getUTCFullYear();
   const division = String(formData.get("division") ?? "").trim() || "Unassigned";
+  // Set by the tick-box the date guard below asks for, and only by that.
+  const confirmed = formData.get("confirmDates") != null;
 
   /*
    * A standings table and a fixture list arrive through the same box, because
@@ -210,6 +220,22 @@ export async function importPastedSchedule(
     return {
       error: `No fixtures found in that. ${skipped.length} line(s) did not look like games.`,
     };
+  }
+
+  /*
+   * The one check that the paste is this event's.
+   *
+   * Nothing else compares the two: the box takes whatever is on a clipboard
+   * and writes it to whichever form was on screen. A Labor Day schedule went
+   * into a June tournament this way, and 421 fixtures were listed under both
+   * events until somebody noticed by eye.
+   */
+  if (!confirmed) {
+    const wrong = datesLookWrong(
+      matches.map((m) => m.date),
+      event,
+    );
+    if (wrong) return { error: mismatchMessage(wrong), confirmDates: true };
   }
 
   const out = await applySync(eventId, toSyncedEvent(matches), new Date(), {
