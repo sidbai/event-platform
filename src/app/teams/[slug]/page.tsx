@@ -300,6 +300,14 @@ export default async function TeamPage({
                   >
                     {et.event.title}
                   </Link>
+                  {/* What that tournament called this side. Shown only when
+                      it differs, since a team is named four ways across four
+                      schedules and this is the page that reconciles them. */}
+                  {et.sourceName && et.sourceName !== team.name && (
+                    <span className="block text-xs text-muted">
+                      entered as {et.sourceName}
+                    </span>
+                  )}
                   <span className="text-sm text-muted">
                     {" — "}
                     {et.division?.label ?? et.division?.name}

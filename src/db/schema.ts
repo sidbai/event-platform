@@ -607,6 +607,21 @@ export const eventTeams = pgTable(
     groupLabel: text("group_label"),
     /** The hosting platform's id for this team, when the entry came from one. */
     sourceTeamId: text("source_team_id"),
+    /**
+     * What this event called the team.
+     *
+     * A team plays four tournaments and is named four ways — "XF BU13",
+     * "Crossfire Select B13-14 C", "XF U13 B13/14 RCL 1". Binding them to one
+     * row is right, and it throws that away: the page then shows one name for
+     * a side whose own schedules say something else, and nothing explains why
+     * this team is on this event at all.
+     *
+     * Kept per entry, so a name is evidence attached to where it came from
+     * rather than a global alias. Null on rows written before this existed;
+     * the strings are gone and inventing them from the current name would
+     * record a guess as a source.
+     */
+    sourceName: text("source_name"),
     played: integer("played").notNull().default(0),
     won: integer("won").notNull().default(0),
     drawn: integer("drawn").notNull().default(0),

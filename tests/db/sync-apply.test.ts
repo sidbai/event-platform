@@ -38,7 +38,7 @@ const { applySync, contentHash, recordSyncFailure } = await import(
 );
 const { parseFlightPage } = await import("@/features/sync/athletes2events");
 const { parsePastedSchedule, toSyncedEvent } = await import("@/features/sync/paste");
-const { eq } = await import("drizzle-orm");
+const { and, eq } = await import("drizzle-orm");
 
 const fixture = (name: string) =>
   readFileSync(join(process.cwd(), "tests/fixtures/athletes2events", name), "utf8");
@@ -549,5 +549,72 @@ describe("importing a team that is already here", () => {
       if (m.homeTeamId) expect(known.has(m.homeTeamId)).toBe(true);
       if (m.awayTeamId) expect(known.has(m.awayTeamId)).toBe(true);
     }
+  });
+});
+
+describe("what each event called a team", () => {
+  it("records the published name against the entry", async () => {
+    /*
+     * A side is named four ways across four tournaments. Binding them to one
+     * row is right and throws that away — the page then shows one name for a
+     * team whose own schedules say something else, and nothing explains why
+     * this team is on this event at all.
+     */
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), NOW);
+
+    const entries = await db
+      .select({ sourceName: eventTeams.sourceName })
+      .from(eventTeams)
+      .where(eq(eventTeams.eventId, eventId));
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((e) => (e.sourceName ?? "").length > 0)).toBe(true);
+    expect(entries.map((e) => e.sourceName)).toContain("XF B09/10 ECNL 1");
+  });
+
+  it("binds a later import that uses a name only an earlier event published", async () => {
+    /*
+     * The point of keeping them. A team renamed here — or merged under a
+     * different survivor — is still the team the next tournament means when
+     * it uses the name the last one printed.
+     */
+    const first = await makeListing();
+    await applySync(first, syncedFromFixtures(), NOW);
+
+    const before = await db.select().from(teams);
+    // Rename the team here; its published name stays on the entry.
+    const target = before.find((t) => t.name === "XF B09/10 ECNL 1")!;
+    await db
+      .update(teams)
+      .set({ name: "Crossfire 2009/10 ECNL First" })
+      .where(eq(teams.id, target.id));
+
+    const [second] = await db
+      .insert(events)
+      .values({
+        slug: "second-cup",
+        title: "Second Cup",
+        kind: "tournament",
+        modules: [],
+        status: "published",
+        visibility: "public",
+        locationType: "in_person",
+        timezone: "America/Los_Angeles",
+        startsAt: new Date("2026-09-05T16:00:00Z"),
+        sourceName: "Crossfire Premier Soccer",
+        sourcePlatform: "athletes2events",
+        sourceEventId: "997",
+      })
+      .returning({ id: events.id });
+    await applySync(second.id, syncedFromFixtures(), new Date());
+
+    // No new row: the old published name still reaches the renamed team.
+    expect(await db.select().from(teams)).toHaveLength(before.length);
+    const entry = await db.query.eventTeams.findFirst({
+      where: and(eq(eventTeams.eventId, second.id), eq(eventTeams.teamId, target.id)),
+      columns: { sourceName: true },
+    });
+    expect(entry?.sourceName).toBe("XF B09/10 ECNL 1");
   });
 });

@@ -68,5 +68,13 @@ export function teamToBindTo(
       !contradiction(incoming, candidate) &&
       agreement(incoming, candidate),
   );
-  return eligible.length === 1 ? eligible[0] : null;
+  /*
+   * One team, not one row.
+   *
+   * A team is offered here under its own name and under every name an event
+   * has published for it, so the same team can qualify several times over.
+   * Counting rows would refuse exactly the case that is for.
+   */
+  const ids = new Set(eligible.map((c) => c.id));
+  return ids.size === 1 ? eligible[0] : null;
 }
