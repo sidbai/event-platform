@@ -31,15 +31,32 @@ export type TeamFacts = {
 
 export function teamFactsFrom(
   name: string,
-  context: { seasonStart: Date | null; clubSlug: string | null },
+  context: {
+    seasonStart: Date | null;
+    clubSlug: string | null;
+    /**
+     * The division this team played in, as the source prints it.
+     *
+     * "Boys-U10 - Silver 1", "Girls U15". A tournament states the gender and
+     * the age group in the heading even when a team's own name says neither,
+     * and a side entered in the boys' U15 flight is a boys' U15 side. All 227
+     * teams here with no gender were in a division that named one.
+     */
+    division?: string | null;
+  },
 ): TeamFacts {
-  const stated = parseBirthYears(name);
-  let birthYears = stated;
-
+  /*
+   * The team's own name first, the division only where it is silent.
+   *
+   * A name is about the team; a division is about the flight it entered. They
+   * almost always agree, and where they do not the team's own name is the
+   * better authority on what the team is.
+   */
+  let birthYears = parseBirthYears(name);
   if (birthYears.length === 0 && context.seasonStart) {
-    // Only from the age group, and only with a season to read it against:
-    // U12 is one cohort in an autumn league and another in a June tournament.
-    const u = parseAgeGroup(name);
+    // Only from an age group, and only against a season: U12 is one cohort in
+    // an autumn league and another in a June tournament.
+    const u = parseAgeGroup(name) ?? parseAgeGroup(context.division ?? "");
     if (u !== null) {
       birthYears = birthYearsForAgeGroup(u, seasonYearOf(context.seasonStart));
     }
@@ -47,7 +64,7 @@ export function teamFactsFrom(
 
   return {
     birthYears,
-    gender: parseGender(name),
+    gender: parseGender(name) ?? parseGender(context.division ?? ""),
     tier: parseTier(name),
     program: parseProgram(name, context.clubSlug),
   };
