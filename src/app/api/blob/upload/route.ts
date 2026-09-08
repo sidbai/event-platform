@@ -52,9 +52,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (!pathnameMatchesTarget(pathname, target))
           throw new Error("That upload path isn't allowed.");
 
-        // "new-crest" and "new-club" need no subject check: it lands in the staging folder for
-        // a subject that doesn't exist yet, and the create action only adopts
-        // URLs from there. Any signed-in user may write one.
+        // "new-crest", "new-club" and "new-event" need no subject check: each
+        // lands in the staging folder for a subject that doesn't exist yet,
+        // and the create action only adopts URLs from there. Any signed-in
+        // user may write one.
         if (target.kind === "club" && !(await canEditClub()))
           throw new Error("You can't edit that club.");
 

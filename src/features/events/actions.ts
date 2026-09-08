@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/features/auth";
 import { checkRateLimit } from "@/features/rate-limit";
 import { isAdmin } from "@/features/auth/admin";
 import { canScheduleForTeam } from "@/features/teams/access";
+import { isPendingEventUrl } from "@/features/uploads/blob";
 import { zonedDate } from "@/lib/dates";
 
 import { canMarkCompleted, canReopen } from "./completion";
@@ -17,7 +18,27 @@ import { canManageEvent } from "./can-manage";
 import { safeSourceUrl } from "./listing";
 import { needsAdminReview } from "./review-rule";
 
-export type EventFormResult = { error?: string; fieldErrors?: Record<string, string> };
+export type EventFormResult = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  /**
+   * The submission, echoed back so a rejected form still has what was typed.
+   *
+   * React resets an uncontrolled form when its action resolves, so without
+   * this a missing date emptied every other field with it — and the second
+   * attempt was somebody retyping a venue address to fix one thing.
+   */
+  values?: Record<string, string>;
+};
+
+/** Every text field of the submission, for handing back with an error. */
+function submitted(formData: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") out[key] = value;
+  }
+  return out;
+}
 
 function slugify(input: string) {
   return input
@@ -186,7 +207,30 @@ async function parseEventForm(
   };
 }
 
+/**
+ * Both form actions hand the submission back with whatever went wrong.
+ *
+ * Success redirects, so anything these return is a failure — which is what
+ * makes one wrapper enough for every rejection path inside them.
+ */
 export async function submitEvent(
+  prev: EventFormResult,
+  formData: FormData,
+): Promise<EventFormResult> {
+  const out = await createEvent(prev, formData);
+  return { ...out, values: submitted(formData) };
+}
+
+export async function updateEvent(
+  slug: string,
+  prev: EventFormResult,
+  formData: FormData,
+): Promise<EventFormResult> {
+  const out = await applyEventEdit(slug, prev, formData);
+  return { ...out, values: submitted(formData) };
+}
+
+async function createEvent(
   _prev: EventFormResult,
   formData: FormData,
 ): Promise<EventFormResult> {
@@ -226,6 +270,12 @@ export async function submitEvent(
   const needsReview = needsAdminReview(f.kind, visibility, admin);
   const slug = await uniqueSlug(slugify(f.title));
 
+  // Only a mark this form just staged. Anything else is dropped rather than
+  // refused — a bad URL should not cost somebody the rest of the form, and an
+  // arbitrary one would let a new event point at a live event's file.
+  const staged = String(formData.get("logoUrl") ?? "").trim();
+  const logoUrl = staged && isPendingEventUrl(staged) ? staged : null;
+
   await db.insert(events).values({
     slug,
     kind: f.kind,
@@ -251,6 +301,7 @@ export async function submitEvent(
     sourceName: f.sourceName,
     sourceUrl: f.sourceUrl,
     scheduleUrl: f.scheduleUrl,
+    logoUrl,
     listedBy: f.listed ? user.id : null,
     // No organizer on a listing: nobody here runs it. Claiming one later is
     // exactly what sets this.
@@ -287,7 +338,7 @@ export async function submitEvent(
  * organizer fixed a typo is a worse failure than the spam it would prevent,
  * and an admin can already take an event down.
  */
-export async function updateEvent(
+async function applyEventEdit(
   slug: string,
   _prev: EventFormResult,
   formData: FormData,

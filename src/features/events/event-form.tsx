@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 
+import { EventLogo } from "@/components/event-logo";
+import { ImageUpload } from "@/features/uploads/image-upload";
+
 import { submitEvent, updateEvent, type EventFormResult } from "./actions";
 
 type Kind = { slug: string; label: string };
@@ -38,6 +41,11 @@ export type EventDefaults = {
   timezone: string;
 };
 
+/** The fields that hold text; the two booleans have their own handling. */
+type TextField = {
+  [K in keyof EventDefaults]: EventDefaults[K] extends string ? K : never;
+}[keyof EventDefaults];
+
 const field =
   "w-full rounded-md border border-line px-3 py-2 text-sm bg-card";
 const label = "block text-sm font-medium";
@@ -68,7 +76,26 @@ export function EventForm({
   // A team event is usually internal, so start it private rather than
   // announcing training to the whole site by accident.
   const [visibility, setVisibility] = useState(hostTeam ? "private" : "public");
+  /**
+   * A mark uploaded before the event exists, waiting in the staging folder
+   * for the insert to adopt it. Only when creating: an event that exists has
+   * its logo on the edit page, above this form.
+   */
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // Only so the placeholder beside the upload shows this event's own emoji;
+  // the value that gets submitted is the select's, as it always was.
+  const [kind, setKind] = useState(initial?.kind ?? "");
   const err = state.fieldErrors ?? {};
+
+  /*
+   * What the reader last typed, ahead of what the event holds.
+   *
+   * React resets an uncontrolled form once its action resolves, so a rejected
+   * submission handed back an empty page and the person filled the whole
+   * thing in again to fix one field. The action echoes the submission back
+   * with the errors, and that is what these fields show.
+   */
+  const kept = (name: TextField) => state.values?.[name] ?? initial?.[name];
 
   return (
     <form action={action} className="mt-6 space-y-5">
@@ -118,6 +145,29 @@ export function EventForm({
           ))}
         </div>
       </fieldset>
+      {!editing && (
+        <div className="flex items-start gap-4">
+          <EventLogo src={logoUrl} kind={kind || "custom"} size={64} />
+          <div>
+            {/* Staged before the event exists, and adopted by the insert.
+                Asking for it here rather than on a second page is the point:
+                an organizer has the mark in front of them while they are
+                filling this in, and never comes back for it afterwards. */}
+            <ImageUpload
+              target={{ kind: "new-event" }}
+              hasImage={Boolean(logoUrl)}
+              onUploaded={async (url) => setLogoUrl(url)}
+              onCleared={async () => setLogoUrl(null)}
+              label="Upload a logo"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Optional. Without one the event shows the mark for its kind.
+            </p>
+          </div>
+          <input type="hidden" name="logoUrl" value={logoUrl ?? ""} />
+        </div>
+      )}
+
       <div>
         <label className={label} htmlFor="title">
           Event name
@@ -126,7 +176,7 @@ export function EventForm({
           id="title"
           name="title"
           required
-          defaultValue={initial?.title}
+          defaultValue={kept("title")}
           className={`mt-1 ${field}`}
         />
         {err.title && <p className="mt-1 text-xs text-red-600">{err.title}</p>}
@@ -140,7 +190,8 @@ export function EventForm({
           <select
             id="kind"
             name="kind"
-            defaultValue={initial?.kind ?? ""}
+            defaultValue={kept("kind") ?? ""}
+            onChange={(e) => setKind(e.target.value)}
             className={`mt-1 ${field}`}
           >
             <option value="" disabled>
@@ -161,7 +212,7 @@ export function EventForm({
           <input
             id="format"
             name="format"
-            defaultValue={initial?.format}
+            defaultValue={kept("format")}
             placeholder="5v5, 7v7, 11v11…"
             className={`mt-1 ${field}`}
           />
@@ -178,7 +229,7 @@ export function EventForm({
             name="date"
             type="date"
             required
-            defaultValue={initial?.date}
+            defaultValue={kept("date")}
             className={`mt-1 ${field}`}
           />
           {err.date && <p className="mt-1 text-xs text-red-600">{err.date}</p>}
@@ -191,7 +242,7 @@ export function EventForm({
             id="time"
             name="time"
             type="time"
-            defaultValue={initial?.time}
+            defaultValue={kept("time")}
             className={`mt-1 ${field}`}
           />
         </div>
@@ -205,7 +256,7 @@ export function EventForm({
           id="endDate"
           name="endDate"
           type="date"
-          defaultValue={initial?.endDate}
+          defaultValue={kept("endDate")}
           className={`mt-1 ${field}`}
         />
         <p className="mt-1 text-xs text-muted">
@@ -237,7 +288,7 @@ export function EventForm({
             <div className="sm:col-span-2">
               <input
                 name="venueName"
-                defaultValue={initial?.venueName}
+                defaultValue={kept("venueName")}
                 placeholder="Venue name"
                 className={field}
               />
@@ -247,13 +298,13 @@ export function EventForm({
             </div>
             <input
               name="venueAddress"
-              defaultValue={initial?.venueAddress}
+              defaultValue={kept("venueAddress")}
               placeholder="Address"
               className={field}
             />
             <input
               name="venueCity"
-              defaultValue={initial?.venueCity}
+              defaultValue={kept("venueCity")}
               placeholder="City"
               className={field}
             />
@@ -263,7 +314,7 @@ export function EventForm({
             <input
               name="onlineUrl"
               type="url"
-              defaultValue={initial?.onlineUrl}
+              defaultValue={kept("onlineUrl")}
               placeholder="https://…"
               className={field}
             />
@@ -289,7 +340,7 @@ export function EventForm({
               <input
                 id="sourceName"
                 name="sourceName"
-                defaultValue={initial?.sourceName}
+                defaultValue={kept("sourceName")}
                 placeholder="Starfire Sports"
                 className={`mt-1 ${field}`}
               />
@@ -305,7 +356,7 @@ export function EventForm({
                 id="sourceUrl"
                 name="sourceUrl"
                 type="url"
-                defaultValue={initial?.sourceUrl}
+                defaultValue={kept("sourceUrl")}
                 placeholder="https://…"
                 className={`mt-1 ${field}`}
               />
@@ -323,7 +374,7 @@ export function EventForm({
               id="scheduleUrl"
               name="scheduleUrl"
               type="url"
-              defaultValue={initial?.scheduleUrl}
+              defaultValue={kept("scheduleUrl")}
               placeholder="https://…"
               className={`mt-1 ${field}`}
             />
@@ -347,7 +398,7 @@ export function EventForm({
           <input
             id="ageGroup"
             name="ageGroup"
-            defaultValue={initial?.ageGroup}
+            defaultValue={kept("ageGroup")}
             placeholder="U11"
             className={`mt-1 ${field}`}
           />
@@ -359,7 +410,7 @@ export function EventForm({
           <select
             id="gender"
             name="gender"
-            defaultValue={initial?.gender ?? ""}
+            defaultValue={kept("gender") ?? ""}
             className={`mt-1 ${field}`}
           >
             <option value="">Any / coed</option>
@@ -375,7 +426,7 @@ export function EventForm({
           <input
             id="level"
             name="level"
-            defaultValue={initial?.level}
+            defaultValue={kept("level")}
             placeholder="Rec, select…"
             className={`mt-1 ${field}`}
           />
@@ -386,7 +437,9 @@ export function EventForm({
         <input
           type="checkbox"
           name="needsOpponent"
-          defaultChecked={initial?.needsOpponent}
+          defaultChecked={
+            state.values ? state.values.needsOpponent === "on" : initial?.needsOpponent
+          }
         />
         We&rsquo;re looking for an opponent
       </label>
@@ -399,7 +452,7 @@ export function EventForm({
           id="summary"
           name="summary"
           rows={3}
-          defaultValue={initial?.summary}
+          defaultValue={kept("summary")}
           className={`mt-1 ${field}`}
         />
       </div>

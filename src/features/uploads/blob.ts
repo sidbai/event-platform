@@ -54,12 +54,15 @@ export type UploadTarget =
   | { kind: "new-club" }
   /** An event's square mark. Gated on managing that event. */
   | { kind: "event"; eventSlug: string }
+  /** A mark chosen while submitting an event, before the event exists. */
+  | { kind: "new-event" }
   /** Cover image for a news article. Admin-only, checked at token time. */
   | { kind: "news" };
 
 /** Staging folders for images uploaded before their subject exists. */
 export const PENDING_CREST_PREFIX = "crests/_pending";
 export const PENDING_CLUB_PREFIX = "clubs/_pending";
+export const PENDING_EVENT_PREFIX = "events/_pending";
 
 /**
  * Where a target's files live.
@@ -72,6 +75,7 @@ export function uploadPrefix(target: UploadTarget): string {
   if (target.kind === "avatar") return "avatars";
   if (target.kind === "new-crest") return PENDING_CREST_PREFIX;
   if (target.kind === "new-club") return PENDING_CLUB_PREFIX;
+  if (target.kind === "new-event") return PENDING_EVENT_PREFIX;
   if (target.kind === "club") return `clubs/${target.clubSlug}`;
   if (target.kind === "event") return `events/${target.eventSlug}`;
   if (target.kind === "news") return "news";
@@ -90,6 +94,10 @@ export function isPendingCrestUrl(url: string): boolean {
 
 export function isPendingClubUrl(url: string): boolean {
   return isUnderPrefix(url, PENDING_CLUB_PREFIX);
+}
+
+export function isPendingEventUrl(url: string): boolean {
+  return isUnderPrefix(url, PENDING_EVENT_PREFIX);
 }
 
 function isUnderPrefix(url: string, prefix: string): boolean {
@@ -125,6 +133,7 @@ export function parseUploadTarget(raw: string | null): UploadTarget | null {
   if (v.kind === "avatar") return { kind: "avatar" };
   if (v.kind === "new-crest") return { kind: "new-crest" };
   if (v.kind === "new-club") return { kind: "new-club" };
+  if (v.kind === "new-event") return { kind: "new-event" };
   if (v.kind === "news") return { kind: "news" };
   if (v.kind === "club" && typeof v.clubSlug === "string")
     return { kind: "club", clubSlug: v.clubSlug };
