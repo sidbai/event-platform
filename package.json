@@ -21,6 +21,8 @@
     "db:backfill:age": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-age.ts",
     "ai:suggest-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/suggest-team-matches.ts",
     "db:merge:teams": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-duplicate-teams.ts",
+    "db:teams:export": "NODE_OPTIONS=--conditions=react-server tsx scripts/export-team-facts.ts",
+    "db:teams:import": "NODE_OPTIONS=--conditions=react-server tsx scripts/import-team-facts.ts",
     "db:teams:coverage": "NODE_OPTIONS=--conditions=react-server tsx scripts/team-coverage.ts",
     "db:backfill:teams": "tsx scripts/backfill-teams.ts",
     "db:backfill:naming": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-naming.ts",
