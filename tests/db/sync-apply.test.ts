@@ -422,10 +422,7 @@ describe("pasting the same schedule twice", () => {
 
   const pasted = (text: string) =>
     toSyncedEvent(
-      parsePastedSchedule(text, {
-        year: 2026,
-        timeZone: "America/Los_Angeles",
-      }).matches,
+      parsePastedSchedule(text, { division: "Unassigned", year: 2026 }).matches,
     );
 
   it("changes nothing the second time", async () => {
