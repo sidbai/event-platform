@@ -94,3 +94,43 @@ describe("parsePastedStandings", () => {
     expect(skipped).toHaveLength(2);
   });
 });
+
+describe("a table AthleteOne printed", () => {
+  it("reads its header, plural column name and all", () => {
+    const header = "Pos\tTeams\tGP\tWins\tLosses\tDraws\tGF\tGA\tGD\tPPG\tPTS";
+    expect(readStandingsHeader(header)).not.toBeNull();
+  });
+
+  it("takes the columns it knows and steps over GD and PPG", () => {
+    const text = [
+      "Pos\tTeams\tGP\tWins\tLosses\tDraws\tGF\tGA\tGD\tPPG\tPTS",
+      "1\tEastside FC - GU8 Red\t3\t3\t0\t0\t17\t1\t16\t3.00\t9",
+      "3\tEastside FC (WA) - GU8 White\t3\t0\t2\t1\t0\t14\t-14\t0.33\t1",
+    ].join("\n");
+
+    const { rows, skipped } = parsePastedStandings(text);
+    expect(skipped).toEqual([]);
+    expect(rows).toEqual([
+      {
+        team: "Eastside FC - GU8 Red",
+        played: 3,
+        won: 3,
+        drawn: 0,
+        lost: 0,
+        gf: 17,
+        ga: 1,
+        points: 9,
+      },
+      {
+        team: "Eastside FC (WA) - GU8 White",
+        played: 3,
+        won: 0,
+        drawn: 1,
+        lost: 2,
+        gf: 0,
+        ga: 14,
+        points: 1,
+      },
+    ]);
+  });
+});

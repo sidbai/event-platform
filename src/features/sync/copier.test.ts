@@ -1,10 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { CANONICAL_HEADER } from "./paste";
+import { CANONICAL_HEADER, parsePastedSchedule } from "./paste";
+import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 
-import { copierBookmarklet } from "./copier";
+import { copierBookmarklet, STANDINGS_HEADER } from "./copier";
 
 const body = () => decodeURIComponent(copierBookmarklet().slice("javascript:".length));
+
+/**
+ * The bookmarklet's own functions, taken out of the artifact a person clicks.
+ *
+ * Not a second copy of the logic: this evaluates the exact string that ends
+ * up in the bookmark, and with no document present it hands its functions
+ * back instead of reading a page. A test against a copy would pass while the
+ * bookmark was broken, which is the failure this file already exists for.
+ */
+function artifact(): {
+  a1Fixture: (meta: string[], who: string[], tail: string[]) => string[];
+  tableRows: (table: unknown) => string[];
+} {
+  return new Function(`return ${body()}`)();
+}
+
+/** Enough of a DOM for tableRows: rows of cells, each with innerText. */
+function fakeTable(rows: string[][]) {
+  const cell = (t: string) => ({ innerText: t });
+  const trs = rows.map((r) => ({ children: r.map(cell) }));
+  return { querySelectorAll: (sel: string) => (sel === "tr" ? trs : []) };
+}
 
 describe("the copier bookmarklet", () => {
   it("is valid JavaScript", () => {
@@ -41,5 +64,174 @@ describe("the copier bookmarklet", () => {
     // The one property that makes this not a crawler: it reads what is
     // already on the screen.
     expect(body()).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|navigator\.sendBeacon|import\s*\(/);
+  });
+
+  it("emits the standings columns the standings importer reads", () => {
+    // Both halves look these up by name. A column this emits under a name the
+    // importer does not know is a column silently dropped.
+    expect(readStandingsHeader(STANDINGS_HEADER.join("\t"))).not.toBeNull();
+  });
+});
+
+describe("reading an AthleteOne fixture", () => {
+  const a1 = (meta: string[], who: string[], tail: string[]) =>
+    artifact().a1Fixture(meta, who, tail);
+
+  it("pulls a played game out of three stacked cells", () => {
+    // A real row from the 2026 Eastside FC Cup. Read generically, both teams
+    // land in one field and the date and score are lost entirely.
+    expect(
+      a1(
+        ["Aug 21, 2026", "09:10 AM", "GU08 - GU8 Red"],
+        [
+          "Washington Premier - G18 Black U8",
+          "Eastside FC (WA) - Eastside FC GU8 White",
+          "Starfire Sports Complex - Field 2B",
+        ],
+        ["11", "0", "Box Score"],
+      ),
+    ).toEqual([
+      "Aug 21, 2026",
+      "09:10 AM",
+      "",
+      "GU08 - GU8 Red",
+      "Washington Premier - G18 Black U8",
+      "11",
+      "0",
+      "Eastside FC (WA) - Eastside FC GU8 White",
+      "Field 2B",
+      "Starfire Sports Complex",
+    ]);
+  });
+
+  it("leaves the score blank for a game not yet played", () => {
+    const row = a1(
+      ["Aug 21, 2026", "09:10 AM", "GU08 - GU8 Red"],
+      ["Home FC", "Away FC", "Starfire Sports Complex - Field 2B"],
+      ["Box Score"],
+    );
+    expect(row[5]).toBe("");
+    expect(row[6]).toBe("");
+  });
+
+  it("splits the venue at the last dash, because club names contain them", () => {
+    const row = a1(
+      ["Aug 21, 2026", "09:10 AM", "BU12 - BU12 Grey"],
+      ["Home FC", "Away FC", "Starfire Sports - Complex B - Field 11A"],
+      [],
+    );
+    expect(row[8]).toBe("Field 11A");
+    expect(row[9]).toBe("Starfire Sports - Complex B");
+  });
+
+  it("survives a venue cell with no field in it", () => {
+    const row = a1(["Aug 21, 2026", "09:10 AM", "d"], ["H", "A", "Marymoor Park"], []);
+    expect(row[8]).toBe("");
+    expect(row[9]).toBe("Marymoor Park");
+  });
+
+  it("hands the importer rows it reads as real fixtures", () => {
+    // The round trip that matters: what the bookmarklet writes is what the
+    // paste box parses, with the date, the kick-off and the score intact.
+    const lines = [
+      CANONICAL_HEADER.join("\t"),
+      a1(
+        ["Aug 21, 2026", "09:10 AM", "GU08 - GU8 Red"],
+        ["Washington Premier - G18 Black U8", "Eastside FC - GU8 White", "Starfire - Field 2B"],
+        ["11", "0", "Box Score"],
+      ).join("\t"),
+    ].join("\n");
+
+    const { matches, skipped } = parsePastedSchedule(lines, {
+      division: "Unassigned",
+      year: 2026,
+    });
+    expect(skipped).toEqual([]);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      date: "2026-08-21",
+      time: "09:10",
+      division: "GU08 - GU8 Red",
+      home: "Washington Premier - G18 Black U8",
+      away: "Eastside FC - GU8 White",
+      homeScore: 11,
+      awayScore: 0,
+    });
+  });
+});
+
+describe("reading a standings table", () => {
+  /** The header AthleteOne prints, verbatim. */
+  const HEAD = ["Pos", "Teams", "GP", "Wins", "Losses", "Draws", "GF", "GA", "GD", "PPG", "PTS", ""];
+
+  it("reads its columns by name, not by position", () => {
+    // GD and PPG sit between the columns we want, and Teams is plural — read
+    // by position, every number would be one column out.
+    // Distinct wins, draws and losses on purpose: AthleteOne prints them as
+    // Wins, Losses, Draws and this emits w, d, l, so a row of zeroes would
+    // pass whether or not the two agree.
+    const rows = artifact().tableRows(
+      fakeTable([
+        HEAD,
+        ["3", "Eastside FC (WA) - GU8 White", "3", "0", "2", "1", "0", "14", "-14", "0.33", "1", "View Results"],
+      ]),
+    );
+    // team, gp, w, d, l, gf, ga, pts
+    expect(rows).toEqual(["Eastside FC (WA) - GU8 White\t3\t0\t1\t2\t0\t14\t1"]);
+  });
+
+  it("ignores a table that is not a standing", () => {
+    // A schedule has neither a team column nor points, and reading one as a
+    // table would invent a league nobody played.
+    expect(
+      artifact().tableRows(
+        fakeTable([
+          ["Game Info", "Teams & Venues", "Game #"],
+          ["Aug 21, 2026", "Home FC Away FC", "1126771"],
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("drops a row with no team on it", () => {
+    expect(
+      artifact().tableRows(fakeTable([HEAD, ["", "", "", "", "", "", "", "", "", "", "", ""]])),
+    ).toEqual([]);
+  });
+
+  it("hands the importer rows it reads as a real table", () => {
+    const rows = artifact().tableRows(
+      fakeTable([
+        HEAD,
+        ["1", "Eastside FC - GU8 Red", "3", "3", "0", "0", "17", "1", "16", "3.00", "9", "View Results"],
+        ["2", "Seattle United - G18 Copa", "3", "2", "0", "1", "12", "1", "11", "2.33", "7", "View Results"],
+      ]),
+    );
+    const { rows: parsed, skipped } = parsePastedStandings(
+      [STANDINGS_HEADER.join("\t"), ...rows].join("\n"),
+    );
+    expect(skipped).toEqual([]);
+    expect(parsed).toEqual([
+      {
+        team: "Eastside FC - GU8 Red",
+        played: 3,
+        won: 3,
+        drawn: 0,
+        lost: 0,
+        gf: 17,
+        ga: 1,
+        points: 9,
+      },
+      {
+        team: "Seattle United - G18 Copa",
+        played: 3,
+        won: 2,
+        drawn: 1,
+        lost: 0,
+        gf: 12,
+        ga: 1,
+        points: 7,
+      },
+    ]);
   });
 });
