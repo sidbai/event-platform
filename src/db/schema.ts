@@ -1890,6 +1890,101 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
   replies: many(comments, { relationName: "comment_replies" }),
 }));
 
+// --- team claims -------------------------------------------------------
+
+/**
+ * A request to be recognised as the person who runs a team.
+ *
+ * Its own table rather than a flag on teams, for the same reason coach claims
+ * have one: the decision belongs on the record. Who asked, what they said,
+ * who decided and when. Rejected claims stay, because somebody working
+ * through a club's teams asking for each in turn is exactly the pattern an
+ * admin needs to be able to see.
+ *
+ * Never self-serve. A team page carries a squad, a calendar and a roster of
+ * children's names and ages; the cost of handing one to the wrong person is
+ * not a bad edit. An approved claim writes a team_members row as MANAGER, not
+ * owner — enough to run the team, short of deleting it or hiding it.
+ */
+export const teamClaims = pgTable(
+  "team_claims",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * How an admin is meant to tell it is really them. Required, and not
+     * shown publicly: with no club directory of coaches to check against,
+     * this sentence is the whole of what the decision rests on.
+     */
+    note: text("note").notNull(),
+    status: claimStatus("status").notNull().default("pending"),
+    decidedBy: uuid("decided_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One request per person per team; asking again edits the one they have.
+    unique("team_claims_team_user_uq").on(t.teamId, t.userId),
+    index("team_claims_status_idx").on(t.status, t.createdAt),
+  ],
+);
+
+/**
+ * A new name for a team, waiting for somebody to approve it.
+ *
+ * The one identity field a claimant may touch, and only through here. Names
+ * arrive from imports as whatever a platform published — "XF, U14, B12 - 13,
+ * RCL 1, Plackov" — so refusing every fix would leave the directory reading
+ * like a database dump. But a club's team is named by the club, and a rename
+ * that nobody checked could quietly restate whose team it is.
+ *
+ * The slug never follows a rename: every fixture, standings row and search
+ * result points at a team by slug, and moving that to tidy up an address
+ * nobody types would break the pages that point at it.
+ */
+export const teamNameProposals = pgTable(
+  "team_name_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    proposedBy: uuid("proposed_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** What the team is called now, kept so a decision can be read later. */
+    currentName: text("current_name").notNull(),
+    proposedName: text("proposed_name").notNull(),
+    status: claimStatus("status").notNull().default("pending"),
+    decidedBy: uuid("decided_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("team_name_proposals_status_idx").on(t.status, t.createdAt)],
+);
+
+export const teamClaimsRelations = relations(teamClaims, ({ one }) => ({
+  team: one(teams, { fields: [teamClaims.teamId], references: [teams.id] }),
+  user: one(users, { fields: [teamClaims.userId], references: [users.id] }),
+}));
+
+export const teamNameProposalsRelations = relations(teamNameProposals, ({ one }) => ({
+  team: one(teams, { fields: [teamNameProposals.teamId], references: [teams.id] }),
+  proposer: one(users, {
+    fields: [teamNameProposals.proposedBy],
+    references: [users.id],
+  }),
+}));
+
 // --- page views --------------------------------------------------------
 
 /**

@@ -18,6 +18,10 @@ import {
 import { listTeamInvites } from "@/features/teams/invite-queries";
 import { getTeamBySlug } from "@/features/teams/queries";
 import { TeamEditForm, TransferOwnerForm } from "@/features/teams/team-forms";
+import { proposeTeamName } from "@/features/teams/claim-actions";
+import { ProposeNameForm } from "@/features/teams/claim-form";
+import { openNameProposal } from "@/features/teams/claim-queries";
+import { policyFor } from "@/features/teams/editable";
 import { clearTeamCrest, setTeamCrest } from "@/features/uploads/actions";
 import { ImageUpload } from "@/features/uploads/image-upload";
 import { TeamCrest } from "@/components/team-crest";
@@ -38,6 +42,11 @@ export default async function TeamSettingsPage({
   if (!(await canManageTeam(team.id))) notFound();
 
   const clubs = await clubOptions();
+  const admin = isAdmin(await getCurrentUser());
+  // Only when the name is theirs to propose rather than to type.
+  const nameByProposal =
+    policyFor("name", team, admin ? { kind: "admin" } : { kind: "claimant" }) === "review";
+  const proposal = nameByProposal ? await openNameProposal(team.id) : null;
 
   const user = await getCurrentUser();
   // Admins administer teams they don't own — that is how a team created on
@@ -70,11 +79,23 @@ export default async function TeamSettingsPage({
         />
       </div>
 
+      {nameByProposal && (
+        <div className="mt-4">
+          <ProposeNameForm
+            action={proposeTeamName.bind(null, slug)}
+            currentName={team.name}
+            pendingName={proposal?.proposedName ?? null}
+          />
+        </div>
+      )}
+
       <TeamEditForm
         action={updateTeam.bind(null, slug)}
         clubs={clubs}
+        admin={admin}
         team={{
           name: team.name,
+          affiliation: team.affiliation,
           birthYears: formatBirthYears(team.birthYears) ?? "",
           tier: team.tier ?? "",
           program: team.program ?? "",
