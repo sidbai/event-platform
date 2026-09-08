@@ -1889,3 +1889,39 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
   }),
   replies: many(comments, { relationName: "comment_replies" }),
 }));
+
+// --- page views --------------------------------------------------------
+
+/**
+ * What a view can be counted against.
+ *
+ * The three pages people share: an event, a news article, a community
+ * thread. Deliberately not every page — a counter on a settings form is
+ * noise, and a counter on a team page would be measuring a directory entry
+ * rather than something somebody wrote.
+ */
+export const viewSubject = pgEnum("view_subject", ["event", "news_post", "forum_post"]);
+
+/**
+ * How many times a page has been opened.
+ *
+ * One row per subject, not one per view. A row per view would be a log of
+ * who read what — the kind of thing that has to be defended, kept and
+ * eventually deleted — and this only ever needs to answer "how many".
+ * Nothing here identifies a reader: no user id, no address, no timestamp
+ * per visit.
+ *
+ * Counted in the browser rather than during the render, for two reasons a
+ * server-side increment gets wrong: a crawler that never runs scripts is not
+ * a reader, and a page that writes on every render cannot be cached.
+ */
+export const pageViews = pgTable(
+  "page_views",
+  {
+    subjectType: viewSubject("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    views: integer("views").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.subjectType, t.subjectId] })],
+);

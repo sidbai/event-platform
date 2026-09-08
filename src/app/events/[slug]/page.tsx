@@ -33,6 +33,9 @@ import {
   formatFee,
 } from "@/features/registration/openness";
 import { divisionsForRegistration } from "@/features/registration/queries";
+import { CountView } from "@/features/views/count-view";
+import { viewsOf } from "@/features/views/queries";
+import { ViewsCount } from "@/features/views/views-count";
 import {
   ScheduleSection,
   type ScheduleParams,
@@ -124,9 +127,13 @@ export default async function EventPage({
   const entryDivisions = takesEntries
     ? await divisionsForRegistration(event.id, new Date())
     : [];
+  const views = await viewsOf("event", event.id);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
+      {/* Counted in the browser, so a crawler reading the schedule is not
+          mistaken for a parent looking up a kickoff time. */}
+      <CountView subject="event" id={event.id} />
       <Link href="/events" className="text-sm text-brand-text hover:underline">
         ← All events
       </Link>
@@ -213,6 +220,7 @@ export default async function EventPage({
             </>
           )}
         </dl>
+        <ViewsCount views={views} className="mt-3 block text-sm text-muted" />
         {event.venue?.notes && (
           <p className="mt-3 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
             {event.venue.notes}

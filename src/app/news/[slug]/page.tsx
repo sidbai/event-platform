@@ -16,6 +16,9 @@ import { getNewsPost } from "@/features/news/queries";
 import { Markdown } from "@/features/news/markdown";
 import { coverMaxWidth } from "@/features/news/cover";
 import { formatEventDate, postedSeparately } from "@/features/news/dates";
+import { CountView } from "@/features/views/count-view";
+import { viewsOf } from "@/features/views/queries";
+import { ViewsCount, VIEWS_SHOWN_FROM } from "@/features/views/views-count";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +61,13 @@ export default async function NewsPostPage({
   // see their own submission would have no idea it existed.
   if (!canViewNewsPost(post, viewer)) notFound();
   const canEdit = canEditNewsPost(post, viewer);
+  const views = await viewsOf("news_post", post.id);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
+      {/* Counts this read, in the browser. Nothing on the page waits for it,
+          and a crawler that never runs scripts never reaches it. */}
+      <CountView subject="news_post" id={post.id} />
       <Link href="/news" className="text-sm text-brand-text hover:underline">
         ← News
       </Link>
@@ -108,6 +115,12 @@ export default async function NewsPostPage({
           )}
           <span aria-hidden>·</span>
           <span>{readingMinutes(post.body)} min read</span>
+          {views >= VIEWS_SHOWN_FROM && (
+            <>
+              <span aria-hidden>·</span>
+              <ViewsCount views={views} />
+            </>
+          )}
           {canEdit && (
             <>
               <span aria-hidden>·</span>
