@@ -417,7 +417,12 @@ async function insertSyncedTeam(
         .values({
           slug: await uniqueTeamSlug(base),
           name,
-          visibility: "private",
+          // Listed, like every other team. This used to be "private", meaning
+          // "we did not put it here on purpose" rather than "keep it secret",
+          // and the two readings needed a special case in every query that
+          // touched a team. A side whose name is already on a public
+          // standings page is not a secret.
+          visibility: "public",
           originEventId: eventId,
           ...facts,
           // affiliation and club_id are one fact in two columns; the CHECK

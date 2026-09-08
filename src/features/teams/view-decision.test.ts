@@ -9,18 +9,21 @@ describe("teamViewDecision", () => {
     ).toBe("allow");
   });
 
-  it("keeps tournament teams open", () => {
-    // These are 'private' only to stay out of the directory. Public standings
-    // link straight to them, so locking them would break the event page.
+  it("lets anyone see a team created for an event, because those are listed now", () => {
     expect(
-      teamViewDecision({ visibility: "private", originEventId: "evt-1" }, false),
+      teamViewDecision({ visibility: "public", originEventId: "evt-1" }, false),
     ).toBe("allow");
   });
 
-  it("makes a person's private team members-only", () => {
-    // The create form promises "only people you invite will see it".
+  it("makes a private team members-only however it was created", () => {
+    // The create form promises "only people you invite will see it", and an
+    // imported team turned private by its owner made the same promise. Being
+    // born in a tournament used to override that.
     expect(
       teamViewDecision({ visibility: "private", originEventId: null }, false),
+    ).toBe("check-member");
+    expect(
+      teamViewDecision({ visibility: "private", originEventId: "evt-1" }, false),
     ).toBe("check-member");
   });
 

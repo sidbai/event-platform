@@ -26,6 +26,7 @@
     "db:teams:coverage": "NODE_OPTIONS=--conditions=react-server tsx scripts/team-coverage.ts",
     "db:backfill:teams": "tsx scripts/backfill-teams.ts",
     "db:backfill:naming": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-naming.ts",
+    "db:backfill:visibility": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-visibility.ts",
     "db:backfill:clubs": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-clubs.ts",
     "db:seed:wpl": "tsx scripts/seed-wpl-fixture.ts",
     "test:db": "vitest run --config vitest.db.config.mts",

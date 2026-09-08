@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
@@ -10,14 +10,14 @@ import { ageGroupOf, parseAgeGroupFilter, seasonYearOf } from "./age";
 /**
  * Teams anyone may see listed.
  *
- * `visibility` carries two meanings — see view-decision.ts — and this is the
- * listing half. A team created for a tournament is 'private' only in the
- * sense of "we did not put it here on purpose"; its name is already on public
- * standings pages, so hiding it from a directory while linking it from a
- * schedule protected nothing and left the page empty. A team a person created
- * and marked private stays out, because that one was a promise.
+ * Every team is listed unless somebody chose otherwise. Teams created for an
+ * event used to be written 'private' — meaning "we did not put it here on
+ * purpose", not "keep it secret" — and this clause had to let them back in,
+ * which meant a team marked private by its own owner could still be listed if
+ * it happened to have been imported first. They are created public now, so
+ * private means what it says.
  */
-const listable = or(eq(teams.visibility, "public"), isNotNull(teams.originEventId));
+const listable = eq(teams.visibility, "public");
 
 export type TeamFilter = {
   q?: string;
