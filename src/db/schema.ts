@@ -435,6 +435,35 @@ export const clubAliases = pgTable(
 );
 
 /**
+ * Pairs somebody has looked at and said are two different teams.
+ *
+ * The other half of a merge queue. Without it, saying no costs nothing and
+ * achieves nothing: the rules propose the same 180 pairs next week, and the
+ * model is free to suggest one of them again. A queue that cannot be answered
+ * in both directions is a queue people stop reading.
+ *
+ * Stored with the smaller id first, so a pair is one row whichever way round
+ * it was offered.
+ */
+export const teamNonDuplicates = pgTable(
+  "team_non_duplicates",
+  {
+    aTeamId: uuid("a_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    bTeamId: uuid("b_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    /** Who said so; a "no" is a decision like any other. */
+    dismissedBy: uuid("dismissed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.aTeamId, t.bTeamId] })],
+);
+
+/**
  * Pairs a model thinks are one team, waiting for a person to say.
  *
  * Kept in their own table rather than shown inline with the rules-based
