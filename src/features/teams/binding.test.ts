@@ -68,6 +68,19 @@ describe("teamToBindTo", () => {
     }
   });
 
+  it("binds when one team qualifies under several of its names", () => {
+    /*
+     * A team is offered under its own name and under every name an event has
+     * published for it, so it can qualify more than once. Counting rows
+     * rather than teams would refuse the case this exists for.
+     */
+    const existing = team({ name: "XF BU13" });
+    const alsoKnownAs = { ...existing, name: "Crossfire Select B13-14" };
+    expect(
+      teamToBindTo(team({ name: "Crossfire Select B13-14" }), [existing, alsoKnownAs])?.id,
+    ).toBe(existing.id);
+  });
+
   it("refuses to choose between two teams that both qualify", () => {
     // Nobody can say which, and a new row plus a queue entry is honest.
     const incoming = team({ name: "XF Blue Jays" });

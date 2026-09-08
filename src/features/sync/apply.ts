@@ -155,7 +155,7 @@ export async function applySync(
    * put back together what the import just split — 177 of the 191 pairs
    * waiting in it were exactly that.
    */
-  const existingTeams = await db
+  const teamRows = await db
     .select({
       id: teams.id,
       name: teams.name,
@@ -165,6 +165,29 @@ export async function applySync(
       tier: teams.tier,
     })
     .from(teams);
+
+  /*
+   * Every name any event has published for a team, alongside its own.
+   *
+   * A side is named four ways across four tournaments, and the fifth
+   * tournament may use the second one. Matching only against what the team is
+   * called here would mint a new row for a name we have already seen and
+   * already bound — so a published name counts as much as the current one,
+   * carrying that team's facts with it.
+   */
+  const factsById = new Map(teamRows.map((t) => [t.id, t]));
+  const published = await db
+    .selectDistinct({ teamId: eventTeams.teamId, sourceName: eventTeams.sourceName })
+    .from(eventTeams)
+    .where(isNotNull(eventTeams.sourceName));
+
+  const existingTeams = [
+    ...teamRows,
+    ...published.flatMap((p) => {
+      const facts = factsById.get(p.teamId);
+      return facts && p.sourceName ? [{ ...facts, name: p.sourceName }] : [];
+    }),
+  ];
 
   const existingEntries = await db.query.eventTeams.findMany({
     where: eq(eventTeams.eventId, eventId),
@@ -182,7 +205,11 @@ export async function applySync(
       teamIdBySource.set(t.sourceTeamId, known.teamId);
       await db
         .update(eventTeams)
-        .set({ divisionId: divisionByName.get(t.division) ?? null, groupLabel: t.group })
+        .set({
+          divisionId: divisionByName.get(t.division) ?? null,
+          groupLabel: t.group,
+          sourceName: t.name,
+        })
         .where(eq(eventTeams.id, known.id));
       continue;
     }
@@ -232,6 +259,9 @@ export async function applySync(
           divisionId: divisionByName.get(t.division) ?? null,
           groupLabel: t.group,
           sourceTeamId: t.sourceTeamId,
+          // What this event calls it, which may not be what the team is
+          // called here — that is the whole reason to keep it.
+          sourceName: t.name,
         })
         .onConflictDoNothing();
       continue;
@@ -263,6 +293,7 @@ export async function applySync(
         divisionId: divisionByName.get(t.division) ?? null,
         groupLabel: t.group,
         sourceTeamId: t.sourceTeamId,
+        sourceName: t.name,
       })
       .onConflictDoNothing();
 
