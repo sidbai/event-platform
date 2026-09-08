@@ -10,6 +10,12 @@ import {
   listEventsByTime,
 } from "@/features/events/queries";
 import { CreateLink } from "@/components/create-link";
+import {
+  PAST_RANGES,
+  pastRangesAreUseful,
+  readPastRange,
+  withinPastRange,
+} from "@/features/events/past-range";
 import { formatEventWhen } from "@/features/events/when";
 
 export const dynamic = "force-dynamic";
@@ -19,19 +25,36 @@ type Row = Awaited<ReturnType<typeof listEvents>>[number];
 function EventList({
   events,
   heading,
+  controls,
+  empty,
 }: {
   events: Row[];
   heading: string | null;
+  /** Sits on the heading row — the Past section's range chips. */
+  controls?: React.ReactNode;
+  /** What to say when the controls have narrowed the list to nothing. */
+  empty?: string;
 }) {
-  if (events.length === 0) return null;
+  // A section with controls stays even when it is empty: the chips are the
+  // only way back to a wider window, and taking them away with the last row
+  // would strand whoever pressed them.
+  if (events.length === 0 && !controls) return null;
 
   return (
     <section className="mt-6">
-      {heading && (
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {heading}
-        </h2>
+      {(heading || controls) && (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          {heading ? (
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {heading}
+            </h2>
+          ) : (
+            <span />
+          )}
+          {controls}
+        </div>
       )}
+      {events.length === 0 && <p className="mt-2 text-sm text-muted">{empty}</p>}
       <ul className="mt-1 divide-y divide-line">
         {events.map((event) => (
           <li key={event.id}>
@@ -70,12 +93,17 @@ export default async function EventsPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const kind = (sp.kind ?? "").trim() || undefined;
+  const range = readPastRange(sp.past);
 
   /** Keeps the search when a chip is picked, and the chip when searching. */
-  const href = (next: { kind?: string }) => {
+  const href = (next: { kind?: string; past?: string }) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (next.kind) params.set("kind", next.kind);
+    // Only when it is not the default, so the ordinary URL stays clean and
+    // shareable — and so a link somebody sent last month still means what it
+    // said rather than pinning them to a window they never chose.
+    if (next.past && next.past !== "3m") params.set("past", next.past);
     const s = params.toString();
     return s ? `/events?${s}` : "/events";
   };
@@ -92,6 +120,18 @@ export default async function EventsPage({
     listEventsByTime({ ...(q ? { q } : {}), kind }),
     listEventKindFacets(q ? { q } : {}),
   ]);
+
+  /*
+   * The archive is the only section that grows without limit, so it is the
+   * only one with a window on it. Everything else is bounded by the calendar.
+   *
+   * One clock for both decisions: reading it twice could put an event in the
+   * list and out of the count that decides whether the chips are worth
+   * showing at all.
+   */
+  const now = new Date();
+  const shownPast = withinPastRange(past, now, range);
+  const showRanges = pastRangesAreUseful(past, now);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -112,7 +152,7 @@ export default async function EventsPage({
       {kinds.length > 1 && (
         <nav aria-label="Filter by kind" className="mt-3 flex flex-wrap gap-1.5">
           <Link
-            href={href({})}
+            href={href({ past: range })}
             aria-current={kind ? undefined : "page"}
             className={
               kind
@@ -129,7 +169,7 @@ export default async function EventsPage({
                 key={k.slug}
                 // Picking the chip you are already on clears it, so the row
                 // works as a toggle rather than a trap.
-                href={href({ kind: on ? undefined : k.slug })}
+                href={href({ kind: on ? undefined : k.slug, past: range })}
                 aria-current={on ? "page" : undefined}
                 className={
                   on
@@ -151,7 +191,10 @@ export default async function EventsPage({
           <span className="text-ink">&ldquo;{q}&rdquo;</span> ·{" "}
           {/* Clears the search only. It sits inside the sentence about the
               search, so taking the chip with it would be a surprise. */}
-          <Link href={href({ kind })} className="text-brand-text hover:underline">
+          <Link
+            href={href({ kind, past: range })}
+            className="text-brand-text hover:underline"
+          >
             Clear
           </Link>
         </p>
@@ -178,10 +221,11 @@ export default async function EventsPage({
           {(() => {
             // A heading earns its place only when there is another section to
             // tell it apart from; one section on its own needs no label.
-            const filled = [ongoing, upcoming, past, future].filter(
+            const filled = [ongoing, upcoming, shownPast, future].filter(
               (s) => s.length > 0,
             ).length;
             const label = (name: string) => (filled > 1 ? name : null);
+            const active = PAST_RANGES.find((r) => r.key === range)!;
             return (
               <>
                 {/* The same word the chip uses. A section called "Happening
@@ -189,7 +233,40 @@ export default async function EventsPage({
                     reader has to do. */}
                 <EventList events={ongoing} heading={label("Ongoing")} />
                 <EventList events={upcoming} heading={label("Upcoming")} />
-                <EventList events={past} heading={label("Past")} />
+                <EventList
+                  events={shownPast}
+                  // With chips beside it the heading is no longer optional:
+                  // a row of date ranges floating above a list of events
+                  // does not say which list it narrows.
+                  heading={showRanges ? "Past" : label("Past")}
+                  empty={`Nothing finished in the ${active.label.toLowerCase()}.`}
+                  controls={
+                    showRanges ? (
+                      <nav
+                        aria-label="How far back"
+                        className="flex flex-wrap gap-1.5"
+                      >
+                        {PAST_RANGES.map((r) => {
+                          const on = r.key === range;
+                          return (
+                            <Link
+                              key={r.key}
+                              href={href({ kind, past: r.key })}
+                              aria-current={on ? "page" : undefined}
+                              className={
+                                on
+                                  ? "rounded-full bg-ink px-2.5 py-1 text-xs text-page"
+                                  : "rounded-full bg-elevated px-2.5 py-1 text-xs text-muted hover:bg-line"
+                              }
+                            >
+                              {r.label}
+                            </Link>
+                          );
+                        })}
+                      </nav>
+                    ) : null
+                  }
+                />
                 <EventList events={future} heading={label("Later on")} />
               </>
             );

@@ -4,7 +4,8 @@ import { listEvents } from "@/features/events/queries";
 import { listForumPosts } from "@/features/forum/queries";
 import { listNews } from "@/features/news/queries";
 
-import { dropSupersededPosts, mergeFeed, startsWithinFeedWindow } from "./merge";
+import { FEATURED_SIZE, pickFeatured, type FeaturedMode } from "./featured";
+import { dropSupersededPosts, mergeFeed } from "./merge";
 
 type Common = { id: string; at: Date; href: string; title: string };
 
@@ -25,14 +26,6 @@ export type FeedItem =
       comments: number;
     })
   | (Common & {
-      kind: "event";
-      startsAt: Date | null;
-      timezone: string | null;
-      venue: string | null;
-      /** Passed straight to EventTags, which reads the event itself. */
-      event: Awaited<ReturnType<typeof listEvents>>[number];
-    })
-  | (Common & {
       kind: "post";
       category: string;
       body: string;
@@ -42,27 +35,40 @@ export type FeedItem =
       convertedToEvent: boolean;
     });
 
+/** An event on the front page's own band, with what its card needs. */
+export type FeaturedEvent = Awaited<ReturnType<typeof listEvents>>[number];
+
 /**
- * Everything new across news, events and the forum, newest first.
+ * The front page: a band of events, and a feed of everything written.
  *
- * Each source is sorted by when the item APPEARED, not by when it is about:
- * an event announced this morning for October belongs at the top today, and
- * the card carries its date so the feed never has to sort by it.
+ * These used to be one list ordered by date, and the events lost. News,
+ * community posts and events all landed in the same stream, five news posts
+ * in a week filled it, and a site whose whole point is finding a game could
+ * show a visitor no games at all. Sorting harder would not have fixed it —
+ * an event matters because of when it is PLAYED, a post because of when it
+ * was written, and one order cannot serve both.
  *
- * Events that have already started drop out. A feed is a list of things you
- * can still act on, and "come play on Saturday" for last Saturday is worse
- * than nothing — the past ones stay on /events, which is built to show them.
+ * So they are two lists with two clocks. The band is picked by the calendar
+ * and sits on top; the feed below is what people have written, newest first,
+ * and can no longer crowd out a tournament by being busy.
  */
 export async function homeFeed(
   limit: number,
-): Promise<{ items: FeedItem[]; now: number }> {
+): Promise<{
+  featured: FeaturedEvent[];
+  featuredMode: FeaturedMode;
+  items: FeedItem[];
+  now: number;
+}> {
   // One clock for the whole render. Reading it in the page instead would be
   // impure in a component, and would also let "2h ago" be measured from a
   // different instant than the one that decided an event was still upcoming.
   const now = Date.now();
   const [news, events, posts] = await Promise.all([
     listNews(undefined, { limit, offset: 0 }),
-    listEvents({ when: "upcoming" }),
+    // Not filtered to upcoming: the band falls back to what just finished,
+    // and a query that cannot see the past cannot offer it.
+    listEvents(),
     listForumPosts(undefined, false, { limit, offset: 0 }),
   ]);
 
@@ -80,37 +86,17 @@ export async function homeFeed(
     comments: n.comments,
   }));
 
-  /*
-   * The feed runs from a week ahead back into the past.
-   *
-   * An event sits on that timeline by when it HAPPENS, not by when it was
-   * typed in. Ordering by createdAt meant six listings entered in one
-   * afternoon all landed at the top together, a tournament in January above
-   * a scrimmage on Saturday, because they were entered in that order.
-   *
-   * Anything further out than the window is not lost — /events is the
-   * calendar and is built for it. This is only what is worth putting on the
-   * front page.
-   */
-  const eventItems: FeedItem[] = events
-    .filter((e) => startsWithinFeedWindow(e.startsAt, now))
-    .map((e) => ({
-    kind: "event",
-    id: e.id,
-    at: e.startsAt ?? e.createdAt,
-    href: `/events/${e.slug}`,
-    title: e.title,
-    startsAt: e.startsAt,
-    timezone: e.timezone,
-    venue: e.venue?.name ?? null,
-    event: e,
-  }));
+  const { events: featured, mode: featuredMode } = pickFeatured(
+    events,
+    new Date(now),
+    FEATURED_SIZE,
+  );
 
-  // Built from the events that made it through the window, not from every
-  // upcoming one. A post is only superseded by an event a reader can actually
-  // see here — otherwise a post converted to a tournament in January would
-  // vanish along with the tournament, and neither would be on the page.
-  const eventIds = new Set(eventItems.map((e) => e.id));
+  // Built from the events actually on the band, not from every event there
+  // is. A post is only worth hiding when the thing that replaced it is on
+  // this page — otherwise a post converted to a tournament in January would
+  // vanish along with the tournament, and neither would be here.
+  const eventIds = new Set(featured.map((e) => e.id));
   const postItems: FeedItem[] = dropSupersededPosts(posts.rows, eventIds).map((p) => ({
     kind: "post",
     id: p.id,
@@ -128,5 +114,10 @@ export async function homeFeed(
     convertedToEvent: p.convertedEvent !== null,
   }));
 
-  return { items: mergeFeed([newsItems, eventItems, postItems], limit), now };
+  return {
+    featured,
+    featuredMode,
+    items: mergeFeed([newsItems, postItems], limit),
+    now,
+  };
 }
