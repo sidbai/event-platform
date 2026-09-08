@@ -224,6 +224,9 @@ export async function applySync(
     const facts = teamFactsFrom(t.name, {
       seasonStart: event.startsAt,
       clubSlug: null,
+      // The flight the platform entered them in, which names a gender and an
+      // age group even when the team's own name says neither.
+      division: t.division,
     });
     const club = matchClub(t.name, aliasMap, clubIdx);
 
@@ -273,6 +276,7 @@ export async function applySync(
       seasonStart: event.startsAt,
       club,
       clubSlugById,
+      division: t.division,
     });
     // Bindable from here on, so a name repeated later in this same feed
     // lands on the row just made rather than another copy of it.
@@ -386,6 +390,7 @@ async function insertSyncedTeam(
     seasonStart: Date | null;
     club: ClubMatch | null;
     clubSlugById: Map<string, string>;
+    division?: string | null;
   },
 ) {
   const base = slugify(name).slice(0, 60);
@@ -402,6 +407,7 @@ async function insertSyncedTeam(
   const facts = teamFactsFrom(name, {
     seasonStart: context.seasonStart,
     clubSlug: clubId ? (context.clubSlugById.get(clubId) ?? null) : null,
+    division: context.division,
   });
 
   for (let attempt = 0; ; attempt++) {

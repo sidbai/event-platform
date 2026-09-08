@@ -31,7 +31,7 @@ const APPLY = process.argv.includes("--apply");
 async function main() {
   const { db } = await import("../src/db");
   const { teams } = await import("../src/db/schema");
-  const { eventTeams, events } = await import("../src/db/schema");
+  const { eventDivisions, eventTeams, events } = await import("../src/db/schema");
   const {
     birthYearsForAgeGroup,
     formatBirthYears,
@@ -64,6 +64,20 @@ async function main() {
    * has to be written as raw SQL against three tables and Postgres called the
    * column reference ambiguous, which is a lot of risk for one column.
    */
+  /*
+   * The flight each team was entered in, which names a gender and an age
+   * group even where the team's own name says neither. Every team here with
+   * no gender was in a division that named one.
+   */
+  const divisionByTeam = new Map<string, string>(
+    (
+      await db
+        .select({ teamId: eventTeams.teamId, name: eventDivisions.name })
+        .from(eventTeams)
+        .innerJoin(eventDivisions, eq(eventDivisions.id, eventTeams.divisionId))
+    ).map((r) => [r.teamId, r.name] as const),
+  );
+
   const firstEventByTeam = new Map<string, Date>(
     (
       await db
@@ -95,7 +109,8 @@ async function main() {
         years++;
       } else {
         // Only a U-number: derive it from the season the event belongs to.
-        const u = parseAgeGroup(team.name);
+        const u =
+          parseAgeGroup(team.name) ?? parseAgeGroup(divisionByTeam.get(team.id) ?? "");
         const first = firstEventByTeam.get(team.id);
         const season = first ? seasonYearOf(first) : null;
         if (u !== null && season !== null) {
@@ -116,7 +131,10 @@ async function main() {
       widened++;
     }
 
-    const nextGender = team.gender ? null : parseGender(team.name);
+    const division = divisionByTeam.get(team.id) ?? null;
+    const nextGender = team.gender
+      ? null
+      : (parseGender(team.name) ?? parseGender(division ?? ""));
     if (nextYears.length === 0 && !nextGender) continue;
     if (nextGender) genders++;
 

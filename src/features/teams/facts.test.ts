@@ -76,3 +76,66 @@ describe("teamFactsFrom", () => {
     );
   });
 });
+
+describe("what the division says", () => {
+  it("takes the gender from the flight when the name does not say", () => {
+    /*
+     * All 227 teams here with no gender were entered in a division that
+     * named one. A side in the boys' U15 flight is a boys' U15 side, and no
+     * spreadsheet was ever going to beat reading the heading.
+     */
+    expect(
+      teamFactsFrom("Top Ballers", {
+        seasonStart: SEPT,
+        clubSlug: null,
+        division: "Boys U15 Gold",
+      }).gender,
+    ).toBe("boys");
+    expect(
+      teamFactsFrom("Lightning", {
+        seasonStart: SEPT,
+        clubSlug: null,
+        division: "Girls-U11 - Silver",
+      }).gender,
+    ).toBe("girls");
+  });
+
+  it("takes the cohort from the flight's age group", () => {
+    expect(
+      teamFactsFrom("SPFC", {
+        seasonStart: SEPT,
+        clubSlug: null,
+        division: "Boys-U10 - Silver 1",
+      }).birthYears,
+    ).toEqual([2016, 2017]);
+  });
+
+  it("lets the team's own name win", () => {
+    // A name is about the team; a division is about the flight it entered.
+    // Where they disagree the team is the better authority on itself.
+    const facts = teamFactsFrom("XF GU12 White", {
+      seasonStart: SEPT,
+      clubSlug: null,
+      division: "Boys U15 Gold",
+    });
+    expect(facts.gender).toBe("girls");
+    // U12 from its own name, not U15 from the flight it was entered in.
+    expect(facts.birthYears).toEqual([2014, 2015]);
+  });
+
+  it("reads nothing from a division that names neither", () => {
+    const facts = teamFactsFrom("Top Ballers", {
+      seasonStart: SEPT,
+      clubSlug: null,
+      division: "Unassigned",
+    });
+    expect(facts.gender).toBeNull();
+    expect(facts.birthYears).toEqual([]);
+  });
+
+  it("is unchanged when no division comes along", () => {
+    expect(
+      teamFactsFrom("Top Ballers", { seasonStart: SEPT, clubSlug: null }).gender,
+    ).toBeNull();
+  });
+});
