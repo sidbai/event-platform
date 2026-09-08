@@ -42,7 +42,9 @@ export type StandingsPaste = {
  * every team has three points and three games looks fine until it doesn't.
  */
 const COLUMNS: { key: keyof PastedStanding; names: RegExp }[] = [
-  { key: "team", names: /^(team|club|name|team name)$/i },
+  // "Teams", plural, is what AthleteOne heads the column with — and a table
+  // whose team column is unrecognised is not read as a table at all.
+  { key: "team", names: /^(teams?|club|name|team name)$/i },
   { key: "played", names: /^(gp|pl|mp|played|games|gms|games played|w-l-d|matches)$/i },
   { key: "won", names: /^(w|win|wins|won)$/i },
   { key: "drawn", names: /^(d|t|tie|ties|draw|draws|drawn|tied)$/i },
