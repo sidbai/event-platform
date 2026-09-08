@@ -21,6 +21,7 @@
     "db:backfill:age": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-age.ts",
     "ai:suggest-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/suggest-team-matches.ts",
     "db:merge:teams": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-duplicate-teams.ts",
+    "db:backfill:teams": "tsx scripts/backfill-teams.ts",
     "db:backfill:naming": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-naming.ts",
     "db:backfill:clubs": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-clubs.ts",
     "db:seed:wpl": "tsx scripts/seed-wpl-fixture.ts",

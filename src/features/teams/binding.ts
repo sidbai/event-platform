@@ -48,6 +48,20 @@ export function agreement(a: BindCandidate, b: BindCandidate): boolean {
 }
 
 /**
+ * Whether these two rows are the same side, on the strict rule.
+ *
+ * The name matches exactly, nothing contradicts, and some fact agrees. Used
+ * both when an import arrives and when clearing the backlog those imports
+ * left behind, so the two cannot drift apart.
+ */
+export function canBind(a: BindCandidate, b: BindCandidate): boolean {
+  const key = normaliseTeamName(a.name);
+  if (!key || key !== normaliseTeamName(b.name)) return false;
+  if (a.id === b.id) return false;
+  return !contradiction(a, b) && agreement(a, b);
+}
+
+/**
  * The team an imported name should attach to, or null to make a new one.
  *
  * Never guesses between two: if the name matches more than one team that
@@ -61,13 +75,7 @@ export function teamToBindTo(
   const key = normaliseTeamName(incoming.name);
   if (!key) return null;
 
-  const eligible = existing.filter(
-    (candidate) =>
-      candidate.id !== incoming.id &&
-      normaliseTeamName(candidate.name) === key &&
-      !contradiction(incoming, candidate) &&
-      agreement(incoming, candidate),
-  );
+  const eligible = existing.filter((candidate) => canBind(incoming, candidate));
   /*
    * One team, not one row.
    *

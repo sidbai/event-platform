@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { agreement, contradiction, teamToBindTo, type BindCandidate } from "./binding";
+import {
+  agreement,
+  canBind,
+  contradiction,
+  teamToBindTo,
+  type BindCandidate,
+} from "./binding";
 
 let n = 0;
 const team = (over: Partial<BindCandidate> & { name: string }): BindCandidate => {
@@ -114,5 +120,19 @@ describe("agreement", () => {
     const bare = { clubId: null, gender: null, birthYears: [], tier: null };
     expect(agreement(team({ name: "x", ...bare }), team({ name: "x", ...bare }))).toBe(false);
     expect(agreement(team({ name: "x" }), team({ name: "x" }))).toBe(true);
+  });
+});
+
+describe("canBind", () => {
+  it("is the rule both the import and the backlog use", () => {
+    // Exported so clearing what past imports left cannot drift from what
+    // future imports do.
+    expect(canBind(team({ name: "Eagleclaw FC BU14" }), team({ name: "Eagleclaw FC BU14" }))).toBe(true);
+    expect(
+      canBind(
+        team({ name: "Eagleclaw FC BU14" }),
+        team({ name: "Eagleclaw FC BU14", gender: "girls" }),
+      ),
+    ).toBe(false);
   });
 });
