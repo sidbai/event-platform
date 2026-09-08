@@ -10,15 +10,20 @@ config({ path: ".env.local" });
  *   pnpm db:merge:teams            # says what it would do, changes nothing
  *   pnpm db:merge:teams --apply
  *
- * Only groups the duplicate finder calls "same source id" — the platform's
- * own identifier for a team, or the paste importer's, saying these rows are
- * one team. Name matches are deliberately left alone: two clubs in a region
- * both fielding a "Warriors" is exactly the merge nobody can undo, and that
- * is what /admin/teams and a person reading the names are for.
+ * Two kinds, and the run counts them separately.
  *
- * The case this exists for: 74 groups appeared at once when the importer
- * stopped keying teams by division, which is a lot of clicking for a
- * decision with no judgment in it.
+ * Same source id: the platform's own identifier, or the paste importer's,
+ * saying these rows are one team.
+ *
+ * Same team by the binding rule: the name matches exactly, no fact
+ * contradicts, and some fact agrees — the same rule an import now applies
+ * before creating anything, so the backlog is cleared the way it will stop
+ * accumulating. 177 of the 191 pairs waiting when this was written.
+ *
+ * Name matches that the facts do not support are deliberately left alone:
+ * two clubs in a region both fielding a "Warriors" is exactly the merge
+ * nobody can undo, and /admin/teams and a person reading the names are what
+ * that is for.
  */
 
 const APPLY = process.argv.includes("--apply");
@@ -27,16 +32,59 @@ async function main() {
   const { duplicateTeamGroups } = await import("../src/features/teams/merge-queries");
   const { mergeTeams } = await import("../src/features/teams/merge");
 
-  const groups = (await duplicateTeamGroups()).filter(
-    (g) => g.because === "same source id",
-  );
-  const rows = groups.reduce((n, g) => n + g.losers.length, 0);
+  const { db } = await import("../src/db");
+  const { teams } = await import("../src/db/schema");
+  const { canBind } = await import("../src/features/teams/binding");
+  const { inArray } = await import("drizzle-orm");
+
+  const all = await duplicateTeamGroups();
+
+  // Facts for everything the queue is offering, to apply the binding rule.
+  const ids = [
+    ...new Set(all.flatMap((g) => [g.survivor.id, ...g.losers.map((l) => l.id)])),
+  ];
+  const factRows = ids.length
+    ? await db
+        .select({
+          id: teams.id,
+          name: teams.name,
+          clubId: teams.clubId,
+          gender: teams.gender,
+          birthYears: teams.birthYears,
+          tier: teams.tier,
+        })
+        .from(teams)
+        .where(inArray(teams.id, ids))
+    : [];
+  const facts = new Map(factRows.map((r) => [r.id, r]));
+
+  /** Losers this run is willing to fold, with why. */
+  const plan = all.flatMap((g) => {
+    const survivor = facts.get(g.survivor.id);
+    const take = g.losers.filter((l) => {
+      if (g.because === "same source id") return true;
+      const loser = facts.get(l.id);
+      return survivor && loser ? canBind(survivor, loser) : false;
+    });
+    return take.length > 0 ? [{ ...g, losers: take }] : [];
+  });
+
+  const rows = plan.reduce((n, g) => n + g.losers.length, 0);
+  const bySource = plan.filter((g) => g.because === "same source id").length;
+  const held = all.reduce((n, g) => n + g.losers.length, 0) - rows;
 
   console.log(
-    `${groups.length} group(s) share a source id, ${rows} row(s) to fold in` +
-      `${APPLY ? "" : "  (dry run — pass --apply to write)"}\n`,
+    `${plan.length} group(s), ${rows} row(s) to fold in` +
+      `  (${bySource} by source id, ${plan.length - bySource} by name and facts)` +
+      `${APPLY ? "" : "  — dry run, pass --apply to write"}\n`,
   );
+  if (held > 0) {
+    console.log(
+      `    ${held} row(s) left alone: the names match but no fact supports it.\n`,
+    );
+  }
 
+  const groups = plan;
   for (const g of groups.slice(0, 10)) {
     console.log(`    ${g.survivor.name}  ← ${g.losers.length} more`);
   }
