@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 import { CreateLink } from "@/components/create-link";
+import { EventLogo } from "@/components/event-logo";
 import { getCurrentUser } from "@/features/auth";
 import { EventTags } from "@/features/events/event-tags";
-import { homeFeed, type FeedItem } from "@/features/feed/queries";
+import { formatEventWhen } from "@/features/events/when";
+import { homeFeed, type FeaturedEvent, type FeedItem } from "@/features/feed/queries";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { CommentIcon, LikeButton } from "@/features/likes/like-button";
 import { likeStates } from "@/features/likes/queries";
@@ -18,15 +20,6 @@ export const dynamic = "force-dynamic";
  * Each kind has its own page for going further back.
  */
 const FEED_SIZE = 24;
-
-function fmtDate(d: Date | null, tz: string | null) {
-  if (!d) return "Date TBD";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: tz ?? undefined,
-  }).format(d);
-}
 
 function timeAgo(d: Date, now: number) {
   const s = Math.round((now - d.getTime()) / 1000);
@@ -49,7 +42,6 @@ function timeAgo(d: Date, now: number) {
  */
 const KIND: Record<FeedItem["kind"], { label: string; className: string }> = {
   news: { label: "News", className: "bg-brand-soft text-brand-soft-text" },
-  event: { label: "Event", className: "bg-brand-soft text-brand-soft-text" },
   post: { label: "Community", className: "bg-elevated text-muted" },
 };
 
@@ -62,9 +54,77 @@ function KindChip({ kind }: { kind: FeedItem["kind"] }) {
   );
 }
 
+/**
+ * The events band: what is on, above everything anyone has written.
+ *
+ * Cards rather than feed rows, and its own heading, because this is the
+ * question most people arrive with. Four at most — past that it stops being
+ * a highlight and becomes the events page, which is one link away and better
+ * at the job.
+ */
+function EventBand({
+  events,
+  mode,
+}: {
+  events: FeaturedEvent[];
+  mode: "ahead" | "recent";
+}) {
+  if (events.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 className="text-sm font-semibold tracking-tight">
+          {/* Said plainly, because the band means two different things: these
+              are games to turn up to, or these are results to look up. */}
+          {mode === "ahead" ? "What's on" : "Just finished"}
+        </h2>
+        <Link href="/events" className="text-sm text-brand-text hover:underline">
+          All events →
+        </Link>
+      </div>
+
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+        {events.map((event) => (
+          <li
+            key={event.id}
+            className="rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+          >
+            <Link href={`/events/${event.slug}`} className="flex gap-3 p-4">
+              <EventLogo src={event.logoUrl} kind={event.kind} size={44} />
+              {/* min-w-0 so a long title truncates instead of stretching the
+                  card out of the grid. */}
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-ink">
+                  {formatEventWhen(
+                    event.startsAt,
+                    event.endsAt,
+                    event.timezone,
+                    "short",
+                    event.kind,
+                  )}
+                </div>
+                <h3 className="mt-0.5 truncate font-medium leading-snug">
+                  {event.title}
+                </h3>
+                {event.venue && (
+                  <p className="mt-0.5 truncate text-sm text-muted">
+                    {event.venue.name}
+                  </p>
+                )}
+                <EventTags event={event} className="mt-2" />
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default async function Home() {
   const user = await getCurrentUser();
-  const { items, now } = await homeFeed(FEED_SIZE);
+  const { featured, featuredMode, items, now } = await homeFeed(FEED_SIZE);
 
   // Only forum posts can be liked today, so only they need the state fetched.
   const likes = await likeStates(
@@ -80,7 +140,7 @@ export default async function Home() {
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
         Create. Discover. Play.
       </h1>
-      <p className="mt-2 text-sm text-muted">More soccer. Less logistics.</p>
+      <p className="mt-2 text-sm text-muted">More soccer. More Fun.</p>
 
       {/*
         Discover, then the three things a person can make. Until recently all
@@ -110,7 +170,9 @@ export default async function Home() {
         <CreateLink href="/news/new">Write a news post</CreateLink>
       </div>
 
-      {items.length === 0 ? (
+      <EventBand events={featured} mode={featuredMode} />
+
+      {featured.length === 0 && items.length === 0 ? (
         <p className="mt-10 text-muted">
           Nothing posted yet.{" "}
           <Link href="/events/new" className="text-brand-text hover:underline">
@@ -118,112 +180,99 @@ export default async function Home() {
           </Link>
           .
         </p>
-      ) : (
-        <ul className="mt-6 space-y-2">
-          {items.map((item) => (
-            <li
-              key={`${item.kind}-${item.id}`}
-              className="rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-            >
-              {item.kind === "post" ? (
-                /* The card is not one big link: a heart is a real button and
-                   cannot be nested inside an anchor. The link wraps the
-                   reading part, the actions sit beside it. */
-                <>
-                  <Link href={item.href} className="block px-4 pb-2 pt-4">
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <KindChip kind="post" />
-                      <span className="rounded-full bg-elevated px-2 py-0.5">
-                        {CATEGORY_LABELS[item.category]}
-                      </span>
-                      {item.convertedToEvent && (
-                        <span className="rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-soft-text">
-                          Now an event
+      ) : items.length === 0 ? null : (
+        <>
+          {/* A heading only because there is now a band above it. Two lists
+              of cards running into each other reads as one list that changed
+              its mind halfway down. */}
+          <h2 className="mt-8 text-sm font-semibold tracking-tight">Latest</h2>
+          <ul className="mt-3 space-y-2">
+            {items.map((item) => (
+              <li
+                key={`${item.kind}-${item.id}`}
+                className="rounded-xl border border-line bg-card transition-shadow hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+              >
+                {item.kind === "post" ? (
+                  /* The card is not one big link: a heart is a real button and
+                     cannot be nested inside an anchor. The link wraps the
+                     reading part, the actions sit beside it. */
+                  <>
+                    <Link href={item.href} className="block px-4 pb-2 pt-4">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                        <KindChip kind="post" />
+                        <span className="rounded-full bg-elevated px-2 py-0.5">
+                          {CATEGORY_LABELS[item.category]}
                         </span>
-                      )}
-                    </div>
-                    <h2 className="mt-1.5 font-medium leading-snug">{item.title}</h2>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted">{item.body}</p>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted">
-                      <Avatar src={item.authorAvatar} name={item.author} size={18} />
-                      <span>{item.author}</span>
-                      <span aria-hidden>·</span>
-                      <span>{timeAgo(item.at, now)}</span>
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-1 px-3 pb-2.5">
-                    <LikeButton
-                      subjectType="forum_post"
-                      subjectId={item.id}
-                      state={likes.get(item.id) ?? { count: 0, mine: false }}
-                      revalidate="/"
-                      signedIn={Boolean(user)}
-                    />
-                    <Link
-                      href={item.href}
-                      aria-label={`${item.replies} ${item.replies === 1 ? "reply" : "replies"}`}
-                      className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted transition-colors hover:bg-elevated hover:text-ink"
-                    >
-                      <CommentIcon />
-                      {item.replies > 0 && (
-                        <span className="tabular-nums">{item.replies}</span>
-                      )}
+                        {item.convertedToEvent && (
+                          <span className="rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-soft-text">
+                            Now an event
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="mt-1.5 font-medium leading-snug">{item.title}</h2>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted">{item.body}</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-muted">
+                        <Avatar src={item.authorAvatar} name={item.author} size={18} />
+                        <span>{item.author}</span>
+                        <span aria-hidden>·</span>
+                        <span>{timeAgo(item.at, now)}</span>
+                      </div>
                     </Link>
-                  </div>
-                </>
-              ) : (
-                <Link href={item.href} className="block px-4 py-4">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                    <KindChip kind={item.kind} />
-                    {item.kind === "news" ? (
+                    <div className="flex items-center gap-1 px-3 pb-2.5">
+                      <LikeButton
+                        subjectType="forum_post"
+                        subjectId={item.id}
+                        state={likes.get(item.id) ?? { count: 0, mine: false }}
+                        revalidate="/"
+                        signedIn={Boolean(user)}
+                      />
+                      <Link
+                        href={item.href}
+                        aria-label={`${item.replies} ${item.replies === 1 ? "reply" : "replies"}`}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted transition-colors hover:bg-elevated hover:text-ink"
+                      >
+                        <CommentIcon />
+                        {item.replies > 0 && (
+                          <span className="tabular-nums">{item.replies}</span>
+                        )}
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <Link href={item.href} className="block px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                      <KindChip kind="news" />
                       <span>
                         <span aria-hidden>{categoryEmoji(item.category)}</span>{" "}
                         {categoryLabel(item.category)}
                       </span>
-                    ) : (
-                      <span className="font-medium text-ink">
-                        {fmtDate(item.startsAt, item.timezone)}
-                      </span>
+                    </div>
+
+                    <h2 className="mt-1.5 font-medium leading-snug">{item.title}</h2>
+
+                    {item.summary && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted">{item.summary}</p>
                     )}
-                  </div>
-
-                  <h2 className="mt-1.5 font-medium leading-snug">{item.title}</h2>
-
-                  {item.kind === "news" ? (
-                    <>
-                      {item.summary && (
-                        <p className="mt-1 line-clamp-2 text-sm text-muted">
-                          {item.summary}
-                        </p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted">
+                      <span>{item.author}</span>
+                      <span aria-hidden>·</span>
+                      <span>{timeAgo(item.at, now)}</span>
+                      {item.comments > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <CommentIcon />
+                            <span className="tabular-nums">{item.comments}</span>
+                          </span>
+                        </>
                       )}
-                      <div className="mt-2 flex items-center gap-2 text-xs text-muted">
-                        <span>{item.author}</span>
-                        <span aria-hidden>·</span>
-                        <span>{timeAgo(item.at, now)}</span>
-                        {item.comments > 0 && (
-                          <>
-                            <span aria-hidden>·</span>
-                            <span className="inline-flex items-center gap-1">
-                              <CommentIcon />
-                              <span className="tabular-nums">{item.comments}</span>
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {item.venue && (
-                        <p className="mt-1 text-sm text-muted">{item.venue}</p>
-                      )}
-                      <EventTags event={item.event} className="mt-2" />
-                    </>
-                  )}
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
+                    </div>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <section className="mt-10 border-t border-line pt-6 text-sm text-muted">
