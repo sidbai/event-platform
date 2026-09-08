@@ -16,7 +16,8 @@ export type Bucket =
   | "event:create"
   | "invite:send"
   | "message:send"
-  | "like:toggle";
+  | "like:toggle"
+  | "view:count";
 
 export type Limit = {
   limit: number;
@@ -32,6 +33,20 @@ const HOUR = 3600;
 const DAY = 86400;
 
 export const LIMITS: Record<Bucket, Limit> = {
+  /*
+   * Reading, not writing — and the only allowance keyed on a connection
+   * rather than an account, because readers do not sign in.
+   *
+   * Generous on purpose: a parent checking six divisions and refreshing for
+   * scores all afternoon is the behaviour this site is for. It exists to stop
+   * a script from typing a number into a counter, and a counter is not worth
+   * making a real reader wait for.
+   */
+  "view:count": {
+    limit: 200,
+    windowSeconds: HOUR,
+    message: "That's a lot of page views at once.",
+  },
   // The only limit with a bill attached: blob storage is the one thing abuse
   // costs real money on.
   "upload:token": {

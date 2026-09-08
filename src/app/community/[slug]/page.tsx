@@ -21,6 +21,9 @@ import {
 } from "@/features/forum/actions";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { getForumPost } from "@/features/forum/queries";
+import { CountView } from "@/features/views/count-view";
+import { viewsOf } from "@/features/views/queries";
+import { ViewsCount } from "@/features/views/views-count";
 
 export const dynamic = "force-dynamic";
 
@@ -74,13 +77,17 @@ export default async function ForumPostPage({
   // A hidden post stays reachable for its author and for admins.
   if (!canViewPost(post, viewer)) notFound();
 
-  const likes = await likeState("forum_post", post.id, user?.id ?? null);
+  const [likes, views] = await Promise.all([
+    likeState("forum_post", post.id, user?.id ?? null),
+    viewsOf("forum_post", post.id),
+  ]);
   const admin = isAdmin(user);
   const mine = !!user && post.authorId === user.id;
   const canModerate = admin || mine;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
+      <CountView subject="forum_post" id={post.id} />
       <Link
         href={`/community?c=${post.category}`}
         className="text-sm text-brand-text hover:underline"
@@ -113,6 +120,7 @@ export default async function ForumPostPage({
           )}
           <span>·</span>
           <span>{fmt(post.createdAt)}</span>
+          <ViewsCount views={views} className="before:mr-2 before:content-['·']" />
         </div>
 
         <p className="mt-4 whitespace-pre-wrap leading-relaxed text-ink">
