@@ -4,6 +4,7 @@ import {
   isOurBlobUrl,
   isPendingClubUrl,
   isPendingCrestUrl,
+  isPendingEventUrl,
   parseUploadTarget,
   pathnameMatchesTarget,
 } from "./blob";
@@ -45,6 +46,21 @@ describe("isPendingClubUrl", () => {
     // a new club must not adopt an existing club's file, or a team's
     expect(isPendingClubUrl(`${HOST}/clubs/seattle-united/logo.png`)).toBe(false);
     expect(isPendingClubUrl(`${HOST}/crests/_pending/badge.png`)).toBe(false);
+  });
+});
+
+describe("isPendingEventUrl", () => {
+  it("accepts a mark staged while submitting an event", () => {
+    expect(isPendingEventUrl(`${HOST}/events/_pending/logo-x1.png`)).toBe(true);
+  });
+
+  it("refuses a live event's own folder", () => {
+    // Otherwise a new submission could adopt an existing tournament's mark,
+    // and that tournament replacing its own would delete the file underneath.
+    expect(isPendingEventUrl(`${HOST}/events/labor-day-cup-2026/logo.png`)).toBe(
+      false,
+    );
+    expect(isPendingEventUrl(`${HOST}/clubs/_pending/logo.png`)).toBe(false);
   });
 });
 
