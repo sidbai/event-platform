@@ -477,3 +477,77 @@ describe("pasting the same schedule twice", () => {
     expect(await db.select().from(matches)).toHaveLength(3);
   });
 });
+
+describe("importing a team that is already here", () => {
+  /*
+   * A connector used to look for existing teams only inside the event it was
+   * syncing, so a second tournament minted a fresh row for every side — and
+   * the queue then asked somebody to put back together what the import had
+   * just split. 177 of the 191 pairs waiting in it were exactly that.
+   */
+  it("attaches to the existing team rather than making another", async () => {
+    const first = await makeListing();
+    await applySync(first, syncedFromFixtures(), NOW);
+    const after = await db.select().from(teams);
+
+    // A second tournament, the same teams.
+    const [second] = await db
+      .insert(events)
+      .values({
+        slug: "spring-classic",
+        title: "Spring Classic",
+        kind: "tournament",
+        modules: [],
+        status: "published",
+        visibility: "public",
+        locationType: "in_person",
+        timezone: "America/Los_Angeles",
+        startsAt: new Date("2026-09-05T16:00:00Z"),
+        sourceName: "Crossfire Premier Soccer",
+        sourcePlatform: "athletes2events",
+        sourceEventId: "999",
+      })
+      .returning({ id: events.id });
+    await applySync(second.id, syncedFromFixtures(), new Date());
+
+    // No new team rows: the same sides, now in two events.
+    expect(await db.select().from(teams)).toHaveLength(after.length);
+    const entries = await db.select().from(eventTeams);
+    expect(entries.length).toBe(after.length * 2);
+  });
+
+  it("keeps the second event's fixtures on the same teams", async () => {
+    const first = await makeListing();
+    await applySync(first, syncedFromFixtures(), NOW);
+    const known = new Set((await db.select().from(teams)).map((t) => t.id));
+
+    const [second] = await db
+      .insert(events)
+      .values({
+        slug: "spring-classic-2",
+        title: "Spring Classic",
+        kind: "tournament",
+        modules: [],
+        status: "published",
+        visibility: "public",
+        locationType: "in_person",
+        timezone: "America/Los_Angeles",
+        startsAt: new Date("2026-09-05T16:00:00Z"),
+        sourceName: "Crossfire Premier Soccer",
+        sourcePlatform: "athletes2events",
+        sourceEventId: "998",
+      })
+      .returning({ id: events.id });
+    await applySync(second.id, syncedFromFixtures(), new Date());
+
+    const played = await db.query.matches.findMany({
+      where: eq(matches.eventId, second.id),
+      columns: { homeTeamId: true, awayTeamId: true },
+    });
+    expect(played.length).toBeGreaterThan(0);
+    for (const m of played) {
+      if (m.homeTeamId) expect(known.has(m.homeTeamId)).toBe(true);
+      if (m.awayTeamId) expect(known.has(m.awayTeamId)).toBe(true);
+    }
+  });
+});
