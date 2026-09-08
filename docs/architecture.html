@@ -190,8 +190,8 @@
     <div class="metaline">
       <span><span class="dot"></span>Next.js + TypeScript</span>
       <span><span class="dot"></span>Vercel &middot; Neon Postgres</span>
-      <span><span class="dot"></span>Prepared 2 Sep 2026</span>
-      <span><span class="dot"></span>First move: bring King Juan Cup onto the platform</span>
+      <span><span class="dot"></span>Prepared 2 Sep 2026 &middot; built through 8 Sep</span>
+      <span><span class="dot"></span>Live at kingjuansoccer.com</span>
     </div>
   </div>
 </header>
@@ -200,9 +200,11 @@
   <nav class="toc" aria-label="Contents">
     <ol>
       <li><a href="#shape">The shape of it</a></li>
+      <li><a href="#built">Six days in: what exists</a></li>
       <li><a href="#model">Event is a generic container</a></li>
       <li><a href="#data">Data model</a></li>
       <li><a href="#discussion">Event discussion</a></li>
+      <li><a href="#sync">Getting other people&rsquo;s schedules in</a></li>
       <li><a href="#stack">Component choices</a></li>
       <li><a href="#hosting">Hosting &amp; cost</a></li>
       <li><a href="#services">Services to build</a></li>
@@ -315,8 +317,54 @@
       </figure>
     </section>
 
+    <section id="built">
+      <span class="eyebrow">02 &mdash; Reality check</span>
+      <h2>Six days in: what exists</h2>
+      <p class="lede">This document was written before a line of code. The plan below it still holds &mdash;
+      what changed is that the shape of the work turned out to be somewhere the plan did not look. The single
+      biggest subsystem in the codebase today, the import layer, is not in the original plan at all, because
+      the plan assumed events would be typed in. Most of them are not: they already exist on somebody else&rsquo;s
+      platform, and getting them here without asking a person to retype a hundred fixtures is the actual job.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <h4>Built, and in use</h4>
+          <ul class="tight">
+            <li>Events: kinds, modules, listing, filters, detail, submit, edit, admin review</li>
+            <li>Tournaments: divisions, schedule, standings with the organizer&rsquo;s own table preferred over ours, knockout placeholders, score entry</li>
+            <li>Teams: directory, pages, search, facts (club, birth years, gender, tier), crests, aliases, slug history</li>
+            <li>Clubs and coaches: directories, reviews with a right of reply, claim queue for coaches</li>
+            <li>Community: forum posts, news, threaded discussion, likes, reports, direct messages</li>
+            <li>The import layer &mdash; see <a href="#sync">06</a></li>
+            <li>Page views, counted in the browser and stored one row per page</li>
+            <li>Sign-in: Google, and an emailed link for everyone else</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Planned here, not built yet</h4>
+          <ul class="tight">
+            <li>Team claim &mdash; the rules exist, the queue does not</li>
+            <li>Event comms: the eleven lifecycle emails. Email itself now exists; the templates do not</li>
+            <li>Youth Soccer Weekly and the social content pipeline</li>
+            <li>Follow / favourite, digests, push</li>
+            <li>Payments &mdash; registration records a fee, nothing charges it</li>
+            <li>Recurring events (<code class="mono">event_occurrences</code>), sponsors, a media table</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Two habits the codebase settled into, worth stating.</strong> Rules live in pure modules with
+        their own tests, separate from the <code>server-only</code> query files that use them &mdash; splitting
+        by "does it touch the database", not by layer, because the part that is easy to get subtly wrong is the
+        part that needs to be testable without one. And a database-backed suite runs the same queries against a
+        real Postgres, because SQL that typechecks, lints and passes every unit test can still throw the moment
+        a driver sees it.
+      </div>
+    </section>
+
     <section id="model">
-      <span class="eyebrow">02 &mdash; Product model</span>
+      <span class="eyebrow">03 &mdash; Product model</span>
       <h2>Event is a generic container</h2>
       <p class="lede">A game, a scrimmage, a pickup run, a tournament, a watch party, a coaches' meetup, a club
       tryout, or something nobody has named yet &mdash; each is one row in <code>events</code>. The row does not
@@ -376,7 +424,7 @@
     </section>
 
     <section id="data">
-      <span class="eyebrow">03 &mdash; Schema</span>
+      <span class="eyebrow">04 &mdash; Schema</span>
       <h2>Data model</h2>
       <p>Around fifteen tables. Auth.js owns its own four (<code>users</code>, <code>accounts</code>,
       <code>sessions</code>, <code>verification_tokens</code>); everything below is ours.</p>
@@ -515,10 +563,28 @@
         fixture whose team isn't decided yet stores a <code>home_placeholder</code> like "Group A winner" until
         results resolve it &mdash; exactly what the current King Juan Cup schedule sheet does by hand.
       </div>
+
+      <h3>What the schema actually holds</h3>
+      <p>46 tables in production. The plan above is mostly intact; what follows is the delta, because the
+      difference between a design and a schema is where the surprises live.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>area</th><th class="mono">tables</th><th>note</th></tr></thead>
+          <tbody>
+            <tr><td>Events</td><td class="mono">events, event_kinds, event_divisions, event_teams, event_offers, event_invites, event_registrations, event_attendees, event_tasks, matches, rosters, venues</td><td><code>rsvps</code> became <code>event_attendees</code>; <code>registrations</code> gained a prefix. <code>event_occurrences</code> and <code>event_sponsors</code> have not been needed yet.</td></tr>
+            <tr><td>Teams</td><td class="mono">teams, team_members, team_invites, team_aliases, team_slugs, team_non_duplicates, team_match_suggestions</td><td>The last four are all consequences of importing: a team arrives under many names, keeps its old URLs on a rename, and gets proposed for merging &mdash; by rule, and separately by a model, whose guesses are kept in their own table apart from facts the code checked.</td></tr>
+            <tr><td>Clubs &amp; coaches</td><td class="mono">clubs, club_aliases, club_edits, coaches, coach_claims, coach_edits, reviews, review_replies, review_votes, review_reports</td><td>Not in the original plan at all. Reviewing a named person needed a right of reply, which needed a claim queue &mdash; the pattern team claims will follow.</td></tr>
+            <tr><td>Community</td><td class="mono">forum_posts, news_posts, posts, discussions, comments, comment_reports, likes, messages, conversations, conversation_participants, message_blocks, message_reports</td><td>Direct messages arrived early, because with no email there was no other way to reach anybody.</td></tr>
+            <tr><td>Platform</td><td class="mono">users, accounts, sessions, verification_tokens, rate_limits, page_views</td><td><code>sessions</code> sits unused while sessions are JWTs. <code>page_views</code> is one row per page and never one per view &mdash; a row per view would be a log of who read what.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Not built: <code>media</code> (images are Blob URLs on the row that owns them), <code>follows</code>,
+      and anything to do with payment.</p>
     </section>
 
     <section id="discussion">
-      <span class="eyebrow">04 &mdash; Community</span>
+      <span class="eyebrow">05 &mdash; Community</span>
       <h2>Event discussion</h2>
       <p class="lede">Every event has a thread. Reading is public; posting takes a Google login. It is the
       coordination surface &mdash; "can we push kickoff to 4?", "still on in this rain?", "where do we park?",
@@ -582,8 +648,71 @@
       </ul>
     </section>
 
+    <section id="sync">
+      <span class="eyebrow">06 &mdash; Import</span>
+      <h2>Getting other people&rsquo;s schedules in</h2>
+      <p class="lede">A directory nobody has to type into is the difference between a listing site and an
+      empty one. Most events here are run by somebody else on a platform we do not control &mdash;
+      Athletes2Events, EventConnect, AthleteOne &mdash; so this subsystem exists to bring their schedules,
+      results and standings in, and it is now the largest single thing in the codebase.</p>
+
+      <h3>Three ways in, chosen by what the source permits</h3>
+      <div class="grid two">
+        <div class="card">
+          <span class="k">Connector</span>
+          <h4>Read on a schedule</h4>
+          <p>A cron pulls the event every few minutes to hours, its cadence set by how close the event is.
+          Only for platforms whose <code class="mono">robots.txt</code> allows it. Content-hashed, so an
+          unchanged fetch writes nothing.</p>
+        </div>
+        <div class="card">
+          <span class="k">Paste</span>
+          <h4>A person brings it</h4>
+          <p>For platforms that refuse crawlers &mdash; EventConnect and AthleteOne both answer
+          <code class="mono">Disallow: /</code>. Somebody opens the page they are entitled to open and pastes
+          what they see. The same writer, the same tables.</p>
+        </div>
+        <div class="card">
+          <span class="k">Bookmarklet</span>
+          <h4>The paste, done properly</h4>
+          <p>A schedule cell packs kick-off, bracket and division together, and how that survives a browser&rsquo;s
+          own copy is a guess. A bookmarklet reads the rendered table in the reader&rsquo;s own browser and hands
+          back named columns. It makes no request of its own.</p>
+        </div>
+        <div class="card">
+          <span class="k">Link</span>
+          <h4>No import at all</h4>
+          <p>When none of the above is worth it, the event page carries a button straight to the organizer&rsquo;s
+          schedule. A parent finding the right page in one click is most of the value.</p>
+        </div>
+      </div>
+
+      <div class="note amber">
+        <strong>robots.txt decides, and it is checked before anything else.</strong> A connector was once shipped
+        against a platform whose terms said one thing and whose robots.txt said another; the rule since is that
+        the binding document is read first, and a blanket <code class="mono">Disallow</code> means no polling,
+        whatever is technically possible.
+      </div>
+
+      <h3>What the writer has to survive</h3>
+      <ul class="tight">
+        <li><strong>The same team under many names.</strong> Every tournament publishes its own spelling, so an
+        import matches an existing team on an exact name plus agreeing facts &mdash; club, birth year, tier &mdash;
+        with nothing contradicting. Anything less certain becomes a new row and a queue entry for a person.</li>
+        <li><strong>Duplicates that already exist.</strong> A merge tool folds rows the rules can prove are one
+        team, and refuses to absorb a team somebody holds &mdash; a coach&rsquo;s team folded into a shell cannot be
+        told apart afterwards.</li>
+        <li><strong>A paste into the wrong event.</strong> A Labor Day schedule went into a June tournament and
+        421 fixtures were written under both. The importer now compares the pasted dates against the event&rsquo;s
+        own and refuses, with an override for the admin who knows better.</li>
+        <li><strong>The organizer&rsquo;s table beating ours.</strong> We can compute standings from results, and for
+        an event we run that is correct. For somebody else&rsquo;s, a bonus for a shutout or a different tiebreaker
+        produces a different table from the same games &mdash; so when they publish one, theirs wins.</li>
+      </ul>
+    </section>
+
     <section id="stack">
-      <span class="eyebrow">05 &mdash; Components</span>
+      <span class="eyebrow">07 &mdash; Components</span>
       <h2>Component choices</h2>
       <p>Bias: managed services with real free tiers, each replaceable in isolation. The column that matters
       most is the last one &mdash; nothing here is a one-way door.</p>
@@ -614,7 +743,7 @@
     </section>
 
     <section id="hosting">
-      <span class="eyebrow">06 &mdash; Hosting</span>
+      <span class="eyebrow">08 &mdash; Hosting</span>
       <h2>Hosting &amp; cost</h2>
       <p>Three environments, all managed:</p>
       <div class="scroll">
@@ -653,7 +782,7 @@
     </section>
 
     <section id="services">
-      <span class="eyebrow">07 &mdash; Modules</span>
+      <span class="eyebrow">09 &mdash; Modules</span>
       <h2>Services to build</h2>
       <p>Not separate deployments &mdash; feature folders in one app (<code>/features/events</code>,
       <code>/features/tournaments</code>, &hellip;), each owning its routes, components, queries, and jobs.</p>
@@ -720,10 +849,22 @@
     </section>
 
     <section id="auth">
-      <span class="eyebrow">08 &mdash; Identity</span>
+      <span class="eyebrow">10 &mdash; Identity</span>
       <h2>Auth &amp; identity</h2>
       <p><strong>Progressive login.</strong> Everything readable is public and needs no account. Login gates
-      only actions, and the only provider is Google.</p>
+      only actions.</p>
+      <p><strong>Two ways in, and no password in either.</strong> Google, and an emailed sign-in link. Google
+      alone was the plan, and it locks out anybody without a Google account &mdash; which, once claiming ships,
+      means locking a coach out of their own team. A password would have needed a reset flow, which needs email
+      anyway: so email is the thing worth having, and once it exists the link <em>is</em> the login.</p>
+      <p>Nothing about a credential is stored. The <code class="mono">users</code> table has no password column;
+      the emailed token is random (256 bits from the platform CSPRNG), stored only as a hash of itself plus the
+      server secret, deleted the moment it is used, and dead after thirty minutes. A database leak yields no
+      usable link. What replaces the password is the mailbox &mdash; which is what a password system ultimately
+      rests on anyway, since that is where its reset link goes.</p>
+      <p>Sessions are a JWT in an <code class="mono">httpOnly</code> cookie, so a signed-in request costs no
+      session lookup. The trade is that signing out clears one device and nothing else; the day "sign out
+      everywhere" or an instantly-enforced ban matters, that is a switch to database sessions, not a rewrite.</p>
       <div class="grid two">
         <div class="card">
           <h4>No login</h4>
@@ -749,10 +890,23 @@
       <code>team_members</code> &rarr; <code>team</code> &rarr; its events, matches, results, photos. A user is
       just a login; the team is what has a page, a history, and a following. One user can manage several teams
       (a club coordinator), and a team can have several managers.</p>
+      <div class="note">
+        <strong>Claiming a team is not self-serve, and grants less than it sounds like.</strong> 1,608 of the
+        1,610 teams here were created by an import, with nobody behind them &mdash; so the coach whose side it is
+        cannot fix the name a platform published or take a scrimmage offer. Claiming is the way in, but a team
+        page carries a squad, a calendar and a roster of children&rsquo;s names and ages, so an admin decides, as
+        they already do for a coach page. An approved claim grants <em>manager</em>, not owner: enough to run
+        the team, short of deleting it or hiding it from the directory.
+        <br><br>
+        And what a manager may change depends on whose team it is. A club&rsquo;s team keeps its identity with the
+        club &mdash; Eastside FC GU12 Red is the same team when every player has moved on &mdash; so the club, birth
+        years, gender, tier and crest are locked. The name is the exception, by proposal: imported names are
+        whatever a platform published, so somebody has to be able to fix them, and an admin approves it.
+      </div>
     </section>
 
     <section id="migration">
-      <span class="eyebrow">09 &mdash; First move</span>
+      <span class="eyebrow">11 &mdash; First move</span>
       <h2>King Juan Cup: spreadsheet &rarr; platform</h2>
       <p class="lede">King Juan Cup 2026 runs today on a static site, a Google Sheet, and eleven Apps Scripts
       that publish JSON to a GitHub repo. Every one of those moving parts is a feature the platform should own.
@@ -861,7 +1015,7 @@
     </section>
 
     <section id="roadmap">
-      <span class="eyebrow">10 &mdash; Sequence</span>
+      <span class="eyebrow">12 &mdash; Sequence</span>
       <h2>Phased roadmap</h2>
       <p>Straight from the discussion doc's priorities. The gate between each phase is behavioral, not
       calendar-based.</p>
@@ -870,14 +1024,15 @@
           <span class="ph">Phase 1</span>
           <h4>Web MVP</h4>
           <ul>
-            <li>Event model (kinds + modules): list, filters, detail, submit</li>
-            <li>Team directory + claim</li>
-            <li>Scrimmage / looking-for-opponent</li>
-            <li>Tournament ops + comms for King Juan Cup</li>
-            <li>Event discussion (threaded)</li>
-            <li>Google login, EN/&#20013;&#25991;</li>
+            <li>&#10003; Event model (kinds + modules): list, filters, detail, submit</li>
+            <li>&#10003; Team directory &mdash; claim still to come</li>
+            <li>&#10003; Scrimmage / looking-for-opponent</li>
+            <li>&#10003; Tournament ops for King Juan Cup &mdash; comms still to come</li>
+            <li>&#10003; Event discussion (threaded)</li>
+            <li>&#10003; Login: Google and an emailed link. EN only so far</li>
+            <li>&#10003; Not planned, but built: the import layer, clubs &amp; coach reviews, direct messages</li>
           </ul>
-          <div class="when">Now &rarr; King Juan Cup 2027</div>
+          <div class="when">Mostly shipped &mdash; still in stealth</div>
         </div>
         <div class="phase">
           <span class="ph">Phase 1.5</span>
@@ -918,7 +1073,7 @@
     </section>
 
     <section id="repo">
-      <span class="eyebrow">11 &mdash; Start</span>
+      <span class="eyebrow">13 &mdash; Start</span>
       <h2>Repo &amp; first week</h2>
       <pre class="tree">event-platform/
 &#9500;&#9472; app/                    # Next.js App Router
