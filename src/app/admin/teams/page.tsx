@@ -7,6 +7,8 @@ import { isAdmin } from "@/features/auth/admin";
 import { confirmMerge } from "@/features/teams/merge-actions";
 import { ManualMerge } from "@/features/teams/manual-merge";
 import { MergeButton } from "@/features/teams/merge-button";
+import { dismissProposal } from "@/features/teams/dismiss-actions";
+import { ProposalButtons } from "@/features/teams/proposal-buttons";
 import {
   duplicateTeamGroups,
   proposedTeamMatches,
@@ -202,7 +204,8 @@ export default async function AdminTeamsPage() {
         <p className="mt-1 text-sm text-muted">
           Same club, same age group, same gender, and most of the name — but
           spelled differently by two tournaments. Read both names: these are
-          proposals, and a merge cannot be undone.
+          proposals, and a merge cannot be undone. Saying they are different
+          is remembered, so the pair is not offered again.
         </p>
 
         {proposals.length === 0 ? (
@@ -233,9 +236,9 @@ export default async function AdminTeamsPage() {
                 </p>
 
                 <div className="mt-2">
-                  <MergeButton
-                    action={confirmMerge.bind(null, p.a.id, [p.b.id])}
-                    count={1}
+                  <ProposalButtons
+                    merge={confirmMerge.bind(null, p.a.id, [p.b.id])}
+                    dismiss={dismissProposal.bind(null, p.a.id, p.b.id)}
                   />
                 </div>
               </li>

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { clubs, teams } from "@/db/schema";
 
 import { proposeMatches } from "./match-plan";
+import { dismissedPairs, pairKey } from "./non-duplicates";
 import { groupDuplicates, type MergeCandidate } from "./merge-plan";
 
 /**
@@ -113,16 +114,22 @@ export async function proposedTeamMatches(
     new Map(clubRows.map((c) => [c.id, c.name])),
   );
 
+  const ruledOut = await dismissedPairs();
+
   /*
-   * Minus what the exact finder already offers.
+   * Minus what the exact finder already offers, and minus what somebody has
+   * already said is two different teams.
    *
    * More than half of these — 210 of 390 — were pairs from a group above,
    * shown again under a different heading. A queue that asks the same
    * question twice teaches people to skim it.
    */
-  return proposals.filter(
-    (p) =>
+  return proposals.filter((p) => {
+    const [a, b] = pairKey(p.a.id, p.b.id);
+    if (ruledOut.has(`${a}:${b}`)) return false;
+    return (
       !alreadyGrouped.has(p.a.id) ||
-      alreadyGrouped.get(p.a.id) !== alreadyGrouped.get(p.b.id),
-  );
+      alreadyGrouped.get(p.a.id) !== alreadyGrouped.get(p.b.id)
+    );
+  });
 }

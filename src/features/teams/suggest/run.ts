@@ -8,6 +8,7 @@ import { clubs, teamAliases, teamMatchSuggestions, teams } from "@/db/schema";
 
 import { buildPrompt, shortlist, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
 import { parseSuggestions } from "./parse";
+import { dismissedPairs, pairKey } from "../non-duplicates";
 import { isRateLimited } from "./rate-limit";
 
 /**
@@ -177,9 +178,14 @@ export async function suggestTeamMatches(
     (await db.select({ teamId: teamAliases.teamId }).from(teamAliases)).map((r) => r.teamId),
   );
 
+  // A pair a person has ruled out stays ruled out, whoever proposes it next.
+  const ruledOut = await dismissedPairs();
+
   let written = 0;
   for (const s of suggestions) {
     if (aliased.has(s.newId)) continue;
+    const [a, b] = pairKey(s.newId, s.existingId);
+    if (ruledOut.has(`${a}:${b}`)) continue;
     await db
       .insert(teamMatchSuggestions)
       .values({
