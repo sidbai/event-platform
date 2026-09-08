@@ -20,6 +20,7 @@ import { isAdmin } from "@/features/auth/admin";
 
 import { canManageTeam } from "./access";
 import { parseBirthYearsInput } from "./age";
+import { policyFor, type Editor, type TeamField } from "./editable";
 import { checkTeamName } from "./name";
 
 export type TeamFormResult = {
@@ -65,7 +66,9 @@ export async function updateTeam(
 
   const team = await db.query.teams.findFirst({
     where: eq(teams.slug, slug),
-    columns: { id: true },
+    // affiliation decides which fields are the club's rather than this
+    // person's — see editable.ts.
+    columns: { id: true, affiliation: true },
   });
   if (!team) return { error: "Not found." };
   // Owner/manager only — being on the roster is not the same as running it.
@@ -78,37 +81,58 @@ export async function updateTeam(
   };
 
   /*
-   * The name is editable because an imported one is whatever a platform
-   * published — "XF, U14, B12 - 13, RCL 1, Plackov" — and the coach who runs
-   * that team should be able to write it the way people say it.
+   * Which fields this person may write is one rule, in editable.ts, so the
+   * form, this action and the admin screen cannot disagree about it.
    *
-   * The slug does not follow. Every fixture, standings row and search result
-   * links to a team by slug, and changing it on a rename would move a page
-   * that other pages point at, to save an address nobody types.
+   * A club's team keeps its identity with the club — Eastside FC GU12 Red is
+   * the same team when every player has moved on — so its club, birth years,
+   * gender, tier and the rest are not the season's manager's to restate. The
+   * name is the exception and goes through proposeTeamName, because imported
+   * names are platform output somebody has to be able to fix. And visibility
+   * is nobody's but an admin's: taking a team with a season of results out of
+   * the directory looks, from outside, exactly like it never existed.
    */
-  const name = checkTeamName(String(formData.get("name") ?? ""));
-  if (!name.ok) return { fieldErrors: { name: name.error } };
+  const editor: Editor = isAdmin(user) ? { kind: "admin" } : { kind: "claimant" };
+  const mayWrite = (field: TeamField) => policyFor(field, team, editor) === "free";
 
   const years = parseBirthYearsInput(String(formData.get("birthYears") ?? ""));
   if (!years.ok) return { fieldErrors: { birthYears: years.error } };
 
   const clubIds = (await clubOptions()).map((c) => c.id);
 
+  let name: string | undefined;
+  if (mayWrite("name")) {
+    const checked = checkTeamName(String(formData.get("name") ?? ""));
+    if (!checked.ok) return { fieldErrors: { name: checked.error } };
+    name = checked.name;
+  }
+
+  /*
+   * Absent, not null. A field this person may not write is left off the
+   * update entirely — writing `undefined` past drizzle would blank the
+   * column, which is the same damage as letting them edit it.
+   */
+  const identity = mayWrite("club")
+    ? {
+        birthYears: years.years,
+        tier: get("tier"),
+        program: get("program"),
+        ...parseAffiliation(get("club"), clubIds),
+        city: get("city"),
+        ageGroup: get("ageGroup"),
+        gender: get("gender"),
+      }
+    : {};
+
   await db
     .update(teams)
     .set({
-      name: name.name,
-      birthYears: years.years,
-      tier: get("tier"),
-      program: get("program"),
-      ...parseAffiliation(get("club"), clubIds),
-      city: get("city"),
-      ageGroup: get("ageGroup"),
-      gender: get("gender"),
+      ...(name === undefined ? {} : { name }),
+      ...identity,
       bio: get("bio"),
-      // Editable now: claiming used to be the only route from private to
-      // public, and that route is gone.
-      visibility: get("visibility") === "private" ? "private" : "public",
+      ...(mayWrite("visibility")
+        ? { visibility: get("visibility") === "private" ? "private" : ("public" as const) }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(teams.id, team.id));

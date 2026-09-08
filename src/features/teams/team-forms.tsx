@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import type { TeamFormResult } from "./actions";
+import { lockedBecause, policyFor, type Editor } from "./editable";
 
 type Action = (prev: TeamFormResult, formData: FormData) => Promise<TeamFormResult>;
 
@@ -13,12 +14,17 @@ const label = "block text-sm font-medium";
 export function TeamEditForm({
   action,
   clubs,
+  admin = false,
   team,
 }: {
   action: Action;
   clubs: { id: string; name: string }[];
+  /** Admins may write everything; everyone else is bound by editable.ts. */
+  admin?: boolean;
   team: {
     name: string;
+    /** 'unknown' | 'club' | 'independent' — decides what belongs to the club. */
+    affiliation: string;
     /** Already formatted — "2013/2014", or empty. */
     birthYears: string;
     tier: string;
@@ -37,9 +43,20 @@ export function TeamEditForm({
     {},
   );
 
+  /*
+   * The same rule the action enforces, asked here so the form does not offer
+   * what the server will drop. A field somebody cannot write is shown and
+   * disabled rather than hidden: the coach of the team is exactly the person
+   * who should be told the club sets this, not left wondering where it went.
+   */
+  const editor: Editor = admin ? { kind: "admin" } : { kind: "claimant" };
+  const may = (f: Parameters<typeof policyFor>[0]) =>
+    policyFor(f, team, editor) === "free";
+  const identityLocked = !may("club");
+
   return (
     <form action={formAction} className="mt-4 space-y-4">
-      <div>
+      <div hidden={!may("name")}>
         <label className={label} htmlFor="name">
           Team name
         </label>
@@ -47,6 +64,7 @@ export function TeamEditForm({
           id="name"
           name="name"
           defaultValue={team.name}
+          disabled={!may("name")}
           className={`mt-1 ${field}`}
         />
         {state.fieldErrors?.name && (
@@ -61,6 +79,16 @@ export function TeamEditForm({
         </p>
       </div>
 
+      {identityLocked && (
+        <p className="rounded-md border border-line bg-elevated px-3 py-2 text-sm text-muted">
+          {/* Said once, above the fields it applies to. A row of greyed-out
+              inputs with no explanation reads as a broken page. */}
+          What this team <em>is</em> &mdash; its club, birth years, gender, tier
+          &mdash; belongs to the club, not to whoever runs it this season.{" "}
+          {lockedBecause("club", team)}
+        </p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="club">
@@ -74,6 +102,7 @@ export function TeamEditForm({
             id="club"
             name="club"
             defaultValue={team.club}
+            disabled={identityLocked}
             className={`mt-1 ${field}`}
           >
             <option value="">Not sure yet</option>
@@ -93,6 +122,7 @@ export function TeamEditForm({
             id="birthYears"
             name="birthYears"
             defaultValue={team.birthYears}
+            disabled={identityLocked}
             placeholder="2013/2014"
             className={`mt-1 ${field}`}
           />
@@ -115,6 +145,7 @@ export function TeamEditForm({
             id="tier"
             name="tier"
             defaultValue={team.tier}
+            disabled={identityLocked}
             placeholder="ECNL 1, RCL 2, MLS Next"
             className={`mt-1 ${field}`}
           />
@@ -128,6 +159,7 @@ export function TeamEditForm({
             id="program"
             name="program"
             defaultValue={team.program}
+            disabled={identityLocked}
             placeholder="Select, Academy, Shoreline"
             className={`mt-1 ${field}`}
           />
@@ -143,7 +175,13 @@ export function TeamEditForm({
           <label className={label} htmlFor="city">
             City
           </label>
-          <input id="city" name="city" defaultValue={team.city ?? ""} className={`mt-1 ${field}`} />
+          <input
+            id="city"
+            name="city"
+            defaultValue={team.city ?? ""}
+            disabled={identityLocked}
+            className={`mt-1 ${field}`}
+          />
         </div>
         <div>
           <label className={label} htmlFor="ageGroup">
@@ -153,6 +191,7 @@ export function TeamEditForm({
             id="ageGroup"
             name="ageGroup"
             defaultValue={team.ageGroup ?? ""}
+            disabled={identityLocked}
             placeholder="U11"
             className={`mt-1 ${field}`}
           />
@@ -161,7 +200,13 @@ export function TeamEditForm({
           <label className={label} htmlFor="gender">
             Gender
           </label>
-          <select id="gender" name="gender" defaultValue={team.gender ?? ""} className={`mt-1 ${field}`}>
+          <select
+            id="gender"
+            name="gender"
+            defaultValue={team.gender ?? ""}
+            disabled={identityLocked}
+            className={`mt-1 ${field}`}
+          >
             <option value="">Any / coed</option>
             <option value="boys">Boys</option>
             <option value="girls">Girls</option>
@@ -176,7 +221,10 @@ export function TeamEditForm({
         <textarea id="bio" name="bio" rows={3} defaultValue={team.bio ?? ""} className={`mt-1 ${field}`} />
       </div>
       <div className="flex items-center gap-3">
-        <fieldset>
+        {/* Disabled as well as hidden: a hidden fieldset still submits its
+            controls, and while the action drops the field anyway, a form that
+            sends a value nobody may write is a trap for the next reader. */}
+        <fieldset disabled={!may("visibility")} hidden={!may("visibility")}>
           <legend className="block text-sm font-medium">Who can see it</legend>
           <div className="mt-2 space-y-1 text-sm">
             <label className="flex items-start gap-2">

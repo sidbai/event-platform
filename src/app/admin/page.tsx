@@ -23,6 +23,13 @@ import { setClubPinned } from "@/features/clubs/actions";
 import { setEventHidden } from "@/features/events/actions";
 import { setForumPostHidden } from "@/features/forum/actions";
 import { pendingCoachClaims } from "@/features/coaches/queries";
+import {
+  approveTeamClaim,
+  approveTeamName,
+  rejectTeamClaim,
+  rejectTeamName,
+} from "@/features/teams/claim-actions";
+import { pendingTeamClaims, pendingTeamNames } from "@/features/teams/claim-queries";
 import { parsePage } from "@/features/pagination/paginate";
 import { Pager } from "@/features/pagination/pager";
 import { dismissMessageReports, hideMessage } from "@/features/messages/actions";
@@ -55,6 +62,8 @@ export default async function AdminPage({
     events,
     news,
     claims,
+    teamClaimRequests,
+    teamNameRequests,
     reports,
     messageReports,
     reviewReports,
@@ -67,6 +76,8 @@ export default async function AdminPage({
       pendingEvents(),
       pendingNews(),
       pendingCoachClaims(),
+      pendingTeamClaims(),
+      pendingTeamNames(),
       reportedComments(),
       reportedMessages(),
       reportedReviews(),
@@ -230,6 +241,114 @@ export default async function AdminPage({
                   <form action={rejectCoachClaim.bind(null, c.id)}>
                     <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
                       Reject
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Team claims{" "}
+          {teamClaimRequests.length > 0 && (
+            <span className="text-muted">({teamClaimRequests.length})</span>
+          )}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Approving makes this person a <strong>manager</strong> of the team: they
+          can run it, invite people and take scrimmage offers. They cannot delete
+          it, hide it, or change a club team&rsquo;s facts. A team page carries a
+          roster of children&rsquo;s names, so the note below is what the decision
+          rests on &mdash; if it does not tell you how to check, reject it.
+        </p>
+        {teamClaimRequests.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {teamClaimRequests.map((c) => (
+              <li key={c.id} className="rounded-lg border border-line p-3">
+                <div className="text-sm">
+                  <span className="font-medium">{c.who}</span>
+                  {c.email && <span className="text-muted"> · {c.email}</span>}
+                  <span className="text-muted"> says they run </span>
+                  <Link
+                    href={`/teams/${c.team?.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {c.team?.name}
+                  </Link>
+                  {/* Which club, because "is this really their team" is mostly
+                      a question about which club it belongs to. */}
+                  {c.team?.club?.name && (
+                    <span className="text-muted"> · {c.team.club.name}</span>
+                  )}
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{c.note}</p>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <form action={approveTeamClaim.bind(null, c.id)}>
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
+                      Approve
+                    </button>
+                  </form>
+                  <form action={rejectTeamClaim.bind(null, c.id)}>
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
+                      Reject
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Team names{" "}
+          {teamNameRequests.length > 0 && (
+            <span className="text-muted">({teamNameRequests.length})</span>
+          )}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          A manager wants to rename a team. Imported names are whatever a
+          platform published, so most of these are fixes &mdash; but a club&rsquo;s
+          team is named by the club. The address does not change either way.
+        </p>
+        {teamNameRequests.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {teamNameRequests.map((p) => (
+              <li key={p.id} className="rounded-lg border border-line p-3">
+                <div className="text-sm">
+                  <span className="text-muted line-through">{p.currentName}</span>
+                  <span className="text-muted"> → </span>
+                  <span className="font-medium">{p.proposedName}</span>
+                  {p.team?.club?.name && (
+                    <span className="text-muted"> · {p.team.club.name}</span>
+                  )}
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  asked by {p.who} ·{" "}
+                  <Link
+                    href={`/teams/${p.team?.slug}`}
+                    className="text-brand-text hover:underline"
+                  >
+                    open the team
+                  </Link>
+                </div>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <form action={approveTeamName.bind(null, p.id)}>
+                    <button className="rounded-md bg-brand px-3 py-1 font-semibold text-on-brand hover:bg-brand-strong">
+                      Rename
+                    </button>
+                  </form>
+                  <form action={rejectTeamName.bind(null, p.id)}>
+                    <button className="rounded-md border border-line px-3 py-1 hover:bg-elevated">
+                      Keep the old one
                     </button>
                   </form>
                 </div>

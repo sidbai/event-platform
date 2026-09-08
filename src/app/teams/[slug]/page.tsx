@@ -25,6 +25,10 @@ import { formatEventWhen } from "@/features/events/when";
 import { formatBirthYears } from "@/features/teams/age";
 import { formatRecord, recordFrom } from "@/features/teams/record";
 import { teamBySoleOldSlug } from "@/features/teams/merge";
+import { requestTeamClaim } from "@/features/teams/claim-actions";
+import { ClaimTeamForm } from "@/features/teams/claim-form";
+import { myTeamClaim } from "@/features/teams/claim-queries";
+import { canRequestClaim } from "@/features/teams/claim";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +73,30 @@ export default async function TeamPage({
   const canSchedule = await canScheduleForTeam(team.id);
   const member = user ? await isTeamMember(team.id, user.id) : false;
   const pendingInvite = await myPendingTeamInvite(team.id, user);
+
+  /*
+   * The way in for the coach whose team this is.
+   *
+   * Nearly every team here was made by an import, with nobody behind it, so
+   * for most readers of most team pages this is the only thing on the page
+   * they could act on — and until now there was nothing.
+   */
+  const existingClaim = user ? await myTeamClaim(team.id, user.id) : null;
+  const mayClaim =
+    !canEdit &&
+    canRequestClaim(
+      team,
+      user ? { id: user.id, admin } : null,
+      existingClaim?.status ?? null,
+    );
+  /*
+   * A signed-out coach is the person this feature exists for, and the rule
+   * refuses them for the right reason — a claim needs a claimant. Refusing
+   * them silently would mean they never learn the door is there, so the door
+   * is shown and it goes through sign-in.
+   */
+  const couldClaimIfSignedIn =
+    !user && canRequestClaim(team, { id: "anyone", admin: false }, null);
   const events = await hostedEvents(team.id, member || admin);
 
   /*
@@ -203,6 +231,27 @@ export default async function TeamPage({
           <span className="text-muted">No owner yet</span>
         )}
       </div>
+
+      {mayClaim && (
+        <ClaimTeamForm action={requestTeamClaim.bind(null, team.slug)} />
+      )}
+      {couldClaimIfSignedIn && (
+        <p className="mt-4 text-sm text-muted">
+          Is this your team?{" "}
+          <Link
+            href={`/signin?next=${encodeURIComponent(`/teams/${team.slug}`)}`}
+            className="text-brand-text hover:underline"
+          >
+            Sign in to ask to manage it
+          </Link>
+          .
+        </p>
+      )}
+      {existingClaim?.status === "pending" && (
+        <p className="mt-4 rounded-md border border-line bg-elevated px-3 py-2 text-sm text-muted">
+          Your request to manage this team is waiting for an admin.
+        </p>
+      )}
 
       {(events.length > 0 || canSchedule) && (
         <section className="mt-8">
