@@ -6,6 +6,7 @@ import { EventLogo } from "@/components/event-logo";
 import { getCurrentUser } from "@/features/auth";
 import { EventTags } from "@/features/events/event-tags";
 import { formatEventWhen } from "@/features/events/when";
+import type { FeaturedMode } from "@/features/feed/featured";
 import { homeFeed, type FeaturedEvent, type FeedItem } from "@/features/feed/queries";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { CommentIcon, LikeButton } from "@/features/likes/like-button";
@@ -67,7 +68,7 @@ function EventBand({
   mode,
 }: {
   events: FeaturedEvent[];
-  mode: "ahead" | "recent";
+  mode: FeaturedMode;
 }) {
   if (events.length === 0) return null;
 
@@ -75,9 +76,15 @@ function EventBand({
     <section className="mt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="text-sm font-semibold tracking-tight">
-          {/* Said plainly, because the band means two different things: these
-              are games to turn up to, or these are results to look up. */}
-          {mode === "ahead" ? "What's on" : "Just finished"}
+          {/* Said plainly, because the band means three different things:
+              games to turn up to, results to look up, or the next thing on a
+              quiet calendar. A heading that claimed "What's on" over a
+              tournament in January would be the page lying to a visitor. */}
+          {mode === "now"
+            ? "What's on"
+            : mode === "recent"
+              ? "Just finished"
+              : "Coming up"}
         </h2>
         <Link href="/events" className="text-sm text-brand-text hover:underline">
           All events →
