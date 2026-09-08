@@ -1,11 +1,12 @@
 /**
  * What the team directory lists, against a real Postgres.
  *
- * The rule it encodes is the whole reason the page existed and showed
- * nothing: teams.visibility means both "keep out of the directory" and
- * "members only", and only one of those should hide a team from here. Getting
- * it wrong in either direction is invisible in a unit test and obvious to a
- * user — an empty directory, or somebody's private team on a public page.
+ * One rule now: a team is listed unless somebody chose to hide it. It used to
+ * be two, because teams.visibility meant both "keep out of the directory" and
+ * "members only" — imported teams were written 'private' meaning the first,
+ * and the page filtered all 966 of them out while linking to them from public
+ * standings. Teams are created listed instead, so getting this wrong now
+ * means somebody's private team on a public page, and nothing else.
  */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -35,7 +36,8 @@ async function makeTeam(over: {
       slug: over.slug,
       name: over.name,
       city: over.city ?? null,
-      visibility: over.visibility ?? "private",
+      // Listed, which is what every team-creating path now writes.
+      visibility: over.visibility ?? "public",
       originEventId: over.fromEvent === false ? null : eventId,
       ...(over.clubId
         ? { clubId: over.clubId, affiliation: "club" as const }
@@ -79,21 +81,27 @@ beforeEach(async () => {
 describe("who is listed", () => {
   it("lists a team a tournament schedule created", async () => {
     /*
-     * The regression that made this page useless: every imported team is
-     * 'private', so the directory filtered all 966 of them out and said "No
-     * public teams yet" while linking to them from public standings.
+     * The regression that made this page useless: every imported team was
+     * written 'private', so the directory filtered all 966 of them out and
+     * said "No public teams yet" while linking to them from public standings.
      */
     await makeTeam({ slug: "xf-bu14", name: "XF BU14" });
     expect(await names()).toEqual(["XF BU14"]);
   });
 
-  it("keeps out a team somebody created and marked private", async () => {
-    // That one was a promise: "only people you invite will see it".
+  it("keeps out a private team, however it was created", async () => {
+    // "Only people you invite will see it" is a promise on the create form,
+    // and the same promise when the owner of an imported team makes it.
     await makeTeam({
       slug: "secret-side",
       name: "Secret Side",
       visibility: "private",
       fromEvent: false,
+    });
+    await makeTeam({
+      slug: "hidden-import",
+      name: "Hidden Import",
+      visibility: "private",
     });
     expect(await names()).toEqual([]);
   });
@@ -141,7 +149,7 @@ describe("the categories", () => {
     await db.insert(teams).values({
       slug: "kjc-side",
       name: "King Juan Cup side",
-      visibility: "private",
+      visibility: "public",
       originEventId: eventId,
       affiliation: "independent",
     });

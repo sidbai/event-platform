@@ -51,10 +51,15 @@ describe("teamIsIndexable", () => {
     ...over,
   });
 
-  it("lists a team created for an event, private or not", () => {
-    // teamViewDecision lets these through because public standings link to
-    // them, and they are almost everything we hold.
-    expect(teamIsIndexable(team())).toBe(true);
+  it("lists a team created for an event, which is almost everything we hold", () => {
+    // These are created listed now, so they qualify the ordinary way rather
+    // than through a clause about where they came from.
+    expect(teamIsIndexable(team({ visibility: "public" }))).toBe(true);
+  });
+
+  it("leaves out a team whose owner made it private, imported or not", () => {
+    // A members-only page 404s for a crawler either way.
+    expect(teamIsIndexable(team())).toBe(false);
   });
 
   it("lists a public team", () => {

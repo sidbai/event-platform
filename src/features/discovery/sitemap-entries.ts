@@ -50,7 +50,7 @@ export function eventIsIndexable(event: ListedEvent): boolean {
  * would either hide almost everything we hold or advertise pages that 404.
  */
 export function teamIsIndexable(team: ListedTeam): boolean {
-  return team.visibility === "public" || team.originEventId !== null;
+  return team.visibility === "public";
 }
 
 export type Freshness = {

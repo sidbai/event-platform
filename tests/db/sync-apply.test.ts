@@ -142,13 +142,17 @@ describe("applying a sync", () => {
     expect(game.homePlaceholder).toBeNull();
   });
 
-  it("makes the teams private, since nobody here has claimed them", async () => {
+  it("lists the teams it creates, and records which event made them", async () => {
+    // They were written 'private' once, meaning "we did not put this here on
+    // purpose" — and the directory, the team page and the sitemap each needed
+    // a clause to let them through anyway. A side already named on a public
+    // standings table is not a secret.
     const eventId = await makeListing();
     await applySync(eventId, syncedFromFixtures(), NOW);
 
     const rows = await db.select().from(teams);
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((t) => t.visibility === "private")).toBe(true);
+    expect(rows.every((t) => t.visibility === "public")).toBe(true);
     expect(rows.every((t) => t.originEventId === eventId)).toBe(true);
   });
 

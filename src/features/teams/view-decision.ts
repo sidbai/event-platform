@@ -5,16 +5,20 @@ export type ViewableTeam = {
 };
 
 /**
- * `teams.visibility` carries two different meanings, and they need different
- * rules:
+ * Who may open a team's page.
  *
- * - A team auto-created for a tournament is 'private' only in the sense of
- *   "keep it out of the directory". Its page is linked from public standings,
- *   so anyone who can see the event must be able to open it.
- * - A team a person created and marked private was promised "only people you
- *   invite will see it", so it is members-only.
+ * One rule now: public teams are public, private teams are members-only.
  *
- * `originEventId` is what separates them.
+ * It used to be two, because `teams.visibility` carried two meanings. A team
+ * auto-created for a tournament was written 'private', meaning "we did not
+ * put it here on purpose" rather than "keep it secret" — and since its page
+ * is linked from public standings, every query about a team needed a second
+ * clause to let those through. Teams are created listed now, so the second
+ * meaning is gone and private is a promise again: whoever set it meant it.
+ *
+ * `originEventId` stays on the type because callers pass whole rows, and
+ * because a future rule about event-made teams should be written knowingly
+ * rather than by accident.
  *
  * Kept free of I/O so the rules can be tested directly.
  */
@@ -23,7 +27,5 @@ export function teamViewDecision(
   admin: boolean,
 ): "allow" | "check-member" {
   if (admin) return "allow";
-  if (team.visibility === "public") return "allow";
-  if (team.originEventId) return "allow";
-  return "check-member";
+  return team.visibility === "public" ? "allow" : "check-member";
 }

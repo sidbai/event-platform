@@ -162,7 +162,9 @@ export async function addTeamToEvent(
     .values({
       slug,
       name,
-      visibility: "private",
+      // Listed, like every other team: a side an organizer types onto the
+      // scores page appears in that event's public table either way.
+      visibility: "public",
       originEventId: event.id,
     })
     .returning({ id: teams.id });
