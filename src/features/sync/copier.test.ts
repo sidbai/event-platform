@@ -78,8 +78,22 @@ describe("the copier bookmarklet", () => {
   it("loads the tool from this site, and says so when it cannot", () => {
     const url = bookmark();
     expect(url).toContain(encodeURIComponent("kingjuansoccer.com/copier.js"));
-    // A site with a content policy refuses the script silently otherwise.
+    // Silence is the alternative: a bookmark that does nothing at all.
     expect(decodeURIComponent(url)).toContain("alert(");
+  });
+
+  it("does not claim to know why the load failed", () => {
+    /*
+     * onerror reports that a script did not load, never why. The first
+     * version of this said "its content policy blocks outside scripts",
+     * which sent somebody looking at the wrong site entirely when the real
+     * answer was our own server answering with a bot-protection challenge.
+     */
+    const message = decodeURIComponent(bookmark());
+    expect(message).toMatch(/unreachable or refusing/);
+    expect(message).toContain("kingjuansoccer.com");
+    // Both candidates named, and a way to tell them apart.
+    expect(message).toMatch(/Opening the address in a tab/);
   });
 
   it("asks the site being read for nothing", () => {

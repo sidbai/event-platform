@@ -389,9 +389,19 @@ export function copierBookmarklet(origin: string): string {
     "(function(){",
     "var s=document.createElement('script');",
     `s.src=${JSON.stringify(src)}+'?t='+Date.now();`,
-    // A site with a Content-Security-Policy will refuse the script without
-    // telling anybody. Better a sentence than a bookmark that does nothing.
-    "s.onerror=function(){alert('This site would not let the copier load. Its content policy blocks outside scripts.');};",
+    /*
+     * onerror says the script did not load. It does not say why, and the
+     * first version of this asserted a cause — "its content policy blocks
+     * outside scripts" — which sent somebody looking at the wrong site
+     * entirely when the real answer was that our own server was answering
+     * the request with a bot-protection challenge.
+     *
+     * So it describes the symptom and names both candidates, in the order
+     * they are worth checking.
+     */
+    "s.onerror=function(){alert('The copier did not load from ' + " +
+      JSON.stringify(new URL(src).host) +
+      " + '.\\n\\nEither that site is unreachable or refusing the request, or this page blocks outside scripts. Opening the address in a tab will say which.');};",
     "document.body.appendChild(s);",
     "})();",
   ].join("");
