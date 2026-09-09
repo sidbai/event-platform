@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import type { Suggestion } from "@/features/search/kinds";
 
@@ -55,12 +55,35 @@ export function SearchBar({
   minQuery?: number;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const listId = useId();
   const [text, setText] = useState(defaultValue ?? "");
   const [hits, setHits] = useState<Suggestion[]>([]);
   const [active, setActive] = useState(-1);
   const [dismissed, setDismissed] = useState(false);
+  const [landedOn, setLandedOn] = useState(pathname);
   const box = useRef<HTMLFormElement>(null);
+
+  /*
+   * A new page empties the box.
+   *
+   * The header lives in the layout, so a client-side move — following a
+   * suggestion, or pressing Back — never remounts it, and what was typed to
+   * get somewhere sits there afterwards as though it were still a question.
+   * Reset to whatever this page wants in it: the term for /search and
+   * /teams, which put it there deliberately, and nothing for the header.
+   *
+   * Adjusted during the render that noticed, rather than in an effect. React
+   * asks for it this way round and it saves a second render with the stale
+   * value on screen.
+   */
+  if (landedOn !== pathname) {
+    setLandedOn(pathname);
+    setText(defaultValue ?? "");
+    setHits([]);
+    setActive(-1);
+    setDismissed(false);
+  }
 
   const looking = !!suggest && !dismissed && text.trim().length >= minQuery;
 
