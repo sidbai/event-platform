@@ -276,7 +276,9 @@ async function createEvent(
   const staged = String(formData.get("logoUrl") ?? "").trim();
   const logoUrl = staged && isPendingEventUrl(staged) ? staged : null;
 
-  await db.insert(events).values({
+  const [created] = await db
+    .insert(events)
+    .values({
     slug,
     kind: f.kind,
     // A listing runs nothing here, so it gets none of the modules that offer
@@ -307,7 +309,28 @@ async function createEvent(
     // exactly what sets this.
     organizerId: f.listed ? null : user.id,
     hostTeamId,
-  });
+    })
+    .returning({ id: events.id });
+
+  /*
+   * The schedule, if one came with the form.
+   *
+   * After the insert, never inside it: a fixture needs an event to belong to.
+   * And after the redirect target is known, so a refusal — the date guard is
+   * the likely one — lands the person on the event page, where the same box
+   * is waiting with the file picker rather than sending them back to build
+   * the listing again.
+   */
+  const schedule = String(formData.get("schedule") ?? "").trim();
+  if (schedule) {
+    const { applyPastedText } = await import("@/features/sync/actions");
+    const out = await applyPastedText(
+      { id: created.id, slug, startsAt: f.startsAt, endsAt: f.endsAt },
+      { text: schedule },
+    );
+    if (out.error) redirect(`/events/${slug}?import=${encodeURIComponent(out.error)}`);
+    redirect(`/events/${slug}?imported=${encodeURIComponent(out.detail ?? "")}`);
+  }
 
   redirect(`/events/${slug}`);
 }

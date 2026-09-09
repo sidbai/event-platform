@@ -94,6 +94,21 @@ const SOURCE = `(function(){
     return total>got?total-got:0;
   }
 
+  /**
+   * What to call the saved file.
+   *
+   * The host and the date, because the two questions asked of a file found a
+   * week later are "where did this come from" and "when". Tab-separated, and
+   * named .txt rather than .csv: these rows carry team names like
+   * "XF, U14, B12 - 13, RCL 1", and a spreadsheet opening that as CSV splits
+   * one team across four columns.
+   */
+  function fileName(host,now){
+    var day=new Date(now).toISOString().slice(0,10);
+    var site=(host||'source').replace(/^www\./,'').replace(/[^a-z0-9.-]/gi,'');
+    return 'schedule-'+site+'-'+day+'.txt';
+  }
+
   /** Everything of one kind that the basket holds, in the order collected. */
   function collected(basket,kind){
     var lines=[],pages=0,missing=0;
@@ -118,7 +133,8 @@ const SOURCE = `(function(){
       a1Fixture:a1Fixture,
       tableRows:tableRows,
       missingFrom:missingFrom,
-      collected:collected
+      collected:collected,
+      fileName:fileName
     };
   }
 
@@ -252,7 +268,29 @@ const SOURCE = `(function(){
 
     var bar=document.createElement('div');
     bar.style.cssText='background:#333;color:#fff;padding:8px;text-align:center';
-    bar.textContent=note.join(' · ')+' — click again on the next flight, or copy now.';
+    bar.textContent=note.join(' · ')+' — click again on the next flight, then copy or save.';
+
+    /*
+     * Saving, as well as copying.
+     *
+     * The basket dies with the tab, so a person collecting twenty-seven
+     * flights has to finish in one sitting or lose the lot. A file survives
+     * that, survives an import the date guard refuses, and is still there
+     * next week when somebody asks what was actually imported.
+     */
+    var save=document.createElement('button');
+    save.textContent='Save as file';
+    save.style.cssText='margin-left:8px;padding:2px 8px';
+    save.onclick=function(){
+      var blob=new Blob([box.value],{type:'text/plain'});
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=fileName(location.hostname,Date.now());
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    };
 
     var close=document.createElement('button');
     close.textContent='Close';
@@ -264,6 +302,7 @@ const SOURCE = `(function(){
     clear.style.cssText='margin-left:8px;padding:2px 8px';
     clear.onclick=function(){basket={};save();wrap.remove();};
 
+    bar.appendChild(save);
     bar.appendChild(close);
     bar.appendChild(clear);
     wrap.appendChild(box);

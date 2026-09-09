@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 
 import { EventLogo } from "@/components/event-logo";
+import { mergeScheduleFiles } from "@/features/sync/merge-files";
 import { ImageUpload } from "@/features/uploads/image-upload";
 
 import { submitEvent, updateEvent, type EventFormResult } from "./actions";
@@ -85,6 +86,34 @@ export function EventForm({
   // Only so the placeholder beside the upload shows this event's own emoji;
   // the value that gets submitted is the select's, as it always was.
   const [kind, setKind] = useState(initial?.kind ?? "");
+  /**
+   * A schedule handed over while the event is being made.
+   *
+   * The fixtures exist before the listing does — somebody has already
+   * collected them from the organizer's page — and making them wait for a
+   * second trip through a different screen is the step where they get lost.
+   * Held as text in a hidden field; the import runs after the insert, since
+   * a game needs an event to belong to.
+   */
+  const [schedule, setSchedule] = useState("");
+  const [scheduleNote, setScheduleNote] = useState<string | null>(null);
+
+  async function readSchedule(chosen: FileList | null) {
+    const files = [...(chosen ?? [])];
+    if (files.length === 0) return;
+    const merged = mergeScheduleFiles(
+      await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))),
+    );
+    if (!merged.ok) {
+      setSchedule("");
+      setScheduleNote(merged.error);
+      return;
+    }
+    setSchedule(merged.text);
+    setScheduleNote(
+      `${files.length} file(s) — ${merged.lines} ${merged.kind === "standings" ? "standings rows" : "fixtures"} will be imported once the event is created`,
+    );
+  }
   const err = state.fieldErrors ?? {};
 
   /*
@@ -443,6 +472,27 @@ export function EventForm({
         />
         We&rsquo;re looking for an opponent
       </label>
+
+      {!editing && (
+        <div>
+          <label className={label} htmlFor="schedule">
+            Schedule <span className="text-muted">(optional)</span>
+          </label>
+          <input
+            id="schedule"
+            type="file"
+            multiple
+            accept=".txt,.tsv,.csv,text/plain"
+            onChange={(e) => readSchedule(e.target.files)}
+            className="mt-1 block w-full text-sm"
+          />
+          <input type="hidden" name="schedule" value={schedule} />
+          <p className="mt-1 text-xs text-muted">
+            {scheduleNote ??
+              "Files saved with the copier bookmarklet — one per flight is fine. The fixtures are imported as soon as the event exists."}
+          </p>
+        </div>
+      )}
 
       <div>
         <label className={label} htmlFor="summary">

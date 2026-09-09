@@ -36,6 +36,9 @@ export type ScheduleParams = {
   division?: string;
   team?: string;
   day?: string;
+  /** What an import that ran on creation did, or why it did not. */
+  imported?: string;
+  import?: string;
 };
 
 /** The division dropdown's value for "do not narrow to one". */

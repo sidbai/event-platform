@@ -36,6 +36,8 @@ import { divisionsForRegistration } from "@/features/registration/queries";
 import { CountView } from "@/features/views/count-view";
 import { viewsOf } from "@/features/views/queries";
 import { ViewsCount } from "@/features/views/views-count";
+import { importPastedSchedule } from "@/features/sync/actions";
+import { PasteForm } from "@/features/sync/connect-form";
 import {
   ScheduleSection,
   type ScheduleParams,
@@ -515,6 +517,40 @@ export default async function EventPage({
             </>
           )}
         </p>
+      )}
+
+      {/*
+        The import, where somebody lands after creating the event.
+
+        It used to live only on /admin/sync, which meant building a listing
+        and then hunting for it among a dozen others to bring its fixtures in.
+        Same action, same guards — the only thing that moved is where the box
+        is, and it is only here for whoever manages the event.
+      */}
+      {/* What the create form's import did, said where they land. */}
+      {canManage && (sp.imported || sp.import) && (
+        <p
+          className={`mt-4 rounded-md px-3 py-2 text-sm ${
+            sp.import ? "bg-amber-50 text-amber-800" : "bg-elevated text-muted"
+          }`}
+        >
+          {sp.import
+            ? `The schedule was not imported: ${sp.import} You can load the files again below.`
+            : `Schedule imported — ${sp.imported}`}
+        </p>
+      )}
+
+      {canManage && (
+        <section className="mt-8 rounded-lg border border-line p-3">
+          <h2 className="text-sm font-semibold">Bring in the schedule</h2>
+          <p className="mt-1 text-xs text-muted">
+            Paste the organizer&rsquo;s table, or load a file saved with the
+            copier from <a href="/admin/sync" className="text-brand-text hover:underline">
+              the sync page
+            </a>. Fixtures and standings both land here.
+          </p>
+          <PasteForm action={importPastedSchedule} eventId={event.id} />
+        </section>
       )}
 
       <ScheduleSection
