@@ -26,30 +26,71 @@ const TIERS: [RegExp, string][] = [
   [/\bmls\s*next\b/i, "MLS Next"],
   // "ENCL" is the organizers' own typo, on four teams in production and
   // seven in dev. Ignoring it would leave those sides with no tier at all.
-  [/\be[nc]{2}l[-\s]*rl\b/i, "ECNL RL"],
+  //
+  // Pre-ECNL RL before ECNL RL, or the Pre is read as a separate word and the
+  // team is filed a division above where it plays.
+  [/\bpre[-\s]?e[nc]{2}l[-\s/]*rl\b/i, "Pre-ECNL RL"],
+  [/\be[nc]{2}l[-\s/]*rl\b/i, "ECNL RL"],
   [/\becrl\b/i, "ECNL RL"],
   [/\bpre[-\s]?ecnl\b/i, "Pre-ECNL"],
-  [/\be[nc]{2}l\s*([12])\b/i, "ECNL $1"],
+  [/\be[nc]{2}l[-\s]*([12])\b/i, "ECNL $1"],
   [/\be[nc]{2}l\b/i, "ECNL"],
-  [/\brcl\s*([1-4])\b/i, "RCL $1"],
+  [/\brcl[-\s]*([1-4])\b/i, "RCL $1"],
   [/\brcl\b/i, "RCL"],
   [/\bnpl\b/i, "NPL"],
+  [/\bpre[-\s]?ea\b/i, "Pre-EA"],
   [/\bea\s*([12])\b/i, "EA $1"],
   [/\bea\b/i, "EA"],
-  [/\bn1\b/i, "National 1"],
+  [/\bn1\b|\bnational\s*1\b/i, "National 1"],
+  [/\bpre[-\s]?ga\b|\bga[-\s]*aspire\b|\baspire\b/i, "Pre-GA"],
+  [/\bga\b/i, "GA"],
   [/\bgold\b/i, "Gold"],
   [/\boro\b/i, "Gold"],
   [/\bsilver\b/i, "Silver"],
   [/\bbronze\b/i, "Bronze"],
 ];
 
-/** The tier a name states, in its canonical spelling, or null. */
-export function parseTier(name: string): string | null {
+/**
+ * Colours, which a club uses for exactly what a tier is for.
+ *
+ * "Seattle United Shoreline B14/15 Blue" and its Red side are two teams of
+ * the same age at the same club, told apart by the colour and nothing else —
+ * the same job "Gold" already does above. Read only where an age group has
+ * already been named, because a colour anywhere else is part of the club's
+ * own name: "Blackhills FC", "West Seattle Red Bulls".
+ */
+const COLOURS =
+  /(?<![A-Za-z])(white|blue|black|red|green|maroon|navy|purple|orange|royal|grey|gray|azul|rojo|blanco|verde|negro)(?![A-Za-z])/i;
+
+/** Where an age group is named, so a colour after it can be read as a tier. */
+const AGE_ANCHOR = /(?<![A-Za-z])(?:[BGF]?\s?-?\s?U-?\s?\d{1,2}|[BGF]\s?\d{2}|(?:19|20)\d{2})/i;
+
+const upperFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+/**
+ * The tier a name states — its canonical spelling, and the text that said so.
+ *
+ * The matched text is returned because the spellings differ: "ECNL-RL",
+ * "ENCL RL" and "ecrl" all mean ECNL RL, and a caller cutting the tier out of
+ * the name needs the words that were actually there.
+ */
+export function tierMatch(name: string): { label: string; text: string } | null {
   for (const [pattern, label] of TIERS) {
     const m = pattern.exec(name);
-    if (m) return label.replace("$1", m[1] ?? "");
+    if (m) return { label: label.replace("$1", m[1] ?? ""), text: m[0] };
+  }
+  const anchor = AGE_ANCHOR.exec(name);
+  if (anchor) {
+    const after = name.slice(anchor.index + anchor[0].length);
+    const colour = COLOURS.exec(after);
+    if (colour) return { label: upperFirst(colour[1]), text: colour[0] };
   }
   return null;
+}
+
+/** The tier a name states, in its canonical spelling, or null. */
+export function parseTier(name: string): string | null {
+  return tierMatch(name)?.label ?? null;
 }
 
 /** Streams a club runs that are not a competitive tier. */
@@ -70,10 +111,16 @@ const PROGRAMS: [RegExp, string][] = [
  */
 const BRANCHES: Record<string, [RegExp, string][]> = {
   "seattle-united": [
-    [/\bshoreline\b/i, "Shoreline"],
+    [/\bshoreline\b|\bsh\b/i, "Shoreline"],
     [/\bnorthwest\b|\bnw\b/i, "Northwest"],
     [/\bsouth\b/i, "South"],
+    // Copa, Tango and Samba are streams rather than places, but they are the
+    // same kind of fact: which of the club's many sides of one age this is.
+    [/\bcopa\b/i, "Copa"],
+    [/\btango\b/i, "Tango"],
+    [/\bsamba\b/i, "Samba"],
   ],
+  "eastside-fc": [[/\bwest\b/i, "West"]],
 };
 
 /**
@@ -82,12 +129,21 @@ const BRANCHES: Record<string, [RegExp, string][]> = {
  * A branch wins over a generic word: "Seattle United Shoreline Premier" is a
  * Shoreline team, and Shoreline is what tells it from the club's other sides.
  */
-export function parseProgram(name: string, clubSlug: string | null): string | null {
+export function programMatch(
+  name: string,
+  clubSlug: string | null,
+): { label: string; text: string } | null {
   for (const [pattern, label] of BRANCHES[clubSlug ?? ""] ?? []) {
-    if (pattern.test(name)) return label;
+    const m = pattern.exec(name);
+    if (m) return { label, text: m[0] };
   }
   for (const [pattern, label] of PROGRAMS) {
-    if (pattern.test(name)) return label;
+    const m = pattern.exec(name);
+    if (m) return { label, text: m[0] };
   }
   return null;
+}
+
+export function parseProgram(name: string, clubSlug: string | null): string | null {
+  return programMatch(name, clubSlug)?.label ?? null;
 }
