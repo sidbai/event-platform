@@ -1,5 +1,13 @@
 import Link from "next/link";
 
+/**
+ * What the header does not already carry.
+ *
+ * Events lived here too until the header grew a link to it, and a footer that
+ * repeats the navigation above it is a second copy of the same choice — what
+ * belongs down here is the reading nobody navigates to on purpose: what the
+ * site is, and the terms it runs on.
+ */
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-line print:hidden">
@@ -8,9 +16,6 @@ export function SiteFooter() {
         <nav className="flex gap-4">
           <Link href="/about" className="hover:text-ink">
             About
-          </Link>
-          <Link href="/events" className="hover:text-ink">
-            Events
           </Link>
           <Link href="/guidelines" className="hover:text-ink">
             Guidelines
