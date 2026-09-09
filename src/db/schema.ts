@@ -826,7 +826,25 @@ export const matches = pgTable(
      */
     sourceMatchId: text("source_match_id"),
   },
-  (t) => [index("matches_event_idx").on(t.eventId)],
+  (t) => [
+    index("matches_event_idx").on(t.eventId),
+    /*
+     * Both sides, because "this team's games" is the most-asked question here
+     * and it has to be asked twice — a team is home in one fixture and away
+     * in the next. Without these it is a sequential scan of every match ever
+     * played: on the team page, behind every performance figure, and twice
+     * over on a preview.
+     *
+     * Measured against a 40,150-row copy: 4.9 ms without them, 0.12 ms with.
+     * At the 5,551 rows here today it is under a millisecond either way, so
+     * this fixes nothing that is wrong now — it is the difference between a
+     * cost that stays flat and one that grows with every league season
+     * imported. Which is why it wants doing before the leagues arrive rather
+     * than after: building an index on a large table locks it for longer.
+     */
+    index("matches_home_team_idx").on(t.homeTeamId),
+    index("matches_away_team_idx").on(t.awayTeamId),
+  ],
 );
 
 // --- relations ------------------------------------------------------
