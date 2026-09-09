@@ -29,6 +29,7 @@ import { requestTeamClaim } from "@/features/teams/claim-actions";
 import { ClaimTeamForm } from "@/features/teams/claim-form";
 import { myTeamClaim } from "@/features/teams/claim-queries";
 import { canRequestClaim } from "@/features/teams/claim";
+import { honoursByEvent, PLACE_LABEL } from "@/features/teams/honours";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,13 @@ export default async function TeamPage({
    * it — with the event linked, so nothing that was reachable is lost.
    */
   const back = { href: "/teams", label: "← All teams" };
+
+  /*
+   * What they won, worked out from the finals already loaded with the rest of
+   * the team's games. No extra query, and no stored placing to fall out of
+   * step with a score corrected the day after.
+   */
+  const honours = honoursByEvent(team.matches, team.id);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -360,8 +368,15 @@ export default async function TeamPage({
                   <span className="text-sm text-muted">
                     {" — "}
                     {et.division?.label ?? et.division?.name}
-                    {et.seed === 1 && " · 🏆 champion"}
                   </span>
+                  {/* The organizer's own seeding is kept as a second source:
+                      an event can name a champion without a final row here,
+                      which is how King Juan Cup 2026's were recorded. */}
+                  {(honours.get(et.eventId) ?? (et.seed === 1 ? "champion" : null)) && (
+                    <span className="ml-2 whitespace-nowrap rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-soft-text">
+                      {PLACE_LABEL[honours.get(et.eventId) ?? "champion"]}
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm tabular-nums text-muted">
                   {fmtDate(et.event.startsAt)} ·{" "}
