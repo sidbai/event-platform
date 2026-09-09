@@ -10,7 +10,7 @@ import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { signInEmail } from "@/features/email/messages";
 import { emailConfigured, sendEmail } from "@/features/email/send";
-import { generateUsername } from "@/features/profile/username";
+import { generateAnonymousUsername } from "@/features/profile/username";
 
 /**
  * How long a sign-in link lasts.
@@ -81,14 +81,14 @@ if (process.env.AUTH_DEV_LOGIN === "true" && process.env.NODE_ENV !== "productio
         });
         if (existing) return existing;
 
-        const username = await generateUsername(email.split("@")[0]);
+        const username = await generateAnonymousUsername();
         const [created] = await db
           .insert(users)
           .values({
             email,
             name: email.split("@")[0],
             username,
-            displayName: email.split("@")[0],
+            displayName: username,
           })
           .returning();
         return created;
@@ -106,14 +106,27 @@ const baseAdapter = DrizzleAdapter(db, {
 
 const adapter: Adapter = {
   ...baseAdapter,
+  /*
+   * Anonymous by default.
+   *
+   * An account exists from the first sign-in, before its owner has decided
+   * anything, so the defaults must not publish them. The username used to be
+   * the local part of their email address and the display name whatever
+   * Google holds — so somebody who signed in to RSVP once had their real name
+   * and half their address on the site without ever filling in a field.
+   *
+   * Both now start as the same generated handle. The provider's name is still
+   * kept on the row: it is the account's own record, it is what an admin
+   * judges a team claim against, and it is the person's to publish if they
+   * want to — settings is one page away.
+   */
   async createUser(data) {
     const rest = { ...(data as AdapterUser) };
     delete (rest as { id?: string }).id;
-    const seed = rest.email?.split("@")[0] || rest.name || "user";
-    const username = await generateUsername(seed);
+    const username = await generateAnonymousUsername();
     const [user] = await db
       .insert(users)
-      .values({ ...rest, username, displayName: rest.name ?? username })
+      .values({ ...rest, username, displayName: username })
       .returning();
     return user as AdapterUser;
   },

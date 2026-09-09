@@ -5,6 +5,24 @@ const RESERVED = new Set([
   "weekly", "you", "discussions", "discussion", "forum",
 ]);
 
+/**
+ * The shape of a username nobody chose.
+ *
+ * Signing in should not publish who you are. The old default was the local
+ * part of the email address — sid.umn@gmail.com became "sidumn" — which put
+ * a person's address on every comment they wrote, in a field they never
+ * filled in.
+ *
+ * "member" rather than "player" or "coach": most people here are a parent or
+ * a manager, and a handle that guesses wrong is worse than one that says
+ * nothing. Kept separate from the "anon-" pseudonym reviews use, so the two
+ * are not mistaken for each other and nobody reads a link between them that
+ * does not exist.
+ */
+export function generatedUsername(token: string): string {
+  return `member_${token.toLowerCase().replace(/[^a-z0-9]/g, "")}`.slice(0, 30);
+}
+
 export function normalizeUsername(input: string): string {
   return input
     .toLowerCase()

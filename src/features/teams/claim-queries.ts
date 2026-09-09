@@ -12,6 +12,10 @@ import { publicName } from "@/features/auth";
  * The account behind the request is shown in full here, deliberately: this is
  * the one screen where a real identity is the whole point, and a pseudonym
  * would leave nothing to judge the note against.
+ *
+ * Which is why `account` is the provider's own name rather than publicName.
+ * Everyone is anonymous by default now — a display name starts as a generated
+ * handle — so the public one says nothing an admin can weigh.
  */
 export async function pendingTeamClaims() {
   const rows = await db.query.teamClaims.findMany({
@@ -32,6 +36,8 @@ export async function pendingTeamClaims() {
     createdAt: c.createdAt,
     team: c.team,
     who: c.user ? publicName(c.user) : "Someone",
+    /** What the provider says their name is. Never shown outside /admin. */
+    account: c.user?.name ?? null,
     email: c.user?.email ?? null,
   }));
 }
