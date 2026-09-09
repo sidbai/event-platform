@@ -1,11 +1,15 @@
 /**
  * Whether a team won a tournament, worked out from the final itself.
  *
- * Two platforms say "this was the final" two ways. An event run here writes
- * a knockout stage and a round; an imported one carries the organizer's own
- * label, and Athletes2Events writes "Final" in the same field it uses for
- * "Semi-Finals A" and "Gold 2". Both are read here so the answer does not
- * depend on where the schedule came from.
+ * Three platforms say "this was the final" three ways, and the answer must
+ * not depend on which one published the schedule:
+ *
+ *  - an event run here writes a knockout stage and a round;
+ *  - Athletes2Events writes "Final" in the same field it uses for
+ *    "Semi-Finals A" and "Gold 2";
+ *  - EventConnect puts the knockout round in its own DIVISION, named
+ *    "Boys U12 Championships" beside the group divisions "Boys U12 Red" and
+ *    "Boys U12 Silver". Every game in it is the final of one flight.
  *
  * Derived rather than stored, because a stored placing is a second thing to
  * keep true: a score corrected the day after would leave a team credited
@@ -24,6 +28,9 @@ export type FinalLike = {
   round: string | null;
   /** The organizer's own label, which is where an import puts it. */
   groupLabel: string | null;
+  /** The division this game sits in, which is where EventConnect puts it. */
+  divisionId: string | null;
+  division: { name: string } | null;
   homeTeamId: string | null;
   awayTeamId: string | null;
   homeScore: number | null;
@@ -41,6 +48,22 @@ export type Place = "champion" | "runner-up";
 export function isFinal(match: Pick<FinalLike, "stage" | "round" | "groupLabel">): boolean {
   if (match.stage === "ko" && match.round?.toLowerCase() === "final") return true;
   return /^finals?$/i.test((match.groupLabel ?? "").trim());
+}
+
+/**
+ * A division that holds knockout games rather than a group.
+ *
+ * "Boys U12 Championships" sits beside "Boys U12 Red" and holds one final per
+ * flight — 124 such divisions across seven imported events, and in every one
+ * of them no team plays twice.
+ *
+ * Which is the check that keeps this honest: a name is a weak signal, so a
+ * team credited on it must have played exactly ONE game there. A tournament
+ * that named its group stage "Championship Division" would otherwise hand a
+ * trophy to whoever won their last group game.
+ */
+export function isKnockoutDivision(name: string | null | undefined): boolean {
+  return /championship/i.test(name ?? "");
 }
 
 /** Where this team finished in that final, or null if it cannot be said. */
@@ -66,9 +89,28 @@ export function honoursByEvent<T extends FinalLike & { eventId: string }>(
   matches: T[],
   teamId: string,
 ): Map<string, Place> {
+  /*
+   * How many decided games the team played in each division.
+   *
+   * One is what a knockout round looks like from a single team's side; more
+   * than one is a group, whatever the division happens to be called.
+   */
+  const played = new Map<string, number>();
+  for (const match of matches) {
+    if (match.homeScore === null || match.awayScore === null) continue;
+    if (match.homeTeamId !== teamId && match.awayTeamId !== teamId) continue;
+    const key = match.divisionId ?? "";
+    played.set(key, (played.get(key) ?? 0) + 1);
+  }
+
   const out = new Map<string, Place>();
   for (const match of matches) {
-    const place = placeIn(match, teamId);
+    const soleGameThere = played.get(match.divisionId ?? "") === 1;
+    const final =
+      isFinal(match) || (isKnockoutDivision(match.division?.name) && soleGameThere);
+    if (!final) continue;
+
+    const place = placeIn({ ...match, stage: "ko", round: "final" }, teamId);
     // A champion is never overwritten by a runner-up from the same event —
     // there is only one final per division, but an event with two divisions
     // is one a team could in principle appear in twice.
