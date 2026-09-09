@@ -309,9 +309,12 @@ describe("what a synced team knows about itself", () => {
     const eventId = await makeListing();
     await applySync(eventId, syncedFromFixtures(), new Date());
 
+    // Written the one way, not as XF printed it.
     const xf = await db.query.teams.findFirst({
-      where: eq(teams.name, "XF B09/10 ECNL 1"),
+      where: eq(teams.name, "Crossfire Premier B09/10 ECNL 1"),
       columns: {
+        id: true,
+        slug: true,
         clubId: true,
         affiliation: true,
         birthYears: true,
@@ -320,12 +323,32 @@ describe("what a synced team knows about itself", () => {
       },
     });
     expect(xf).toMatchObject({
+      slug: "crossfire-premier-b09-10-ecnl-1",
       clubId: club.id,
       affiliation: "club",
       birthYears: [2009, 2010],
       gender: "boys",
       tier: "ECNL 1",
     });
+    // And what XF actually printed is still on the entry, which is what the
+    // next tournament to use that name will bind against.
+    const entry = await db.query.eventTeams.findFirst({
+      where: eq(eventTeams.teamId, xf!.id),
+      columns: { sourceName: true },
+    });
+    expect(entry?.sourceName).toBe("XF B09/10 ECNL 1");
+  });
+
+  it("leaves a team with no club under the name its platform published", async () => {
+    const eventId = await makeListing();
+    await applySync(eventId, syncedFromFixtures(), new Date());
+
+    // No club record, so there is nothing to normalise the name against.
+    const unfiled = await db.query.teams.findFirst({
+      where: eq(teams.name, "XF B09/10 ECNL 1"),
+      columns: { clubId: true },
+    });
+    expect(unfiled).toMatchObject({ clubId: null });
   });
 
   it("derives the cohort from the age group and the event's season", async () => {
