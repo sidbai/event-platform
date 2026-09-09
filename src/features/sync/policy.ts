@@ -64,6 +64,21 @@ export const PROVIDER_POLICIES = {
     reviewedAt: "2026-09-06",
     note: "app.eventconnect.io/robots.txt is a blanket Disallow, which refuses Googlebot too — no search engine has these schedules, and an AI asked about a team there is reduced to saying contact the tournament directors. Their terms are silent on scraping, but silence is not permission. Link only. Embedding is closed as well: X-Frame-Options: SAMEORIGIN.",
   },
+  athleteone: {
+    label: "AthleteOne",
+    automatedAccess: "refused",
+    robots: "disallows",
+    /*
+     * Their robots.txt, because that is genuinely the document this decision
+     * was read from. The footer's "Terms of Use Agreement" opens in-app and
+     * carries no address — /terms, /terms-of-use and /termsofuse are all 404 —
+     * and not being able to find the binding document is a reason to be more
+     * careful rather than less.
+     */
+    termsUrl: "https://app.athleteone.com/robots.txt",
+    reviewedAt: "2026-09-08",
+    note: "app.athleteone.com/robots.txt is a blanket Disallow with only the auth pages allowed, and it names the AI crawlers individually on top of that. The schedule is client-rendered, so reading it without a browser would mean calling their internal API — which the Disallow covers whatever the transport. Their public event pages carry no export of any kind: no CSV, no print, no iCal. Divisions are click handlers rather than links, so there is no address list to hand anybody. A person can still open a page and copy what is on it: the bookmarklet in copier.ts reads the AthleteOne row shape and collects across flights.",
+  },
   manual: {
     label: "Entered by hand",
     automatedAccess: "not-applicable",
