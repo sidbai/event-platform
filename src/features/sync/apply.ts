@@ -16,6 +16,7 @@ import {
   teams,
 } from "@/db/schema";
 import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
+import { canonicalName } from "@/features/teams/canonical-name";
 import { teamFactsFrom } from "@/features/teams/facts";
 import { teamToBindTo } from "@/features/teams/binding";
 import { normaliseTeamName } from "@/features/teams/merge-plan";
@@ -141,7 +142,13 @@ export async function applySync(
     .from(clubAliases);
   const clubIdx = clubIndex(clubRows);
   const aliasMap = new Map(aliasRows.map((r) => [r.alias, r.clubId]));
-  const clubSlugById = new Map(clubRows.map((c) => [c.id, c.slug]));
+  const aliasesByClub = new Map<string, string[]>();
+  for (const row of aliasRows) {
+    aliasesByClub.set(row.clubId, [...(aliasesByClub.get(row.clubId) ?? []), row.alias]);
+  }
+  const clubsById = new Map(
+    clubRows.map((c) => [c.id, { ...c, aliases: aliasesByClub.get(c.id) ?? [] }]),
+  );
 
   /*
    * Names an admin has already said belong to an existing team.
@@ -284,7 +291,7 @@ export async function applySync(
     const team = await insertSyncedTeam(t.name, eventId, {
       seasonStart: event.startsAt,
       club,
-      clubSlugById,
+      clubsById,
       division: t.division,
     });
     // Bindable from here on, so a name repeated later in this same feed
@@ -418,7 +425,7 @@ export async function applySync(
 }
 
 /**
- * A team row for a name a platform published.
+ * A team row for a name a platform published, under the name we write.
  *
  * Retried, because picking a free slug is a read followed by a write and two
  * syncs running at once will happily pick the same one — two tournaments in
@@ -432,11 +439,10 @@ async function insertSyncedTeam(
   context: {
     seasonStart: Date | null;
     club: ClubMatch | null;
-    clubSlugById: Map<string, string>;
+    clubsById: Map<string, { name: string; slug: string; aliases: string[] }>;
     division?: string | null;
   },
 ) {
-  const base = slugify(name).slice(0, 60);
 
   /*
    * What the name says, recorded as the row is written.
@@ -447,11 +453,31 @@ async function insertSyncedTeam(
    * with for the newest rows. The facts belong where the row is made.
    */
   const clubId = context.club?.clubId ?? null;
+  const club = clubId ? (context.clubsById.get(clubId) ?? null) : null;
   const facts = teamFactsFrom(name, {
     seasonStart: context.seasonStart,
-    clubSlug: clubId ? (context.clubSlugById.get(clubId) ?? null) : null,
+    clubSlug: club?.slug ?? null,
     division: context.division,
   });
+
+  /*
+   * Written the one way from the start, rather than left for a script.
+   *
+   * The published name is not lost by this — event_teams.source_name keeps
+   * what this event called the side, and the binder above matches against
+   * every source name any event has used, so the next tournament to print
+   * "XF BU14 ECNL 1" still lands on this row. Only a club's teams: a side
+   * with no club has nothing to normalise against and keeps its name.
+   */
+  const written = canonicalName({
+    name,
+    club,
+    gender: facts.gender,
+    birthYears: facts.birthYears,
+    tier: facts.tier,
+    program: facts.program,
+  });
+  const base = slugify(written).slice(0, 60);
 
   for (let attempt = 0; ; attempt++) {
     try {
@@ -459,7 +485,7 @@ async function insertSyncedTeam(
         .insert(teams)
         .values({
           slug: await uniqueTeamSlug(base),
-          name,
+          name: written,
           // Listed, like every other team. This used to be "private", meaning
           // "we did not put it here on purpose" rather than "keep it secret",
           // and the two readings needed a special case in every query that
