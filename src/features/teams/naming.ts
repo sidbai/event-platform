@@ -37,6 +37,12 @@ const TIERS: [RegExp, string][] = [
   [/\bpre[-\s]?e[nc]{2}l[-\s/]*rl\b/i, "Pre-ECNL RL"],
   [/\be[nc]{2}l[-\s/]*rl\b/i, "ECNL RL"],
   [/\becrl\b/i, "ECNL RL"],
+  // Pre-ECNL runs divisions like ECNL does, and Eastside fields both a
+  // G14/15 Pre-ECNL 1 and a Pre-ECNL 2. Read as plain "Pre-ECNL" they are one
+  // side entered twice. "II" is the same division as "2": the club's G15/16
+  // is in here under both spellings.
+  [/\bpre[-\s]?ecnl[-\s]*ii\b/i, "Pre-ECNL 2"],
+  [/\bpre[-\s]?ecnl[-\s]*([12])\b/i, "Pre-ECNL $1"],
   [/\bpre[-\s]?ecnl\b/i, "Pre-ECNL"],
   [/\be[nc]{2}l[-\s]*([12])\b/i, "ECNL $1"],
   [/\be[nc]{2}l\b/i, "ECNL"],
