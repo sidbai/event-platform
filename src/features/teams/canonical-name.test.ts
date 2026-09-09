@@ -91,8 +91,13 @@ describe("canonicalName", () => {
   });
 
   it("keeps a nickname it cannot classify rather than dropping it", () => {
+    // Copa, Tango and Samba are what a Seattle United side is called, not
+    // where it plays, so they sit at the end and not in front of the cohort.
     expect(name({ name: "Seattle United - B13 Samba", club: seattleUnited, birthYears: [2013] })).toBe(
-      "Seattle United Samba B13",
+      "Seattle United B13 Samba",
+    );
+    expect(name({ name: "Seattle United Copa B16", club: seattleUnited, birthYears: [2016] })).toBe(
+      "Seattle United B16 Copa",
     );
     expect(
       name({

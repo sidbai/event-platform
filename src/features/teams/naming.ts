@@ -114,11 +114,15 @@ const BRANCHES: Record<string, [RegExp, string][]> = {
     [/\bshoreline\b|\bsh\b/i, "Shoreline"],
     [/\bnorthwest\b|\bnw\b/i, "Northwest"],
     [/\bsouth\b/i, "South"],
-    // Copa, Tango and Samba are streams rather than places, but they are the
-    // same kind of fact: which of the club's many sides of one age this is.
-    [/\bcopa\b/i, "Copa"],
-    [/\btango\b/i, "Tango"],
-    [/\bsamba\b/i, "Samba"],
+    /*
+     * Copa, Tango and Samba are deliberately not here.
+     *
+     * They look like the branches above and are not: a branch is where the
+     * side plays, and those are what the side is called. "Seattle United B16
+     * Copa" is how the club writes it and how people say it, so Copa belongs
+     * at the end with the squad letters and the coaches' names rather than
+     * in front of the age group like Shoreline.
+     */
   ],
   "eastside-fc": [[/\bwest\b/i, "West"]],
   "western-washington-surf": [
