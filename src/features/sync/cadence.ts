@@ -20,7 +20,28 @@ export type Syncable = {
   endsAt: Date | null;
   /** The event's own status. 'completed' and 'cancelled' end the polling. */
   status?: string;
+  /**
+   * When this event's games actually kick off.
+   *
+   * Only consulted for an event that runs longer than a weekend, where
+   * "started" and "being played" stop meaning the same thing. A tournament is
+   * being played for the whole of its span; a league that runs August to
+   * March is being played on about thirty Saturdays out of two hundred days.
+   */
+  kickoffs?: (Date | null)[];
 };
+
+/**
+ * Longer than this and the span is a season rather than an occasion.
+ *
+ * Ten days: no weekend tournament reaches it, and no league falls under it.
+ * The number only decides which of the two rules below applies, so a fortnight
+ * -long showcase landing on the season side costs a slower poll, not a wrong
+ * one.
+ */
+const SEASON_DAYS = 10;
+/** Close enough to a kickoff that scores are landing. */
+const LIVE_WINDOW = 4 * HOUR;
 
 /**
  * When to look again, or null to stop.
@@ -58,9 +79,20 @@ export function nextSyncAt(event: Syncable, now: Date): Date | null {
   if (t > end + 2 * DAY) return null;
   if (t > end) return new Date(t + 2 * HOUR);
 
-  // Being played. Kick-off times move between fields and scores land every
-  // few minutes; this is the only window where minutes matter.
-  if (t >= start) return new Date(t + 20 * MINUTE);
+  /*
+   * Being played — for a weekend, which is what this rule was written for.
+   *
+   * A league breaks it. "Started" is true for seven months, and twenty-minute
+   * polling across all of them is about fifteen thousand requests to answer a
+   * question that changes on thirty Saturdays. So a season is asked a
+   * different question: not "has it started" but "is there football today".
+   */
+  if (t >= start) {
+    if (end - start > SEASON_DAYS * DAY) return seasonCadence(event, now, end);
+    // Kick-off times move between fields and scores land every few minutes;
+    // this is the only window where minutes matter.
+    return new Date(t + 20 * MINUTE);
+  }
 
   const until = start - t;
   // The day before, and the morning of: the schedule is being finalised.
@@ -107,4 +139,35 @@ export function isStale(
   const playing = start !== null && end !== null && now.getTime() >= start && now.getTime() <= end;
   const limit = playing ? 2 * HOUR : 2 * DAY;
   return now.getTime() - event.lastSyncedAt.getTime() > limit;
+}
+
+/**
+ * How often to look at a season that is under way.
+ *
+ * Keyed on the nearest kickoff rather than on the calendar, because a league
+ * postpones a round into midweek and plays a cup date on a Wednesday, and a
+ * rule that assumed Saturdays would miss both. With no kickoffs to go on —
+ * a league listed before its fixtures are published — daily is the honest
+ * answer: something will change, but not in the next hour.
+ */
+function seasonCadence(event: Syncable, now: Date, end: number): Date {
+  const t = now.getTime();
+  const kickoffs = (event.kickoffs ?? [])
+    .filter((k): k is Date => k !== null)
+    .map((k) => k.getTime());
+  if (kickoffs.length === 0) return new Date(Math.min(t + DAY, end + 2 * DAY));
+
+  const nearest = kickoffs.reduce(
+    (best, k) => (Math.abs(k - t) < Math.abs(best - t) ? k : best),
+    kickoffs[0],
+  );
+  const away = Math.abs(nearest - t);
+
+  // Games are on. This is the window the twenty minutes were always for.
+  if (away <= LIVE_WINDOW) return new Date(t + 20 * MINUTE);
+  // Later today, or earlier today: the schedule is being finalised, or the
+  // last results are landing.
+  if (away <= DAY) return new Date(t + 2 * HOUR);
+  // Between rounds. Nothing changes that anybody needs within a day.
+  return new Date(t + DAY);
 }
