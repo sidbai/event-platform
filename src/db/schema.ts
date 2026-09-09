@@ -552,6 +552,48 @@ export const teamSlugs = pgTable(
   (t) => [index("team_slugs_team_id_idx").on(t.teamId)],
 );
 
+/**
+ * What a merge undid, in case it should not have.
+ *
+ * mergeTeams deletes the row it absorbs, and that is right: an absorbed team
+ * kept alongside the live one shadows its own redirect, and every listing,
+ * search and planner query would have to learn to skip it. But a merge is
+ * also the one cleanup with no way back — it moves fixtures onto the survivor
+ * without recording which were moved, and drops entries the survivor already
+ * had a copy of — so an accidental one could not be undone at all.
+ *
+ * This is the record that makes it undoable. Nothing in the application reads
+ * it, so it cannot leak a merged team back into a page; it exists for
+ * scripts/unmerge-team.ts and for answering what happened.
+ */
+export const teamMerges = pgTable(
+  "team_merges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /*
+     * Nulled rather than cascaded when the survivor is itself merged away.
+     *
+     * Cascading would erase the first merge's record the moment the survivor
+     * took part in a second, which is exactly the chain somebody would be
+     * trying to unpick. Undo refuses on a null and says why.
+     */
+    survivorId: uuid("survivor_id").references(() => teams.id, {
+      onDelete: "set null",
+    }),
+    mergedAt: timestamp("merged_at", { withTimezone: true }).notNull().defaultNow(),
+    mergedBy: uuid("merged_by").references(() => users.id, { onDelete: "set null" }),
+    /** The absorbed row exactly as it stood, since nothing else holds it now. */
+    team: jsonb("team").notNull(),
+    /** Ids of what moved to the survivor. The rows themselves still exist. */
+    moved: jsonb("moved").notNull(),
+    /** Whole rows, because these were deleted and nothing else remembers them. */
+    dropped: jsonb("dropped").notNull(),
+    /** Set once undone, so a second run cannot double-restore. */
+    undoneAt: timestamp("undone_at", { withTimezone: true }),
+  },
+  (t) => [index("team_merges_survivor_idx").on(t.survivorId)],
+);
+
 // --- event_divisions: brackets within a tournament --------------------
 
 export const eventDivisions = pgTable(
