@@ -12,6 +12,18 @@
  * puts them back together one way.
  */
 
+/**
+ * Whether a number can be somebody's birth year at all.
+ *
+ * The youngest bracket anywhere in this data is U4, so a year within four of
+ * the present is not a birth year — it is a season. "26/27 Portland Thorns
+ * Academy U10" is the 2026/27 season's U10 side, and read as a cohort it made
+ * five teams of children born next year.
+ */
+export function looksLikeBirthYear(year: number, now: Date = new Date()): boolean {
+  return year >= 1950 && year <= now.getUTCFullYear() - 4;
+}
+
 /** A two-digit year, in the range youth soccer birth years actually fall in. */
 function fullYear(raw: string): number {
   const n = Number(raw);
@@ -44,7 +56,7 @@ const SHORT = /(?<![0-9A-Za-z])[BG]([0-2]\d)(?![0-9])/;
  * about which season a June fixture belongs to — and a guess written into
  * this column would be read as something somebody checked.
  */
-export function parseBirthYears(name: string): number[] {
+export function parseBirthYears(name: string, now: Date = new Date()): number[] {
   const pair = PAIR.exec(name);
   if (pair) {
     const a = fullYear(pair[1]);
@@ -56,12 +68,14 @@ export function parseBirthYears(name: string): number[] {
     // year second, and read strictly ascending they fell through to the
     // single-year rule and lost a year each.
     const [lo, hi] = a <= b ? [a, b] : [b, a];
-    if (hi - lo === 1 && lo >= 1950 && hi <= 2100) return [lo, hi];
+    if (hi - lo === 1 && looksLikeBirthYear(lo, now) && looksLikeBirthYear(hi, now)) {
+      return [lo, hi];
+    }
   }
   const full = FULL.exec(name);
-  if (full) return [fullYear(full[1])];
+  if (full && looksLikeBirthYear(fullYear(full[1]), now)) return [fullYear(full[1])];
   const short = SHORT.exec(name);
-  if (short) return [fullYear(short[1])];
+  if (short && looksLikeBirthYear(fullYear(short[1]), now)) return [fullYear(short[1])];
   return [];
 }
 

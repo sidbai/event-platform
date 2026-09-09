@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ageGroupOf,
   birthYearsForAgeGroup,
+  looksLikeBirthYear,
   formatBirthYears,
   parseAgeGroupFilter,
   parseAgeGroup,
@@ -249,5 +250,26 @@ describe("age groups for a season", () => {
     expect(parseAgeGroupFilter("BU99", 2026)).toBeNull();
     expect(parseAgeGroupFilter("", 2026)).toBeNull();
     expect(parseAgeGroupFilter(null, 2026)).toBeNull();
+  });
+});
+
+describe("looksLikeBirthYear", () => {
+  const now = new Date("2026-09-09T00:00:00Z");
+
+  it("refuses a year no player could have been born in", () => {
+    // The youngest bracket anywhere here is U4, so "26/27" on a 2026 fixture
+    // is the season, not a cohort.
+    expect(looksLikeBirthYear(2026, now)).toBe(false);
+    expect(looksLikeBirthYear(2027, now)).toBe(false);
+  });
+
+  it("accepts the years teams here actually state", () => {
+    expect(looksLikeBirthYear(2022, now)).toBe(true);
+    expect(looksLikeBirthYear(2007, now)).toBe(true);
+  });
+
+  it("keeps a season out of the birth years", () => {
+    expect(parseBirthYears("26/27 Portland Thorns Academy U10", now)).toEqual([]);
+    expect(parseBirthYears("XF U12 B14/15 ECNL 1", now)).toEqual([2014, 2015]);
   });
 });

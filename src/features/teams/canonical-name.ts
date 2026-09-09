@@ -1,4 +1,5 @@
-import { parseTier, parseProgram, tierMatch, programMatch } from "./naming";
+import { looksLikeBirthYear } from "./age";
+import { branchMatch, parseTier, streamMatch, tierMatch } from "./naming";
 
 /**
  * One way to write a team's name.
@@ -40,6 +41,10 @@ export function cohortLabel(
 ): string | null {
   if (gender !== "boys" && gender !== "girls") return null;
   if (!birthYears || birthYears.length === 0) return null;
+  // Rows already hold a season where a cohort belongs — {2026, 2027} on five
+  // U10 sides. Printing it would write the mistake into the name, where it
+  // stops looking like one.
+  if (!birthYears.every((y) => looksLikeBirthYear(y))) return null;
   const letter = gender === "boys" ? "B" : "G";
   const yy = birthYears.map((y) => String(y % 100).padStart(2, "0"));
   return `${letter}${yy.join("/")}`;
@@ -77,7 +82,7 @@ const AGE_TOKENS = [
  * because it is the whole of what tells one club's two U10 sides apart.
  */
 const U_TOKEN =
-  /(?<![A-Za-z])([BGF])?\s?-?\s?U-?\s?(\d{1,2})(?:\s?[-/]\s?(\d{1,2}))?\s?([A-Za-z])?(?![A-Za-z0-9])/gi;
+  /(?<![A-Za-z])([BGF])?\s?-?\s?U-?\s?(\d{1,2})(?:\s?[-/]\s?U?-?\s?(\d{1,2}))?\s?([A-Za-z]{1,2})?(?![A-Za-z0-9])/gi;
 
 function cutUTokens(text: string): string {
   return text.replace(U_TOKEN, (_all, lead, digits, second, trailing) => {
@@ -87,7 +92,9 @@ function cutUTokens(text: string): string {
      * second U11 side. Consecutive numbers are the age range and go with the
      * rest of the age token; anything else is a squad number and stays.
      */
-    if (second !== undefined && Number(second) !== Number(digits) + 1) {
+    // Either direction: "BU12/U11" counts down where "GU-18/19" counts up,
+    // and both are one side playing two age groups.
+    if (second !== undefined && Math.abs(Number(second) - Number(digits)) !== 1) {
       kept.push(second);
     }
     if (trailing) {
@@ -179,7 +186,8 @@ export function remainderOf(facts: NameFacts): string {
   if (!facts.club) {
     // Nothing to look the club up by, so the words the name leads with are
     // the club — and they are already going to lead the rewrite.
-    rest = rest.slice(leadCut(facts.name));
+    const span = clubSpan(facts.name);
+    rest = rest.slice(0, span.index) + " " + rest.slice(span.index + span.length);
   }
 
   if (facts.club) {
@@ -203,11 +211,19 @@ export function remainderOf(facts: NameFacts): string {
    * said "N1" — and without this it fails to recognise it and prints it twice.
    */
   const tier = tierMatch(facts.name);
-  for (const text of [tier?.text, facts.tier, tier?.label]) {
-    if (text) rest = rest.replace(text, " ");
-  }
-  const program = programMatch(facts.name, facts.club?.slug ?? null);
-  for (const text of [program?.text, facts.program, program?.label]) {
+  const branch = branchMatch(facts.name, facts.club?.slug ?? null);
+  const stream = streamMatch(facts.name);
+  const said = [
+    tier?.text,
+    facts.tier,
+    tier?.label,
+    branch?.text,
+    branch?.label,
+    stream?.text,
+    stream?.label,
+    facts.program,
+  ];
+  for (const text of said) {
     if (text) rest = rest.replace(text, " ");
   }
 
@@ -275,7 +291,11 @@ function balanceBrackets(text: string): string {
  */
 export function canonicalName(facts: NameFacts): string {
   const cohort = cohortLabel(facts.gender, facts.birthYears);
-  const program = facts.program ?? parseProgram(facts.name, facts.club?.slug ?? null);
+  const slug = facts.club?.slug ?? null;
+  // Both, and in this order: a team has a branch and a stream at once —
+  // "WW SURF BU10 Central Academy A" is the Central Academy's A side.
+  const branch = branchMatch(facts.name, slug)?.label ?? null;
+  const stream = streamMatch(facts.name)?.label ?? null;
   const tier = fullerTier(facts.tier, parseTier(facts.name));
   // With no club record the words the name leads with are the club — but a
   // name that puts its tier up front ("Oregon Premier FC Pre ECNL B2015/16")
@@ -283,9 +303,11 @@ export function canonicalName(facts: NameFacts): string {
   const club = facts.club?.name ?? withoutNaming(leadOf(facts.name), facts);
   const rest = remainderOf(facts);
 
-  if (!club || !cohort) return tidy(facts.name);
+  // Nothing to build from, so the published name stands as published —
+  // whitespace tidied and not another character touched.
+  if (!club || !cohort) return facts.name.trim().replace(/\s+/g, " ");
 
-  const parts = [club, program, cohort, tier, rest].filter(
+  const parts = [club, branch, stream, facts.program, cohort, tier, rest].filter(
     (p): p is string => typeof p === "string" && p !== "",
   );
   // A club whose own name already carries the program — "Highline Premier
@@ -351,18 +373,45 @@ function dedupe(parts: string[]): string[] {
  * decides what leads the printed name.
  */
 export function leadOf(name: string): string {
-  return tidy(withoutRepeats(name.slice(0, leadCut(name))));
+  const span = clubSpan(name);
+  return tidy(withoutRepeats(name.slice(span.index, span.index + span.length)));
 }
 
-/** Where the club stops and the age group starts. */
-function leadCut(name: string): number {
-  let cut = name.length;
+/** Where the age group sits in the name, if it states one at all. */
+function ageSpan(name: string): { index: number; length: number } | null {
+  let span: { index: number; length: number } | null = null;
   for (const pattern of [U_TOKEN, ...AGE_TOKENS]) {
     const re = new RegExp(pattern.source, pattern.flags.replace("g", ""));
     const m = re.exec(name);
-    if (m && m.index < cut) cut = m.index;
+    if (m && (span === null || m.index < span.index)) {
+      span = { index: m.index, length: m[0].length };
+    }
   }
-  return cut;
+  return span;
+}
+
+/**
+ * The words that name the club, wherever in the string they fall.
+ *
+ * Usually first — "Three Rivers Soccer Club - GU14 Chang" — but the Liga
+ * Azteca exports lead with the age group instead: "BU12 Liga Azteca -
+ * Cosmos". There the club is what follows, up to the separator that
+ * introduces the side's own name.
+ */
+function clubSpan(name: string): { index: number; length: number } {
+  const age = ageSpan(name);
+  if (age === null) return { index: 0, length: name.length };
+  if (age.index > 0) return { index: 0, length: age.index };
+  const after = name.slice(age.index + age.length);
+  const sep = /\s*[,;]\s*|\s+[-–—]+\s+/.exec(after);
+  // Whichever comes first: the separator that introduces the side's own name,
+  // or a second age token — "GU15 Valor ECNL RL G2013/14" states its cohort
+  // twice, and the club is only the words between them.
+  const next = ageSpan(after);
+  const ends = [sep?.index, next?.index, after.length].filter(
+    (n): n is number => typeof n === "number",
+  );
+  return { index: age.index + age.length, length: Math.min(...ends) };
 }
 
 /**
