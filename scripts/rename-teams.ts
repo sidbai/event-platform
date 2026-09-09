@@ -6,7 +6,7 @@ import { eq, sql } from "drizzle-orm";
 config({ path: ".env.local" });
 
 /**
- * Writes every team's name the one way.
+ * Writes every club team's name the one way.
  *
  *   pnpm db:teams:rename                 # says what it would do
  *   pnpm db:teams:rename --all           # every rename, not a sample
@@ -19,7 +19,7 @@ config({ path: ".env.local" });
  * team_aliases and event_teams.source_name — so a rename does not orphan a
  * fixture. That is the whole reason this can run at all.
  *
- * The dry run is the point. This touches 2,300 rows, and the only way to
+ * The dry run is the point. This touches 1,484 rows, and the only way to
  * know a rewrite says as much as the name it replaces is to read them.
  */
 
@@ -52,7 +52,9 @@ async function main() {
       clubSlug: clubs.slug,
     })
     .from(teams)
-    .leftJoin(clubs, eq(clubs.id, teams.clubId))
+    // Only a club's teams. A side with no club in the directory has no fixed
+    // vocabulary behind its name, and nothing to normalise it against.
+    .innerJoin(clubs, eq(clubs.id, teams.clubId))
     .orderBy(teams.name);
 
   const changes: { id: string; from: string; to: string }[] = [];
@@ -62,13 +64,11 @@ async function main() {
   for (const team of rows) {
     const to = canonicalName({
       name: team.name,
-      club: team.clubId
-        ? {
-            name: team.clubName!,
-            slug: team.clubSlug!,
-            aliases: aliasesFor.get(team.clubId) ?? [],
-          }
-        : null,
+      club: {
+        name: team.clubName,
+        slug: team.clubSlug,
+        aliases: aliasesFor.get(team.clubId) ?? [],
+      },
       gender: team.gender,
       birthYears: team.birthYears,
       tier: team.tier,
@@ -86,7 +86,7 @@ async function main() {
   for (const c of sample) console.log(`  ${c.from}\n→ ${c.to}\n`);
 
   console.log(
-    `${changes.length} rename(s), ${unchanged} already canonical, out of ${rows.length} teams.`,
+    `${changes.length} rename(s), ${unchanged} already canonical, out of ${rows.length} club teams.`,
   );
   // The failure worth catching before a write, not after: a rewrite that
   // dropped most of what the published name said.
@@ -104,8 +104,9 @@ async function main() {
   }
   const [{ n }] = await db
     .select({ n: sql<number>`count(*)::int` })
-    .from(teams);
-  console.log(`\nWrote ${changes.length} name(s). ${n} teams.`);
+    .from(teams)
+    .where(sql`${teams.affiliation} = 'club'`);
+  console.log(`\nWrote ${changes.length} name(s). ${n} club teams.`);
   process.exit(0);
 }
 
