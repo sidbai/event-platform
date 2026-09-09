@@ -15,7 +15,8 @@ import {
   declineTeamInvite,
 } from "@/features/teams/invite-actions";
 import { myPendingTeamInvite } from "@/features/teams/invite-queries";
-import { hostedEvents } from "@/features/teams/queries";
+import { NextUpPanel } from "@/features/teams/next-up";
+import { hostedEvents, nextUpFor } from "@/features/teams/queries";
 import { pendingEntriesForTeam } from "@/features/registration/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
 import { startConversation } from "@/features/messages/actions";
@@ -102,6 +103,8 @@ export default async function TeamPage({
   const couldClaimIfSignedIn =
     !user && canRequestClaim(team, { id: "anyone", admin: false }, null);
   const events = await hostedEvents(team.id, member || admin);
+  // Two queries, and only when there is a game to preview.
+  const nextUp = await nextUpFor(team.id, team.matches);
 
   /*
    * Always the directory.
@@ -262,6 +265,16 @@ export default async function TeamPage({
         <p className="mt-4 rounded-md border border-line bg-elevated px-3 py-2 text-sm text-muted">
           Your request to manage this team is waiting for an admin.
         </p>
+      )}
+
+      {nextUp && (
+        <NextUpPanel
+          nextUp={nextUp}
+          teamName={team.name}
+          timezone={
+            team.matches.find((m) => m.id === nextUp.fixture.id)?.event?.timezone ?? null
+          }
+        />
       )}
 
       {(events.length > 0 || canSchedule) && (
