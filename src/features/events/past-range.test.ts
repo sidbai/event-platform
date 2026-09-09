@@ -30,6 +30,12 @@ describe("readPastRange", () => {
     expect(readPastRange("last-tuesday")).toBe(DEFAULT_PAST_RANGE);
   });
 
+  it("defaults to the narrowest window", () => {
+    // The events page is opened to see what is on, so the archive starts
+    // small and widens on a click.
+    expect(DEFAULT_PAST_RANGE).toBe("1m");
+  });
+
   it("offers exactly the three the events page shows", () => {
     expect(PAST_RANGES.map((r) => r.label)).toEqual([
       "Last month",

@@ -11,6 +11,7 @@ import {
 } from "@/features/events/queries";
 import { CreateLink } from "@/components/create-link";
 import {
+  DEFAULT_PAST_RANGE,
   PAST_RANGES,
   pastRangesAreUseful,
   readPastRange,
@@ -100,10 +101,16 @@ export default async function EventsPage({
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (next.kind) params.set("kind", next.kind);
-    // Only when it is not the default, so the ordinary URL stays clean and
-    // shareable — and so a link somebody sent last month still means what it
-    // said rather than pinning them to a window they never chose.
-    if (next.past && next.past !== "3m") params.set("past", next.past);
+    /*
+     * Only when it is not the default, so the ordinary URL stays clean and
+     * shareable — and so a link somebody sent last month still means what it
+     * said rather than pinning them to a window they never chose.
+     *
+     * Read from the constant, not written out again: this was a literal "3m"
+     * until the default moved, and a second copy of a default is a rule that
+     * goes quietly wrong the day somebody changes the first one.
+     */
+    if (next.past && next.past !== DEFAULT_PAST_RANGE) params.set("past", next.past);
     const s = params.toString();
     return s ? `/events?${s}` : "/events";
   };

@@ -25,13 +25,14 @@ export const PAST_RANGES: { key: PastRangeKey; label: string; days: number | nul
 ];
 
 /**
- * Three months rather than one.
+ * One month.
  *
- * A youth season runs in blocks, and the question somebody arrives with is
- * usually "how did we do this season" rather than "what happened in the last
- * four weeks". One month is a click away for anyone who wants it.
+ * The narrowest window is the right default for a page somebody opens to see
+ * what is on: what finished in the last four weeks is still news, and the
+ * rest is an archive two clicks away. Every caller reads this rather than a
+ * literal, so moving it moves the page and the URLs together.
  */
-export const DEFAULT_PAST_RANGE: PastRangeKey = "3m";
+export const DEFAULT_PAST_RANGE: PastRangeKey = "1m";
 
 const DAY = 86_400_000;
 
