@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { byMatchday, byWeek, currentMatchday, currentWeek, dayKey, hasWeeks } from "./matchdays";
+import { byCluster, byMatchday, byWeek, currentMatchday, currentWeek, dayKey, hasWeeks } from "./matchdays";
 
 const SEATTLE = "America/Los_Angeles";
 const m = (id: string, iso: string | null) => ({
@@ -189,5 +189,73 @@ describe("currentWeek", () => {
 
   it("falls back to the first when nothing has a date yet", () => {
     expect(currentWeek([week("1", null), week("2", null)], at("2026-09-12T12:00:00Z"))).toBe("1");
+  });
+});
+
+/**
+ * A round played over a weekend is one round.
+ *
+ * ECNL publishes no round numbers, so the dates are all there is to go on.
+ * Its Boys Northwest BU15 season puts 72 fixtures on 21 days with gaps of
+ * exactly one day or at least six — nothing in between.
+ */
+describe("byCluster", () => {
+  const TZ = "America/Los_Angeles";
+  const m = (id: string, iso: string) => ({ id, kickoffAt: new Date(iso) });
+
+  it("joins a Saturday and a Sunday into one round", () => {
+    const rounds = byCluster(
+      [m("sat", "2026-09-12T18:00:00Z"), m("sun", "2026-09-13T21:00:00Z")],
+      TZ,
+    );
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0].key).toBe("2026-09-12");
+    expect(rounds[0].through).toBe("2026-09-13");
+    expect(rounds[0].matches.map((x) => x.id)).toEqual(["sat", "sun"]);
+  });
+
+  it("keeps a week apart as two rounds", () => {
+    const rounds = byCluster(
+      [m("one", "2026-09-12T18:00:00Z"), m("two", "2026-09-19T18:00:00Z")],
+      TZ,
+    );
+    expect(rounds.map((r) => r.key)).toEqual(["2026-09-12", "2026-09-19"]);
+    expect(rounds[0].through).toBeUndefined();
+  });
+
+  it("reads the real season the way the league does", () => {
+    // The first five match days of ECNL Boys Northwest BU15. Two of the gaps
+    // are one day and the rest are six or more.
+    const season = [
+      "2026-08-30", "2026-09-12", "2026-09-13", "2026-09-19",
+      "2026-09-26", "2026-09-27", "2026-10-04",
+    ].map((d, i) => m(`g${i}`, `${d}T18:00:00Z`));
+
+    const rounds = byCluster(season, TZ);
+    expect(rounds.map((r) => (r.through ? `${r.key}..${r.through}` : r.key))).toEqual([
+      "2026-08-30",
+      "2026-09-12..2026-09-13",
+      "2026-09-19",
+      "2026-09-26..2026-09-27",
+      "2026-10-04",
+    ]);
+  });
+
+  it("leaves undated fixtures in their own group at the end", () => {
+    const rounds = byCluster(
+      [{ id: "tbd", kickoffAt: null }, m("dated", "2026-09-12T18:00:00Z")],
+      TZ,
+    );
+    expect(rounds.map((r) => r.key)).toEqual(["2026-09-12", ""]);
+  });
+
+  it("does not swallow a whole tournament into one heading", () => {
+    // Which is why only a league is read this way. Three days running is one
+    // round to a league and three matchdays to a tournament.
+    const weekend = ["2026-06-20", "2026-06-21", "2026-06-22"].map((d, i) =>
+      m(`d${i}`, `${d}T18:00:00Z`),
+    );
+    expect(byCluster(weekend, TZ)).toHaveLength(1);
+    expect(byMatchday(weekend, TZ)).toHaveLength(3);
   });
 });
