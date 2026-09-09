@@ -11,8 +11,8 @@ type Action = (prev: ClaimResult, formData: FormData) => Promise<ClaimResult>;
  * "This is my team", folded away until somebody wants it.
  *
  * A details element rather than a button: on a team page the reader is
- * usually a parent looking up a kick-off time, and the one coach who wants
- * this is looking for it. It asks for a sentence, because with nothing to
+ * usually a parent looking up a kick-off time, and the one person who runs
+ * the team is looking for it. It asks for a sentence, because with nothing to
  * verify against that sentence is the whole of what an admin decides on.
  */
 export function ClaimTeamForm({ action }: { action: Action }) {
@@ -34,15 +34,18 @@ export function ClaimTeamForm({ action }: { action: Action }) {
       </summary>
       <form action={formAction} className="mt-2 space-y-2">
         <p className="text-sm text-muted">
-          Say who you are and how somebody could check — your role, the club,
-          and a way to reach you. An admin reads it; it is never shown on the
-          team&rsquo;s page.
+          {/* Coach, manager, club administrator, the parent who does the
+              fixtures — whoever actually runs it. Naming a role would send
+              everybody else away. */}
+          Say who you are and how somebody could check &mdash; your role, the
+          club, and a way to reach you. An admin reads it; it is never shown on
+          the team&rsquo;s page.
         </p>
         <textarea
           name="note"
           required
           rows={3}
-          placeholder="I coach Eastside FC GU12 Red. You can reach me through the club office."
+          placeholder="I'm the team manager for Eastside FC GU12 Red — the club office can confirm it."
           className="w-full rounded-md border border-line bg-card px-3 py-2 text-sm"
         />
         {state.fieldErrors?.note && (
