@@ -107,3 +107,33 @@ export function worthShowing(preview: Preview): boolean {
     preview.shared.length > 0
   );
 }
+
+/**
+ * Everything already played, plus the next fixture and no more.
+ *
+ * A season's fixtures are published all at once. A team's page carried
+ * twenty-four ECNL dates running to May above every result it had, so its
+ * record was three screens down — and the rest of a fixture list is the
+ * event's to show, where it can be read a round at a time.
+ *
+ * "Already played" is by the clock and not by the score. A game last Saturday
+ * that nobody has filled in yet has happened, and hiding it would hide the
+ * thing somebody most wants to correct.
+ *
+ * The next one stays in the list rather than being left to the panel above
+ * it: that panel says more, but it only renders when the opponent resolves to
+ * a team here, and the list should stand on its own.
+ */
+export function playedAndNext<T extends { kickoffAt: Date | null; homeScore: number | null }>(
+  matches: T[],
+  now: Date = new Date(),
+): T[] {
+  const ahead = (m: T) =>
+    m.homeScore === null && m.kickoffAt !== null && m.kickoffAt.getTime() > now.getTime();
+
+  const next = matches
+    .filter(ahead)
+    .sort((a, b) => a.kickoffAt!.getTime() - b.kickoffAt!.getTime())[0];
+
+  return matches.filter((m) => !ahead(m) || m === next);
+}

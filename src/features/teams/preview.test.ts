@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextFixture, previewOf, worthShowing } from "./preview";
+import { nextFixture, playedAndNext, previewOf, worthShowing } from "./preview";
 
 const US = "us";
 const THEM = "them";
@@ -124,5 +124,56 @@ describe("worthShowing", () => {
       { teamId: THEM, matches: [] },
     );
     expect(worthShowing(preview)).toBe(true);
+  });
+});
+
+/**
+ * A team page is a record, with the next game on the end of it.
+ *
+ * ECNL publishes a whole season at once, and this team's page carried
+ * twenty-four dates running to May above every result it had.
+ */
+describe("playedAndNext", () => {
+  const g = (id: string, iso: string, score: number | null) => ({
+    id,
+    kickoffAt: new Date(iso),
+    homeScore: score,
+  });
+
+  it("keeps one fixture ahead, not the whole season", () => {
+    const season = [
+      g("played", "2026-09-05T17:00:00Z", 2),
+      g("next", "2026-09-12T17:00:00Z", null),
+      g("later", "2026-09-19T17:00:00Z", null),
+      g("may", "2027-05-01T17:00:00Z", null),
+    ];
+    expect(playedAndNext(season, NOW).map((m) => m.id)).toEqual(["played", "next"]);
+  });
+
+  it("keeps a game that has been played but not filled in", () => {
+    // By the clock, not by the score: last Saturday happened, and hiding it
+    // would hide the thing somebody most wants to correct.
+    const list = [g("unscored", "2026-09-06T17:00:00Z", null), g("ahead", "2026-09-20T17:00:00Z", null)];
+    expect(playedAndNext(list, NOW).map((m) => m.id)).toEqual(["unscored", "ahead"]);
+  });
+
+  it("takes the soonest ahead, whatever order the list is in", () => {
+    // A team page lists newest first, so the season arrives back to front.
+    const list = [
+      g("may", "2027-05-01T17:00:00Z", null),
+      g("soonest", "2026-09-12T17:00:00Z", null),
+      g("october", "2026-10-03T17:00:00Z", null),
+    ];
+    expect(playedAndNext(list, NOW).map((m) => m.id)).toEqual(["soonest"]);
+  });
+
+  it("leaves a finished season exactly as it is", () => {
+    const list = [g("a", "2026-09-05T17:00:00Z", 1), g("b", "2026-08-29T17:00:00Z", 0)];
+    expect(playedAndNext(list, NOW)).toHaveLength(2);
+  });
+
+  it("keeps an undated fixture, having no way to call it ahead", () => {
+    const list = [{ id: "tbd", kickoffAt: null, homeScore: null }];
+    expect(playedAndNext(list, NOW).map((m) => m.id)).toEqual(["tbd"]);
   });
 });
