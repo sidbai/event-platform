@@ -35,9 +35,16 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
 export function PerformancePanel({
   matches,
   teamId,
+  addedByTeam = 0,
 }: {
   matches: Dated[];
   teamId: string;
+  /**
+   * How many of these results the team told us about rather than an
+   * organizer. Stated because it changes what the numbers are worth, and
+   * because a figure whose provenance is invisible is one nobody can check.
+   */
+  addedByTeam?: number;
 }) {
   const shape = performanceOf(matches, teamId);
   if (shape.played === 0) return null;
@@ -55,6 +62,12 @@ export function PerformancePanel({
         />
         <Stat label="Scored in" value={`${shape.scoredIn} of ${shape.played}`} />
       </dl>
+
+      {addedByTeam > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          {addedByTeam} of {shape.played} added by the team.
+        </p>
+      )}
 
       {form.length > 1 && (
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3">

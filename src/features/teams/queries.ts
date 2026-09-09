@@ -259,7 +259,7 @@ export async function getTeamBySlug(slug: string) {
       // The timezone comes along because a match's date is the organizer's
       // date: a 6pm Sunday kickoff in Seattle is Monday in UTC, and a history
       // that puts games on the wrong day is worse than one with no dates.
-      event: { columns: { slug: true, title: true, timezone: true } },
+      event: { columns: { slug: true, title: true, timezone: true, status: true } },
       division: { columns: { name: true } },
       homeTeam: {
         columns: { name: true, slug: true, crestUrl: true },
