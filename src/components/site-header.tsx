@@ -43,7 +43,7 @@ export async function SiteHeader() {
         reaches full size and the links stop crowding it; past that the extra
         is empty space between two groups that are already far apart.
       */}
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4 sm:px-5">
+      <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4 sm:px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           {/* One file for both surfaces now. The old mark was drawn in
               near-black on white, so it needed a knockout version to survive
@@ -58,18 +58,20 @@ export async function SiteHeader() {
             className="h-11 w-11 object-contain sm:h-12 sm:w-12"
           />
         </Link>
-        {/* Search takes the middle on every size; the section links collapse
-            into a menu on phones, where four of them plus a search box do not
-            fit at 375px. */}
+        {/* Search sits against the logo rather than floating in the middle:
+            the two are one thing to reach for, and every bit of slack in the
+            bar is between them and the links instead. The section links
+            collapse into a menu on phones, where four of them plus a search
+            box do not fit at 375px. */}
         <SearchBar
-          className="mx-2 min-w-0 flex-1 sm:mx-4 sm:max-w-xs"
+          className="ml-2 min-w-0 flex-1 sm:ml-3 sm:max-w-sm"
           action="/search"
           compact
           label="Search events and community posts"
           placeholder="Search"
         />
 
-        <nav className="flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
+        <nav className="ml-auto flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
           <div className="hidden items-center gap-4 md:flex">
             {sections.map((item) => (
               <Link key={item.href} href={item.href} className={navLink}>
