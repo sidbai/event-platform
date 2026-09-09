@@ -23,6 +23,7 @@ import { ContactButton } from "@/features/messages/message-form";
 import { CreateLink } from "@/components/create-link";
 import { formatEventWhen } from "@/features/events/when";
 import { formatBirthYears } from "@/features/teams/age";
+import { PerformancePanel } from "@/features/teams/performance-panel";
 import { formatRecord, recordFrom } from "@/features/teams/record";
 import { teamBySoleOldSlug } from "@/features/teams/merge";
 import { requestTeamClaim } from "@/features/teams/claim-actions";
@@ -425,6 +426,7 @@ export default async function TeamPage({
               ) : null;
             })()}
           </div>
+          <PerformancePanel matches={team.matches} teamId={team.id} />
           <ul className="mt-3 space-y-1 text-sm">
             {team.matches.map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />
