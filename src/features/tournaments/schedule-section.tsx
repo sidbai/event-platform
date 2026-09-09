@@ -52,6 +52,15 @@ export type ScheduleParams = {
 /** The division dropdown's value for "do not narrow to one". */
 export const ALL_DIVISIONS = "all";
 
+/**
+ * Past this many rounds the chips become a dropdown.
+ *
+ * Six is a long weekend at the top end and well short of any season. The
+ * number only decides which control is drawn, so a tournament that lands
+ * just over it gets a dropdown rather than a wrong answer.
+ */
+const MANY_ROUNDS = 6;
+
 /** "Week 5", or the days it is played over where there is no week. */
 function fmtGroup(key: string, timeZone: string, numbered: boolean, through?: string) {
   if (numbered) return key ? `Week ${key}` : "Round to be confirmed";
@@ -353,23 +362,45 @@ export function ScheduleSection({
         <p className="mt-6 text-sm text-muted">No fixtures yet.</p>
       ) : (
         <div className="mt-4">
-          {!team && (
-            <nav
-              aria-label={numbered ? "Weeks" : "Matchdays"}
-              className="flex flex-wrap gap-1.5"
-            >
-              {days.map((d) => (
-                <Link
-                  key={d.key || "tbd"}
-                  href={href({ day: d.key })}
-                  aria-current={d.key === day ? "page" : undefined}
-                  className={d.key === day ? on : off}
-                >
-                  {shortGroup(d.key, tz, numbered, d.through)}
-                </Link>
-              ))}
-            </nav>
-          )}
+          {/*
+            Chips for a weekend, a dropdown for a season.
+            
+            A tournament has two or three matchdays and they read at a glance.
+            A league has twenty-odd, and as chips they are a wall of dates
+            above the fixtures somebody came for — the same reason the division
+            picker beside them is a dropdown. The labels are the wide kind
+            here, "Sep 12 – Sep 13" rather than a number, which is what makes
+            the wall.
+          */}
+          {!team &&
+            (days.length > MANY_ROUNDS ? (
+              <NavSelect
+                className="mb-1"
+                label={numbered ? "Week" : "Matchday"}
+                value={day}
+                options={days.map((d) => ({
+                  id: d.key,
+                  label: fmtGroup(d.key, tz, numbered, d.through),
+                  href: href({ day: d.key }),
+                }))}
+              />
+            ) : (
+              <nav
+                aria-label={numbered ? "Weeks" : "Matchdays"}
+                className="flex flex-wrap gap-1.5"
+              >
+                {days.map((d) => (
+                  <Link
+                    key={d.key || "tbd"}
+                    href={href({ day: d.key })}
+                    aria-current={d.key === day ? "page" : undefined}
+                    className={d.key === day ? on : off}
+                  >
+                    {shortGroup(d.key, tz, numbered, d.through)}
+                  </Link>
+                ))}
+              </nav>
+            ))}
 
           {shownDays.map((sd) => (
             <div key={sd.key || "tbd"}>
