@@ -133,11 +133,17 @@ export function MatchScoreRow({
       {heldSince && releaseAction && (
         <span className="flex w-full items-center gap-2 text-xs text-muted">
           <span>Set here, not imported — the next import will not change it.</span>
-          <form action={releaseAction}>
-            <button className="underline hover:text-ink">
-              use the organizer&rsquo;s
-            </button>
-          </form>
+          {/* A submit button on the row's own form, not a form of its own:
+              nested forms are invalid HTML, so the browser dropped this one
+              while parsing and the page failed to hydrate — on exactly the
+              rows a hand-set score exists for. Same shape as delete, above. */}
+          <button
+            type="submit"
+            formAction={releaseAction}
+            className="underline hover:text-ink"
+          >
+            use the organizer&rsquo;s
+          </button>
         </span>
       )}
 
