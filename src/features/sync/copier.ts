@@ -322,30 +322,66 @@ const SOURCE = `(function(){
  */
 export const STANDINGS_HEADER = ["team", "gp", "w", "d", "l", "gf", "ga", "pts"] as const;
 
-/** The bookmarklet's source, ready to be saved as a bookmark's address. */
-export function copierBookmarklet(): string {
+/**
+ * The copier's code, as a browser will run it.
+ *
+ * Comments and indentation come out — they cost three characters each once
+ * encoded and explain nothing to a browser — but every line break stays.
+ * Collapsing those is what broke the first version of this: a trailing
+ * `// comment` swallowed the statement after it onto the same line, and the
+ * thing failed with a ReferenceError the moment anybody clicked it.
+ */
+export function copierSource(): string {
   const body = SOURCE.replace("__HEADER__", JSON.stringify(CANONICAL_HEADER)).replace(
     "__STANDINGS_HEADER__",
     JSON.stringify(STANDINGS_HEADER),
   );
-  /*
-   * The newlines stay. Collapsing them to save characters is what broke the
-   * first version of this: a trailing `// comment` swallowed the statement
-   * that followed it onto the same line, and the bookmarklet failed with a
-   * ReferenceError the moment anybody clicked it. encodeURIComponent turns a
-   * newline into %0A, which every browser accepts in a javascript: URL, so
-   * there was nothing to win and a whole class of bug to lose.
-   *
-   * What does come out is the part that cannot bite: the block comments
-   * explaining the source, and the indentation. Both cost three characters
-   * each once encoded, a bookmark URL has a ceiling, and neither can swallow
-   * a statement because every line break survives.
-   */
-  const lean = body
+  return body
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "")
-    .join("\n");
-  return `javascript:${encodeURIComponent(lean.trim())}`;
+    .join("\n")
+    .trim();
 }
+
+/**
+ * What goes in the bookmark: a loader, not the tool.
+ *
+ * The tool itself outgrew a bookmark. It was ten kilobytes by the time it
+ * collected across flights and saved files, and browsers would not take the
+ * address — which is a failure with no error message, just a bookmark that
+ * does not work.
+ *
+ * So the bookmark fetches the code from here and runs it. Two things follow,
+ * and the second is worth more than the first: it fits, and it updates
+ * itself. Every change to the copier today ended with "re-grab the
+ * bookmarklet", which is a step people forget and then debug the old version.
+ *
+ * On the request: this asks OUR server for OUR code, once, when somebody
+ * clicks. It still asks the site being read for nothing at all — that page is
+ * already open, and everything the tool sees is what the person's own
+ * browsing put on screen. The property that makes this not a crawler is
+ * untouched.
+ */
+export function copierBookmarklet(origin: string): string {
+  const src = `${origin.replace(/\/$/, "")}${COPIER_PATH}`;
+  /*
+   * Cache-busted on purpose. A bookmarklet that loads a stale copy is the
+   * self-updating property quietly not working, and the file is small.
+   */
+  const loader = [
+    "(function(){",
+    "var s=document.createElement('script');",
+    `s.src=${JSON.stringify(src)}+'?t='+Date.now();`,
+    // A site with a Content-Security-Policy will refuse the script without
+    // telling anybody. Better a sentence than a bookmark that does nothing.
+    "s.onerror=function(){alert('This site would not let the copier load. Its content policy blocks outside scripts.');};",
+    "document.body.appendChild(s);",
+    "})();",
+  ].join("");
+  return `javascript:${encodeURIComponent(loader)}`;
+}
+
+/** Where the copier's code is served. Shared by the route and the bookmark. */
+export const COPIER_PATH = "/copier.js";
