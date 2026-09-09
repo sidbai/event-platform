@@ -221,6 +221,29 @@ describe("canonicalName", () => {
     ).toBe("26/27 Portland Thorns Academy U10");
   });
 
+  it("drops a year the age-group cut left standing on its own", () => {
+    // "B13 14" is one cohort written apart, and the stray reads as a squad
+    // number once the pair is cut out.
+    expect(
+      name({
+        name: "LWPFC N1 B13 14",
+        club: { name: "Lake Washington Premier FC", slug: "lwpfc", aliases: ["lwpfc"] },
+        birthYears: [2013],
+      }),
+    ).toBe("Lake Washington Premier FC B13 National 1");
+    expect(
+      name({ name: "Seattle United B09/10 Blue 09", club: seattleUnited, birthYears: [2009, 2010] }),
+    ).toBe("Seattle United B09/10 Blue");
+  });
+
+  it("keeps a squad number, which is not a year", () => {
+    // MRFC's second Academy side of that age. The 2 is the whole of what
+    // says so.
+    expect(
+      name({ name: "MRFC B09/10 Academy 2", club: club("Mount Rainier FC"), birthYears: [2009, 2010] }),
+    ).toBe("Mount Rainier FC Academy B09/10 2");
+  });
+
   it("is idempotent — running it twice changes nothing", () => {
     const once = name({ name: "Eastside FC (WA) - EASTSIDE FC BU12 White", club: eastside, birthYears: [2014, 2015] });
     expect(once).toBe("Eastside FC B14/15 White");
