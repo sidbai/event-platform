@@ -5,6 +5,7 @@ import { CreateLink } from "@/components/create-link";
 import { NavSelect } from "@/components/nav-select";
 import { TeamCrest } from "@/components/team-crest";
 import { SearchBar } from "@/components/search-bar";
+import { suggestTeams } from "@/features/search/suggest-actions";
 import { getCurrentUser } from "@/features/auth";
 import { formatBirthYears } from "@/features/teams/age";
 import { Pager } from "@/features/pagination/pager";
@@ -159,6 +160,7 @@ export default async function TeamsPage({
       </p>
 
       <SearchBar
+        suggest={suggestTeams}
         className="mt-4"
         defaultValue={q}
         label="Search teams"

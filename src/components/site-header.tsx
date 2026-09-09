@@ -6,6 +6,7 @@ import { Avatar, avatarOf } from "@/components/avatar";
 import { NavMenu } from "@/components/nav-menu";
 import { ProfileMenu } from "@/components/profile-menu";
 import { SearchBar } from "@/components/search-bar";
+import { suggestAnything } from "@/features/search/suggest-actions";
 import { getCurrentUser, publicName } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { unreadCount } from "@/features/messages/queries";
@@ -82,6 +83,7 @@ export async function SiteHeader() {
             on phones, where four of them plus a search box do not fit at
             375px. */}
         <SearchBar
+          suggest={suggestAnything}
           className="ml-2 min-w-0 flex-1 sm:ml-3 lg:ml-0 lg:mr-6"
           action="/search"
           compact

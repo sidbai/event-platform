@@ -102,7 +102,10 @@ export async function applySync(
       .set({
         lastSyncedAt: now,
         lastSyncError: null,
-        nextSyncAt: nextSyncAt(event, now),
+        nextSyncAt: nextSyncAt(
+          { ...event, kickoffs: await kickoffsFor(eventId) },
+          now,
+        ),
       })
       .where(eq(events.id, eventId));
     return { divisions: 0, teams: 0, matches: 0, removed: 0, unchanged: true };
@@ -410,7 +413,9 @@ export async function applySync(
       lastSyncedAt: now,
       lastSyncError: null,
       lastContentHash: hash,
-      nextSyncAt: nextSyncAt(event, now),
+      // After the writes above, so a season that has just had its fixtures
+      // published is asked again on their schedule and not on yesterday's.
+      nextSyncAt: nextSyncAt({ ...event, kickoffs: await kickoffsFor(eventId) }, now),
       updatedAt: now,
     })
     .where(eq(events.id, eventId));
@@ -422,6 +427,21 @@ export async function applySync(
     removed: gone.length,
     unchanged: false,
   };
+}
+
+/**
+ * When this event's games kick off, for the cadence.
+ *
+ * Only a season needs them — a weekend is being played for the whole of its
+ * span and asks nothing — but they are cheap to fetch either way and the rule
+ * reads better for being handed everything it might use. Indexed on event_id.
+ */
+async function kickoffsFor(eventId: string): Promise<(Date | null)[]> {
+  const rows = await db.query.matches.findMany({
+    where: eq(matches.eventId, eventId),
+    columns: { kickoffAt: true },
+  });
+  return rows.map((r) => r.kickoffAt);
 }
 
 /**
@@ -527,8 +547,12 @@ export async function recordSyncFailure(
     .set({
       lastSyncError: detail.slice(0, 500),
       // Still scheduled to retry: a platform being briefly unreachable is the
-      // ordinary case, and giving up after one failure would be wrong.
-      nextSyncAt: event ? nextSyncAt(event, now) : null,
+      // ordinary case, and giving up after one failure would be wrong. On the
+      // season's own schedule, so a league that is unreachable in February is
+      // retried tomorrow rather than three times an hour until March.
+      nextSyncAt: event
+        ? nextSyncAt({ ...event, kickoffs: await kickoffsFor(eventId) }, now)
+        : null,
     })
     .where(eq(events.id, eventId));
 }

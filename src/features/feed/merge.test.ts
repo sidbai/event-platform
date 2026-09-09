@@ -74,3 +74,56 @@ describe("dropSupersededPosts", () => {
     expect(kept).toHaveLength(2);
   });
 });
+
+describe("ordering by what an item is about", () => {
+  const day = (iso: string) => new Date(`${iso}T00:00:00Z`);
+
+  it("files a recap under the day it covers, not the day it was typed", () => {
+    // The four recaps on the front page were published in one sitting and
+    // cover games from July to late August. By publication they came out in
+    // no order a reader could see.
+    const written = day("2026-09-05");
+    const items = [
+      { id: "surf", at: written, sortAt: day("2026-08-03") },
+      { id: "malaysia", at: written, sortAt: day("2026-08-18") },
+      { id: "crossfire", at: written, sortAt: day("2026-07-19") },
+      { id: "kjc", at: written, sortAt: day("2026-08-29") },
+    ];
+
+    expect(mergeFeed([items], 10).map((i) => i.id)).toEqual([
+      "kjc",
+      "malaysia",
+      "surf",
+      "crossfire",
+    ]);
+  });
+
+  it("falls back to when it was written, for anything that is not about a day", () => {
+    // A community post is about the moment somebody posted it.
+    const items = [
+      { id: "older", at: day("2026-09-01") },
+      { id: "newer", at: day("2026-09-04") },
+    ];
+    expect(mergeFeed([items], 10).map((i) => i.id)).toEqual(["newer", "older"]);
+  });
+
+  it("puts a recap and a post on one timeline by those two rules at once", () => {
+    const items = [
+      // Written today, about a game three weeks ago.
+      { id: "recap", at: day("2026-09-09"), sortAt: day("2026-08-18") },
+      // Written a week ago, about nothing in particular.
+      { id: "post", at: day("2026-09-02") },
+    ];
+    expect(mergeFeed([items], 10).map((i) => i.id)).toEqual(["post", "recap"]);
+  });
+
+  it("treats a null sortAt as absent rather than as the epoch", () => {
+    // The column is nullable, and a null read as 1970 would sink every item
+    // that has one to the bottom of the page.
+    const items = [
+      { id: "nulled", at: day("2026-09-08"), sortAt: null },
+      { id: "dated", at: day("2026-09-09"), sortAt: day("2026-08-01") },
+    ];
+    expect(mergeFeed([items], 10).map((i) => i.id)).toEqual(["nulled", "dated"]);
+  });
+});
