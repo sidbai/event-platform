@@ -14,6 +14,12 @@ import { branchMatch, parseTier, streamMatch, tierMatch } from "./naming";
  *   Seattle United Shoreline B14/15 Blue
  *   Eastside FC West B15/16 Red
  *
+ * Only a club's teams. A side with no club in the directory — a pickup team,
+ * a visiting side nobody has filed — has no fixed vocabulary behind its name,
+ * and the words it leads with are as likely to be its own as a club's. There
+ * is nothing to normalise it against, so it keeps the name it was published
+ * under.
+ *
  * The last segment is deliberately not parsed. A trailing word is a coach's
  * surname ("Zwaller"), a squad letter ("A"), or the side's own nickname
  * ("Tango", "Sharks", "Benfica"), and nothing in the string tells the three
@@ -183,13 +189,6 @@ function initialisms(words: string[]): string[] {
 export function remainderOf(facts: NameFacts): string {
   let rest = facts.name;
 
-  if (!facts.club) {
-    // Nothing to look the club up by, so the words the name leads with are
-    // the club — and they are already going to lead the rewrite.
-    const span = clubSpan(facts.name);
-    rest = rest.slice(0, span.index) + " " + rest.slice(span.index + span.length);
-  }
-
   if (facts.club) {
     for (const form of clubForms(facts.club)) {
       // The club's name as written, and as written with the spaces closed up
@@ -291,21 +290,20 @@ function balanceBrackets(text: string): string {
  */
 export function canonicalName(facts: NameFacts): string {
   const cohort = cohortLabel(facts.gender, facts.birthYears);
-  const slug = facts.club?.slug ?? null;
+  // Only a club's teams: there is nothing to normalise the rest against.
+  if (!facts.club) return published(facts.name);
+  const slug = facts.club.slug;
   // Both, and in this order: a team has a branch and a stream at once —
   // "WW SURF BU10 Central Academy A" is the Central Academy's A side.
   const branch = branchMatch(facts.name, slug)?.label ?? null;
   const stream = streamMatch(facts.name)?.label ?? null;
   const tier = fullerTier(facts.tier, parseTier(facts.name));
-  // With no club record the words the name leads with are the club — but a
-  // name that puts its tier up front ("Oregon Premier FC Pre ECNL B2015/16")
-  // would carry it into the club's own name and then print it twice.
-  const club = facts.club?.name ?? withoutNaming(leadOf(facts.name), facts);
+  const club = facts.club.name;
   const rest = remainderOf(facts);
 
-  // Nothing to build from, so the published name stands as published —
-  // whitespace tidied and not another character touched.
-  if (!club || !cohort) return facts.name.trim().replace(/\s+/g, " ");
+  // A team whose years or gender nobody has established yet. Half a name is
+  // worse than the whole one somebody published.
+  if (!cohort) return published(facts.name);
 
   const parts = [club, branch, stream, facts.program, cohort, tier, rest].filter(
     (p): p is string => typeof p === "string" && p !== "",
@@ -315,22 +313,6 @@ export function canonicalName(facts: NameFacts): string {
   return dedupe(parts).join(" ");
 }
 
-/**
- * Drops a segment the name has already said — word for word.
- *
- * "Highline Premier FC" with program "Premier" must not say it twice. Matched
- * on whole words rather than substrings, because on substrings every
- * single-letter squad segment is already contained in something and quietly
- * disappears: "Sound FC B12 D" lost its D.
- */
-/**
- * The lead, minus a tier it happened to state — "Oregon Premier FC ECNL".
- *
- * Only the tier. The program is left where it is, because for a club with no
- * record here it is usually part of the club's own name: cut "Premier" out of
- * "Oregon Premier FC" and the club becomes "Oregon FC". Saying it twice is
- * prevented downstream, where a repeated word is dropped rather than moved.
- */
 /**
  * The more specific reading of the same tier.
  *
@@ -346,13 +328,19 @@ function fullerTier(column: string | null, fromName: string | null): string | nu
   return column;
 }
 
-function withoutNaming(lead: string, facts: NameFacts): string {
-  const tier = tierMatch(facts.name);
-  if (!tier) return tidy(lead);
-  const out = tidy(lead.replace(tier.text, " "));
-  return out === "" ? tidy(lead) : out;
+/** The name as published: whitespace tidied, not another character touched. */
+function published(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
 }
 
+/**
+ * Drops a segment the name has already said — word for word.
+ *
+ * "Highline Premier FC" with program "Premier" must not say it twice. Matched
+ * on whole words rather than substrings, because on substrings every
+ * single-letter squad segment is already contained in something and quietly
+ * disappears: "Sound FC B12 D" lost its D.
+ */
 function dedupe(parts: string[]): string[] {
   const out: string[] = [];
   const said = new Set<string>();
@@ -365,78 +353,3 @@ function dedupe(parts: string[]): string[] {
   return out;
 }
 
-/**
- * The club a name leads with, for the 924 teams filed under no club.
- *
- * Everything before the first age token, which is where the club sits in
- * every notation here. Nothing is written to clubs from this — it only
- * decides what leads the printed name.
- */
-export function leadOf(name: string): string {
-  const span = clubSpan(name);
-  return tidy(withoutRepeats(name.slice(span.index, span.index + span.length)));
-}
-
-/** Where the age group sits in the name, if it states one at all. */
-function ageSpan(name: string): { index: number; length: number } | null {
-  let span: { index: number; length: number } | null = null;
-  for (const pattern of [U_TOKEN, ...AGE_TOKENS]) {
-    const re = new RegExp(pattern.source, pattern.flags.replace("g", ""));
-    const m = re.exec(name);
-    if (m && (span === null || m.index < span.index)) {
-      span = { index: m.index, length: m[0].length };
-    }
-  }
-  return span;
-}
-
-/**
- * The words that name the club, wherever in the string they fall.
- *
- * Usually first — "Three Rivers Soccer Club - GU14 Chang" — but the Liga
- * Azteca exports lead with the age group instead: "BU12 Liga Azteca -
- * Cosmos". There the club is what follows, up to the separator that
- * introduces the side's own name.
- */
-function clubSpan(name: string): { index: number; length: number } {
-  const age = ageSpan(name);
-  if (age === null) return { index: 0, length: name.length };
-  if (age.index > 0) return { index: 0, length: age.index };
-  const after = name.slice(age.index + age.length);
-  const sep = /\s*[,;]\s*|\s+[-–—]+\s+/.exec(after);
-  // Whichever comes first: the separator that introduces the side's own name,
-  // or a second age token — "GU15 Valor ECNL RL G2013/14" states its cohort
-  // twice, and the club is only the words between them.
-  const next = ageSpan(after);
-  const ends = [sep?.index, next?.index, after.length].filter(
-    (n): n is number => typeof n === "number",
-  );
-  return { index: age.index + age.length, length: Math.min(...ends) };
-}
-
-/**
- * A club written twice, which is how the exporters join two systems' names.
- *
- * "Capital FC - Capital FC B15 Pre-ECNL 1", "Albion SC Washington - ALBION SC
- * WA BU15 Academy". The halves are the same club spelled two ways, so the
- * fuller spelling is kept and the other dropped — but only when one really is
- * the other abbreviated, never when they are two different words.
- */
-function withoutRepeats(lead: string): string {
-  // A separator with space around it, never a bare hyphen: splitting on that
-  // cuts "Pre-ECNL" and "ECNL-RL" in half and the tier stops being findable.
-  const parts = lead.split(/\s*[,;]\s*|\s+[-–—]+\s*|\s*[-–—]+\s+/).filter((p) => p.trim() !== "");
-  if (parts.length < 2) return lead;
-  const keep: string[] = [];
-  for (const part of parts) {
-    const key = norm(part);
-    if (key === "") continue;
-    const i = keep.findIndex((k) => {
-      const other = norm(k);
-      return other.startsWith(key) || key.startsWith(other);
-    });
-    if (i === -1) keep.push(part);
-    else if (norm(part).length > norm(keep[i]).length) keep[i] = part;
-  }
-  return keep.join(" ");
-}

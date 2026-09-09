@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { canonicalName, cohortLabel, leadOf, remainderOf } from "./canonical-name";
+import { canonicalName, cohortLabel, remainderOf } from "./canonical-name";
 
 const crossfire = { name: "Crossfire Premier", slug: "crossfire-premier", aliases: ["xf"] };
 const seattleUnited = { name: "Seattle United", slug: "seattle-united", aliases: ["seattleunited"] };
 const eastside = { name: "Eastside FC", slug: "eastside-fc", aliases: [] };
+const club = (name: string, slug = name.toLowerCase().replace(/\W+/g, "-")) => ({
+  name,
+  slug,
+  aliases: [],
+});
 
 function name(over: Partial<Parameters<typeof canonicalName>[0]>) {
   return canonicalName({
@@ -74,9 +79,9 @@ describe("canonicalName", () => {
 
   it("reads a trailing B as the gender when nothing else has said it", () => {
     // "U16B" is the boys' U16, not the B side — there is no other gender mark.
-    expect(name({ name: "Albion SC Idaho U16B", birthYears: [2010, 2011] })).toBe(
-      "Albion SC Idaho B10/11",
-    );
+    expect(
+      name({ name: "Albion SC Idaho U16B", club: club("Albion SC Idaho"), birthYears: [2010, 2011] }),
+    ).toBe("Albion SC Idaho B10/11");
   });
 
   it("keeps the coach's surname, and does not have to know it is one", () => {
@@ -89,18 +94,31 @@ describe("canonicalName", () => {
     expect(name({ name: "Seattle United - B13 Samba", club: seattleUnited, birthYears: [2013] })).toBe(
       "Seattle United Samba B13",
     );
-    expect(name({ name: "LWPFC B17/18 White Sharks", birthYears: [2017, 2018] })).toBe(
-      "LWPFC B17/18 White Sharks",
-    );
+    expect(
+      name({
+        name: "LWPFC B17/18 White Sharks",
+        club: { name: "Lake Washington Premier FC", slug: "lwpfc", aliases: ["lwpfc"] },
+        birthYears: [2017, 2018],
+      }),
+    ).toBe("Lake Washington Premier FC B17/18 White Sharks");
   });
 
   it("says the club once when the export said it twice", () => {
     expect(
-      name({ name: "Capital FC - Capital FC B15 Pre-ECNL 1", birthYears: [2015] }),
+      name({
+        name: "Capital FC - Capital FC B15 Pre-ECNL 1",
+        club: club("Capital FC"),
+        birthYears: [2015],
+      }),
     ).toBe("Capital FC B15 Pre-ECNL 1");
   });
 
   it("recognises the club under an alias and under its initials", () => {
+    // "Eastside FC" is written EFC, "Washington Premier FC" WPFC — computed,
+    // because only twelve clubs have an alias recorded.
+    expect(name({ name: "Eastside FC (WA) - EFC BU14 ECRL", club: eastside, birthYears: [2012, 2013] })).toBe(
+      "Eastside FC B12/13 ECNL RL",
+    );
     expect(name({ name: "XF BU14 ECNL 1", club: crossfire, birthYears: [2012, 2013] })).toBe(
       "Crossfire Premier B12/13 ECNL 1",
     );
@@ -113,7 +131,9 @@ describe("canonicalName", () => {
   });
 
   it("normalises the tier's spelling, typo and all", () => {
-    expect(name({ name: "Valor GU13 ECNL-RL", gender: "girls" })).toBe("Valor G13/14 ECNL RL");
+    expect(name({ name: "Valor GU13 ECNL-RL", club: club("Valor Soccer"), gender: "girls" })).toBe(
+      "Valor Soccer G13/14 ECNL RL",
+    );
     expect(name({ name: "Crossfire G2012/13 ENCL RL", club: crossfire, gender: "girls", birthYears: [2012, 2013] })).toBe(
       "Crossfire Premier G12/13 ECNL RL",
     );
@@ -126,19 +146,37 @@ describe("canonicalName", () => {
     );
   });
 
-  it("leaves the published name alone when it cannot say as much", () => {
-    // No club record and no birth years: there is nothing to build from, and
-    // half a name is worse than somebody else's whole one.
-    expect(name({ name: "WVFC Benfica", birthYears: [], gender: null })).toBe("WVFC Benfica");
+  it("leaves a team with no club alone", () => {
+    // A pickup side or a visitor nobody has filed has no fixed vocabulary
+    // behind its name, and the words it leads with are as likely to be its own
+    // as a club's. There is nothing to normalise it against.
+    expect(name({ name: "BU12 Liga Azteca - Cosmos", birthYears: [2014, 2015] })).toBe(
+      "BU12 Liga Azteca - Cosmos",
+    );
+    expect(name({ name: "WVFC Benfica" })).toBe("WVFC Benfica");
+  });
+
+  it("leaves a club team alone when nobody has established its years", () => {
+    expect(
+      name({ name: "Dragons FC", club: club("Dragons FC"), birthYears: [], gender: null }),
+    ).toBe("Dragons FC");
   });
 
   it("does not leave a bracket that closes nothing", () => {
-    expect(name({ name: "EFC B2013 Yellow (Nitros)", birthYears: [2013] })).toBe(
-      "EFC B13 Yellow (Nitros)",
-    );
-    expect(name({ name: "Atletico - BU12 (B15) Pre MLS Next", birthYears: [2015] })).toBe(
-      "Atletico B15 Pre-MLS Next",
-    );
+    expect(
+      name({
+        name: "Eastside FC - EFC B2013 Yellow (Nitros)",
+        club: eastside,
+        birthYears: [2013],
+      }),
+    ).toBe("Eastside FC B13 Yellow (Nitros)");
+    expect(
+      name({
+        name: "Atletico - BU12 (B15) Pre MLS Next",
+        club: club("Atletico Futbol Club"),
+        birthYears: [2015],
+      }),
+    ).toBe("Atletico Futbol Club B15 Pre-MLS Next");
   });
 
   it("prints the branch and the stream, branch first", () => {
@@ -151,13 +189,6 @@ describe("canonicalName", () => {
         birthYears: [2016, 2017],
       }),
     ).toBe("Western Washington Surf Central Academy B16/17 A");
-  });
-
-  it("finds the club after the age group when the name leads with one", () => {
-    // The Liga Azteca exports write the age group first.
-    expect(name({ name: "BU12 Liga Azteca - Cosmos", birthYears: [2014, 2015] })).toBe(
-      "Liga Azteca B14/15 Cosmos",
-    );
   });
 
   it("reads a two-group side either way round", () => {
@@ -177,6 +208,7 @@ describe("canonicalName", () => {
     expect(
       name({
         name: "26/27 Portland Thorns Academy U10",
+        club: club("Portland Thorns Academy"),
         gender: "girls",
         birthYears: [2026, 2027],
       }),
@@ -202,17 +234,5 @@ describe("remainderOf", () => {
         program: null,
       }),
     ).toBe("Aces Weyer");
-  });
-});
-
-describe("leadOf", () => {
-  it("is everything before the age group", () => {
-    expect(leadOf("Three Rivers Soccer Club - GU14 Chang")).toBe("Three Rivers Soccer Club");
-  });
-
-  it("keeps the fuller of two spellings of one club", () => {
-    expect(leadOf("Albion SC Washington - ALBION SC WA BU15 Academy")).toBe(
-      "Albion SC Washington",
-    );
   });
 });
