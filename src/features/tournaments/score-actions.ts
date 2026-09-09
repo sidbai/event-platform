@@ -12,6 +12,7 @@ import {
   matchStatus,
   teams,
 } from "@/db/schema";
+import { getCurrentUser } from "@/features/auth";
 import { canManageEvent } from "@/features/events/can-manage";
 import { matchdayDates, roundRobin } from "./round-robin";
 import { zonedDate } from "@/lib/dates";
@@ -64,6 +65,20 @@ export async function saveMatch(
     return { error: "Home and away can't be the same team." };
   }
 
+  /*
+   * Marked as ours, so the next import does not write the source's blank
+   * back over it.
+   *
+   * Only when a score is actually being set: clearing one is handing the
+   * fixture back to the source, and leaving the mark there would freeze it
+   * as permanently empty.
+   */
+  const user = await getCurrentUser();
+  const mark =
+    home === null
+      ? { scoreSetBy: null, scoreSetAt: null }
+      : { scoreSetBy: user?.id ?? null, scoreSetAt: new Date() };
+
   await db
     .update(matches)
     .set({
@@ -72,6 +87,7 @@ export async function saveMatch(
       status: STATUSES.has(status)
         ? (status as (typeof matchStatus.enumValues)[number])
         : "scheduled",
+      ...mark,
       ...(formData.has("homeTeamId") ? { homeTeamId } : {}),
       ...(formData.has("awayTeamId") ? { awayTeamId } : {}),
     })
@@ -79,6 +95,37 @@ export async function saveMatch(
 
   await touchEvent(match.eventId, eventSlug);
   return { ok: true };
+}
+
+/**
+ * Hand a fixture back to the organizer's data.
+ *
+ * The other half of setting a score by hand: a correction made from the
+ * touchline, and then the organizer posts the real thing. Without this the
+ * hand-set number wins forever and nobody can tell why the page disagrees
+ * with the tournament's own site.
+ *
+ * It does not clear the score — the next import does that, or does not. This
+ * only stops us holding the fixture against the source.
+ */
+export async function releaseMatchScore(
+  eventSlug: string,
+  matchId: string,
+): Promise<void> {
+  if (!(await canManageEvent({ slug: eventSlug }))) return;
+
+  const match = await db.query.matches.findFirst({
+    where: eq(matches.id, matchId),
+    with: { event: { columns: { slug: true } } },
+  });
+  if (!match || match.event.slug !== eventSlug) return;
+
+  await db
+    .update(matches)
+    .set({ scoreSetBy: null, scoreSetAt: null })
+    .where(eq(matches.id, matchId));
+
+  await touchEvent(match.eventId, eventSlug);
 }
 
 export async function addMatch(

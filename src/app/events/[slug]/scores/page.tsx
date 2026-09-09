@@ -14,6 +14,7 @@ import {
   clearFixtures,
   generateFixtures,
   deleteMatch,
+  releaseMatchScore,
   saveMatch,
   setTeamGroup,
 } from "@/features/tournaments/score-actions";
@@ -148,6 +149,8 @@ export default async function ScoresPage({
                     homeScore={m.homeScore}
                     awayScore={m.awayScore}
                     status={m.status}
+                    heldSince={m.scoreSetAt}
+                    releaseAction={releaseMatchScore.bind(null, slug, m.id)}
                     divisionTeams={divTeams}
                   />
                 ))}
