@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/features/auth";
 import { formatBirthYears } from "@/features/teams/age";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
+import { crestOf } from "@/features/teams/crest";
 import {
   listTeams,
   myTeams,
@@ -63,7 +64,7 @@ function TeamCard({ team, note }: { team: Card; note?: string }) {
          * with it, and re-filing a team under the right club fixes its badge
          * with no backfill to remember.
          */}
-        <TeamCrest src={team.crestUrl ?? team.club?.crestUrl} size={36} />
+        <TeamCrest src={crestOf(team)} size={36} />
         <div className="min-w-0">
           <div className="truncate font-medium">{team.name}</div>
           <div className="truncate text-xs text-muted">

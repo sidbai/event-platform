@@ -170,11 +170,21 @@ export async function getEventBySlug(slug: string) {
       divisions: { orderBy: (d) => [asc(d.name)] },
       eventTeams: {
         orderBy: (et) => [desc(et.points), desc(et.gf)],
-        with: { team: true, division: true },
+        // The club comes along for its crest: an imported team rarely has one
+        // of its own, and a schedule of grey squares reads as broken rather
+        // than sparse. See teams/crest.ts.
+        with: {
+          team: { with: { club: { columns: { crestUrl: true } } } },
+          division: true,
+        },
       },
       matches: {
         orderBy: (m) => [asc(m.kickoffAt), asc(m.field)],
-        with: { homeTeam: true, awayTeam: true, division: true },
+        with: {
+          homeTeam: { with: { club: { columns: { crestUrl: true } } } },
+          awayTeam: { with: { club: { columns: { crestUrl: true } } } },
+          division: true,
+        },
       },
     },
   });

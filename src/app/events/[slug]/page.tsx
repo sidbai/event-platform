@@ -38,6 +38,7 @@ import { viewsOf } from "@/features/views/queries";
 import { ViewsCount } from "@/features/views/views-count";
 import { importPastedSchedule } from "@/features/sync/actions";
 import { PasteForm } from "@/features/sync/connect-form";
+import { crestOf } from "@/features/teams/crest";
 import {
   ScheduleSection,
   type ScheduleParams,
@@ -98,7 +99,7 @@ export default async function EventPage({
 
   const champions = (event.result as { champions?: Champion[] } | null)?.champions ?? [];
   const crestByName = new Map(
-    event.eventTeams.map((et) => [et.team.name, et.team.crestUrl]),
+    event.eventTeams.map((et) => [et.team.name, crestOf(et.team)]),
   );
   const meta = event.metadata as { sponsors?: Sponsor[]; rules?: Rules } | null;
   const sponsors = meta?.sponsors ?? [];

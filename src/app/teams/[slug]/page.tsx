@@ -30,6 +30,7 @@ import { ClaimTeamForm } from "@/features/teams/claim-form";
 import { myTeamClaim } from "@/features/teams/claim-queries";
 import { canRequestClaim } from "@/features/teams/claim";
 import { honoursByEvent, PLACE_LABEL } from "@/features/teams/honours";
+import { crestOf } from "@/features/teams/crest";
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +154,7 @@ export default async function TeamPage({
             changing its logo changes every team under it and a team filed
             under the right club gets the right badge with nothing to
             backfill. 22 of 966 teams have a crest; every club does. */}
-        <TeamCrest src={team.crestUrl ?? team.club?.crestUrl} size={64} />
+        <TeamCrest src={crestOf(team)} size={64} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
           <p className="text-sm text-muted">
@@ -480,7 +481,7 @@ function MatchRow({
         <span className="text-muted">vs</span>
         <span className="flex min-w-0 items-center gap-1.5">
           <TeamCrest
-            src={opponent?.crestUrl ?? opponent?.club?.crestUrl}
+            src={crestOf(opponent)}
             size={16}
           />
           {opponent?.slug ? (
