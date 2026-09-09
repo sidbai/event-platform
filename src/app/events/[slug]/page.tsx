@@ -87,6 +87,12 @@ export default async function EventPage({
 
   const canManage =
     !!user && (event.organizerId === user.id || isAdmin(user));
+  /*
+   * Wider than canManage, and only for the import box: the person who listed
+   * somebody else's tournament holds its fixtures, and a listing has no
+   * organizer for them to be.
+   */
+  const mayImport = canManage || (!!user && event.listedBy === user.id);
   if (!(await canViewEvent(event, user))) notFound();
   const notPublic = event.status === "pending" || event.status === "cancelled";
 
@@ -528,7 +534,7 @@ export default async function EventPage({
         is, and it is only here for whoever manages the event.
       */}
       {/* What the create form's import did, said where they land. */}
-      {canManage && (sp.imported || sp.import) && (
+      {mayImport && (sp.imported || sp.import) && (
         <p
           className={`mt-4 rounded-md px-3 py-2 text-sm ${
             sp.import ? "bg-amber-50 text-amber-800" : "bg-elevated text-muted"
@@ -540,7 +546,7 @@ export default async function EventPage({
         </p>
       )}
 
-      {canManage && (
+      {mayImport && (
         <section className="mt-8 rounded-lg border border-line p-3">
           <h2 className="text-sm font-semibold">Bring in the schedule</h2>
           <p className="mt-1 text-xs text-muted">

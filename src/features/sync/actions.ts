@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { canImportSchedule } from "@/features/events/can-manage";
 import { safeSourceUrl } from "@/features/events/listing";
 
 import { parsePastedSchedule, toSyncedEvent } from "./paste";
@@ -163,10 +164,17 @@ export async function importPastedSchedule(
   _prev: ConnectResult,
   formData: FormData,
 ): Promise<ConnectResult> {
-  const user = await getCurrentUser();
-  if (!user || !isAdmin(user)) return { error: "Not allowed." };
-
   const eventId = String(formData.get("eventId") ?? "");
+  /*
+   * Whoever may bring a schedule to THIS event, rather than an admin.
+   *
+   * The person who listed somebody else's tournament is the person holding
+   * its fixtures, and this used to refuse them — while the create form, which
+   * imports whatever files came with it, did not. One rule now, and it is the
+   * narrow one: see canImportSchedule.
+   */
+  if (!(await canImportSchedule({ id: eventId }))) return { error: "Not allowed." };
+
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     columns: { id: true, slug: true, startsAt: true, endsAt: true },
