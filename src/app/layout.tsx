@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     default: "King Juan Soccer",
     template: "%s — King Juan Soccer",
   },
-  description: "Seattle youth soccer events. More soccer, more Fun.",
+  description: "Seattle youth soccer events. More information, more opportunities, more soccer.",
 };
 
 export default function RootLayout({

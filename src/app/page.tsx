@@ -147,7 +147,7 @@ export default async function Home() {
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
         Create. Discover. Play.
       </h1>
-      <p className="mt-2 text-sm text-muted">More soccer. More Fun.</p>
+      <p className="mt-2 text-sm text-muted">More information. More opportunities. More soccer.</p>
 
       {/*
         Discover, then the three things a person can make. Until recently all
@@ -282,7 +282,27 @@ export default async function Home() {
         </>
       )}
 
-      <section className="mt-10 border-t border-line pt-6 text-sm text-muted">
+      {/*
+        At the bottom, not the top. Somebody who has just scrolled a page of
+        real fixtures and results is in a position to believe a sentence about
+        what this is for; the same sentence above the fold is a leaflet handed
+        to somebody who came to check a kick-off time.
+      */}
+      <section className="mt-10 border-t border-line pt-6">
+        <p className="leading-relaxed text-ink">
+          King Juan Soccer is an open community built by soccer families, for
+          soccer families &mdash; making information, opportunities, and the joy
+          of playing more accessible to everyone.
+        </p>
+        <Link
+          href="/about"
+          className="mt-2 inline-block text-sm text-brand-text hover:underline"
+        >
+          More about the site &rarr;
+        </Link>
+      </section>
+
+      <section className="mt-6 text-sm text-muted">
         Browsing is open to everyone. You only need to{" "}
         <Link href="/signin" className="text-brand-text hover:underline">
           sign in

@@ -59,6 +59,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url("/coaches"), changeFrequency: "weekly", priority: 0.6 },
     { url: url("/community"), changeFrequency: "daily", priority: 0.6 },
     { url: url("/news"), changeFrequency: "weekly", priority: 0.6 },
+    // Rarely changes, but it is the page somebody links to when they explain
+    // the site to a club, so it should be findable.
+    { url: url("/about"), changeFrequency: "yearly", priority: 0.4 },
   ];
 
   return [
