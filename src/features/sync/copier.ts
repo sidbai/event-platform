@@ -80,6 +80,33 @@ const SOURCE = `(function(){
   }
 
   /*
+   * How many rows the page says it holds, when it says.
+   *
+   * AthleteOne paginates at ten and prints "Lines per page 1-10 of 34". A
+   * basket quietly holding ten of thirty-four is the worst outcome here,
+   * because it looks complete — so the difference is said out loud rather
+   * than fixed by clicking their pager, which would make requests this must
+   * not make.
+   */
+  function missingFrom(pageText,got){
+    var m=(pageText||'').match(/lines per page[^0-9]*[0-9]+\\s*[-–]\\s*[0-9]+\\s*of\\s*([0-9]+)/i);
+    var total=m?parseInt(m[1],10):0;
+    return total>got?total-got:0;
+  }
+
+  /** Everything of one kind that the basket holds, in the order collected. */
+  function collected(basket,kind){
+    var lines=[],pages=0,missing=0;
+    Object.keys(basket).forEach(function(k){
+      if(basket[k].kind!==kind)return;
+      pages++;
+      missing+=basket[k].missing||0;
+      lines=lines.concat(basket[k].lines);
+    });
+    return {lines:lines,pages:pages,missing:missing};
+  }
+
+  /*
    * The seam the tests run against.
    *
    * With no document there is no page to read, so the artifact hands back the
@@ -87,8 +114,33 @@ const SOURCE = `(function(){
    * not a second copy of the logic that can drift away from it.
    */
   if(typeof document==='undefined'){
-    return {a1Fixture:a1Fixture,tableRows:tableRows};
+    return {
+      a1Fixture:a1Fixture,
+      tableRows:tableRows,
+      missingFrom:missingFrom,
+      collected:collected
+    };
   }
+
+  /*
+   * Each click adds this page to a basket, and shows everything in it.
+   *
+   * One page at a time was fine until AthleteOne, where an event is
+   * twenty-seven flights behind click-only navigation with no list of links
+   * to hand anybody: copying each separately is twenty-seven trips between
+   * two tabs. The basket survives the app's own navigation — sessionStorage
+   * rather than a variable, so it outlives a reload too — and the last click
+   * hands over the lot.
+   *
+   * It still acts only when clicked. No timer, no observer, and no request of
+   * its own: everything it reads is what this person's own browsing has
+   * already put on screen, which is why a site that refuses crawlers is not
+   * being crawled here.
+   */
+  var KEY='kjs.copier.basket';
+  var basket={};
+  try{basket=JSON.parse(sessionStorage.getItem(KEY)||'{}');}catch(e){basket={};}
+  function save(){try{sessionStorage.setItem(KEY,JSON.stringify(basket));}catch(e){}}
 
   var tables=[].slice.call(document.querySelectorAll('table'));
   if(!tables.length){alert('No schedule or standings table found on this page.');return;}
@@ -100,16 +152,13 @@ const SOURCE = `(function(){
    */
   var standings=[];
   tables.forEach(function(t){standings=standings.concat(tableRows(t));});
-  if(standings.length){
-    show([TABLE.join('\\t')].concat(standings),'standings rows');
-    return;
-  }
+  if(standings.length){add('standings',standings);return;}
 
   var table=tables.sort(function(a,b){
     return b.querySelectorAll('tr').length-a.querySelectorAll('tr').length;
   })[0];
 
-  var out=[HEADER.join('\\t')];
+  var out=[];
   var date='';
 
   /*
@@ -163,19 +212,63 @@ const SOURCE = `(function(){
     ].join('\\t'));
   });
 
-  if(out.length===1){alert('Found the table but no fixtures in it.');return;}
-  show(out,'fixtures');
+  if(!out.length){alert('Found the table but no fixtures in it.');return;}
+  add('fixtures',out);
 
-  function show(lines,what){
+  /** Put this page in the basket under its own address, and show the lot. */
+  function add(kind,lines){
+    basket[location.pathname]={
+      kind:kind,
+      lines:lines,
+      missing:missingFrom(document.body.innerText,lines.length)
+    };
+    save();
+    show();
+  }
+
+  function show(){
+    var fix=collected(basket,'fixtures'), tab=collected(basket,'standings');
+    var body=[];
+    if(fix.pages) body=body.concat([HEADER.join('\\t')],fix.lines);
+    if(tab.pages) body=body.concat([TABLE.join('\\t')],tab.lines);
+
+    var note=[];
+    if(fix.pages) note.push(fix.lines.length+' fixtures from '+fix.pages+' page(s)');
+    if(tab.pages) note.push(tab.lines.length+' standings rows from '+tab.pages+' page(s)');
+    var gone=fix.missing+tab.missing;
+    if(gone) note.push('⚠ '+gone+' row(s) not on screen — raise "Lines per page" and click again');
+    if(fix.pages&&tab.pages) note.push('two tables — paste each into its own box');
+
+    var old=document.getElementById('kjs-copier');
+    if(old)old.remove();
+
+    var wrap=document.createElement('div');
+    wrap.id='kjs-copier';
+    wrap.style.cssText='position:fixed;z-index:2147483647;inset:5%;display:flex;flex-direction:column;gap:8px;font:14px system-ui';
+
     var box=document.createElement('textarea');
-    box.value=lines.join('\\n');
-    box.style.cssText='position:fixed;z-index:2147483647;top:5%;left:5%;width:90%;height:80%;font:12px monospace;padding:12px;border:2px solid #333;background:#fff;color:#000';
+    box.value=body.join('\\n');
+    box.style.cssText='flex:1;font:12px monospace;padding:12px;border:2px solid #333;background:#fff;color:#000';
+
     var bar=document.createElement('div');
-    bar.style.cssText='position:fixed;z-index:2147483647;bottom:5%;left:5%;width:90%;text-align:center;font:14px system-ui;background:#333;color:#fff;padding:8px';
-    bar.textContent=(lines.length-1)+' '+what+' selected — copy, then paste into King Juan Soccer. Click here to close.';
-    bar.onclick=function(){box.remove();bar.remove();};
-    document.body.appendChild(box);
-    document.body.appendChild(bar);
+    bar.style.cssText='background:#333;color:#fff;padding:8px;text-align:center';
+    bar.textContent=note.join(' · ')+' — click again on the next flight, or copy now.';
+
+    var close=document.createElement('button');
+    close.textContent='Close';
+    close.style.cssText='margin-left:8px;padding:2px 8px';
+    close.onclick=function(){wrap.remove();};
+
+    var clear=document.createElement('button');
+    clear.textContent='Start over';
+    clear.style.cssText='margin-left:8px;padding:2px 8px';
+    clear.onclick=function(){basket={};save();wrap.remove();};
+
+    bar.appendChild(close);
+    bar.appendChild(clear);
+    wrap.appendChild(box);
+    wrap.appendChild(bar);
+    document.body.appendChild(wrap);
     box.focus();
     box.select();
   }
