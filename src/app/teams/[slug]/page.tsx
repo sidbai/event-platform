@@ -15,7 +15,7 @@ import {
   declineTeamInvite,
 } from "@/features/teams/invite-actions";
 import { myPendingTeamInvite } from "@/features/teams/invite-queries";
-import { addTeamResult } from "@/features/teams/add-result-actions";
+import { addTeamResult, searchOpponents } from "@/features/teams/add-result-actions";
 import { AddResultForm } from "@/features/teams/add-result-form";
 import { NextUpPanel } from "@/features/teams/next-up";
 import { hostedEvents, nextUpFor } from "@/features/teams/queries";
@@ -462,7 +462,12 @@ export default async function TeamPage({
               ).length
             }
           />
-          {canSchedule && <AddResultForm action={addTeamResult.bind(null, team.slug)} />}
+          {canSchedule && (
+            <AddResultForm
+              action={addTeamResult.bind(null, team.slug)}
+              search={searchOpponents.bind(null, team.id)}
+            />
+          )}
           <ul className="mt-3 space-y-1 text-sm">
             {team.matches.map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />
