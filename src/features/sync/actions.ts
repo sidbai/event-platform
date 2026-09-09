@@ -167,22 +167,42 @@ export async function importPastedSchedule(
   if (!user || !isAdmin(user)) return { error: "Not allowed." };
 
   const eventId = String(formData.get("eventId") ?? "");
-  const text = String(formData.get("schedule") ?? "").trim();
-  if (!text) return { error: "Nothing pasted." };
-
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     columns: { id: true, slug: true, startsAt: true, endsAt: true },
   });
   if (!event) return { error: "That event is gone." };
 
+  return applyPastedText(event, {
+    text: String(formData.get("schedule") ?? ""),
+    division: String(formData.get("division") ?? ""),
+    confirmed: formData.get("confirmDates") != null,
+  });
+}
+
+/**
+ * The import itself, with no form and no session around it.
+ *
+ * Its own function because a schedule now arrives two ways — pasted onto an
+ * event that exists, and handed over while the event is being created — and
+ * two copies of this would be two sets of guards, one of which would quietly
+ * stop matching the other. Callers do their own permission check; this does
+ * the reading and the writing.
+ */
+export async function applyPastedText(
+  event: { id: string; slug: string; startsAt: Date | null; endsAt: Date | null },
+  input: { text: string; division?: string; confirmed?: boolean },
+): Promise<ConnectResult> {
+  const text = input.text.trim();
+  if (!text) return { error: "Nothing pasted." };
+
   // Most schedules print "Sep 5" without a year, and the event's own start
   // date is a better guess than today's — a January tournament pasted in
   // December would otherwise land eleven months early.
   const year = (event.startsAt ?? new Date()).getUTCFullYear();
-  const division = String(formData.get("division") ?? "").trim() || "Unassigned";
+  const division = (input.division ?? "").trim() || "Unassigned";
   // Set by the tick-box the date guard below asks for, and only by that.
-  const confirmed = formData.get("confirmDates") != null;
+  const confirmed = input.confirmed === true;
 
   /*
    * A standings table and a fixture list arrive through the same box, because
@@ -197,7 +217,7 @@ export async function importPastedSchedule(
       return { error: "That looks like a standings table, but no rows came out of it." };
     }
 
-    const out = await applyPastedStandings(eventId, rows);
+    const out = await applyPastedStandings(event.id, rows);
     revalidatePath("/admin/sync");
     revalidatePath(`/events/${event.slug}`);
 
@@ -238,7 +258,7 @@ export async function importPastedSchedule(
     if (wrong) return { error: mismatchMessage(wrong), confirmDates: true };
   }
 
-  const out = await applySync(eventId, toSyncedEvent(matches), new Date(), {
+  const out = await applySync(event.id, toSyncedEvent(matches), new Date(), {
     prune: false,
   });
 

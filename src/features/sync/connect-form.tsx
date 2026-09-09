@@ -2,6 +2,8 @@
 
 import { useActionState, useRef, useState } from "react";
 
+import { mergeScheduleFiles } from "./merge-files";
+
 import type { ConnectResult } from "./actions";
 
 type Action = (prev: ConnectResult, formData: FormData) => Promise<ConnectResult>;
@@ -87,15 +89,25 @@ export function PasteForm({ action, eventId }: { action: Action; eventId: string
    * paste does. A second route to the database would be a second set of
    * rules to keep true, and the guards are the reason this box is safe.
    */
-  async function readFile(file: File | undefined) {
-    if (!file) return;
-    const text = await file.text();
+  async function readFiles(chosen: FileList | null) {
+    const files = [...(chosen ?? [])];
+    if (files.length === 0) return;
+
+    const merged = mergeScheduleFiles(
+      await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))),
+    );
+    if (!merged.ok) {
+      setLoaded(merged.error);
+      return;
+    }
     if (box.current) {
-      box.current.value = text;
+      box.current.value = merged.text;
       // Focus without scrolling the page out from under them.
       box.current.focus({ preventScroll: true });
     }
-    setLoaded(`${file.name} — ${text.split(/\r?\n/).filter(Boolean).length} lines`);
+    setLoaded(
+      `${files.length} file(s) — ${merged.lines} ${merged.kind === "standings" ? "standings rows" : "rows"}`,
+    );
   }
 
   return (
@@ -120,11 +132,12 @@ export function PasteForm({ action, eventId }: { action: Action; eventId: string
         />
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span>or load a file saved from the copier:</span>
+          <span>or load files saved from the copier:</span>
           <input
             type="file"
+            multiple
             accept=".txt,.tsv,.csv,text/plain"
-            onChange={(e) => readFile(e.target.files?.[0])}
+            onChange={(e) => readFiles(e.target.files)}
             className="text-xs"
           />
           {loaded && <span className="text-ink">{loaded}</span>}
