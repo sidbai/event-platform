@@ -45,7 +45,24 @@ export async function SiteHeader() {
         below, which takes whatever is going, from running away.
       */}
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4 sm:px-5">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        {/*
+          Indented at lg with the search box, so the box starts exactly where a
+          page's own column does and the logo stays beside it.
+
+          The bar is max-w-5xl and a page is max-w-3xl, both centred, so from
+          1024px up the page's text begins a constant (1024 - 768) / 2 = 128px
+          inside the bar's content edge. This is that 128 less the logo's own
+          48 and the 8px flex gap after it. Below 1024 the two containers no
+          longer sit a fixed distance apart — the page is still 768 while the
+          bar is the window — so both go back to the bar's own edge. In the
+          narrow band where a classic scrollbar has taken the bar just under
+          1024 while lg has already fired, the two sit within a few pixels
+          rather than exactly.
+        */}
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2.5 lg:ml-[72px]"
+        >
           {/* One file for both surfaces now. The old mark was drawn in
               near-black on white, so it needed a knockout version to survive
               this bar; this one is white and orange inside black outlines,
@@ -59,13 +76,13 @@ export async function SiteHeader() {
             className="h-11 w-11 object-contain sm:h-12 sm:w-12"
           />
         </Link>
-        {/* Logo, search and the links read as one row rather than two groups
-            with a hole between them, so the box takes whatever the links do
-            not want instead of stopping at a fixed width. The links collapse
-            into a menu on phones, where four of them plus a search box do not
-            fit at 375px. */}
+        {/* The box takes whatever the links do not want, rather than stopping
+            at a fixed width — so it reaches from the page's own left margin to
+            a hand's width short of the links. The links collapse into a menu
+            on phones, where four of them plus a search box do not fit at
+            375px. */}
         <SearchBar
-          className="ml-2 min-w-0 flex-1 sm:ml-3"
+          className="ml-2 min-w-0 flex-1 sm:ml-3 lg:ml-0 lg:mr-6"
           action="/search"
           compact
           label="Search events and community posts"
