@@ -18,6 +18,7 @@ import { myPendingTeamInvite } from "@/features/teams/invite-queries";
 import { addTeamResult, searchOpponents } from "@/features/teams/add-result-actions";
 import { AddResultForm } from "@/features/teams/add-result-form";
 import { NextUpPanel } from "@/features/teams/next-up";
+import { playedAndNext } from "@/features/teams/preview";
 import { hostedEvents, nextUpFor } from "@/features/teams/queries";
 import { pendingEntriesForTeam } from "@/features/registration/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
@@ -190,8 +191,8 @@ export default async function TeamPage({
        * This was a boxed notice naming the event that created the row, which
        * went wrong twice over: it appeared on 963 of 966 team pages, where a
        * notice that universal is chrome rather than information; and it named
-       * one event for teams that have played four, while the Tournaments
-       * section below already lists every one of them correctly.
+       * one event for teams that have played four, while the Events section
+       * below already lists every one of them correctly.
        *
        * What is worth keeping is that nobody from the team wrote this page,
        * so a reader does not take a thin one for the club's own.
@@ -325,7 +326,7 @@ export default async function TeamPage({
       )}
 
       <section className="mt-8">
-        <h2 className="text-lg font-semibold">Tournaments</h2>
+        <h2 className="text-lg font-semibold">Events</h2>
 
         {/* Entries the organizer has not decided on yet. Without these the
             page reads "No events yet" straight after a team has entered one,
@@ -468,8 +469,21 @@ export default async function TeamPage({
               search={searchOpponents.bind(null, team.id)}
             />
           )}
+          {/*
+            What has happened, and the one game that has not yet.
+            
+            A season's fixtures are published all at once: this team's page
+            carried twenty-four ECNL dates running to May above every result
+            it had, so the record was three screens down. The rest of the
+            fixture list is the event's to show, where it can be read a round
+            at a time.
+            
+            The next one stays because the list should stand on its own — the
+            panel above says more about it, but only renders when the opponent
+            resolves to a team here.
+          */}
           <ul className="mt-3 space-y-1 text-sm">
-            {team.matches.map((m) => (
+            {playedAndNext(team.matches).map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />
             ))}
           </ul>
