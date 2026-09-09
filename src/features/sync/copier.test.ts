@@ -15,9 +15,16 @@ const body = () => decodeURIComponent(copierBookmarklet().slice("javascript:".le
  * back instead of reading a page. A test against a copy would pass while the
  * bookmark was broken, which is the failure this file already exists for.
  */
+type Basket = Record<string, { kind: string; lines: string[]; missing?: number }>;
+
 function artifact(): {
   a1Fixture: (meta: string[], who: string[], tail: string[]) => string[];
   tableRows: (table: unknown) => string[];
+  missingFrom: (pageText: string, got: number) => number;
+  collected: (
+    basket: Basket,
+    kind: string,
+  ) => { lines: string[]; pages: number; missing: number };
 } {
   return new Function(`return ${body()}`)();
 }
@@ -55,9 +62,15 @@ describe("the copier bookmarklet", () => {
   });
 
   it("is short enough to live in a bookmark", () => {
-    // Browsers have historically capped bookmark URLs; a few kilobytes is
-    // safe everywhere and this has no reason to grow much.
-    expect(copierBookmarklet().length).toBeLessThan(8000);
+    /*
+     * The old ceiling here was 8,000, chosen when this only read one page.
+     * Collecting across flights cost about 2KB and the number needed a
+     * reason rather than a habit: the 2,083-character limit people remember
+     * was Internet Explorer's, and Chrome, Firefox and Safari all store
+     * bookmarks far longer than this. 16,000 is a bound that would catch
+     * something genuinely runaway.
+     */
+    expect(copierBookmarklet().length).toBeLessThan(16000);
   });
 
   it("asks for nothing from the network", () => {
@@ -233,5 +246,61 @@ describe("reading a standings table", () => {
         points: 7,
       },
     ]);
+  });
+});
+
+describe("collecting across flights", () => {
+  it("counts what the page says is not on screen", () => {
+    /*
+     * AthleteOne paginates at ten. A basket holding ten of thirty-four is
+     * the worst outcome available here — it looks complete — so the shortfall
+     * is read off the pager and said out loud.
+     */
+    const { missingFrom } = artifact();
+    expect(missingFrom("Lines per page 1–10 of 34", 10)).toBe(24);
+    // An ordinary hyphen, because that is what the next platform will print.
+    expect(missingFrom("Lines per page 1-10 of 34", 10)).toBe(24);
+  });
+
+  it("says nothing is missing when the page is whole", () => {
+    const { missingFrom } = artifact();
+    expect(missingFrom("Lines per page 1–10 of 10", 10)).toBe(0);
+    expect(missingFrom("Lines per page 1–200 of 34", 34)).toBe(0);
+    // A page with no pager at all is not a page missing rows.
+    expect(missingFrom("just a schedule", 7)).toBe(0);
+  });
+
+  it("keeps fixtures and standings in separate piles", () => {
+    // They go into different paste boxes, and one header cannot describe both.
+    const { collected } = artifact();
+    const basket = {
+      "/schedules/1": { kind: "fixtures", lines: ["a", "b"] },
+      "/standings/1": { kind: "standings", lines: ["s"] },
+      "/schedules/2": { kind: "fixtures", lines: ["c"] },
+    };
+    expect(collected(basket, "fixtures")).toEqual({
+      lines: ["a", "b", "c"],
+      pages: 2,
+      missing: 0,
+    });
+    expect(collected(basket, "standings")).toEqual({
+      lines: ["s"],
+      pages: 1,
+      missing: 0,
+    });
+  });
+
+  it("adds up what was missed across every page", () => {
+    const { collected } = artifact();
+    const basket = {
+      "/schedules/1": { kind: "fixtures", lines: ["a"], missing: 24 },
+      "/schedules/2": { kind: "fixtures", lines: ["b"], missing: 6 },
+    };
+    expect(collected(basket, "fixtures").missing).toBe(30);
+  });
+
+  it("is empty rather than undefined for a kind nobody collected", () => {
+    const { collected } = artifact();
+    expect(collected({}, "fixtures")).toEqual({ lines: [], pages: 0, missing: 0 });
   });
 });
