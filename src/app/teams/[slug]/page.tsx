@@ -76,7 +76,8 @@ export default async function TeamPage({
   const pendingInvite = await myPendingTeamInvite(team.id, user);
 
   /*
-   * The way in for the coach whose team this is.
+   * The way in for whoever runs this team — coach, manager, club
+   * administrator, or the parent who does the fixtures.
    *
    * Nearly every team here was made by an import, with nobody behind it, so
    * for most readers of most team pages this is the only thing on the page
@@ -91,7 +92,7 @@ export default async function TeamPage({
       existingClaim?.status ?? null,
     );
   /*
-   * A signed-out coach is the person this feature exists for, and the rule
+   * A signed-out visitor who runs the team is who this exists for, and the rule
    * refuses them for the right reason — a claim needs a claimant. Refusing
    * them silently would mean they never learn the door is there, so the door
    * is shown and it goes through sign-in.
@@ -233,7 +234,7 @@ export default async function TeamPage({
           </>
         ) : team.ownerId ? (
           <span className="text-muted">
-            {"Run by a coach"}
+            {"Run by its team"}
           </span>
         ) : (
           <span className="text-muted">No owner yet</span>

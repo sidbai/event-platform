@@ -28,6 +28,19 @@ vi.mock("@/features/auth", () => ({
 }));
 vi.mock("@/features/auth/admin", () => ({ isAdmin: () => Boolean(viewer?.admin) }));
 
+/** Set by a test that wants the mail service to fall over. */
+let mailThrows = false;
+const sent: { to: string; subject: string }[] = [];
+
+vi.mock("@/features/email/send", () => ({
+  emailConfigured: () => true,
+  sendEmail: async (to: string, message: { subject: string }) => {
+    if (mailThrows) throw new Error("resend is down");
+    sent.push({ to, subject: message.subject });
+    return { sent: true };
+  },
+}));
+
 const { db } = await import("@/db");
 const { clubs, eventKinds, teamClaims, teamMembers, teamNameProposals, teams, users } =
   await import("@/db/schema");
@@ -90,6 +103,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await truncateAll(db);
   viewer = null;
+  mailThrows = false;
+  sent.length = 0;
 });
 
 describe("asking for a team", () => {
@@ -171,6 +186,35 @@ describe("deciding a claim", () => {
     expect(claim.status).toBe("pending");
   });
 
+  it("tells the person what was decided", async () => {
+    const { claimId } = await pending();
+    viewer = { id: await makeUser("admin@example.com"), email: "a@e.com", admin: true };
+
+    await approveTeamClaim(claimId);
+
+    expect(sent).toEqual([
+      { to: "coach@example.com", subject: "You can now manage XF, U14, B12 - 13, RCL 1" },
+    ]);
+  });
+
+  it("stands even when the mail service falls over", async () => {
+    /*
+     * The guarantee worth having. Without it an admin presses Approve, sees
+     * an error, presses it again, and has no way to know which of those two
+     * actually wrote anything.
+     */
+    const { coach, teamId, claimId } = await pending();
+    viewer = { id: await makeUser("admin@example.com"), email: "a@e.com", admin: true };
+    mailThrows = true;
+
+    await expect(approveTeamClaim(claimId)).resolves.toBeUndefined();
+
+    const [member] = await db.select().from(teamMembers);
+    expect(member).toMatchObject({ teamId, userId: coach, role: "manager" });
+    const [claim] = await db.select().from(teamClaims);
+    expect(claim.status).toBe("approved");
+  });
+
   it("keeps a rejection on the record", async () => {
     // So that somebody working through a club's teams one by one is visible.
     const { claimId } = await pending();
@@ -180,6 +224,9 @@ describe("deciding a claim", () => {
 
     const [claim] = await db.select().from(teamClaims);
     expect(claim.status).toBe("rejected");
+    // Told, too: somebody left on silence asks again through whatever channel
+    // they can find, and that lands in the queue anyway.
+    expect(sent[0]?.subject).toMatch(/^About your request to manage/);
   });
 });
 

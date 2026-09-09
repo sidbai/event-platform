@@ -4,13 +4,43 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { teamClaims, teamMembers, teamNameProposals, teams } from "@/db/schema";
+import { teamClaims, teamMembers, teamNameProposals, teams, users } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import { checkRateLimit } from "@/features/rate-limit";
+import { claimApprovedEmail, claimRejectedEmail } from "@/features/email/messages";
+import { sendEmail } from "@/features/email/send";
+import { siteUrl } from "@/lib/site-url";
 
 import { CLAIMED_ROLE, canRequestClaim, checkClaimNote, claimRefusal } from "./claim";
 import { checkTeamName } from "./name";
+
+/**
+ * Tell somebody what was decided, without letting the telling fail the
+ * decision.
+ *
+ * An approval that has already been written must stand whether or not a mail
+ * service answers: the alternative is an admin pressing Approve, seeing an
+ * error, pressing it again, and having no idea which of those two happened.
+ * So this never throws, and a deployment with no email configured simply
+ * decides quietly — which is what happened for every claim before today.
+ */
+async function tell(
+  userId: string,
+  message: Awaited<ReturnType<typeof claimApprovedEmail>>,
+): Promise<void> {
+  try {
+    const person = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { email: true },
+    });
+    if (!person?.email) return;
+    await sendEmail(person.email, message);
+  } catch {
+    // Deliberately silent. Nothing a reader or an admin can do about it, and
+    // the decision it accompanies is already on the record.
+  }
+}
 
 export type ClaimResult = {
   error?: string;
@@ -83,7 +113,7 @@ export async function approveTeamClaim(claimId: string): Promise<void> {
 
   const claim = await db.query.teamClaims.findFirst({
     where: eq(teamClaims.id, claimId),
-    with: { team: { columns: { id: true, slug: true } } },
+    with: { team: { columns: { id: true, slug: true, name: true } } },
   });
   if (!claim?.team) return;
 
@@ -104,6 +134,12 @@ export async function approveTeamClaim(claimId: string): Promise<void> {
     .set({ status: "approved", decidedBy: user!.id, decidedAt: new Date() })
     .where(eq(teamClaims.id, claimId));
 
+  // After the write, never before: the decision is the thing that matters.
+  await tell(
+    claim.userId,
+    claimApprovedEmail(claim.team.name, `${siteUrl()}/teams/${claim.team.slug}`),
+  );
+
   revalidatePath(`/teams/${claim.team.slug}`);
   revalidatePath("/admin");
 }
@@ -113,10 +149,29 @@ export async function rejectTeamClaim(claimId: string): Promise<void> {
   const user = await getCurrentUser();
   if (!isAdmin(user)) return;
 
+  const claim = await db.query.teamClaims.findFirst({
+    where: eq(teamClaims.id, claimId),
+    with: { team: { columns: { slug: true, name: true } } },
+  });
+  if (!claim) return;
+
   await db
     .update(teamClaims)
     .set({ status: "rejected", decidedBy: user!.id, decidedAt: new Date() })
     .where(eq(teamClaims.id, claimId));
+
+  /*
+   * A refusal is told too. Somebody left waiting on silence asks again
+   * through whatever channel they can find, and the queue is where that
+   * lands — so saying no is cheaper than not saying anything.
+   */
+  await tell(
+    claim.userId,
+    claimRejectedEmail(
+      claim.team?.name ?? "that team",
+      `${siteUrl()}/teams/${claim.team?.slug ?? ""}`,
+    ),
+  );
 
   revalidatePath("/admin");
 }
