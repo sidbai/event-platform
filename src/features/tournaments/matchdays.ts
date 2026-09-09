@@ -19,6 +19,8 @@ export type Numbered = Playable & { week?: number | null };
 export type Matchday<T> = {
   /** YYYY-MM-DD in the event's own timezone, for links and keys. */
   key: string;
+  /** The last day of a round that runs over more than one, if it does. */
+  through?: string;
   matches: T[];
 };
 
@@ -158,4 +160,54 @@ export function currentWeek<T extends Numbered>(
   // do not send the page to next week on Saturday evening.
   const DAY = 86_400_000;
   return (dated.find((x) => x.at + DAY >= t) ?? dated[dated.length - 1]).w.key;
+}
+
+/**
+ * Days that run into each other are one round.
+ *
+ * A league plays a round over a weekend, and split by date that round is two
+ * headings with half a fixture list under each. Grouped, it reads the way the
+ * league does — one heading, the games under it.
+ *
+ * The clustering is a reading of the dates, not a fact the source gave us,
+ * which is why it stops at the grouping and does not go on to number the
+ * rounds. A "Week 19" that disagrees with what the league calls it is worse
+ * than no number at all: a parent would take it to the league's own page and
+ * find something else. Where a source does publish its rounds, byWeek above
+ * uses them and this is not consulted.
+ *
+ * Checked against ECNL Boys Northwest BU15, whose 72 fixtures fall on 21 days
+ * with gaps of exactly one day or at least six — nothing in between, so
+ * nothing to get wrong.
+ */
+export function byCluster<T extends Playable>(
+  matches: T[],
+  timeZone: string,
+  /** Days apart that still counts as the same round. */
+  within = 1,
+): Matchday<T>[] {
+  const days = byMatchday(matches, timeZone);
+  const out: Matchday<T>[] = [];
+
+  for (const day of days) {
+    const last = out[out.length - 1];
+    const previous = last?.through ?? last?.key;
+    if (last && day.key !== "" && previous && previous !== "" && daysBetween(previous, day.key) <= within) {
+      last.matches = last.matches.concat(day.matches);
+      last.through = day.key;
+      continue;
+    }
+    out.push({ key: day.key, matches: day.matches });
+  }
+
+  return out;
+}
+
+/** Whole days from one YYYY-MM-DD to another. */
+function daysBetween(from: string, to: string): number {
+  const at = (k: string) => {
+    const [y, m, d] = k.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((at(to) - at(from)) / 86_400_000);
 }

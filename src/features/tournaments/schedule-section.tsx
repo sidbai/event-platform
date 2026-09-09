@@ -9,7 +9,14 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 import { NavSelect } from "@/components/nav-select";
 
-import { byMatchday, byWeek, currentMatchday, currentWeek, hasWeeks } from "./matchdays";
+import {
+  byCluster,
+  byMatchday,
+  byWeek,
+  currentMatchday,
+  currentWeek,
+  hasWeeks,
+} from "./matchdays";
 import { crestOf } from "@/features/teams/crest";
 import {
   computeStandings,
@@ -45,15 +52,25 @@ export type ScheduleParams = {
 /** The division dropdown's value for "do not narrow to one". */
 export const ALL_DIVISIONS = "all";
 
-/** "Week 5", or the day it is played on where there is no week. */
-function fmtGroup(key: string, timeZone: string, numbered: boolean) {
+/** "Week 5", or the days it is played over where there is no week. */
+function fmtGroup(key: string, timeZone: string, numbered: boolean, through?: string) {
   if (numbered) return key ? `Week ${key}` : "Round to be confirmed";
-  return fmtDay(key, timeZone);
+  const first = fmtDay(key, timeZone);
+  if (!through || through === key) return first;
+  /*
+   * The range, and not a number for it. Which round a league calls this is
+   * something only the league knows, and a "Week 19" that disagrees with its
+   * own page is worse than no number — somebody would take ours and go and
+   * check.
+   */
+  return `${first} – ${fmtDay(through, timeZone)}`;
 }
 
-function shortGroup(key: string, timeZone: string, numbered: boolean) {
+function shortGroup(key: string, timeZone: string, numbered: boolean, through?: string) {
   if (numbered) return key ? `W${key}` : "TBD";
-  return shortDay(key, timeZone);
+  const first = shortDay(key, timeZone);
+  if (!through || through === key) return first;
+  return `${first}–${shortDay(through, timeZone)}`;
 }
 
 function fmtDay(key: string, timeZone: string) {
@@ -150,7 +167,20 @@ export function ScheduleSection({
    * which is what this always did.
    */
   const numbered = hasWeeks(teamMatches);
-  const days = numbered ? byWeek(teamMatches) : byMatchday(teamMatches, tz);
+  /*
+   * A league whose source publishes no rounds is read by the dates instead,
+   * with days that run into each other treated as one round — a Saturday and
+   * a Sunday are one weekend of football and split apart they are two
+   * headings with half a fixture list under each. Only a league: three days
+   * running is one round to a league and three matchdays to a tournament,
+   * which is what its day tabs are for.
+   */
+  const season = event.kind === "league";
+  const days = numbered
+    ? byWeek(teamMatches)
+    : season
+      ? byCluster(teamMatches, tz)
+      : byMatchday(teamMatches, tz);
   const day =
     sp.day ??
     (numbered ? currentWeek(days, new Date()) : currentMatchday(days, new Date(), tz)) ??
@@ -335,7 +365,7 @@ export function ScheduleSection({
                   aria-current={d.key === day ? "page" : undefined}
                   className={d.key === day ? on : off}
                 >
-                  {shortGroup(d.key, tz, numbered)}
+                  {shortGroup(d.key, tz, numbered, d.through)}
                 </Link>
               ))}
             </nav>
@@ -344,7 +374,7 @@ export function ScheduleSection({
           {shownDays.map((sd) => (
             <div key={sd.key || "tbd"}>
               <h3 className="mt-5 text-sm font-medium">
-                {fmtGroup(sd.key, tz, numbered)}
+                {fmtGroup(sd.key, tz, numbered, sd.through)}
               </h3>
               <ul className="mt-2 divide-y divide-line">
                 {sd.matches.map((m) => (
