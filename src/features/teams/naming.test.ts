@@ -117,6 +117,23 @@ describe("the tiers a club actually names", () => {
     expect(parseTier("Spokane Shadow GU12 Pre GA")).toBe("Pre-GA");
   });
 
+  it("reads Pre-ECNL's divisions, in either spelling", () => {
+    // Eastside fields a G14/15 Pre-ECNL 1 and a Pre-ECNL 2; read as plain
+    // "Pre-ECNL" they are one side entered twice.
+    expect(parseTier("Eastside FC G14/15 Pre-ECNL 1")).toBe("Pre-ECNL 1");
+    expect(parseTier("Eastside FC G14/15 Pre-ECNL 2")).toBe("Pre-ECNL 2");
+    expect(parseTier("Eastside FC G15/16 Pre-ECNL II")).toBe("Pre-ECNL 2");
+    expect(parseTier("Eastside FC B15/16 Pre-ECNL")).toBe("Pre-ECNL");
+    // Still a division of its own, not Pre-ECNL with an R on the end.
+    expect(parseTier("Oregon Surf PreECNL RL G2014/15")).toBe("Pre-ECNL RL");
+  });
+
+  it("keeps Pre-MLS Next and Pre-GA as the tiers they are", () => {
+    expect(parseTier("Seattle Celtic B14 Pre-MLS Next")).toBe("Pre-MLS Next");
+    expect(parseTier("Atletico B15 Pre-MLS Next Azul")).toBe("Pre-MLS Next");
+    expect(parseTier("Seattle Celtic G09 Pre-GA")).toBe("Pre-GA");
+  });
+
   it("reads a club's own name for a side", () => {
     expect(parseTier("Seattle United B16 Nova")).toBe("Nova");
     expect(parseTier("Eastside FC B15/16 Grey")).toBe("Grey");
