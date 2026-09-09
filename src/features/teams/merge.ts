@@ -10,6 +10,7 @@ import {
   matches,
   teamMembers,
   teamAliases,
+  teamMerges,
   teamSlugs,
   teams,
 } from "@/db/schema";
@@ -53,10 +54,9 @@ export async function mergeTeams(
   });
   if (!survivor) throw new Error("survivor is gone");
 
-  const losers = await db.query.teams.findMany({
-    where: inArray(teams.id, ids),
-    columns: { id: true, slug: true, name: true, ownerId: true },
-  });
+  // Every column, because the journal has to hold the row as it stood: once
+  // it is deleted nothing else here remembers its crest, bio or birth years.
+  const losers = await db.query.teams.findMany({ where: inArray(teams.id, ids) });
 
   /*
    * Never absorb a team somebody owns. The planner already prefers a claimed
@@ -85,6 +85,12 @@ export async function mergeTeams(
   let entriesDropped = 0;
 
   for (const loser of losers) {
+    /*
+     * Which side of each fixture moved, not just how many.
+     *
+     * A team can be home in one game and away in the next, and putting a
+     * fixture back means knowing which column it came out of.
+     */
     const home = await db
       .update(matches)
       .set({ homeTeamId: survivorId })
@@ -96,15 +102,36 @@ export async function mergeTeams(
       .where(eq(matches.awayTeamId, loser.id))
       .returning({ id: matches.id });
     matchesMoved += home.length + away.length;
+    const journal = {
+      moved: {
+        matchesHome: home.map((m) => m.id),
+        matchesAway: away.map((m) => m.id),
+        eventTeams: [] as string[],
+        registrations: [] as string[],
+        offers: [] as string[],
+        // By user, since team_members is keyed on (team_id, user_id) and has
+        // no id of its own.
+        members: [] as string[],
+      },
+      dropped: {
+        eventTeams: [] as unknown[],
+        registrations: [] as unknown[],
+        offers: [] as unknown[],
+      },
+      slugs: [] as string[],
+      alias: null as string | null,
+    };
 
     const entries = await db.query.eventTeams.findMany({
       where: eq(eventTeams.teamId, loser.id),
-      columns: { id: true, eventId: true },
     });
     for (const entry of entries) {
       if (survivorEvents.has(entry.eventId)) {
         // Both rows were in this event. The survivor's entry already carries
-        // the division and the standing; a second one cannot exist.
+        // the division and the standing; a second one cannot exist. Kept
+        // whole in the journal, since deleting it is the one thing here that
+        // nothing else records.
+        journal.dropped.eventTeams.push(entry);
         await db.delete(eventTeams).where(eq(eventTeams.id, entry.id));
         entriesDropped++;
         continue;
@@ -113,13 +140,14 @@ export async function mergeTeams(
         .update(eventTeams)
         .set({ teamId: survivorId })
         .where(eq(eventTeams.id, entry.id));
+      journal.moved.eventTeams.push(entry.id);
       survivorEvents.add(entry.eventId);
       entriesMoved++;
     }
 
     // The rest move where they can and are dropped where a uniqueness rule
     // says the survivor is already there.
-    await db
+    const movedRegistrations = await db
       .update(eventRegistrations)
       .set({ teamId: survivorId })
       .where(
@@ -127,10 +155,15 @@ export async function mergeTeams(
           eq(eventRegistrations.teamId, loser.id),
           sql`not exists (select 1 from ${eventRegistrations} r2 where r2.division_id = ${eventRegistrations.divisionId} and r2.team_id = ${survivorId})`,
         ),
-      );
-    await db.delete(eventRegistrations).where(eq(eventRegistrations.teamId, loser.id));
+      )
+      .returning({ id: eventRegistrations.id });
+    journal.moved.registrations = movedRegistrations.map((r) => r.id);
+    journal.dropped.registrations = await db
+      .delete(eventRegistrations)
+      .where(eq(eventRegistrations.teamId, loser.id))
+      .returning();
 
-    await db
+    const movedOffers = await db
       .update(eventOffers)
       .set({ fromTeamId: survivorId })
       .where(
@@ -138,22 +171,30 @@ export async function mergeTeams(
           eq(eventOffers.fromTeamId, loser.id),
           sql`not exists (select 1 from ${eventOffers} o2 where o2.event_id = ${eventOffers.eventId} and o2.from_team_id = ${survivorId})`,
         ),
-      );
-    await db.delete(eventOffers).where(eq(eventOffers.fromTeamId, loser.id));
+      )
+      .returning({ id: eventOffers.id });
+    journal.moved.offers = movedOffers.map((o) => o.id);
+    journal.dropped.offers = await db
+      .delete(eventOffers)
+      .where(eq(eventOffers.fromTeamId, loser.id))
+      .returning();
 
     // Rosters hang off the event_teams entry rather than the team, so they
     // travel with it — and a roster on a dropped duplicate entry belongs to a
     // row the survivor already has a better copy of.
-    await db
+    const movedMembers = await db
       .update(teamMembers)
       .set({ teamId: survivorId })
-      .where(eq(teamMembers.teamId, loser.id));
+      .where(eq(teamMembers.teamId, loser.id))
+      .returning({ userId: teamMembers.userId });
+    journal.moved.members = movedMembers.map((m) => m.userId);
 
     // Keep the address before the row goes.
     await db
       .insert(teamSlugs)
       .values({ slug: loser.slug, teamId: survivorId })
       .onConflictDoUpdate({ target: teamSlugs.slug, set: { teamId: survivorId } });
+    journal.slugs.push(loser.slug);
 
     /*
      * And the name, so the next import does not ask again.
@@ -174,7 +215,20 @@ export async function mergeTeams(
         .insert(teamAliases)
         .values({ alias, teamId: survivorId, createdBy: byUserId ?? null })
         .onConflictDoUpdate({ target: teamAliases.alias, set: { teamId: survivorId } });
+      journal.alias = alias;
     }
+
+    /*
+     * Written before the delete, so a merge that fails half way leaves a
+     * record of what it had already done rather than nothing.
+     */
+    await db.insert(teamMerges).values({
+      survivorId,
+      mergedBy: byUserId ?? null,
+      team: loser,
+      moved: journal.moved,
+      dropped: { ...journal.dropped, slugs: journal.slugs, alias: journal.alias },
+    });
 
     await db.delete(teams).where(eq(teams.id, loser.id));
   }

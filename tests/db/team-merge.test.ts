@@ -20,13 +20,13 @@ vi.mock("next/cache", () => ({
 }));
 
 const { db } = await import("@/db");
-const { eventKinds, eventTeams, events, matches, teamSlugs, teams, users } = await import(
-  "@/db/schema"
-);
+const { eventKinds, eventTeams, events, matches, teamMerges, teamSlugs, teams, users } =
+  await import("@/db/schema");
 const { mergeTeams, teamBySoleOldSlug } = await import("@/features/teams/merge");
+const { planUnmerge, unmergeTeam } = await import("@/features/teams/unmerge");
 const { duplicateTeamGroups } = await import("@/features/teams/merge-queries");
 const { teamAliases } = await import("@/db/schema");
-const { eq, sql } = await import("drizzle-orm");
+const { eq, inArray, sql } = await import("drizzle-orm");
 
 async function makeEvent(slug: string) {
   const [e] = await db
@@ -330,5 +330,158 @@ describe("which address the surviving team keeps", () => {
 
     // And the folded-in address still redirects, as it always did.
     expect(await teamBySoleOldSlug("warriors-bu11-bravo")).toBe("warriors-bu11-attack");
+  });
+});
+
+/**
+ * Undoing one.
+ *
+ * A merge is the one cleanup here with no way back on its own: fixtures move
+ * to the survivor with nothing saying which moved, and an entry the survivor
+ * already had is deleted outright. team_merges is what makes it reversible,
+ * so what is worth testing is a real merge undone from the record alone.
+ */
+describe("the record a merge leaves", () => {
+  it("holds the row it deleted, whole", async () => {
+    const cup = await makeEvent("cup");
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe", {
+      name: "XF B13/14 ECNL 1",
+      tier: "ECNL 1",
+      birthYears: [2013, 2014],
+      gender: "boys",
+    });
+    await db.insert(eventTeams).values({ eventId: cup, teamId: dupe });
+
+    await mergeTeams(keep, [dupe]);
+
+    const [record] = await db.select().from(teamMerges);
+    expect(record.survivorId).toBe(keep);
+    expect(record.undoneAt).toBeNull();
+    expect(record.team).toMatchObject({
+      id: dupe,
+      name: "XF B13/14 ECNL 1",
+      tier: "ECNL 1",
+      birthYears: [2013, 2014],
+    });
+    expect(record.moved).toMatchObject({ eventTeams: [expect.any(String)] });
+  });
+
+  it("keeps an entry it dropped, since nothing else does", async () => {
+    // Both rows were in the same event, so the loser's entry was deleted
+    // rather than moved. This is the one thing an archive flag could not
+    // bring back.
+    const cup = await makeEvent("cup");
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe");
+    await db.insert(eventTeams).values([
+      { eventId: cup, teamId: keep, groupLabel: "A" },
+      { eventId: cup, teamId: dupe, groupLabel: "B" },
+    ]);
+
+    await mergeTeams(keep, [dupe]);
+
+    const [record] = await db.select().from(teamMerges);
+    const dropped = record.dropped as { eventTeams: { groupLabel: string }[] };
+    expect(dropped.eventTeams).toHaveLength(1);
+    expect(dropped.eventTeams[0].groupLabel).toBe("B");
+  });
+
+  it("says which side of a fixture the team was on", async () => {
+    // A team is home in one game and away in the next, and putting a fixture
+    // back means knowing which column it came out of.
+    const cup = await makeEvent("cup");
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe");
+    const rival = await makeTeam("rival");
+    await db.insert(matches).values([
+      { eventId: cup, stage: "group", homeTeamId: dupe, awayTeamId: rival, status: "scheduled" },
+      { eventId: cup, stage: "group", homeTeamId: rival, awayTeamId: dupe, status: "scheduled" },
+    ]);
+
+    await mergeTeams(keep, [dupe]);
+
+    const [record] = await db.select().from(teamMerges);
+    const moved = record.moved as { matchesHome: string[]; matchesAway: string[] };
+    expect(moved.matchesHome).toHaveLength(1);
+    expect(moved.matchesAway).toHaveLength(1);
+    expect(moved.matchesHome[0]).not.toBe(moved.matchesAway[0]);
+  });
+
+  it("is enough to put the team back, fixtures and all", async () => {
+    const june = await makeEvent("june-cup");
+    const cup = await makeEvent("shared-cup");
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe", { name: "Little Warriors B15 B" });
+    const rival = await makeTeam("rival");
+    await db.insert(eventTeams).values([
+      { eventId: june, teamId: dupe },
+      // Both in this one, so the loser's entry is deleted rather than moved.
+      { eventId: cup, teamId: keep, groupLabel: "A" },
+      { eventId: cup, teamId: dupe, groupLabel: "B" },
+    ]);
+    await db.insert(matches).values({
+      eventId: june,
+      stage: "group",
+      homeTeamId: dupe,
+      awayTeamId: rival,
+      homeScore: 2,
+      awayScore: 1,
+      status: "final",
+    });
+
+    await mergeTeams(keep, [dupe]);
+    const [record] = await db.select().from(teamMerges);
+
+    const plan = await planUnmerge(record.id);
+    expect(plan).toMatchObject({
+      team: { name: "Little Warriors B15 B" },
+      matches: 1,
+      entriesMoved: 1,
+      entriesRestored: 1,
+    });
+    await unmergeTeam(record.id);
+
+    const back = await db.query.teams.findFirst({ where: eq(teams.id, dupe) });
+    expect(back?.name).toBe("Little Warriors B15 B");
+
+    // Its fixture, with the score it was played under.
+    const fixtures = await db.select().from(matches).where(eq(matches.homeTeamId, dupe));
+    expect(fixtures).toHaveLength(1);
+    expect(fixtures[0].homeScore).toBe(2);
+
+    // Both entries in the shared event, including the one that was deleted.
+    const entries = await db.select().from(eventTeams).where(eq(eventTeams.eventId, cup));
+    expect(entries.map((e) => e.groupLabel).sort()).toEqual(["A", "B"]);
+
+    // And the survivor is left with only what was its own.
+    const keepsFixtures = await db.select().from(matches).where(eq(matches.homeTeamId, keep));
+    expect(keepsFixtures).toHaveLength(0);
+  });
+
+  it("refuses to undo the same merge twice", async () => {
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe");
+    await mergeTeams(keep, [dupe]);
+    const [record] = await db.select().from(teamMerges);
+
+    await unmergeTeam(record.id);
+
+    // Stamped, so a second run cannot double-restore into a unique index.
+    const [after] = await db.select().from(teamMerges);
+    expect(after.undoneAt).not.toBeNull();
+    await expect(unmergeTeam(record.id)).rejects.toThrow(/already undone/);
+  });
+
+  it("refuses when the survivor has itself been merged away", async () => {
+    // Its fixtures have moved on again, so there is no row to take them off.
+    const first = await makeTeam("first");
+    const middle = await makeTeam("middle");
+    const dupe = await makeTeam("dupe");
+    await mergeTeams(middle, [dupe]);
+    const [record] = await db.select().from(teamMerges);
+    await mergeTeams(first, [middle]);
+
+    await expect(unmergeTeam(record.id)).rejects.toThrow(/undo that one first/);
   });
 });
