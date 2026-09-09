@@ -15,6 +15,7 @@ import { applyPastedStandings } from "./standings-apply";
 import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 import { applySync } from "./apply";
 import { datesLookWrong, mismatchMessage } from "./date-guard";
+import { holdsBothKinds } from "./merge-files";
 import { mayPoll, platformOf } from "./policy";
 import { detect, syncEvent } from "./run";
 
@@ -203,6 +204,22 @@ export async function applyPastedText(
 ): Promise<ConnectResult> {
   const text = input.text.trim();
   if (!text) return { error: "Nothing pasted." };
+
+  /*
+   * Both tables in one paste is refused, not guessed at.
+   *
+   * The first line decides how the whole thing is read, so a schedule
+   * followed by a standings table is read entirely as fixtures — and the
+   * standings header becomes a game called "l v pts" with no date, followed
+   * by one per team. The parser reports none of it as skipped, which is why
+   * this is a guard and not a note in the interface.
+   */
+  if (holdsBothKinds(text)) {
+    return {
+      error:
+        "That holds both a schedule and a standings table. Import them separately — the first line decides how the whole paste is read.",
+    };
+  }
 
   // Most schedules print "Sep 5" without a year, and the event's own start
   // date is a better guess than today's — a January tournament pasted in
