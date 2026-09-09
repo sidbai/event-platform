@@ -15,6 +15,8 @@ import {
   declineTeamInvite,
 } from "@/features/teams/invite-actions";
 import { myPendingTeamInvite } from "@/features/teams/invite-queries";
+import { addTeamResult } from "@/features/teams/add-result-actions";
+import { AddResultForm } from "@/features/teams/add-result-form";
 import { NextUpPanel } from "@/features/teams/next-up";
 import { hostedEvents, nextUpFor } from "@/features/teams/queries";
 import { pendingEntriesForTeam } from "@/features/registration/queries";
@@ -367,12 +369,20 @@ export default async function TeamPage({
                 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-lg border border-line p-3"
               >
                 <div>
-                  <Link
-                    href={`/events/${et.event.slug}`}
-                    className="font-medium text-brand-text hover:underline"
-                  >
-                    {et.event.title}
-                  </Link>
+                  {/* Not linked when it is a placeholder standing in for a
+                      competition nobody here carries: a draft's page is
+                      refused to everyone but whoever made it, so the link
+                      would be a wall. Same rule as the match rows below. */}
+                  {et.event.status === "draft" ? (
+                    <span className="font-medium">{et.event.title}</span>
+                  ) : (
+                    <Link
+                      href={`/events/${et.event.slug}`}
+                      className="font-medium text-brand-text hover:underline"
+                    >
+                      {et.event.title}
+                    </Link>
+                  )}
                   {/* What that tournament called this side. Shown only when
                       it differs, since a team is named four ways across four
                       schedules and this is the page that reconciles them. */}
@@ -423,7 +433,9 @@ export default async function TeamPage({
         )}
       </section>
 
-      {team.matches.length > 0 && (
+      {/* Also when there are none: a team with nothing here is the one that
+          most needs somewhere to put its results. */}
+      {(team.matches.length > 0 || canSchedule) && (
         <section className="mt-8">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
             <h2 className="text-lg font-semibold">Matches</h2>
@@ -439,7 +451,18 @@ export default async function TeamPage({
               ) : null;
             })()}
           </div>
-          <PerformancePanel matches={team.matches} teamId={team.id} />
+          <PerformancePanel
+            matches={team.matches}
+            teamId={team.id}
+            addedByTeam={
+              team.matches.filter(
+                (m) =>
+                  m.event?.status === "draft" &&
+                  (m.homeScore !== null || m.awayScore !== null),
+              ).length
+            }
+          />
+          {canSchedule && <AddResultForm action={addTeamResult.bind(null, team.slug)} />}
           <ul className="mt-3 space-y-1 text-sm">
             {team.matches.map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />
@@ -511,11 +534,27 @@ function MatchRow({
       {/* Indented under the result, so a column of scores stays scannable and
           the context is there for the one row being read. */}
       <div className="ml-6 text-xs text-muted">
-        {match.event?.slug ? (
+        {/*
+          A placeholder standing in for a competition nobody here carries is a
+          draft, and a draft's page is refused to everyone but whoever made it.
+          So the name is written, and not linked: a reader following it would
+          land on a wall, and the name is the whole of what the row needs.
+        */}
+        {match.event?.slug && match.event.status !== "draft" ? (
           <Link href={`/events/${match.event.slug}`} className="hover:underline">
             {match.event.title}
           </Link>
-        ) : null}
+        ) : (
+          <>
+            <span>{match.event?.title}</span>
+            {/* Said on the row, not only in the total: a reader comparing two
+                teams should be able to see which results came from an
+                organizer and which from the side's own people. */}
+            <span className="ml-1.5 rounded bg-elevated px-1 py-0.5 text-[10px] uppercase tracking-wide">
+              added by the team
+            </span>
+          </>
+        )}
         {[round, when].filter(Boolean).map((bit) => (
           <span key={bit}> · {bit}</span>
         ))}
