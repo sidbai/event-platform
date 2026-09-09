@@ -22,6 +22,7 @@ type Basket = Record<string, { kind: string; lines: string[]; missing?: number }
 
 function artifact(): {
   a1Fixture: (meta: string[], who: string[], tail: string[]) => string[];
+  colWith: (head: string[], words: string[]) => number;
   tableRows: (table: unknown) => string[];
   missingFrom: (pageText: string, got: number) => number;
   collected: (
@@ -114,6 +115,37 @@ describe("the copier bookmarklet", () => {
     // Both halves look these up by name. A column this emits under a name the
     // importer does not know is a column silently dropped.
     expect(readStandingsHeader(STANDINGS_HEADER.join("\t"))).not.toBeNull();
+  });
+});
+
+/**
+ * The same table, reached two ways.
+ *
+ * AthleteOne's own site prints "Teams & Venues" over three columns. The widget
+ * it lends to a league's site prints "Team & Venue" over four, with the game
+ * number first — theecnl.com loads that widget, and it calls the same API.
+ * Fixed positions read the first and quietly mangled the second, putting the
+ * game number where the date goes.
+ */
+describe("finding the columns", () => {
+  const col = (head: string[], words: string[]) => artifact().colWith(head, words);
+
+  it("finds them on AthleteOne's own three-column table", () => {
+    const head = ["game info", "teams & venues", "details"];
+    expect(col(head, ["game", "info"])).toBe(0);
+    expect(col(head, ["team", "venue"])).toBe(1);
+  });
+
+  it("finds them past the game number, on the league-site widget", () => {
+    // Live from theecnl.com, ECNL Boys Northwest BU15.
+    const head = ["gm#", "game info", "team & venue", "details"];
+    expect(col(head, ["game", "info"])).toBe(1);
+    expect(col(head, ["team", "venue"])).toBe(2);
+  });
+
+  it("says so when a table is not one of these at all", () => {
+    // The generic reader takes it instead, which is what the -1 is for.
+    expect(col(["date", "home", "away", "score"], ["team", "venue"])).toBe(-1);
   });
 });
 

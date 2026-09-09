@@ -30,6 +30,15 @@ const SOURCE = `(function(){
     for(var i=0;i<head.length;i++){if(names.indexOf(head[i])>=0)return i;}
     return -1;
   }
+  /** The first column whose heading contains all of these words. */
+  function colWith(head,words){
+    for(var i=0;i<head.length;i++){
+      var h=head[i], all=true;
+      for(var j=0;j<words.length;j++){if(h.indexOf(words[j])<0){all=false;break;}}
+      if(all)return i;
+    }
+    return -1;
+  }
 
   /*
    * AthleteOne stacks a fixture into three cells rather than laying it out in
@@ -131,6 +140,7 @@ const SOURCE = `(function(){
   if(typeof document==='undefined'){
     return {
       a1Fixture:a1Fixture,
+      colWith:colWith,
       tableRows:tableRows,
       missingFrom:missingFrom,
       collected:collected,
@@ -183,20 +193,30 @@ const SOURCE = `(function(){
    * date and the score. Recognised by what the header says, so nothing here
    * depends on the address a person happens to be on.
    */
-  var a1=cellsOf(table.querySelectorAll('tr')[0]||{children:[]}).map(function(c){
+  var a1head=cellsOf(table.querySelectorAll('tr')[0]||{children:[]}).map(function(c){
     return lower(text(c));
-  }).join('|');
-  var isA1=a1.indexOf('game info')>=0 && a1.indexOf('teams & venues')>=0;
+  });
+  /*
+   * Found by column rather than by position. The same table turns up with an
+   * extra leading column of game numbers, and it turns up with "Team & Venue"
+   * where the first one said "Teams & Venues" — both are AthleteOne, one read
+   * through its own site and one through the widget it lends to a league's.
+   * Fixed indices got the first and silently mangled the second, putting the
+   * game number where the date goes.
+   */
+  var infoCol=colWith(a1head,['game','info']);
+  var whoCol=colWith(a1head,['team','venue']);
+  var isA1=infoCol>=0 && whoCol>=0;
 
   [].slice.call(table.querySelectorAll('tr')).forEach(function(tr){
     var cells=[].slice.call(tr.children);
     var values=cells.map(text);
 
     if(isA1){
-      if(cells.length<4)return;
-      var meta1=parts(cells[0]);
+      if(cells.length<=whoCol)return;
+      var meta1=parts(cells[infoCol]);
       if(meta1.length<2)return;              // the header row, and any spacer
-      var who=parts(cells[1]);
+      var who=parts(cells[whoCol]);
       if(who.length<2)return;
       out.push(a1Fixture(meta1,who,parts(cells[cells.length-1])).join('\\t'));
       return;
