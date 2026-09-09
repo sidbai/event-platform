@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeScheduleFiles } from "./merge-files";
+import { holdsBothKinds, mergeScheduleFiles } from "./merge-files";
 import { CANONICAL_HEADER, parsePastedSchedule } from "./paste";
 
 const HEAD = CANONICAL_HEADER.join("\t");
@@ -94,5 +94,40 @@ describe("mergeScheduleFiles", () => {
     expect(out.ok).toBe(false);
     if (out.ok) return;
     expect(out.error).toMatch(/empty/i);
+  });
+});
+
+describe("a file holding both kinds", () => {
+  /*
+   * The copier's box shows fixtures and standings together so they can be
+   * read. Saved or pasted as one run, the standings header is read as a
+   * FIXTURE — "l v pts", no date — followed by one game per team in the
+   * table, and the parser reports none of it as skipped.
+   */
+  const mixed = [
+    HEAD,
+    game("Alpha"),
+    TABLE,
+    "Alpha\t3\t3\t0\t0\t9\t1\t9",
+  ].join("\n");
+
+  it("is recognised", () => {
+    expect(holdsBothKinds(mixed)).toBe(true);
+    expect(holdsBothKinds([HEAD, game("Alpha")].join("\n"))).toBe(false);
+    expect(holdsBothKinds([TABLE, "Alpha\t3\t3\t0\t0\t9\t1\t9"].join("\n"))).toBe(false);
+  });
+
+  it("is refused, and the file is named", () => {
+    const out = mergeScheduleFiles([{ name: "one-sitting.txt", text: mixed }]);
+    expect(out.ok).toBe(false);
+    if (out.ok) return;
+    expect(out.error).toContain("one-sitting.txt");
+    expect(out.error).toMatch(/separately/);
+  });
+
+  it("says nothing about a plain paste that merely mentions those words", () => {
+    // "team" and "pts" inside a fixture row are not a standings header; only
+    // a line that reads as one counts.
+    expect(holdsBothKinds("9:00 AM\tteam pts FC\t2\t1\tAway FC\tField 1")).toBe(false);
   });
 });

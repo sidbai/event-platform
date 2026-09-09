@@ -44,12 +44,39 @@ function headerKind(line: string): Kind | null {
 const lines = (text: string) =>
   text.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
 
+/**
+ * Whether one run of text holds both a schedule and a standings table.
+ *
+ * The copier collects both kinds into one basket, and its overlay puts both
+ * in one box — so a person who collected fixtures and standings in the same
+ * sitting can paste, or save and load, a file holding both.
+ *
+ * Read as a schedule, the standings header becomes a fixture: "l v pts", no
+ * date, followed by a game for every team in the table. Nothing is reported
+ * as skipped, which is what makes it worth a guard rather than a comment.
+ */
+export function holdsBothKinds(text: string): boolean {
+  const rows = lines(text);
+  const kinds = new Set(rows.map(headerKind).filter(Boolean));
+  return kinds.has("fixtures") && kinds.has("standings");
+}
+
 export function mergeScheduleFiles(files: NamedText[]): MergeResult {
   const parsed = files
     .map((f) => ({ name: f.name, rows: lines(f.text) }))
     .filter((f) => f.rows.length > 0);
 
   if (parsed.length === 0) return { ok: false, error: "Those files are empty." };
+
+  // A file holding both is the same mistake as two files holding one each,
+  // and reaches the same wrong place, so it is caught in the same breath.
+  const mixed = parsed.find((f) => holdsBothKinds(f.rows.join("\n")));
+  if (mixed) {
+    return {
+      ok: false,
+      error: `${mixed.name} holds both a schedule and a standings table — save or paste them separately.`,
+    };
+  }
 
   const kinds = parsed.map((f) => ({ name: f.name, kind: headerKind(f.rows[0]) ?? "raw" }));
   const first = kinds[0].kind;

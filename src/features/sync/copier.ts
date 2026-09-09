@@ -103,10 +103,10 @@ const SOURCE = `(function(){
    * "XF, U14, B12 - 13, RCL 1", and a spreadsheet opening that as CSV splits
    * one team across four columns.
    */
-  function fileName(host,now){
+  function fileName(host,now,what){
     var day=new Date(now).toISOString().slice(0,10);
     var site=(host||'source').replace(/^www\./,'').replace(/[^a-z0-9.-]/gi,'');
-    return 'schedule-'+site+'-'+day+'.txt';
+    return (what||'schedule')+'-'+site+'-'+day+'.txt';
   }
 
   /** Everything of one kind that the basket holds, in the order collected. */
@@ -282,15 +282,30 @@ const SOURCE = `(function(){
     save.textContent='Save as file';
     save.style.cssText='margin-left:8px;padding:2px 8px';
     save.onclick=function(){
-      var blob=new Blob([box.value],{type:'text/plain'});
+      /*
+       * One file per kind, never one holding both.
+       *
+       * The box shows fixtures and standings together so they can be read,
+       * but a file with both in it imports as neither: the first line decides
+       * how the whole thing is parsed, and the standings header becomes a
+       * fixture called "l v pts". The importer refuses such a file now, which
+       * is a message rather than a silent mess — but not making it is better
+       * than explaining it.
+       */
+      if(fix.pages) download([HEADER.join('\\t')].concat(fix.lines),'schedule');
+      if(tab.pages) download([TABLE.join('\\t')].concat(tab.lines),'standings');
+    };
+
+    function download(lines,what){
+      var blob=new Blob([lines.join('\\n')],{type:'text/plain'});
       var a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download=fileName(location.hostname,Date.now());
+      a.download=fileName(location.hostname,Date.now(),what);
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
-    };
+    }
 
     var close=document.createElement('button');
     close.textContent='Close';
