@@ -21,6 +21,7 @@
  * Pure and takes `now`, so it is testable and so the page never has to decide
  * what "soon" means.
  */
+import { endOf } from "@/features/events/completion";
 import { splitByTime } from "@/features/events/split-by-time";
 
 export type FeaturedMode = "now" | "recent" | "later";
@@ -72,4 +73,42 @@ export function pickFeatured<T extends { startsAt: Date | null; endsAt?: Date | 
   // Nothing on, nothing finished: a new listing months out is all there is,
   // and showing it beats an empty band.
   return { events: [...upcoming, ...future].slice(0, limit), mode: "later" };
+}
+
+/**
+ * How far back a result is still news on the front page.
+ *
+ * A fortnight. Long enough that a Labor Day weekend is still there when
+ * somebody looks on the following Saturday, short enough that the band is not
+ * a museum.
+ */
+export const RECENT_DAYS = 14;
+
+/**
+ * What finished lately, whether or not something else is on.
+ *
+ * The band used to show these only when there was nothing being played, which
+ * held while every event was a weekend. A league changed it: one that runs to
+ * next May is ongoing for seven months, so the moment it was listed the front
+ * page had something on every day of the season and four tournaments people
+ * had just played in vanished from it.
+ *
+ * Most recently finished first, by when they ended rather than when they
+ * began — the Eastside Cup ran to 31 August and the King Juan Cup finished on
+ * the 29th, and by start date the one that finished first would lead.
+ */
+export function justFinished<T extends { startsAt: Date | null; endsAt?: Date | null }>(
+  events: T[],
+  now: Date,
+  limit: number = FEATURED_SIZE,
+  days: number = RECENT_DAYS,
+): T[] {
+  const { past } = splitByTime(events, now);
+  const since = now.getTime() - days * DAY;
+  return past
+    .filter((e) => {
+      const end = endOf({ startsAt: e.startsAt, endsAt: e.endsAt ?? null })?.getTime();
+      return end !== undefined && end !== null && end >= since;
+    })
+    .slice(0, limit);
 }

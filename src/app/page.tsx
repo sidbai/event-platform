@@ -131,7 +131,7 @@ function EventBand({
 
 export default async function Home() {
   const user = await getCurrentUser();
-  const { featured, featuredMode, items, now } = await homeFeed(FEED_SIZE);
+  const { featured, featuredMode, recent, items, now } = await homeFeed(FEED_SIZE);
 
   // Only forum posts can be liked today, so only they need the state fetched.
   const likes = await likeStates(
@@ -178,6 +178,17 @@ export default async function Home() {
       </div>
 
       <EventBand events={featured} mode={featuredMode} />
+
+      {/*
+        A second band, and only while the first one is showing something else.
+        
+        These used to appear in that band whenever nothing was being played,
+        which held while every event was a weekend. A league runs to next May,
+        so from the day it was listed the front page had something on every
+        day of the season and four tournaments people had just played in
+        dropped off it altogether.
+      */}
+      {recent.length > 0 && <EventBand events={recent} mode="recent" />}
 
       {featured.length === 0 && items.length === 0 ? (
         <p className="mt-10 text-muted">

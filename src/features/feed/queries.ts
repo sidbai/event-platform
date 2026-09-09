@@ -4,7 +4,7 @@ import { listEvents } from "@/features/events/queries";
 import { listForumPosts } from "@/features/forum/queries";
 import { listNews } from "@/features/news/queries";
 
-import { FEATURED_SIZE, pickFeatured, type FeaturedMode } from "./featured";
+import { FEATURED_SIZE, justFinished, pickFeatured, type FeaturedMode } from "./featured";
 import { dropSupersededPosts, mergeFeed } from "./merge";
 
 type Common = { id: string; at: Date; sortAt?: Date | null; href: string; title: string };
@@ -57,6 +57,8 @@ export async function homeFeed(
 ): Promise<{
   featured: FeaturedEvent[];
   featuredMode: FeaturedMode;
+  /** What finished lately, when the band above is showing something else. */
+  recent: FeaturedEvent[];
   items: FeedItem[];
   now: number;
 }> {
@@ -122,9 +124,22 @@ export async function homeFeed(
     convertedToEvent: p.convertedEvent !== null,
   }));
 
+  /*
+   * Only alongside a band that is showing something else. Where the band has
+   * already fallen back to what finished, these would be the same events
+   * under a second copy of their own heading.
+   */
+  const recent =
+    featuredMode === "now"
+      ? justFinished(events, new Date(now), FEATURED_SIZE).filter(
+          (e) => !eventIds.has(e.id),
+        )
+      : [];
+
   return {
     featured,
     featuredMode,
+    recent,
     items: mergeFeed([newsItems, postItems], limit),
     now,
   };
