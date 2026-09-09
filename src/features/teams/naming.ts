@@ -44,6 +44,24 @@ const TIERS: [RegExp, string][] = [
   [/\bn1\b|\bnational\s*1\b/i, "National 1"],
   [/\bpre[-\s]?ga\b|\bga[-\s]*aspire\b|\baspire\b/i, "Pre-GA"],
   [/\bga\b/i, "GA"],
+  /*
+   * Seattle United's own names for its sides, which do the job a tier does.
+   *
+   * At 2011 boys the club fields three — Copa, Samba and Tango — sharing a
+   * club, a birth year and a gender, with nothing else to tell them apart.
+   * That is the column's whole purpose, and without it the duplicate finder
+   * sees one team entered three times.
+   *
+   * Read anywhere in the name rather than only after an age group, the way a
+   * colour is: the club writes it on both sides — "Seattle United Copa
+   * B08/09" and "Seattle United B16 Copa" — so anchoring would miss half of
+   * them. The cost is that a club actually named for one of these words would
+   * have it read as a tier. None is, in 2,350 teams; if one arrives, this is
+   * the place that needs the club to decide, as BRANCHES already does.
+   */
+  [/\bcopa\b/i, "Copa"],
+  [/\btango\b/i, "Tango"],
+  [/\bsamba\b/i, "Samba"],
   [/\bgold\b/i, "Gold"],
   [/\boro\b/i, "Gold"],
   [/\bsilver\b/i, "Silver"],
@@ -115,13 +133,10 @@ const BRANCHES: Record<string, [RegExp, string][]> = {
     [/\bnorthwest\b|\bnw\b/i, "Northwest"],
     [/\bsouth\b/i, "South"],
     /*
-     * Copa, Tango and Samba are deliberately not here.
-     *
-     * They look like the branches above and are not: a branch is where the
-     * side plays, and those are what the side is called. "Seattle United B16
-     * Copa" is how the club writes it and how people say it, so Copa belongs
-     * at the end with the squad letters and the coaches' names rather than
-     * in front of the age group like Shoreline.
+     * Copa, Tango and Samba are deliberately not here — they are tiers, up
+     * with Gold and Silver. A branch is where a side plays, which is why it
+     * goes in front of the age group; those three are which side of that age
+     * it is, which puts them after it.
      */
   ],
   "eastside-fc": [[/\bwest\b/i, "West"]],
