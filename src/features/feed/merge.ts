@@ -1,17 +1,31 @@
 /**
  * Interleaving what people write here into one list.
  *
- * News and community posts, ordered by when they were written. Events are not
- * in it: they belong on the timeline by when they are PLAYED, one order
- * cannot serve both, and trying made the events lose — see featured.ts.
+ * News and community posts, ordered by what they are about rather than by
+ * when somebody got round to writing them. Four recaps typed in one sitting
+ * carry four different dates — a cup in July, a tournament three weeks ago —
+ * and filed by publication they come out shuffled against the season they
+ * describe. Events are not in this list: they belong on the timeline by when
+ * they are PLAYED, one order cannot serve both, and trying made the events
+ * lose — see featured.ts.
  *
  * Kept pure and separate from the queries so the ordering — the part that is
  * easy to get subtly wrong and impossible to eyeball on a live page — can be
  * tested without a database.
  */
 
-/** The only fields the ordering cares about. */
-export type Feedable = { id: string; at: Date };
+/**
+ * The only fields the ordering cares about.
+ *
+ * `at` is what the card shows — when it was posted. `sortAt` is what it is
+ * about, where those differ: a recap of a cup played in July, written in
+ * September, sorts under July and still says it was posted four days ago.
+ * The news page has drawn this line for a while, ordering on
+ * `coalesce(event_date, published_at)` while printing both.
+ */
+export type Feedable = { id: string; at: Date; sortAt?: Date | null };
+
+const when = (item: Feedable) => (item.sortAt ?? item.at).getTime();
 
 /**
  * Newest first, across every source.
@@ -24,7 +38,7 @@ export type Feedable = { id: string; at: Date };
 export function mergeFeed<T extends Feedable>(groups: T[][], limit: number): T[] {
   return groups
     .flat()
-    .sort((a, b) => b.at.getTime() - a.at.getTime() || a.id.localeCompare(b.id))
+    .sort((a, b) => when(b) - when(a) || a.id.localeCompare(b.id))
     .slice(0, limit);
 }
 

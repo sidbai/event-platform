@@ -7,7 +7,7 @@ import { listNews } from "@/features/news/queries";
 import { FEATURED_SIZE, pickFeatured, type FeaturedMode } from "./featured";
 import { dropSupersededPosts, mergeFeed } from "./merge";
 
-type Common = { id: string; at: Date; href: string; title: string };
+type Common = { id: string; at: Date; sortAt?: Date | null; href: string; title: string };
 
 /**
  * One item in the home feed.
@@ -78,6 +78,14 @@ export async function homeFeed(
     // Published is the moment it became public; createdAt could be far older
     // if it sat in drafts, which would file it under a week nobody saw it.
     at: n.publishedAt ?? n.createdAt,
+    /*
+     * Ordered by the day it is about, which is not the day it was written.
+     * All four recaps here were published in one sitting and cover games from
+     * July to late August; by publication they came out in no order a reader
+     * could see. eventDate is a date and arrives as a string, so it is read
+     * as UTC midnight — enough to order days by, which is all it claims.
+     */
+    sortAt: n.eventDate ? new Date(`${n.eventDate}T00:00:00Z`) : null,
     href: `/news/${n.slug}`,
     title: n.title,
     category: n.category,
