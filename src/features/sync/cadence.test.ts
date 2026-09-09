@@ -140,3 +140,63 @@ describe("an event somebody has closed", () => {
     expect(nextSyncAt(playing, now)).not.toBeNull();
   });
 });
+
+/**
+ * A season is not a long weekend.
+ *
+ * The rule above treats "has it started" as "is it being played", which is
+ * true of a tournament and false of a league from August to March. Twenty
+ * minutes across seven months is about fifteen thousand requests to answer a
+ * question that changes on thirty Saturdays.
+ */
+describe("nextSyncAt for a season", () => {
+  // Started six weeks ago, runs another five months.
+  const league = { startsAt: at(-24 * 42), endsAt: at(24 * 150) };
+
+  it("asks once a day between rounds", () => {
+    expect(
+      minutesUntil(nextSyncAt({ ...league, kickoffs: [at(24 * 4)] }, now)),
+    ).toBe(1440);
+  });
+
+  it("asks every twenty minutes while games are on", () => {
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(1)] }, now))).toBe(20);
+    // And just after, when the last results are landing.
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(-3)] }, now))).toBe(20);
+  });
+
+  it("asks every couple of hours on the day either side", () => {
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(20)] }, now))).toBe(120);
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(-20)] }, now))).toBe(120);
+  });
+
+  it("takes the nearest kickoff, not the first in the list", () => {
+    // A season's fixtures arrive in whatever order the platform published
+    // them, and most of them are months away.
+    const kickoffs = [at(24 * 60), at(2), at(-24 * 30)];
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs }, now))).toBe(20);
+  });
+
+  it("asks daily when the fixtures have not been published yet", () => {
+    // A league listed before its schedule exists. Something will change, but
+    // not in the next hour.
+    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [] }, now))).toBe(1440);
+    expect(minutesUntil(nextSyncAt(league, now))).toBe(1440);
+  });
+
+  it("does not outlive the season by more than the settling days", () => {
+    // Ends tomorrow, no fixtures left. A daily poll must not be scheduled
+    // past the point the rule above would have stopped asking altogether.
+    const ending = { startsAt: at(-24 * 60), endsAt: at(12) };
+    const next = nextSyncAt({ ...ending, kickoffs: [] }, now)!;
+    expect(next.getTime()).toBeLessThanOrEqual(at(12 + 48).getTime());
+  });
+
+  it("leaves a weekend tournament exactly as it was", () => {
+    // Started this morning, ends tomorrow: the twenty minutes are still
+    // right, and the kickoffs are not consulted at all.
+    const weekend = { startsAt: at(-2), endsAt: at(24) };
+    expect(minutesUntil(nextSyncAt(weekend, now))).toBe(20);
+    expect(minutesUntil(nextSyncAt({ ...weekend, kickoffs: [at(24 * 5)] }, now))).toBe(20);
+  });
+});
