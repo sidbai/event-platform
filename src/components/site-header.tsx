@@ -38,10 +38,11 @@ export async function SiteHeader() {
 
         The bar carries a logo, a search box and six section links; the pages
         carry prose, and 768px is a reading measure rather than a layout. At
-        768 the search box was squeezed to 166px — half the 320 it asks for —
-        with 24px of slack in the whole bar. 1024 is the width where search
-        reaches full size and the links stop crowding it; past that the extra
-        is empty space between two groups that are already far apart.
+        768 the search box is squeezed to 171px with 24px of slack in the whole
+        bar. 1024 is the width where it stops being squeezed and the links stop
+        crowding it; past that the extra would be empty space between two
+        groups that are already far apart — and it is also what stops the box
+        below, which takes whatever is going, from running away.
       */}
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4 sm:px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
@@ -58,20 +59,20 @@ export async function SiteHeader() {
             className="h-11 w-11 object-contain sm:h-12 sm:w-12"
           />
         </Link>
-        {/* Search sits against the logo rather than floating in the middle:
-            the two are one thing to reach for, and every bit of slack in the
-            bar is between them and the links instead. The section links
-            collapse into a menu on phones, where four of them plus a search
-            box do not fit at 375px. */}
+        {/* Logo, search and the links read as one row rather than two groups
+            with a hole between them, so the box takes whatever the links do
+            not want instead of stopping at a fixed width. The links collapse
+            into a menu on phones, where four of them plus a search box do not
+            fit at 375px. */}
         <SearchBar
-          className="ml-2 min-w-0 flex-1 sm:ml-3 sm:max-w-sm"
+          className="ml-2 min-w-0 flex-1 sm:ml-3"
           action="/search"
           compact
           label="Search events and community posts"
           placeholder="Search"
         />
 
-        <nav className="ml-auto flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
+        <nav className="flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
           <div className="hidden items-center gap-4 md:flex">
             {sections.map((item) => (
               <Link key={item.href} href={item.href} className={navLink}>
