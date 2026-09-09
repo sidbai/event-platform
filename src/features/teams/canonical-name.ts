@@ -231,6 +231,8 @@ export function remainderOf(facts: NameFacts): string {
   rest = cutUTokens(rest);
   for (const pattern of AGE_TOKENS) rest = rest.replace(pattern, " ");
 
+  rest = withoutStrayYears(rest, facts.birthYears);
+
   if (facts.club) {
     rest = rest.replace(CLUB_FILLER, " ");
     if (!UNITED.test(facts.club.name)) rest = rest.replace(UNITED, " ");
@@ -238,6 +240,26 @@ export function remainderOf(facts: NameFacts): string {
   }
 
   return tidy(rest);
+}
+
+/**
+ * A two-digit year left standing on its own by the age-group cut.
+ *
+ * "LWPFC N1 B13 14" and "Seattle United B09/10 Blue 09" write a year detached
+ * from the pair it belongs to, and cutting the pair leaves the stray behind —
+ * "B13 National 1 14", which reads as a squad number and is not one.
+ *
+ * Only a two-digit number that repeats one of the team's own birth years, or
+ * the year straight after them. A squad number stays: "MRFC Academy B09/10 2"
+ * is that club's second side and the 2 is the whole of what says so.
+ */
+function withoutStrayYears(rest: string, birthYears: number[]): string {
+  if (birthYears.length === 0) return rest;
+  const own = new Set(birthYears.map((y) => y % 100));
+  own.add((birthYears[birthYears.length - 1] + 1) % 100);
+  return rest.replace(/(?<![A-Za-z0-9/])(\d{2})(?![0-9/])/g, (all, digits) =>
+    own.has(Number(digits)) ? " " : all,
+  );
 }
 
 /** Punctuation the sources use as glue, and the empty shells it leaves. */
