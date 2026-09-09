@@ -757,6 +757,25 @@ export const matches = pgTable(
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
     status: matchStatus("status").notNull().default("scheduled"),
+  /*
+   * Set here rather than taken from the source.
+   *
+   * The case this exists for: a tournament's last game is the final, both
+   * teams walk off knowing the result, and the organizer's platform is never
+   * updated — so the score we imported is blank and stays blank. An admin can
+   * fill it in, but the next import would write the source's nothing straight
+   * back over it, silently, and the only sign would be a champion who stopped
+   * being one.
+   *
+   * So a hand-set score is marked, and applySync leaves those two columns
+   * alone while the mark is there. Who and when, not just a flag: a score
+   * that disagrees with the organizer's page needs somebody to ask, and "ask
+   * whoever typed it" is only possible if it was written down.
+   */
+  scoreSetBy: uuid("score_set_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  scoreSetAt: timestamp("score_set_at", { withTimezone: true }),
     /**
      * The hosting platform's id for this game.
      *

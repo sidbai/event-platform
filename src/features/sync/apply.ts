@@ -308,9 +308,9 @@ export async function applySync(
   // --- matches -----------------------------------------------------------
   const synced = await db.query.matches.findMany({
     where: and(eq(matches.eventId, eventId), isNotNull(matches.sourceMatchId)),
-    columns: { id: true, sourceMatchId: true },
+    columns: { id: true, sourceMatchId: true, scoreSetAt: true },
   });
-  const matchBySource = new Map(synced.map((m) => [m.sourceMatchId!, m.id]));
+  const matchBySource = new Map(synced.map((m) => [m.sourceMatchId!, m]));
   const seen = new Set<string>();
   let matchesWritten = 0;
 
@@ -338,7 +338,41 @@ export async function applySync(
 
     const known = matchBySource.get(m.sourceMatchId);
     if (known) {
-      await db.update(matches).set(values).where(eq(matches.id, known));
+      /*
+       * A score somebody set here is not overwritten by the source's.
+       *
+       * The final of a tournament is the game most likely to be missing from
+       * a platform — both teams walked off knowing it, and nobody went back
+       * to type it in — so it is the one an admin fills in by hand. Taking
+       * the source's blank over it on the next import would undo that
+       * silently, and the only visible sign would be a champion who stopped
+       * being one.
+       *
+       * Everything else about the fixture still updates: a moved kick-off, a
+       * changed field, a team we can now match are all the source's to say.
+       */
+      const keepScore = known.scoreSetAt !== null;
+      await db
+        .update(matches)
+        .set(
+          keepScore
+            ? // Everything the source is still entitled to say.
+              {
+                eventId: values.eventId,
+                divisionId: values.divisionId,
+                stage: values.stage,
+                groupLabel: values.groupLabel,
+                field: values.field,
+                kickoffAt: values.kickoffAt,
+                homeTeamId: values.homeTeamId,
+                awayTeamId: values.awayTeamId,
+                homePlaceholder: values.homePlaceholder,
+                awayPlaceholder: values.awayPlaceholder,
+                sourceMatchId: values.sourceMatchId,
+              }
+            : values,
+        )
+        .where(eq(matches.id, known.id));
     } else {
       await db.insert(matches).values(values);
     }

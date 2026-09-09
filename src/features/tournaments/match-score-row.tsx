@@ -24,9 +24,21 @@ export function MatchScoreRow({
   awayScore,
   status,
   divisionTeams,
+  heldSince,
+  releaseAction,
 }: {
   action: Action;
   deleteAction: () => Promise<void>;
+  /**
+   * When somebody set this score here rather than taking the source's.
+   *
+   * Shown because the disagreement is the useful part: a page saying 3-1
+   * where the organizer's site says nothing needs somebody to be able to see
+   * that we are the ones holding it.
+   */
+  heldSince?: Date | null;
+  /** Hands the fixture back to the source's data. */
+  releaseAction?: () => Promise<void>;
   meta: string;
   home: Team | null;
   away: Team | null;
@@ -117,6 +129,17 @@ export function MatchScoreRow({
       >
         ×
       </button>
+
+      {heldSince && releaseAction && (
+        <span className="flex w-full items-center gap-2 text-xs text-muted">
+          <span>Set here, not imported — the next import will not change it.</span>
+          <form action={releaseAction}>
+            <button className="underline hover:text-ink">
+              use the organizer&rsquo;s
+            </button>
+          </form>
+        </span>
+      )}
 
       {state.error && (
         <span className="w-full text-xs text-red-600">{state.error}</span>
