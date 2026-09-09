@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CreateLink } from "@/components/create-link";
 import { SearchBar } from "@/components/search-bar";
+import { suggestClubs } from "@/features/search/suggest-actions";
 
 import { db } from "@/db";
 import { clubs, coaches } from "@/db/schema";
@@ -50,6 +51,7 @@ export async function ReviewsHeader({
       {/* Searches whichever half you are on — the tabs are the scope, so one
           box does not need to explain which of the two it applies to. */}
       <SearchBar
+        suggest={suggestClubs}
         className="mt-4"
         defaultValue={q}
         label={active === "clubs" ? "Search clubs" : "Search coaches"}

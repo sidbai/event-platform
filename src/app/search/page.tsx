@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { SearchBar } from "@/components/search-bar";
+import { suggestAnything } from "@/features/search/suggest-actions";
 import { EventTags } from "@/features/events/event-tags";
 import { listEvents } from "@/features/events/queries";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
@@ -39,6 +40,7 @@ export default async function SearchPage({
       <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
 
       <SearchBar
+        suggest={suggestAnything}
         className="mt-4"
         action="/search"
         defaultValue={q}
