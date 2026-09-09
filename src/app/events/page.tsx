@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SearchBar } from "@/components/search-bar";
+import { suggestEvents } from "@/features/search/suggest-actions";
 
 import { EventLogo } from "@/components/event-logo";
 import { EventTags } from "@/features/events/event-tags";
@@ -148,6 +149,7 @@ export default async function EventsPage({
       </div>
 
       <SearchBar
+        suggest={suggestEvents}
         className="mt-5"
         defaultValue={q}
         label="Search events"
