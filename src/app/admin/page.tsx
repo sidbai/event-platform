@@ -29,7 +29,13 @@ import {
   rejectTeamClaim,
   rejectTeamName,
 } from "@/features/teams/claim-actions";
-import { pendingTeamClaims, pendingTeamNames } from "@/features/teams/claim-queries";
+import {
+  pendingMatchProposals,
+  pendingTeamClaims,
+  pendingTeamNames,
+} from "@/features/teams/claim-queries";
+import { decideMatchProposal } from "@/features/teams/add-result-actions";
+import { MatchProposalButtons } from "@/features/teams/match-proposal-buttons";
 import { parsePage } from "@/features/pagination/paginate";
 import { Pager } from "@/features/pagination/pager";
 import { dismissMessageReports, hideMessage } from "@/features/messages/actions";
@@ -64,6 +70,7 @@ export default async function AdminPage({
     claims,
     teamClaimRequests,
     teamNameRequests,
+    matchRequests,
     reports,
     messageReports,
     reviewReports,
@@ -78,6 +85,7 @@ export default async function AdminPage({
       pendingCoachClaims(),
       pendingTeamClaims(),
       pendingTeamNames(),
+      pendingMatchProposals(),
       reportedComments(),
       reportedMessages(),
       reportedReviews(),
@@ -194,6 +202,57 @@ export default async function AdminPage({
                       Send back
                     </button>
                   </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Results against a team here{" "}
+          {matchRequests.length > 0 && (
+            <span className="text-muted">({matchRequests.length})</span>
+          )}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          A team has added a game we do not carry, against a side that has a
+          page here. Confirming writes it onto both pages and into both
+          records. Their own people can confirm it too, once a team is claimed.
+        </p>
+        {matchRequests.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {matchRequests.map((m) => (
+              <li key={m.id} className="rounded-lg border border-line p-3">
+                <div className="text-sm">
+                  <span className="text-muted">{m.who} says </span>
+                  <Link
+                    href={`/teams/${m.team.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {m.team.name}
+                  </Link>
+                  <span className="tabular-nums">
+                    {" "}
+                    {m.ourScore}–{m.theirScore}{" "}
+                  </span>
+                  <Link
+                    href={`/teams/${m.opponent.slug}`}
+                    className="font-medium text-brand-text hover:underline"
+                  >
+                    {m.opponent.name}
+                  </Link>
+                </div>
+                <p className="mt-0.5 text-xs text-muted">
+                  {m.competition ? `${m.competition} · ` : ""}
+                  {m.playedOn.toISOString().slice(0, 10)}
+                  {m.wasHome ? " · at home" : " · away"}
+                </p>
+                <div className="mt-2">
+                  <MatchProposalButtons decide={decideMatchProposal.bind(null, m.id)} />
                 </div>
               </li>
             ))}

@@ -2033,6 +2033,69 @@ export const teamNameProposals = pgTable(
   (t) => [index("team_name_proposals_status_idx").on(t.status, t.createdAt)],
 );
 
+/**
+ * A result somebody wants to add against a team we already carry.
+ *
+ * A side that flew to Dallas can add its games without asking anybody, right
+ * up until the opponent turns out to be a team with a page here. Then the
+ * result is not only their own account of it: it would put a fixture on
+ * somebody else's page and goals against their record. So it waits, the way a
+ * team rename waits, until the other side or an admin says yes.
+ *
+ * The match is not written until then. Keeping it here rather than as an
+ * unconfirmed match row is what stops every query that reads matches —
+ * records, standings, previews — from having to learn to skip it.
+ */
+export const matchProposals = pgTable(
+  "match_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** The side adding it, whose page the result will appear on. */
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    /** The side being told about it, and whose people may approve it. */
+    opponentTeamId: uuid("opponent_team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    proposedBy: uuid("proposed_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Midday on the day it was played — see teams/add-result.ts. */
+    playedOn: timestamp("played_on", { withTimezone: true }).notNull(),
+    /** Goals as the proposing side counts them. */
+    ourScore: integer("our_score").notNull(),
+    theirScore: integer("their_score").notNull(),
+    wasHome: boolean("was_home").notNull().default(false),
+    /** What the cup was called, as typed. Null for a friendly. */
+    competition: text("competition"),
+    status: claimStatus("status").notNull().default("pending"),
+    decidedBy: uuid("decided_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** The match this became, once somebody said yes. */
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("match_proposals_status_idx").on(t.status, t.createdAt),
+    index("match_proposals_team_idx").on(t.teamId),
+  ],
+);
+
+export const matchProposalsRelations = relations(matchProposals, ({ one }) => ({
+  team: one(teams, { fields: [matchProposals.teamId], references: [teams.id] }),
+  opponent: one(teams, {
+    fields: [matchProposals.opponentTeamId],
+    references: [teams.id],
+  }),
+  proposer: one(users, {
+    fields: [matchProposals.proposedBy],
+    references: [users.id],
+  }),
+}));
+
 export const teamClaimsRelations = relations(teamClaims, ({ one }) => ({
   team: one(teams, { fields: [teamClaims.teamId], references: [teams.id] }),
   user: one(users, { fields: [teamClaims.userId], references: [users.id] }),

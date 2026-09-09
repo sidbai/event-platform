@@ -3,7 +3,7 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { teamClaims, teamNameProposals } from "@/db/schema";
+import { matchProposals, teamClaims, teamNameProposals } from "@/db/schema";
 import { publicName } from "@/features/auth";
 
 /**
@@ -39,6 +39,32 @@ export async function pendingTeamClaims() {
     /** What the provider says their name is. Never shown outside /admin. */
     account: c.user?.name ?? null,
     email: c.user?.email ?? null,
+  }));
+}
+
+/** Results proposed against a team we carry, waiting for somebody to agree. */
+export async function pendingMatchProposals() {
+  const rows = await db.query.matchProposals.findMany({
+    where: eq(matchProposals.status, "pending"),
+    orderBy: [desc(matchProposals.createdAt)],
+    with: {
+      team: { columns: { name: true, slug: true } },
+      opponent: { columns: { name: true, slug: true } },
+      proposer: { columns: { displayName: true, name: true, username: true } },
+    },
+  });
+
+  return rows.map((p) => ({
+    id: p.id,
+    team: p.team,
+    opponent: p.opponent,
+    who: p.proposer?.displayName ?? p.proposer?.name ?? p.proposer?.username ?? "someone",
+    playedOn: p.playedOn,
+    competition: p.competition,
+    // From the proposing team's side, which is how they entered it.
+    ourScore: p.ourScore,
+    theirScore: p.theirScore,
+    wasHome: p.wasHome,
   }));
 }
 
