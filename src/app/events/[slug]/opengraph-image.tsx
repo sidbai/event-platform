@@ -81,7 +81,7 @@ export default async function OgImage({
         </div>
 
         <div style={{ fontSize: 24, color: "#868c7c" }}>
-          More soccer. More Fun.
+          More information. More opportunities. More soccer.
         </div>
       </div>
     ),

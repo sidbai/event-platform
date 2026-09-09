@@ -6,6 +6,9 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-5 py-4 text-xs text-muted">
         <span>&copy; {new Date().getFullYear()} King Juan Soccer</span>
         <nav className="flex gap-4">
+          <Link href="/about" className="hover:text-ink">
+            About
+          </Link>
           <Link href="/events" className="hover:text-ink">
             Events
           </Link>
