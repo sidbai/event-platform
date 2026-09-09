@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
 
 import { ageGroupOf, parseAgeGroupFilter, seasonYearOf } from "./age";
+import { nextFixture, previewOf, worthShowing, type Preview } from "./preview";
 
 /**
  * Teams anyone may see listed.
@@ -275,6 +276,91 @@ export async function getTeamBySlug(slug: string) {
 }
 
 export type TeamDetail = NonNullable<Awaited<ReturnType<typeof getTeamBySlug>>>;
+
+export type NextUp = {
+  fixture: { id: string; kickoffAt: Date | null };
+  opponent: { id: string; name: string; slug: string; crestUrl: string | null };
+  preview: Preview;
+  /** Names for the third teams both sides have played, keyed by team id. */
+  opponentNames: Map<string, { name: string; slug: string }>;
+};
+
+/**
+ * The next game and what both sides bring to it.
+ *
+ * Takes the team's matches rather than fetching them again — the page has
+ * them already, and a fixture is picked out of that list rather than queried
+ * for. Two queries beyond that, and only when there is a game to preview: the
+ * opponent's own results, and names for whoever they have both played.
+ *
+ * Nothing is stored. The numbers are counted from the results each time,
+ * which is the same choice record.ts made and for the same reason — a stored
+ * record went stale the moment a connector wrote a score without updating it,
+ * and every synced team read "0W 0D 0L" above a list of its own wins. Two
+ * teams' games is a few dozen rows.
+ */
+export async function nextUpFor(
+  teamId: string,
+  teamMatches: { id: string; kickoffAt: Date | null; homeTeamId: string | null; awayTeamId: string | null; homeScore: number | null; awayScore: number | null }[],
+  now: Date = new Date(),
+): Promise<NextUp | null> {
+  const fixture = nextFixture(teamMatches, now);
+  if (!fixture) return null;
+
+  const opponentId =
+    fixture.homeTeamId === teamId ? fixture.awayTeamId : fixture.homeTeamId;
+  if (!opponentId) return null;
+
+  const opponent = await db.query.teams.findFirst({
+    where: eq(teams.id, opponentId),
+    columns: { id: true, name: true, slug: true, crestUrl: true },
+    with: { club: { columns: { crestUrl: true } } },
+  });
+  if (!opponent) return null;
+
+  const theirMatches = await db.query.matches.findMany({
+    where: or(eq(matches.homeTeamId, opponentId), eq(matches.awayTeamId, opponentId)),
+    columns: {
+      id: true,
+      kickoffAt: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      homeScore: true,
+      awayScore: true,
+    },
+  });
+
+  const preview = previewOf(
+    { teamId, matches: teamMatches },
+    { teamId: opponentId, matches: theirMatches },
+  );
+  if (!worthShowing(preview)) {
+    // Both sides new here and nobody in common — which is most of a
+    // tournament's teams on the day it is imported. A heading over four empty
+    // columns is worse than no heading.
+    return {
+      fixture: { id: fixture.id, kickoffAt: fixture.kickoffAt },
+      opponent: { ...opponent, crestUrl: opponent.crestUrl ?? opponent.club?.crestUrl ?? null },
+      preview,
+      opponentNames: new Map(),
+    };
+  }
+
+  const sharedIds = preview.shared.map((s) => s.teamId);
+  const names = sharedIds.length
+    ? await db.query.teams.findMany({
+        where: inArray(teams.id, sharedIds),
+        columns: { id: true, name: true, slug: true },
+      })
+    : [];
+
+  return {
+    fixture: { id: fixture.id, kickoffAt: fixture.kickoffAt },
+    opponent: { ...opponent, crestUrl: opponent.crestUrl ?? opponent.club?.crestUrl ?? null },
+    preview,
+    opponentNames: new Map(names.map((t) => [t.id, { name: t.name, slug: t.slug }])),
+  };
+}
 
 /**
  * Events this team hosts. Private ones are only included for members — the
