@@ -39,6 +39,21 @@ export function splitByTime<T extends { startsAt: Date | null; endsAt?: Date | n
 
   const horizon = now.getTime() + horizonDays * DAY;
   const soonest = (a: T, b: T) => (starts(a) ?? 0) - (starts(b) ?? 0);
+  /*
+   * Two of these sections are about finishing, not starting.
+   *
+   * A league that began in August and runs to May is ongoing beside a
+   * tournament being played this weekend, and the tournament is the one about
+   * to conclude — sorted by start it sits under seven months of league. Past
+   * has the same fault the other way round: the Eastside Cup ran to 31 August
+   * and King Juan Cup finished on the 29th, and by start date the Cup that
+   * finished first was listed as the more recent.
+   *
+   * Upcoming and Later keep the start, because nothing there has begun and
+   * "when does it open" is the only question those two answer.
+   */
+  const endsSoonest = (a: T, b: T) => (finishes(a) ?? 0) - (finishes(b) ?? 0);
+  const endedLatest = (a: T, b: T) => (finishes(b) ?? 0) - (finishes(a) ?? 0);
 
   const over = (e: T) => {
     const end = finishes(e);
@@ -71,12 +86,10 @@ export function splitByTime<T extends { startsAt: Date | null; endsAt?: Date | n
     return start !== null && start <= now.getTime() && !over(e);
   };
 
-  const ongoing = events.filter(live).sort(soonest);
+  const ongoing = events.filter(live).sort(endsSoonest);
   const upcoming = events.filter((e) => !over(e) && !far(e) && !live(e)).sort(soonest);
   const future = events.filter((e) => !over(e) && far(e) && !live(e)).sort(soonest);
-  const past = events
-    .filter(over)
-    .sort((a, b) => (starts(b) ?? 0) - (starts(a) ?? 0));
+  const past = events.filter(over).sort(endedLatest);
 
   return { ongoing, upcoming, past, future };
 }

@@ -195,3 +195,72 @@ describe("the ongoing section", () => {
     expect(out.upcoming).toEqual([undated]);
   });
 });
+
+/**
+ * Two of these sections are about finishing, not starting.
+ *
+ * Both cases below are live on /events: a league that runs to next May sits
+ * in Ongoing, and the Eastside Cup that ran to 31 August was listed under a
+ * Cup that had finished on the 29th.
+ */
+describe("ordering by when things end", () => {
+  const now = new Date("2026-09-09T12:00:00Z");
+  const ev = (id: string, from: string, to: string | null) => ({
+    id,
+    startsAt: new Date(`${from}T16:00:00Z`),
+    endsAt: to ? new Date(`${to}T23:00:00Z`) : null,
+  });
+
+  it("puts the tournament finishing this weekend above the league running to May", () => {
+    const { ongoing } = splitByTime(
+      [
+        ev("league", "2026-08-30", "2027-05-16"),
+        ev("weekend", "2026-09-08", "2026-09-13"),
+      ],
+      now,
+    );
+    expect(ongoing.map((e) => e.id)).toEqual(["weekend", "league"]);
+  });
+
+  it("lists the most recently finished first, which is not the latest started", () => {
+    // King Juan Cup started a day later and finished two days earlier.
+    const { past } = splitByTime(
+      [
+        ev("king-juan", "2026-08-29", "2026-08-29"),
+        ev("eastside", "2026-08-28", "2026-08-31"),
+      ],
+      now,
+    );
+    expect(past.map((e) => e.id)).toEqual(["eastside", "king-juan"]);
+  });
+
+  it("leaves upcoming and later on the start date, where nothing has begun", () => {
+    // A long event opening later must not outrank a short one opening sooner.
+    const { upcoming } = splitByTime(
+      [
+        ev("long-later", "2026-10-01", "2026-12-20"),
+        ev("short-sooner", "2026-09-20", "2026-09-21"),
+      ],
+      now,
+    );
+    expect(upcoming.map((e) => e.id)).toEqual(["short-sooner", "long-later"]);
+  });
+
+  it("sorts an event with no end time by the day endOf gives it", () => {
+    // endOf, shared with the lifecycle chip, runs an event with no end time
+    // for a day from kickoff rather than to midnight — so one that started
+    // yesterday afternoon is still being played this morning, and one that
+    // started the day before has finished and sorts by that.
+    const { ongoing, past } = splitByTime(
+      [
+        ev("dated", "2026-09-07", "2026-09-07"),
+        ev("open-ended", "2026-09-08", null),
+        ev("older-open", "2026-09-06", null),
+      ],
+      now,
+    );
+    expect(ongoing.map((e) => e.id)).toEqual(["open-ended"]);
+    // Both finished; the one that ran latest leads.
+    expect(past.map((e) => e.id)).toEqual(["dated", "older-open"]);
+  });
+});
