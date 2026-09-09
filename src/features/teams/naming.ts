@@ -121,6 +121,11 @@ const BRANCHES: Record<string, [RegExp, string][]> = {
     [/\bsamba\b/i, "Samba"],
   ],
   "eastside-fc": [[/\bwest\b/i, "West"]],
+  "western-washington-surf": [
+    [/\bnorth\b/i, "North"],
+    [/\bcentral\b/i, "Central"],
+    [/\bsouth\b/i, "South"],
+  ],
 };
 
 /**
@@ -129,7 +134,14 @@ const BRANCHES: Record<string, [RegExp, string][]> = {
  * A branch wins over a generic word: "Seattle United Shoreline Premier" is a
  * Shoreline team, and Shoreline is what tells it from the club's other sides.
  */
-export function programMatch(
+/**
+ * The branch of the club this team belongs to, or null.
+ *
+ * Separate from the stream because a team has both: Western Washington Surf
+ * runs an Academy in each of North, Central and South, and "WW SURF BU10
+ * Central Academy A" says which of the nine that is.
+ */
+export function branchMatch(
   name: string,
   clubSlug: string | null,
 ): { label: string; text: string } | null {
@@ -137,11 +149,23 @@ export function programMatch(
     const m = pattern.exec(name);
     if (m) return { label, text: m[0] };
   }
+  return null;
+}
+
+/** The club's own stream — Select, Academy, Premier — or null. */
+export function streamMatch(name: string): { label: string; text: string } | null {
   for (const [pattern, label] of PROGRAMS) {
     const m = pattern.exec(name);
     if (m) return { label, text: m[0] };
   }
   return null;
+}
+
+export function programMatch(
+  name: string,
+  clubSlug: string | null,
+): { label: string; text: string } | null {
+  return branchMatch(name, clubSlug) ?? streamMatch(name);
 }
 
 export function parseProgram(name: string, clubSlug: string | null): string | null {

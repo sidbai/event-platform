@@ -141,6 +141,48 @@ describe("canonicalName", () => {
     );
   });
 
+  it("prints the branch and the stream, branch first", () => {
+    // Western Washington Surf runs an Academy in each of North, Central and
+    // South; the name has to say which of the nine sides this is.
+    expect(
+      name({
+        name: "WW SURF BU10 Central Academy A",
+        club: { name: "Western Washington Surf", slug: "western-washington-surf", aliases: ["wwsurf"] },
+        birthYears: [2016, 2017],
+      }),
+    ).toBe("Western Washington Surf Central Academy B16/17 A");
+  });
+
+  it("finds the club after the age group when the name leads with one", () => {
+    // The Liga Azteca exports write the age group first.
+    expect(name({ name: "BU12 Liga Azteca - Cosmos", birthYears: [2014, 2015] })).toBe(
+      "Liga Azteca B14/15 Cosmos",
+    );
+  });
+
+  it("reads a two-group side either way round", () => {
+    expect(
+      name({
+        name: "WW Surf BU12/U11 Academy South B",
+        club: { name: "Western Washington Surf", slug: "western-washington-surf", aliases: ["wwsurf"] },
+        birthYears: [2014, 2015],
+      }),
+    ).toBe("Western Washington Surf South Academy B14/15 B");
+  });
+
+  it("refuses to print a season that was stored as a cohort", () => {
+    // Five U10 sides hold {2026, 2027}, which is the season the name states.
+    // Printing it would write the mistake into the name, where it stops
+    // looking like one.
+    expect(
+      name({
+        name: "26/27 Portland Thorns Academy U10",
+        gender: "girls",
+        birthYears: [2026, 2027],
+      }),
+    ).toBe("26/27 Portland Thorns Academy U10");
+  });
+
   it("is idempotent — running it twice changes nothing", () => {
     const once = name({ name: "Eastside FC (WA) - EASTSIDE FC BU12 White", club: eastside, birthYears: [2014, 2015] });
     expect(once).toBe("Eastside FC B14/15 White");
