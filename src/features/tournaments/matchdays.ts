@@ -13,6 +13,9 @@
 
 export type Playable = { id: string; kickoffAt: Date | null };
 
+/** A match that may know which round of a league it belongs to. */
+export type Numbered = Playable & { week?: number | null };
+
 export type Matchday<T> = {
   /** YYYY-MM-DD in the event's own timezone, for links and keys. */
   key: string;
@@ -81,4 +84,78 @@ export function currentMatchday<T extends Playable>(
   if (dated.length === 0) return days[0]?.key ?? null;
   const today = dayKey(now, timeZone);
   return dated.find((d) => d.key >= today)?.key ?? dated[dated.length - 1].key;
+}
+
+/**
+ * The same schedule, grouped the way a league counts it.
+ *
+ * A league reads by round, not by date. The two are not the same list: a
+ * round spread over Saturday and Sunday is one week and two matchdays, and a
+ * game postponed for weather is played a fortnight after the round it belongs
+ * to. Grouped by date, that game turns up alone under a heading in the middle
+ * of the season with no way to see what it was.
+ *
+ * Weeks with no number of their own come last under an empty key, the same
+ * way undated matches do above — an imported league whose platform prints no
+ * round still has fixtures, and dropping them would lose games nobody could
+ * account for.
+ */
+export function byWeek<T extends Numbered>(matches: T[]): Matchday<T>[] {
+  const weeks = new Map<string, T[]>();
+  for (const m of matches) {
+    const key = typeof m.week === "number" ? String(m.week) : "";
+    const list = weeks.get(key);
+    if (list) list.push(m);
+    else weeks.set(key, [m]);
+  }
+
+  return [...weeks.entries()]
+    .sort(([a], [b]) => {
+      if (a === "") return 1;
+      if (b === "") return -1;
+      return Number(a) - Number(b);
+    })
+    .map(([key, list]) => ({
+      key,
+      matches: list
+        .slice()
+        .sort((x, y) => (x.kickoffAt?.getTime() ?? 0) - (y.kickoffAt?.getTime() ?? 0)),
+    }));
+}
+
+/** Whether this schedule is numbered by round at all. */
+export function hasWeeks(matches: Numbered[]): boolean {
+  return matches.some((m) => typeof m.week === "number");
+}
+
+/**
+ * The week to open on: the one being played, or the next still to come.
+ *
+ * By the earliest kickoff in each round rather than by the number, since a
+ * postponed round can sit later in the calendar than the one after it and a
+ * reader opening the page wants the football that is next, not the lowest
+ * number left unplayed.
+ */
+export function currentWeek<T extends Numbered>(
+  weeks: Matchday<T>[],
+  now: Date,
+): string | null {
+  const t = now.getTime();
+  const starts = (w: Matchday<T>) => {
+    const times = w.matches
+      .map((m) => m.kickoffAt?.getTime())
+      .filter((x): x is number => typeof x === "number");
+    return times.length > 0 ? Math.min(...times) : null;
+  };
+
+  const dated = weeks
+    .map((w) => ({ w, at: starts(w) }))
+    .filter((x): x is { w: Matchday<T>; at: number } => x.at !== null)
+    .sort((a, b) => a.at - b.at);
+  if (dated.length === 0) return weeks[0]?.key ?? null;
+
+  // A round is "on" until a day after its first kickoff, so Sunday's fixtures
+  // do not send the page to next week on Saturday evening.
+  const DAY = 86_400_000;
+  return (dated.find((x) => x.at + DAY >= t) ?? dated[dated.length - 1]).w.key;
 }
