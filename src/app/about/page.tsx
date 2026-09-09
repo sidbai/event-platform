@@ -65,10 +65,14 @@ export default function AboutPage() {
           account is only needed to put something in.
         </p>
         <p>
-          When you do sign in, you are anonymous unless you choose otherwise:
-          accounts start with a generated handle, never your name or your email
-          address, and there is no password to store because signing in is a
-          link sent to your inbox.
+          When you do sign in, you are anonymous <em>to other readers</em>
+          unless you choose otherwise. Your email address is stored &mdash; it
+          is how you sign in, and how we reach you about something you asked
+          for &mdash; and nobody else sees it. What appears beside anything you
+          post is a handle we generate, not your email and not the name your
+          sign-in provider holds; you can change it in settings whenever you
+          like. There is no password to store, because signing in is a link
+          sent to your inbox.
         </p>
 
         <h2 className="text-lg font-semibold">Who runs it</h2>
