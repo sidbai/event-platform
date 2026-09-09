@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { honoursByEvent, isFinal, placeIn, type FinalLike } from "./honours";
+import {
+  honoursByEvent,
+  isFinal,
+  isKnockoutDivision,
+  placeIn,
+  type FinalLike,
+} from "./honours";
 
 const base: FinalLike = {
   stage: "group",
   round: null,
   groupLabel: "Final",
+  divisionId: "d1",
+  division: { name: "Boys-U19 - Gold" },
   homeTeamId: "us",
   awayTeamId: "them",
   homeScore: 4,
@@ -88,5 +96,64 @@ describe("honoursByEvent", () => {
       "us",
     );
     expect(out.get("cup")).toBe("champion");
+  });
+});
+
+describe("a knockout division", () => {
+  /** EventConnect: the round is the division, beside the group divisions. */
+  const champs = (over: Partial<FinalLike> = {}) => ({
+    ...m({
+      groupLabel: null,
+      divisionId: "champs",
+      division: { name: "Boys U12 Championships" },
+      ...over,
+    }),
+    eventId: "spring-classic",
+  });
+
+  it("is recognised by name", () => {
+    expect(isKnockoutDivision("Boys U12 Championships")).toBe(true);
+    expect(isKnockoutDivision("Girls U10 Championship")).toBe(true);
+    expect(isKnockoutDivision("Boys U12 Red")).toBe(false);
+    expect(isKnockoutDivision(null)).toBe(false);
+  });
+
+  it("crowns the winner of the one game played there", () => {
+    // The report that started this: Warriors B14/15 EA won 2026 Starfire
+    // Spring Classic in "Boys U12 Championships" and the page said nothing.
+    const out = honoursByEvent([champs()], "us");
+    expect(out.get("spring-classic")).toBe("champion");
+    expect(honoursByEvent([champs()], "them")).toEqual(
+      new Map([["spring-classic", "runner-up"]]),
+    );
+  });
+
+  it("keeps the group games out of it", () => {
+    const groupGame = {
+      ...m({ groupLabel: "A", divisionId: "d1", division: { name: "Boys U12 Silver" } }),
+      eventId: "spring-classic",
+    };
+    const out = honoursByEvent([groupGame, champs()], "us");
+    expect(out.get("spring-classic")).toBe("champion");
+  });
+
+  it("says nothing when the team played that division more than once", () => {
+    /*
+     * The guard. A name is a weak signal, so a tournament that called its
+     * GROUP stage "Championship Division" would otherwise hand a trophy to
+     * whoever won their last group game. Two decided games there is a group.
+     */
+    const out = honoursByEvent([champs(), champs({ homeScore: 2, awayScore: 1 })], "us");
+    expect(out.size).toBe(0);
+  });
+
+  it("does not count an unplayed game towards that", () => {
+    // Imported brackets carry empty rows for flights nobody reached; they
+    // must not make a real final look like a group.
+    const out = honoursByEvent(
+      [champs(), champs({ homeScore: null, awayScore: null })],
+      "us",
+    );
+    expect(out.get("spring-classic")).toBe("champion");
   });
 });
