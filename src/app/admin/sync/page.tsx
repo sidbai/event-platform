@@ -8,6 +8,7 @@ import { connectSchedule, importPastedSchedule, refreshNow } from "@/features/sy
 import { ConnectForm, PasteForm, RefreshButton } from "@/features/sync/connect-form";
 import { CopierPanel } from "@/features/sync/copier-panel";
 import { copierBookmarklet } from "@/features/sync/copier";
+import { siteUrl } from "@/lib/site-url";
 import { formatAgo } from "@/features/sync/freshness";
 import { PROVIDER_POLICIES, mayPoll } from "@/features/sync/policy";
 import { listedEvents } from "@/features/sync/queries";
@@ -40,7 +41,7 @@ export default async function AdminSyncPage() {
         organizer&rsquo;s front page to hunt.
       </p>
 
-      <CopierPanel source={copierBookmarklet()} />
+      <CopierPanel source={copierBookmarklet(siteUrl())} />
 
       <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">
         Connected ({connected.length})

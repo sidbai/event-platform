@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { CANONICAL_HEADER, parsePastedSchedule } from "./paste";
 import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 
-import { copierBookmarklet, STANDINGS_HEADER } from "./copier";
+import { copierBookmarklet, copierSource, STANDINGS_HEADER } from "./copier";
 
-const body = () => decodeURIComponent(copierBookmarklet().slice("javascript:".length));
+/** The tool's own code, which the bookmark now loads rather than carries. */
+const body = () => copierSource();
+
+const bookmark = () => copierBookmarklet("https://kingjuansoccer.com");
 
 /**
  * The bookmarklet's own functions, taken out of the artifact a person clicks.
@@ -64,14 +67,27 @@ describe("the copier bookmarklet", () => {
 
   it("is short enough to live in a bookmark", () => {
     /*
-     * The old ceiling here was 8,000, chosen when this only read one page.
-     * Collecting across flights cost about 2KB and the number needed a
-     * reason rather than a habit: the 2,083-character limit people remember
-     * was Internet Explorer's, and Chrome, Firefox and Safari all store
-     * bookmarks far longer than this. 16,000 is a bound that would catch
-     * something genuinely runaway.
+     * The ceiling went 8,000, then 16,000, and then a browser refused the
+     * address anyway — with no error, just a bookmark that did not work.
+     * So the bookmark carries a loader now and the tool is served. A few
+     * hundred characters is inside every limit anybody has ever hit.
      */
-    expect(copierBookmarklet().length).toBeLessThan(16000);
+    expect(bookmark().length).toBeLessThan(2000);
+  });
+
+  it("loads the tool from this site, and says so when it cannot", () => {
+    const url = bookmark();
+    expect(url).toContain(encodeURIComponent("kingjuansoccer.com/copier.js"));
+    // A site with a content policy refuses the script silently otherwise.
+    expect(decodeURIComponent(url)).toContain("alert(");
+  });
+
+  it("asks the site being read for nothing", () => {
+    /*
+     * The property that makes this not a crawler. The loader fetches OUR
+     * code from OUR origin; the tool it loads makes no request at all.
+     */
+    expect(body()).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|sendBeacon|import\s*\(/);
   });
 
   it("asks for nothing from the network", () => {
