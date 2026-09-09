@@ -25,6 +25,7 @@ function artifact(): {
     basket: Basket,
     kind: string,
   ) => { lines: string[]; pages: number; missing: number };
+  fileName: (host: string, now: number) => string;
 } {
   return new Function(`return ${body()}`)();
 }
@@ -302,5 +303,41 @@ describe("collecting across flights", () => {
   it("is empty rather than undefined for a kind nobody collected", () => {
     const { collected } = artifact();
     expect(collected({}, "fixtures")).toEqual({ lines: [], pages: 0, missing: 0 });
+  });
+});
+
+describe("saving what was collected", () => {
+  const day = Date.parse("2026-09-08T19:30:00Z");
+
+  it("names the file after where it came from and when", () => {
+    // The two questions asked of a file found a week later.
+    expect(artifact().fileName("app.athleteone.com", day)).toBe(
+      "schedule-app.athleteone.com-2026-09-08.txt",
+    );
+  });
+
+  it("is .txt, not .csv", () => {
+    /*
+     * These rows carry team names like "XF, U14, B12 - 13, RCL 1". A
+     * spreadsheet opening that as CSV splits one team across four columns,
+     * and the person doing the importing would never see it happen.
+     */
+    expect(artifact().fileName("x.test", day)).toMatch(/\.txt$/);
+  });
+
+  it("drops www, which is not part of where it came from", () => {
+    expect(artifact().fileName("www.crossfiresoccer.org", day)).toBe(
+      "schedule-crossfiresoccer.org-2026-09-08.txt",
+    );
+  });
+
+  it("never builds a name out of characters a filesystem refuses", () => {
+    const name = artifact().fileName("../../etc/pa ss wd", day);
+    expect(name).not.toMatch(/[/\\ ]/);
+    expect(name).toBe("schedule-....etcpasswd-2026-09-08.txt");
+  });
+
+  it("still names something when the page has no host", () => {
+    expect(artifact().fileName("", 0)).toBe("schedule-source-1970-01-01.txt");
   });
 });

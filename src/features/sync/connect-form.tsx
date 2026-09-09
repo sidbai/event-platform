@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import type { ConnectResult } from "./actions";
 
@@ -76,6 +76,27 @@ export function RefreshButton({ action, eventId }: { action: Action; eventId: st
  */
 export function PasteForm({ action, eventId }: { action: Action; eventId: string }) {
   const [state, formAction, pending] = useActionState<ConnectResult, FormData>(action, {});
+  const box = useRef<HTMLTextAreaElement>(null);
+  const [loaded, setLoaded] = useState<string | null>(null);
+
+  /*
+   * A saved file is the same text, arriving a different way.
+   *
+   * Read here and dropped into the box rather than uploaded, so it goes
+   * through the one parser, the one date guard and the one writer that a
+   * paste does. A second route to the database would be a second set of
+   * rules to keep true, and the guards are the reason this box is safe.
+   */
+  async function readFile(file: File | undefined) {
+    if (!file) return;
+    const text = await file.text();
+    if (box.current) {
+      box.current.value = text;
+      // Focus without scrolling the page out from under them.
+      box.current.focus({ preventScroll: true });
+    }
+    setLoaded(`${file.name} — ${text.split(/\r?\n/).filter(Boolean).length} lines`);
+  }
 
   return (
     <details className="mt-2">
@@ -90,12 +111,24 @@ export function PasteForm({ action, eventId }: { action: Action; eventId: string
           className="w-full rounded-md border border-line bg-card px-2 py-1.5 text-sm"
         />
         <textarea
+          ref={box}
           name="schedule"
           required
           rows={6}
           placeholder={"Select the schedule table on the platform's page, copy, and paste here.\nDate headings are used for the rows under them."}
           className="w-full rounded-md border border-line bg-card px-2 py-1.5 font-mono text-xs"
         />
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+          <span>or load a file saved from the copier:</span>
+          <input
+            type="file"
+            accept=".txt,.tsv,.csv,text/plain"
+            onChange={(e) => readFile(e.target.files?.[0])}
+            className="text-xs"
+          />
+          {loaded && <span className="text-ink">{loaded}</span>}
+        </div>
         {state.error && <p className="text-xs text-red-600">{state.error}</p>}
 
         {/* Only after the dates were refused, and the paste is still in the
