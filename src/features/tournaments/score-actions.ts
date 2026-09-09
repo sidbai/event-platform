@@ -332,6 +332,12 @@ export async function generateFixtures(
           eventId: event.id,
           divisionId,
           stage: "group",
+          /*
+           * Both: the number is what the schedule groups and orders by, and
+           * the text stays because it is what has been written since this
+           * generator existed and something may yet be reading it.
+           */
+          week: round.round,
           round: `round-${round.round}`,
           groupLabel: bracket || null,
           kickoffAt: zonedDate(dates[i], time, event.timezone),

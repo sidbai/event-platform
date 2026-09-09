@@ -421,6 +421,20 @@
       "when": 1788973236930,
       "tag": "0059_calm_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1788974630784,
+      "tag": "0060_friendly_layla_miller",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1788991160311,
+      "tag": "0061_solid_vengeance",
+      "breakpoints": true
     }
   ]
 }

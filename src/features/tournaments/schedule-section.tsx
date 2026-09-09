@@ -9,7 +9,7 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 import { NavSelect } from "@/components/nav-select";
 
-import { byMatchday, currentMatchday } from "./matchdays";
+import { byMatchday, byWeek, currentMatchday, currentWeek, hasWeeks } from "./matchdays";
 import { crestOf } from "@/features/teams/crest";
 import {
   computeStandings,
@@ -44,6 +44,17 @@ export type ScheduleParams = {
 
 /** The division dropdown's value for "do not narrow to one". */
 export const ALL_DIVISIONS = "all";
+
+/** "Week 5", or the day it is played on where there is no week. */
+function fmtGroup(key: string, timeZone: string, numbered: boolean) {
+  if (numbered) return key ? `Week ${key}` : "Round to be confirmed";
+  return fmtDay(key, timeZone);
+}
+
+function shortGroup(key: string, timeZone: string, numbered: boolean) {
+  if (numbered) return key ? `W${key}` : "TBD";
+  return shortDay(key, timeZone);
+}
 
 function fmtDay(key: string, timeZone: string) {
   if (!key) return "Date to be confirmed";
@@ -128,8 +139,22 @@ export function ScheduleSection({
       )
     : matches;
 
-  const days = byMatchday(teamMatches, tz);
-  const day = sp.day ?? currentMatchday(days, new Date(), tz) ?? "";
+  /*
+   * By round where the league counts in rounds, and by date otherwise.
+   *
+   * The two are not the same list. A round spread over Saturday and Sunday is
+   * one week and two matchdays; a game postponed for weather is played a
+   * fortnight after the round it belongs to, and by date it turns up alone
+   * under a heading in the middle of the season with nothing to say what it
+   * was. A tournament has no rounds at all and reads by the day it is played,
+   * which is what this always did.
+   */
+  const numbered = hasWeeks(teamMatches);
+  const days = numbered ? byWeek(teamMatches) : byMatchday(teamMatches, tz);
+  const day =
+    sp.day ??
+    (numbered ? currentWeek(days, new Date()) : currentMatchday(days, new Date(), tz)) ??
+    "";
   /*
    * A chosen team shows its whole season, not one matchday of it. "When does
    * my team play" is a question about the fixture list, and answering it one
@@ -299,7 +324,10 @@ export function ScheduleSection({
       ) : (
         <div className="mt-4">
           {!team && (
-            <nav aria-label="Matchdays" className="flex flex-wrap gap-1.5">
+            <nav
+              aria-label={numbered ? "Weeks" : "Matchdays"}
+              className="flex flex-wrap gap-1.5"
+            >
               {days.map((d) => (
                 <Link
                   key={d.key || "tbd"}
@@ -307,7 +335,7 @@ export function ScheduleSection({
                   aria-current={d.key === day ? "page" : undefined}
                   className={d.key === day ? on : off}
                 >
-                  {shortDay(d.key, tz)}
+                  {shortGroup(d.key, tz, numbered)}
                 </Link>
               ))}
             </nav>
@@ -315,7 +343,9 @@ export function ScheduleSection({
 
           {shownDays.map((sd) => (
             <div key={sd.key || "tbd"}>
-              <h3 className="mt-5 text-sm font-medium">{fmtDay(sd.key, tz)}</h3>
+              <h3 className="mt-5 text-sm font-medium">
+                {fmtGroup(sd.key, tz, numbered)}
+              </h3>
               <ul className="mt-2 divide-y divide-line">
                 {sd.matches.map((m) => (
                   <li key={m.id} className="py-3 text-sm">
