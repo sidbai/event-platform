@@ -1,5 +1,5 @@
 import { looksLikeBirthYear } from "./age";
-import { branchMatch, parseTier, streamMatch, tierMatch } from "./naming";
+import { branchMatch, fullerTier, parseTier, streamMatch, tierMatch } from "./naming";
 
 /**
  * One way to write a team's name.
@@ -311,21 +311,6 @@ export function canonicalName(facts: NameFacts): string {
   // A club whose own name already carries the program — "Highline Premier
   // FC" and program "Premier" — must not say it twice.
   return dedupe(parts).join(" ");
-}
-
-/**
- * The more specific reading of the same tier.
- *
- * The column is a summary of the name and can be the staler of the two: rows
- * hold "RCL" where the name says "RCL 1", and "ECNL" where it says "ECNL RL".
- * Where one is the other plus a division, the fuller one is right. Where they
- * disagree outright the column wins, because somebody may have corrected it.
- */
-function fullerTier(column: string | null, fromName: string | null): string | null {
-  if (!column) return fromName;
-  if (!fromName) return column;
-  if (fromName.startsWith(column) && fromName.length > column.length) return fromName;
-  return column;
 }
 
 /** The name as published: whitespace tidied, not another character touched. */

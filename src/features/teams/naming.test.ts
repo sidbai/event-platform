@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseProgram, parseTier } from "./naming";
+import { fullerTier, parseProgram, parseTier } from "./naming";
 
 describe("parseTier", () => {
   it("reads the tiers the imports use", () => {
@@ -93,5 +93,50 @@ describe("parseProgram", () => {
 
   it("reads nothing from a club it has no branches for", () => {
     expect(parseProgram("Some Team NW Blue", null)).toBeNull();
+  });
+});
+
+describe("the tiers a club actually names", () => {
+  it("keeps MLS Next's sub-tiers apart", () => {
+    // Six Seattle Celtic sides read as their own club's first team while
+    // "II" was being dropped.
+    expect(parseTier("Seattle Celtic B08 MLS Next II")).toBe("MLS Next 2");
+    expect(parseTier("Seattle Celtic B09 MLS Next 2")).toBe("MLS Next 2");
+    expect(parseTier("Atletico B10/11 MLS Next AD")).toBe("MLS Next AD");
+    expect(parseTier("Seattle Celtic B08 MLS Next")).toBe("MLS Next");
+    expect(parseTier("Sozo B12 Pre MLS")).toBe("Pre-MLS Next");
+  });
+
+  it("reads GA, GA Aspire and Pre-GA as the three tiers they are", () => {
+    // Reign Academy fields a GU13 Aspire and a GU13 GA; folding them put two
+    // sides a division apart under one label.
+    expect(parseTier("Seattle Celtic G13 GA Aspire")).toBe("GA Aspire");
+    expect(parseTier("Seattle Celtic G15 Pre-GA Aspire")).toBe("Pre-GA");
+    expect(parseTier("Reign Academy GU13 Aspire")).toBe("Aspire");
+    expect(parseTier("Reign Academy GU13 GA")).toBe("GA");
+    expect(parseTier("Spokane Shadow GU12 Pre GA")).toBe("Pre-GA");
+  });
+
+  it("reads a club's own name for a side", () => {
+    expect(parseTier("Seattle United B16 Nova")).toBe("Nova");
+    expect(parseTier("Eastside FC B15/16 Grey")).toBe("Grey");
+    expect(parseTier("PacNW B13/14 Maroon")).toBe("Maroon");
+  });
+});
+
+describe("fullerTier", () => {
+  it("takes the more precise reading of one tier", () => {
+    expect(fullerTier("MLS Next", "MLS Next 2")).toBe("MLS Next 2");
+    expect(fullerTier("RCL", "RCL 1")).toBe("RCL 1");
+  });
+
+  it("keeps a column that disagrees outright — somebody may have set it", () => {
+    expect(fullerTier("ECNL 1", "RCL 2")).toBe("ECNL 1");
+  });
+
+  it("falls back to whichever one exists", () => {
+    expect(fullerTier(null, "GA")).toBe("GA");
+    expect(fullerTier("GA", null)).toBe("GA");
+    expect(fullerTier(null, null)).toBeNull();
   });
 });
