@@ -10,6 +10,7 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 import { NavSelect } from "@/components/nav-select";
 
 import { byMatchday, currentMatchday } from "./matchdays";
+import { crestOf } from "@/features/teams/crest";
 import {
   computeStandings,
   POINTS_SYSTEMS,
@@ -269,7 +270,7 @@ export function ScheduleSection({
                 aria-current={t.team.id === team?.team.id ? "page" : undefined}
                 className={`${t.team.id === team?.team.id ? on : off} inline-flex items-center gap-1.5`}
               >
-                <TeamCrest src={t.team.crestUrl} size={14} />
+                <TeamCrest src={crestOf(t.team)} size={14} />
                 {t.team.name}
               </Link>
             ))}
@@ -334,7 +335,7 @@ export function ScheduleSection({
                     <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 font-medium">
                       <span className="flex items-center justify-end gap-2 text-right">
                         <TeamLink team={m.homeTeam} fallback={m.homePlaceholder} />
-                        <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
+                        <TeamCrest src={crestOf(m.homeTeam)} size={18} />
                       </span>
                       <span className="min-w-14 text-center tabular-nums text-muted">
                         {m.homeScore !== null && m.awayScore !== null
@@ -342,7 +343,7 @@ export function ScheduleSection({
                           : "v"}
                       </span>
                       <span className="flex items-center gap-2">
-                        <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
+                        <TeamCrest src={crestOf(m.awayTeam)} size={18} />
                         <TeamLink team={m.awayTeam} fallback={m.awayPlaceholder} />
                       </span>
                     </div>
@@ -409,7 +410,7 @@ function DivisionStandings({
   const teamMeta: TeamMeta = new Map(
     teamsInDiv.map((et) => [
       et.team.id,
-      { name: et.team.name, seed: et.seed, crestUrl: et.team.crestUrl },
+      { name: et.team.name, seed: et.seed, crestUrl: crestOf(et.team) },
     ]),
   );
 
@@ -539,13 +540,13 @@ function DivisionStandings({
               </span>
               <span className="flex flex-1 items-center justify-end gap-1.5 text-right">
                 {m.homeTeam?.name ?? m.homePlaceholder}
-                <TeamCrest src={m.homeTeam?.crestUrl} size={18} />
+                <TeamCrest src={crestOf(m.homeTeam)} size={18} />
               </span>
               <span className="font-semibold tabular-nums">
                 {m.homeScore}–{m.awayScore}
               </span>
               <span className="flex flex-1 items-center gap-1.5">
-                <TeamCrest src={m.awayTeam?.crestUrl} size={18} />
+                <TeamCrest src={crestOf(m.awayTeam)} size={18} />
                 {m.awayTeam?.name ?? m.awayPlaceholder}
               </span>
             </div>
