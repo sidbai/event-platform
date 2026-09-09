@@ -150,10 +150,22 @@ export async function syncIfDue(eventId: string, now = new Date()): Promise<Sync
  * arriving together would all have gone and fetched; a claim moves
  * `nextSyncAt` into the future, and that is what the losers now see.
  */
-function due(now: Date) {
-  return or(
-    sql`${events.nextSyncAt} <= ${now.toISOString()}::timestamptz`,
-    and(sql`${events.lastSyncedAt} is null`, sql`${events.nextSyncAt} is null`),
+export function due(now: Date) {
+  return and(
+    /*
+     * Never on an event somebody has closed.
+     *
+     * The cadence already writes a null next-check for these, which stops one
+     * that has synced before — but a listing connected AFTER it was marked
+     * completed has never synced, and the second clause below would otherwise
+     * treat it as new work forever. "Refresh now" is how a person asks for it
+     * anyway, and that path does not come through here.
+     */
+    sql`${events.status} not in ('completed','cancelled')`,
+    or(
+      sql`${events.nextSyncAt} <= ${now.toISOString()}::timestamptz`,
+      and(sql`${events.lastSyncedAt} is null`, sql`${events.nextSyncAt} is null`),
+    ),
   );
 }
 

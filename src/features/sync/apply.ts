@@ -81,7 +81,16 @@ export async function applySync(
   const prune = options.prune ?? true;
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
-    columns: { id: true, timezone: true, startsAt: true, endsAt: true, lastContentHash: true },
+    // status among them: a completed event stops being polled, and the
+    // cadence is the one place that decides when to look again.
+    columns: {
+      id: true,
+      timezone: true,
+      startsAt: true,
+      endsAt: true,
+      status: true,
+      lastContentHash: true,
+    },
   });
   if (!event) throw new Error("event is gone");
 
@@ -485,7 +494,7 @@ export async function recordSyncFailure(
 ): Promise<void> {
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
-    columns: { startsAt: true, endsAt: true },
+    columns: { startsAt: true, endsAt: true, status: true },
   });
   await db
     .update(events)
