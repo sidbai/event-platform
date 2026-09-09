@@ -18,6 +18,8 @@ const DAY = 24 * HOUR;
 export type Syncable = {
   startsAt: Date | null;
   endsAt: Date | null;
+  /** The event's own status. 'completed' and 'cancelled' end the polling. */
+  status?: string;
 };
 
 /**
@@ -28,6 +30,21 @@ export type Syncable = {
  * fixed cost into one that grows with every event ever listed.
  */
 export function nextSyncAt(event: Syncable, now: Date): Date | null {
+  /*
+   * Somebody said it is over, so stop asking.
+   *
+   * The dates below stop a poll two days after the last whistle, which is
+   * right when nobody has said anything — but a person marking an event
+   * completed has said something better than a date can: the results are
+   * final. A cancelled event is the same answer for the opposite reason,
+   * since there is nothing left to be current about.
+   *
+   * This is a stronger signal than the calendar and comes first. "Refresh
+   * now" on the admin screen still works, and is the way back if a platform
+   * publishes a correction afterwards.
+   */
+  if (event.status === "completed" || event.status === "cancelled") return null;
+
   const start = event.startsAt?.getTime() ?? null;
   // No date is not a reason to poll forever; there is nothing to be current
   // about until somebody says when it is.

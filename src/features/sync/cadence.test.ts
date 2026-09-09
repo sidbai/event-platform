@@ -104,3 +104,39 @@ describe("isStale", () => {
     expect(isStale({ ...upcoming, lastSyncedAt: at(-24 * 3) }, now)).toBe(true);
   });
 });
+
+describe("an event somebody has closed", () => {
+  const playing = {
+    startsAt: new Date("2026-08-21T16:00:00Z"),
+    endsAt: new Date("2026-08-24T06:00:00Z"),
+  };
+  // Mid-tournament, when the cadence is otherwise at its most eager.
+  const now = new Date("2026-08-22T18:00:00Z");
+
+  it("is not polled again once marked completed", () => {
+    /*
+     * The dates stop a poll two days after the last whistle, which is right
+     * when nobody has said anything. A person marking it completed has said
+     * something better than a date can: the results are final.
+     */
+    expect(nextSyncAt({ ...playing, status: "completed" }, now)).toBeNull();
+  });
+
+  it("is not polled again once cancelled", () => {
+    // The same answer for the opposite reason: nothing left to be current
+    // about.
+    expect(nextSyncAt({ ...playing, status: "cancelled" }, now)).toBeNull();
+  });
+
+  it("is still polled hard while it is published and being played", () => {
+    // The guard must not quietly stop everything else.
+    const next = nextSyncAt({ ...playing, status: "published" }, now);
+    expect(next).not.toBeNull();
+    expect(next!.getTime() - now.getTime()).toBe(20 * 60_000);
+  });
+
+  it("says nothing about status when none is given", () => {
+    // Callers that only know the dates keep the behaviour they had.
+    expect(nextSyncAt(playing, now)).not.toBeNull();
+  });
+});
