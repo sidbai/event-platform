@@ -16,7 +16,9 @@ config({ path: ".env.local" });
  * because "NW" is also the whole of NW United and "South" starts South
  * Kitsap; from the name alone both clubs become Seattle United branches.
  *
- * Never overwrites a value already there.
+ * Never overwrites a value already there, except to make it more precise:
+ * a column reading "MLS Next" against a name reading "MLS Next II" is the
+ * same tier abbreviated, and the fuller one is the true one.
  */
 
 const APPLY = process.argv.includes("--apply");
@@ -24,7 +26,9 @@ const APPLY = process.argv.includes("--apply");
 async function main() {
   const { db } = await import("../src/db");
   const { clubs, teams } = await import("../src/db/schema");
-  const { parseProgram, parseTier } = await import("../src/features/teams/naming");
+  const { fullerTier, parseProgram, parseTier } = await import(
+    "../src/features/teams/naming"
+  );
 
   console.log(
     `Reading tier and program off team names${APPLY ? "" : "  (dry run — pass --apply to write)"}\n`,
@@ -46,7 +50,14 @@ async function main() {
   const shown: string[] = [];
 
   for (const team of rows) {
-    const nextTier = team.tier ? null : parseTier(team.name);
+    /*
+     * A value already there is kept, unless the name states the same tier
+     * more precisely. "MLS Next" where the name says "MLS Next II" is not a
+     * different opinion, it is the same one abbreviated — and left alone it
+     * files six Seattle Celtic sides onto their own club's first team.
+     */
+    const fuller = fullerTier(team.tier, parseTier(team.name));
+    const nextTier = fuller === team.tier ? null : fuller;
     const nextProgram = team.program ? null : parseProgram(team.name, team.clubSlug);
     if (!nextTier && !nextProgram) continue;
 

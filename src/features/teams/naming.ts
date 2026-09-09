@@ -22,7 +22,12 @@
  * can group by it.
  */
 const TIERS: [RegExp, string][] = [
-  [/\bpre[-\s]?mls\s*next\b/i, "Pre-MLS Next"],
+  [/\bpre[-\s]?mls(?:\s*next)?\b/i, "Pre-MLS Next"],
+  // MLS Next runs sub-tiers and the clubs write them straight onto the end:
+  // "B08 MLS Next II" is not the same side as "B08 MLS Next". Read whole, or
+  // ten teams here collapse onto their own club's first team.
+  [/\bmls\s*next\s*(?:2|ii)\b/i, "MLS Next 2"],
+  [/\bmls\s*next\s*ad\b/i, "MLS Next AD"],
   [/\bmls\s*next\b/i, "MLS Next"],
   // "ENCL" is the organizers' own typo, on four teams in production and
   // seven in dev. Ignoring it would leave those sides with no tier at all.
@@ -42,13 +47,26 @@ const TIERS: [RegExp, string][] = [
   [/\bea\s*([12])\b/i, "EA $1"],
   [/\bea\b/i, "EA"],
   [/\bn1\b|\bnational\s*1\b/i, "National 1"],
-  [/\bpre[-\s]?ga\b|\bga[-\s]*aspire\b|\baspire\b/i, "Pre-GA"],
+  /*
+   * GA, GA Aspire and Pre-GA are three tiers, not three spellings of one.
+   *
+   * Reign Academy fields a GU13 Aspire and a GU13 GA; Spokane Shadow a GU12
+   * Pre GA and a GU13 GA. Folding them — which this did, onto "Pre-GA" —
+   * merged sides that play a division apart. Pre-GA first, because Seattle
+   * Celtic writes "Pre-GA Aspire" and the Pre is the part that matters.
+   */
+  [/\bpre[-\s]?ga\b/i, "Pre-GA"],
+  [/\bga[-\s]*aspire\b/i, "GA Aspire"],
+  // Reign and CB write it without the GA. Left as they write it rather than
+  // renamed into "GA Aspire", which is a guess about what they mean.
+  [/\baspire\b/i, "Aspire"],
   [/\bga\b/i, "GA"],
   /*
    * Seattle United's own names for its sides, which do the job a tier does.
    *
    * At 2011 boys the club fields three — Copa, Samba and Tango — sharing a
    * club, a birth year and a gender, with nothing else to tell them apart.
+   * Nova is the fourth, on one team so far.
    * That is the column's whole purpose, and without it the duplicate finder
    * sees one team entered three times.
    *
@@ -62,6 +80,7 @@ const TIERS: [RegExp, string][] = [
   [/\bcopa\b/i, "Copa"],
   [/\btango\b/i, "Tango"],
   [/\bsamba\b/i, "Samba"],
+  [/\bnova\b/i, "Nova"],
   [/\bgold\b/i, "Gold"],
   [/\boro\b/i, "Gold"],
   [/\bsilver\b/i, "Silver"],
@@ -109,6 +128,27 @@ export function tierMatch(name: string): { label: string; text: string } | null 
 /** The tier a name states, in its canonical spelling, or null. */
 export function parseTier(name: string): string | null {
   return tierMatch(name)?.label ?? null;
+}
+
+/**
+ * The more specific reading of the same tier.
+ *
+ * The column is a summary of the name and can be the staler of the two: rows
+ * hold "RCL" where the name says "RCL 1", "MLS Next" where it says "MLS Next
+ * II", and "ECNL" where it says "ECNL RL". Where one is the other plus a
+ * division, the fuller one is right — those are different sides, and the
+ * shorter reading files six Seattle Celtic teams onto their own club's first
+ * team. Where the two disagree outright the column wins, because somebody may
+ * have corrected it by hand.
+ */
+export function fullerTier(
+  column: string | null,
+  fromName: string | null,
+): string | null {
+  if (!column) return fromName;
+  if (!fromName) return column;
+  if (fromName.startsWith(column) && fromName.length > column.length) return fromName;
+  return column;
 }
 
 /** Streams a club runs that are not a competitive tier. */
