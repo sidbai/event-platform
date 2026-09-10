@@ -30,8 +30,17 @@ export function NavSelect({
   const router = useRouter();
 
   return (
-    <label className={`flex items-center gap-2 text-sm ${className}`}>
-      <span className="text-muted">{label}</span>
+    /*
+     * min-w-0 on both, or the select will not shrink.
+     *
+     * A flex item's min-width is auto, which for a <select> is its widest
+     * option — and a league's matchdays are "Saturday, September 12, 2026 –
+     * Sunday, September 13, 2026". max-w-full cannot get under that, so the
+     * control kept its full width and pushed the whole page sideways: 514px
+     * of content in a 463px phone, every page of every league.
+     */
+    <label className={`flex min-w-0 items-center gap-2 text-sm ${className}`}>
+      <span className="shrink-0 text-muted">{label}</span>
       <select
         aria-label={label}
         value={value}
@@ -39,7 +48,7 @@ export function NavSelect({
           const next = options.find((o) => o.id === e.target.value);
           if (next) router.push(next.href);
         }}
-        className="max-w-full rounded-md border border-line bg-card px-2 py-1.5 text-sm"
+        className="min-w-0 max-w-full rounded-md border border-line bg-card px-2 py-1.5 text-sm"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id}>
