@@ -177,3 +177,40 @@ describe("playedAndNext", () => {
     expect(playedAndNext(list, NOW).map((m) => m.id)).toEqual(["tbd"]);
   });
 });
+
+describe("playedAndNext with fixtures that have no date", () => {
+  const NOW2 = new Date("2026-09-10T12:00:00Z");
+  const undated = (id: string) => ({ id, kickoffAt: null, homeScore: null });
+
+  it("shows one of them, not all of them", () => {
+    /*
+     * A PacNW side in the Regional Club League listed seventeen in a row,
+     * each saying nothing but who it was against. One says the same thing.
+     */
+    const list = [undated("a"), undated("b"), undated("c"), undated("d")];
+    expect(playedAndNext(list, NOW2).map((m) => m.id)).toEqual(["a"]);
+  });
+
+  it("keeps the next dated one as well", () => {
+    // They answer different questions: when is the next game, and is there
+    // more of a season after it.
+    const list = [
+      { id: "played", kickoffAt: new Date("2026-09-05T16:00:00Z"), homeScore: 2 },
+      { id: "next", kickoffAt: new Date("2026-09-12T16:00:00Z"), homeScore: null },
+      { id: "later", kickoffAt: new Date("2026-09-19T16:00:00Z"), homeScore: null },
+      undated("someday"),
+      undated("someday-2"),
+    ];
+    expect(playedAndNext(list, NOW2).map((m) => m.id)).toEqual([
+      "played",
+      "next",
+      "someday",
+    ]);
+  });
+
+  it("still shows a game that has happened and has no score", () => {
+    // Hiding it would hide the thing somebody most wants to correct.
+    const list = [{ id: "unscored", kickoffAt: new Date("2026-09-05T16:00:00Z"), homeScore: null }];
+    expect(playedAndNext(list, NOW2).map((m) => m.id)).toEqual(["unscored"]);
+  });
+});

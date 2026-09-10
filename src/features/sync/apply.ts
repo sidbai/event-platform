@@ -401,7 +401,19 @@ export async function applySync(
 
   for (const m of data.matches) {
     seen.add(m.sourceMatchId);
-    const kickoffAt = m.date && m.time ? zonedDate(m.date, m.time, tz) : null;
+    /*
+     * A date with no time is still a date.
+     *
+     * This wanted both, so a fixture published before its fields are booked
+     * lost the day as well as the hour — 3,549 of the Regional Club League's
+     * 4,275, which is most of a season a parent could otherwise plan around.
+     *
+     * Midnight is how that is said here, and has been since before this:
+     * timeAnnounced exists to read it back, and everything that prints a
+     * kick-off already says "time TBD" rather than "12:00 AM". What has no
+     * date at all still gets nothing, because that is a different fact.
+     */
+    const kickoffAt = m.date ? zonedDate(m.date, m.time ?? "00:00", tz) : null;
     const values = {
       eventId,
       divisionId: divisionByName.get(m.division) ?? null,
