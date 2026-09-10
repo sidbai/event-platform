@@ -30,6 +30,7 @@
     "db:import:schedule": "NODE_OPTIONS=--conditions=react-server tsx scripts/import-schedule.ts",
     "db:teams:file": "NODE_OPTIONS=--conditions=react-server tsx scripts/file-teams.ts",
     "db:teams:unfile": "NODE_OPTIONS=--conditions=react-server tsx scripts/unfile-teams.ts",
+    "db:sync:reset": "NODE_OPTIONS=--conditions=react-server tsx scripts/reset-event-sync.ts",
     "db:teams:rename": "NODE_OPTIONS=--conditions=react-server tsx scripts/rename-teams.ts",
     "db:teams:coverage": "NODE_OPTIONS=--conditions=react-server tsx scripts/team-coverage.ts",
     "db:backfill:teams": "tsx scripts/backfill-teams.ts",
