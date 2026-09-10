@@ -32,6 +32,7 @@
     "db:teams:file": "NODE_OPTIONS=--conditions=react-server tsx scripts/file-teams.ts",
     "db:teams:unfile": "NODE_OPTIONS=--conditions=react-server tsx scripts/unfile-teams.ts",
     "db:sync:preflight": "NODE_OPTIONS=--conditions=react-server tsx scripts/preflight-sync.ts",
+    "db:sync:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-import.ts",
     "db:sync:reset": "NODE_OPTIONS=--conditions=react-server tsx scripts/reset-event-sync.ts",
     "db:teams:rename": "NODE_OPTIONS=--conditions=react-server tsx scripts/rename-teams.ts",
     "db:teams:coverage": "NODE_OPTIONS=--conditions=react-server tsx scripts/team-coverage.ts",
