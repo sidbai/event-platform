@@ -17,9 +17,9 @@ import { isAdmin } from "@/features/auth/admin";
 import { checkRateLimit } from "@/features/rate-limit";
 import { allowAnonymousReview } from "@/features/reviews/anon-gate";
 import { isOurBlobUrl, isPendingClubUrl } from "@/features/uploads/blob";
-import { slugify } from "@/lib/slug";
 
 import { canEditClub } from "./access";
+import { createClubRow } from "./create";
 import { ensureAnonHandle } from "./anon";
 import {
   parseRating,
@@ -48,40 +48,19 @@ export async function createClub(
   if (name.length < 2) return { fieldErrors: { name: "Give the club a name." } };
   if (name.length > 80) return { fieldErrors: { name: "That name is too long." } };
 
-  const base = slugify(name).slice(0, 60) || "club";
-  let slug = base;
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    const clash = await db.query.clubs.findFirst({
-      where: eq(clubs.slug, candidate),
-      columns: { id: true },
-    });
-    if (!clash) {
-      slug = candidate;
-      break;
-    }
-  }
-
   // Only a logo this form just staged, for the same reason team crests are
   // restricted: an arbitrary blob URL could point at another club's file.
   const staged = get("crestUrl");
 
-  const snapshot = {
-    name,
-    city: get("city") || null,
-    website: get("website") || null,
-    crestUrl: staged && isPendingClubUrl(staged) ? staged : null,
-  };
-
-  const [club] = await db
-    .insert(clubs)
-    .values({ slug, ...snapshot, createdBy: user.id, updatedBy: user.id })
-    .returning({ id: clubs.id });
-
-  // The club's first history row, so there is always something to revert to.
-  await db
-    .insert(clubEdits)
-    .values({ clubId: club.id, editedBy: user.id, ...snapshot, summary: "Added the club" });
+  const { slug } = await createClubRow(
+    {
+      name,
+      city: get("city") || null,
+      website: get("website") || null,
+      crestUrl: staged && isPendingClubUrl(staged) ? staged : null,
+    },
+    user.id,
+  );
 
   revalidatePath("/clubs");
   redirect(`/clubs/${slug}`);

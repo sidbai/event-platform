@@ -14,9 +14,11 @@ import { requireTestDatabase, truncateAll } from "./helpers";
 requireTestDatabase();
 
 const { db } = await import("@/db");
-const { clubAliases, clubs, eventTeams, events, teams } = await import("@/db/schema");
+const { clubAliases, clubEdits, clubs, eventTeams, events, teams, users } =
+  await import("@/db/schema");
 const { linkTeamsToClub, setIndependent } = await import("@/features/clubs/link");
 const { planUnfile, unfileTeams } = await import("@/features/clubs/unfile");
+const { createClubRow } = await import("@/features/clubs/create");
 const { eq } = await import("drizzle-orm");
 
 async function makeClub(slug: string, name: string) {
@@ -46,7 +48,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await db.delete(clubEdits);
   await db.delete(clubAliases);
+  await db.delete(users);
   await db.delete(eventTeams);
   await db.delete(events);
   await db.delete(teams);
@@ -232,5 +236,70 @@ describe("unfiling a team from the wrong club", () => {
 
   it("says so rather than throwing when the club is not there", async () => {
     expect(await planUnfile("no-such-club", "%anything%")).toBeNull();
+  });
+});
+
+/**
+ * Adding a club from the queue.
+ *
+ * The action that wraps this is admin-gated and takes a FormData, so what is
+ * worth proving here is the row it leaves behind: a unique slug, and a first
+ * history entry, because a club with neither is unreachable or unrevertable.
+ */
+describe("createClubRow", () => {
+  async function anyUser() {
+    const [u] = await db
+      .insert(users)
+      .values({ email: `a${Date.now()}@example.com`, displayName: "k" })
+      .returning({ id: users.id });
+    return u.id;
+  }
+
+  it("slugs the name and writes the first history row", async () => {
+    const by = await anyUser();
+    const club = await createClubRow({ name: "Sparta Tacoma" }, by);
+    expect(club.slug).toBe("sparta-tacoma");
+
+    const row = await db.query.clubs.findFirst({ where: eq(clubs.id, club.id) });
+    expect(row?.name).toBe("Sparta Tacoma");
+    expect(row?.createdBy).toBe(by);
+
+    // Without this there is nothing to revert a later edit to.
+    const history = await db.query.clubEdits.findMany({
+      where: eq(clubEdits.clubId, club.id),
+    });
+    expect(history).toHaveLength(1);
+    expect(history[0].summary).toBe("Added the club");
+  });
+
+  it("does not hand two clubs the same slug", async () => {
+    const by = await anyUser();
+    const a = await createClubRow({ name: "Three Rivers SC" }, by);
+    const b = await createClubRow({ name: "Three Rivers SC" }, by);
+    expect(a.slug).toBe("three-rivers-sc");
+    expect(b.slug).toBe("three-rivers-sc-2");
+  });
+
+  it("still gives a name of pure punctuation something to live at", async () => {
+    const by = await anyUser();
+    const club = await createClubRow({ name: "— —" }, by);
+    expect(club.slug.length).toBeGreaterThan(0);
+  });
+
+  it("files teams under a club it has just added", async () => {
+    // The whole flow the queue button performs, minus the FormData.
+    const by = await anyUser();
+    const a = await makeTeam("sparta-b14", "Sparta Tacoma - B14/15 Red EA");
+    const b = await makeTeam("sparta-g12", "Sparta Tacoma - GU12 Red");
+
+    const club = await createClubRow({ name: "Sparta Tacoma" }, by);
+    const out = await linkTeamsToClub(club.id, "spartatacoma", [a, b], by);
+
+    expect(out).toEqual({ linked: 2, alias: "spartatacoma" });
+    expect(await teamRow(a)).toEqual({ affiliation: "club", clubId: club.id });
+    const saved = await db.query.clubAliases.findFirst({
+      where: eq(clubAliases.alias, "spartatacoma"),
+    });
+    expect(saved?.clubId).toBe(club.id);
   });
 });
