@@ -265,3 +265,76 @@ describe("remainderOf", () => {
     ).toBe("Aces Weyer");
   });
 });
+
+/**
+ * A club that goes by something shorter at the front of a team's name.
+ *
+ * The club is still Crossfire Premier wherever it is the subject — its page,
+ * the directory, and the importer, which matches a schedule's "Crossfire
+ * Premier B13/14" against the club's name. Here it is a prefix, and a page of
+ * the full name is a column of the same two words with the team behind them.
+ */
+describe("a club's short name", () => {
+  const xf = {
+    name: "Crossfire Premier",
+    slug: "crossfire-premier",
+    aliases: ["xf", "crossfire"],
+    shortName: "XF",
+  };
+
+  it("leads the name with the short form", () => {
+    expect(name({ name: "Crossfire Premier B13/14 ECNL 2", club: xf, tier: "ECNL 2" })).toBe(
+      "XF B13/14 ECNL 2",
+    );
+  });
+
+  it("does not put back a word the club's own name was covering", () => {
+    /*
+     * The whole reason this is a second column and not a rename. "Premier" is
+     * dropped because the club is called Crossfire Premier; printing the club
+     * as "XF" must not turn its own word into a thing to announce, or all 157
+     * of them read "XF Premier G11 ECNL".
+     */
+    expect(
+      name({ name: "Crossfire Premier G11 ECNL", club: xf, gender: "girls", birthYears: [2011] }),
+    ).toBe(
+      "XF G11 ECNL",
+    );
+    expect(name({ name: "Crossfire Premier Select G14/15", club: xf, gender: "girls", birthYears: [2014, 2015] })).toBe(
+      "XF Select G14/15",
+    );
+  });
+
+  it("strips the short form too, wherever the source already used it", () => {
+    expect(name({ name: "XF B13/14 ECNL 2", club: xf, tier: "ECNL 2" })).toBe(
+      "XF B13/14 ECNL 2",
+    );
+  });
+
+  it("leaves a club without one exactly as it was", () => {
+    expect(name({ name: "Eastside FC BU13 Red", club: eastside })).toBe(
+      "Eastside FC B13/14 Red",
+    );
+    expect(name({ name: "Eastside FC BU13 Red", club: { ...eastside, shortName: null } })).toBe(
+      "Eastside FC B13/14 Red",
+    );
+  });
+
+  it("keeps a short form of more than one word", () => {
+    const wwSurf = {
+      name: "Western Washington Surf",
+      slug: "western-washington-surf",
+      aliases: ["wwsurf"],
+      shortName: "WW Surf",
+    };
+    // "Premier" here is the club's stream, not part of its name, so it stays.
+    expect(
+      name({
+        name: "Western Washington Surf North Premier G07/08",
+        club: wwSurf,
+        gender: "girls",
+        birthYears: [2007, 2008],
+      }),
+    ).toBe("WW Surf North Premier G07/08");
+  });
+});

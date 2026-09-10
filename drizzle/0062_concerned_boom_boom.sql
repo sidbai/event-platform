@@ -1,0 +1,1 @@
+ALTER TABLE "clubs" ADD COLUMN "short_name" text;

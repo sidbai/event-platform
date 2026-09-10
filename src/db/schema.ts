@@ -1116,6 +1116,23 @@ export const clubs = pgTable("clubs", {
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   /**
+   * What this club's team names lead with, when that is not its full name.
+   *
+   * "Crossfire Premier B13/14 ECNL 2" says the club more loudly than it says
+   * which team it is, and a page of them is a column of the same two words.
+   *
+   * Beside the name rather than instead of it. Renaming the club to "XF" was
+   * tried and costs both ends: the importer matches a schedule's "Crossfire
+   * Premier B13/14" against clubs.name and would stop recognising it, and the
+   * "Premier" the published name carries is only dropped because the club's
+   * own name already said it — shorten the name and it comes back, "XF
+   * Premier G11 ECNL", on all 157 of them.
+   *
+   * Null for most clubs: worth having only where the full name crowds out the
+   * team. Admin-only, because it rewrites every team name the club has.
+   */
+  shortName: text("short_name"),
+  /**
    * Held at the top of the directory by an admin.
    *
    * The clubs most families are actually choosing between, so the first page

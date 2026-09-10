@@ -32,7 +32,13 @@ import { branchMatch, fullerTier, parseTier, streamMatch, tierMatch } from "./na
 export type NameFacts = {
   /** The published name, which is where everything not in a column lives. */
   name: string;
-  club: { name: string; slug: string; aliases?: string[] } | null;
+  club: {
+    name: string;
+    slug: string;
+    aliases?: string[];
+    /** Stands in for the name at the front of a team's, where a club has one. */
+    shortName?: string | null;
+  } | null;
   gender: string | null;
   birthYears: number[];
   /** Columns win over the name: an admin may have corrected them. */
@@ -149,7 +155,15 @@ function clubForms(club: NonNullable<NameFacts["club"]>): string[] {
     // off Lake Hills — a club since folded into Lake Washington Premier —
     // left teams called "Hills".
     .filter((p) => p.includes(" ") || p.length >= 5);
-  return [...new Set([club.name, ...(club.aliases ?? []), ...prefixes, ...initialisms(words)])]
+  return [
+    ...new Set([
+      club.name,
+      ...(club.shortName ? [club.shortName] : []),
+      ...(club.aliases ?? []),
+      ...prefixes,
+      ...initialisms(words),
+    ]),
+  ]
     .filter((f) => f.length >= 2)
     .sort((a, b) => b.length - a.length);
 }
@@ -320,19 +334,29 @@ export function canonicalName(facts: NameFacts): string {
   const branch = branchMatch(facts.name, slug)?.label ?? null;
   const stream = streamMatch(facts.name)?.label ?? null;
   const tier = fullerTier(facts.tier, parseTier(facts.name));
-  const club = facts.club.name;
+  /*
+   * "XF B13/14 ECNL 2" rather than "Crossfire Premier B13/14 ECNL 2". The
+   * club is a prefix here, not the subject: a directory page of the full name
+   * is a column of the same two words with the team hidden behind them.
+   */
+  const club = facts.club.shortName || facts.club.name;
   const rest = remainderOf(facts);
 
   // A team whose years or gender nobody has established yet. Half a name is
   // worse than the whole one somebody published.
   if (!cohort) return published(facts.name);
 
-  const parts = [club, branch, stream, facts.program, cohort, tier, rest].filter(
+  const parts = [branch, stream, facts.program, cohort, tier, rest].filter(
     (p): p is string => typeof p === "string" && p !== "",
   );
-  // A club whose own name already carries the program — "Highline Premier
-  // FC" and program "Premier" — must not say it twice.
-  return dedupe(parts).join(" ");
+  /*
+   * A club whose own name already carries the program — "Highline Premier FC"
+   * and program "Premier" — must not say it twice. The club leads and is not
+   * deduped against itself; what follows is measured against its full name,
+   * which is what it is called even when it is printed short.
+   */
+  const said = [...facts.club.name.split(/\s+/), ...club.split(/\s+/)];
+  return [club, ...dedupe(parts, said)].join(" ");
 }
 
 /** The name as published: whitespace tidied, not another character touched. */
@@ -347,10 +371,16 @@ function published(name: string): string {
  * on whole words rather than substrings, because on substrings every
  * single-letter squad segment is already contained in something and quietly
  * disappears: "Sound FC B12 D" lost its D.
+ *
+ * `said` starts with the club's words even when the club is printed short.
+ * "Crossfire Premier" shortened to "XF" is still the club that has "Premier"
+ * in its name, so the "Premier" the published name carries is its own word
+ * and not a second thing to announce — without this, shortening the prefix
+ * puts it back: "XF Premier G11 ECNL".
  */
-function dedupe(parts: string[]): string[] {
+function dedupe(parts: string[], alreadySaid: string[] = []): string[] {
   const out: string[] = [];
-  const said = new Set<string>();
+  const said = new Set<string>(alreadySaid.map(norm).filter((w) => w !== ""));
   for (const part of parts) {
     const words = part.split(/\s+/).map(norm).filter((w) => w !== "");
     if (words.length > 0 && words.every((w) => said.has(w))) continue;
