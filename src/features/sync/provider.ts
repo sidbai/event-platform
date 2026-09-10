@@ -14,6 +14,8 @@
  * standings pages as one we run ourselves.
  */
 
+import type { Gender } from "@/features/teams/age";
+
 /** What a platform calls this event, so a sync can find it again. */
 export type SourceRef = {
   platform: "athletes2events" | "eventconnect" | "modular11" | "sportsaffinity" | "manual";
@@ -35,6 +37,17 @@ export type SyncedTeam = {
   division: string;
   /** The group within that division, where there is one. */
   group: string | null;
+  /**
+   * The gender the platform states outright, where it does.
+   *
+   * Not everything writes it into a name or a flight label. Modular11 names
+   * a team "Harbor SC" in a division called "U13 EA PACNW" and puts MALE in
+   * a column of its own — so the age is recoverable and the gender is not,
+   * and without this the canonical name has nothing to build from and falls
+   * back to the published one. Seven ages of Harbor SC then arrive as seven
+   * teams all called "Harbor SC".
+   */
+  gender?: Gender | null;
 };
 
 export type SyncedMatch = {

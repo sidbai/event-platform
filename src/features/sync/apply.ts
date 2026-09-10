@@ -17,7 +17,7 @@ import {
 } from "@/db/schema";
 import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
 import { canonicalName } from "@/features/teams/canonical-name";
-import { teamFactsFrom } from "@/features/teams/facts";
+import { teamFactsFrom, type TeamFacts } from "@/features/teams/facts";
 import { teamToBindTo } from "@/features/teams/binding";
 import { normaliseTeamName } from "@/features/teams/merge-plan";
 import { uniqueTeamSlug } from "@/features/teams/slug";
@@ -220,10 +220,30 @@ export async function applySync(
   const teamIdBySource = new Map<string, string>();
   let teamsWritten = 0;
 
+  /*
+   * A fact we did not have and the source states.
+   *
+   * Only ever null → known: the team's own row is the authority once it has
+   * one, and a platform that changes its mind does not get to overwrite what
+   * somebody here established. This exists because eighty-three Elite
+   * Academy teams were written before their connector passed the gender
+   * along, and every one of them fell back to its published name — seven
+   * ages of a club all called "Harbor SC". Filling it in here is what lets
+   * db:teams:rename put them right without a backfill of its own.
+   */
+  async function noteGender(teamId: string, stated: TeamFacts["gender"]) {
+    if (!stated) return;
+    const known = factsById.get(teamId);
+    if (!known || known.gender) return;
+    await db.update(teams).set({ gender: stated }).where(eq(teams.id, teamId));
+    factsById.set(teamId, { ...known, gender: stated });
+  }
+
   for (const t of data.teams) {
     const known = entryBySource.get(t.sourceTeamId);
     if (known) {
       teamIdBySource.set(t.sourceTeamId, known.teamId);
+      await noteGender(known.teamId, t.gender ?? null);
       await db
         .update(eventTeams)
         .set({
@@ -248,6 +268,8 @@ export async function applySync(
       // The flight the platform entered them in, which names a gender and an
       // age group even when the team's own name says neither.
       division: t.division,
+      // And where the flight does not either — Modular11 puts it in a column.
+      gender: t.gender ?? null,
     });
     const club = matchClub(t.name, aliasMap, clubIdx);
 
@@ -275,6 +297,7 @@ export async function applySync(
 
     if (bound) {
       teamIdBySource.set(t.sourceTeamId, bound);
+      await noteGender(bound, facts.gender);
       await db
         .insert(eventTeams)
         .values({
@@ -298,6 +321,7 @@ export async function applySync(
       club,
       clubsById,
       division: t.division,
+      gender: t.gender ?? null,
     });
     // Bindable from here on, so a name repeated later in this same feed
     // lands on the row just made rather than another copy of it.
@@ -466,6 +490,7 @@ async function insertSyncedTeam(
       { name: string; slug: string; shortName: string | null; aliases: string[] }
     >;
     division?: string | null;
+    gender?: TeamFacts["gender"];
   },
 ) {
 
@@ -483,6 +508,7 @@ async function insertSyncedTeam(
     seasonStart: context.seasonStart,
     clubSlug: club?.slug ?? null,
     division: context.division,
+    gender: context.gender ?? null,
   });
 
   /*

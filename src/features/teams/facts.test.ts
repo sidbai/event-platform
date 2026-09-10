@@ -139,3 +139,28 @@ describe("what the division says", () => {
     ).toBeNull();
   });
 });
+
+describe("a gender the source states outright", () => {
+  it("fills in what neither the name nor the division says", () => {
+    // Modular11: "Harbor SC" in "U13 EA PACNW", with MALE in its own column.
+    expect(
+      teamFactsFrom("Harbor SC", {
+        seasonStart: new Date("2026-09-01"),
+        clubSlug: null,
+        division: "U13 EA PACNW",
+        gender: "boys",
+      }),
+    ).toMatchObject({ gender: "boys", birthYears: [2013, 2014] });
+  });
+
+  it("never outranks the team's own name, or its flight", () => {
+    /*
+     * Last of the three on purpose. A column in somebody's export is the
+     * weakest of the evidence, and a source that contradicts the name a club
+     * chose does not get to win.
+     */
+    const both = { seasonStart: new Date("2026-09-01"), clubSlug: null, gender: "girls" as const };
+    expect(teamFactsFrom("XF B13/14 ECNL", both).gender).toBe("boys");
+    expect(teamFactsFrom("Harbor SC", { ...both, division: "Boys U13" }).gender).toBe("boys");
+  });
+});

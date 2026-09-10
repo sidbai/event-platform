@@ -13,6 +13,7 @@
  */
 import { parse, type HTMLElement } from "node-html-parser";
 
+import type { Gender } from "@/features/teams/age";
 import type {
   ExternalEventProvider,
   SourceRef,
@@ -162,6 +163,21 @@ export function readModular11Page(html: string): Modular11Row[] {
   return out;
 }
 
+/**
+ * Their own word for it, as this application spells it.
+ *
+ * "MALE" and "FEMALE" in a column of their own, which is the only place this
+ * platform writes the gender down: their team names carry a club and nothing
+ * else, and their division label is "U13 EA PACNW". Without it every age of
+ * a club's side is named the same thing.
+ */
+function genderOf(row: Modular11Row): Gender | null {
+  const g = (row.gender ?? "").toUpperCase();
+  if (g.startsWith("M") || g.startsWith("B")) return "boys";
+  if (g.startsWith("F") || g.startsWith("G")) return "girls";
+  return null;
+}
+
 /** Their age group and conference together — "U13 EA PACNW". */
 export function divisionOf(row: Modular11Row): string {
   return [row.age, row.division].filter(Boolean).join(" ").trim() || "Unassigned";
@@ -227,7 +243,7 @@ export function teamsOf(rows: Modular11Row[]): SyncedTeam[] {
        */
       const key = `${division}::${name}`;
       if (!seen.has(key)) {
-        seen.set(key, { sourceTeamId: key, name, division, group: null });
+        seen.set(key, { sourceTeamId: key, name, division, group: null, gender: genderOf(row) });
       }
     }
   }

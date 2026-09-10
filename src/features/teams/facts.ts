@@ -1,4 +1,5 @@
 import {
+  type Gender,
   birthYearsForAgeGroup,
   parseAgeGroup,
   parseBirthYears,
@@ -43,6 +44,16 @@ export function teamFactsFrom(
      * teams here with no gender were in a division that named one.
      */
     division?: string | null;
+    /**
+     * The gender the source states outright, where neither the name nor the
+     * division does.
+     *
+     * Ranked last of the three on purpose: a team's own name is the best
+     * authority on what the team is, its flight is the next best, and a
+     * column in somebody's export is what is left. Modular11 is the case —
+     * "Harbor SC" in "U13 EA PACNW", with MALE in a field of its own.
+     */
+    gender?: Gender | null;
   },
 ): TeamFacts {
   /*
@@ -64,7 +75,7 @@ export function teamFactsFrom(
 
   return {
     birthYears,
-    gender: parseGender(name) ?? parseGender(context.division ?? ""),
+    gender: parseGender(name) ?? parseGender(context.division ?? "") ?? context.gender ?? null,
     tier: parseTier(name),
     program: parseProgram(name, context.clubSlug),
   };

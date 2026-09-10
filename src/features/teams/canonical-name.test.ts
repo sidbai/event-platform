@@ -338,3 +338,46 @@ describe("a club's short name", () => {
     ).toBe("WW Surf North Premier G07/08");
   });
 });
+
+describe("a stream word welded into a phrase", () => {
+  /*
+   * "Select" and "Academy" are hoisted in front of the cohort because that is
+   * where a club puts them. But some clubs have one of those words inside
+   * their own side's name, and lifting it out of the middle strands the words
+   * around it — the Elite Academy import produced "Warriors Academy B11/12
+   * Sports", which is not what anybody is called.
+   */
+  it("leaves it where it stands when it does not open the remainder", () => {
+    expect(
+      name({ name: "Warriors Sports Academy", club: club("Warriors"), gender: "boys", birthYears: [2011, 2012] }),
+    ).toBe("Warriors B11/12 Sports Academy");
+  });
+
+  it("still hoists it when it is the stream, whatever order the source wrote", () => {
+    // The age first is the same team said differently, and the canonical form
+    // is the same either way.
+    expect(
+      name({ name: "MRFC Academy B09/10", club: club("Mount Rainier FC"), gender: "boys", birthYears: [2009, 2010] }),
+    ).toBe("Mount Rainier FC Academy B09/10");
+    expect(
+      name({ name: "MRFC B09/10 Academy", club: club("Mount Rainier FC"), gender: "boys", birthYears: [2009, 2010] }),
+    ).toBe("Mount Rainier FC Academy B09/10");
+  });
+
+  it("prints a program the name no longer carries", () => {
+    /*
+     * The program is a fact on the row, not a reading of the name — a side
+     * already renamed to "Warriors B16/17" is still the Academy one, and
+     * suppressing it here would quietly drop it on the second pass.
+     */
+    expect(
+      name({
+        name: "Warriors B16/17",
+        club: club("Warriors"),
+        gender: "boys",
+        birthYears: [2016, 2017],
+        program: "Academy",
+      }),
+    ).toBe("Warriors Academy B16/17");
+  });
+});
