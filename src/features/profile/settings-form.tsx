@@ -9,7 +9,6 @@ type Action = (prev: ProfileResult, formData: FormData) => Promise<ProfileResult
 type Profile = {
   username: string | null;
   displayName: string | null;
-  name: string | null;
   tags: string[];
   club: string | null;
   city: string | null;
@@ -63,10 +62,22 @@ export function SettingsForm({
         <input
           id="displayName"
           name="displayName"
-          defaultValue={profile.displayName ?? profile.name ?? ""}
+          /*
+           * The handle, which is what an account starts with. It used to fall
+           * back to the provider's name when this was empty — pre-filling
+           * somebody's real name into the one field that decides what the
+           * site shows, where saving the form would publish it.
+           */
+          defaultValue={profile.displayName ?? ""}
           placeholder="Shown on your comments and teams"
           className={`mt-1 ${field}`}
         />
+        <p className="mt-1 text-xs text-muted">
+          Shown on everything you write. It starts as your generated handle, so
+          nothing you did not choose is published &mdash; change it to whatever
+          you like, your real name included. Clear it and it goes back to your
+          username.
+        </p>
         {err.displayName && (
           <p className="mt-1 text-xs text-red-600">{err.displayName}</p>
         )}
