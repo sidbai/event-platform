@@ -19,6 +19,7 @@ const { clubAliases, clubEdits, clubs, eventTeams, events, teams, users } =
 const { linkTeamsToClub, setIndependent } = await import("@/features/clubs/link");
 const { planUnfile, unfileTeams } = await import("@/features/clubs/unfile");
 const { createClubRow } = await import("@/features/clubs/create");
+const { mergeClubs, planClubMerge } = await import("@/features/clubs/merge");
 const { eq } = await import("drizzle-orm");
 
 async function makeClub(slug: string, name: string) {
@@ -301,5 +302,91 @@ describe("createClubRow", () => {
       where: eq(clubAliases.alias, "spartatacoma"),
     });
     expect(saved?.clubId).toBe(club.id);
+  });
+});
+
+/**
+ * Folding two rows that turned out to be one club.
+ *
+ * Against a real database because the parts that can go wrong are all in the
+ * schema: a unique key on the alias, a restrict on teams.club_id that refuses
+ * to delete a club still holding any, and a transaction that has to leave
+ * neither half done.
+ */
+describe("merging one club into another", () => {
+  it("moves the teams, the aliases and the history, then removes the row", async () => {
+    const ifc = await makeClub("ifc", "IFC");
+    const issaquah = await makeClub("issaquah-fc", "Issaquah FC");
+    const a = await makeTeam("ifc-select-bu09", "IFC Select BU09 Loehlein");
+    const b = await makeTeam("ifc-rovers", "IFC Rovers-Peadon");
+    await linkTeamsToClub(ifc, "ifc", [a, b], null);
+
+    const plan = await planClubMerge("ifc", "issaquah-fc");
+    expect("error" in plan).toBe(false);
+    if ("error" in plan) return;
+    expect(plan.teams).toHaveLength(2);
+    expect(plan.aliases).toEqual(["ifc"]);
+
+    await mergeClubs(plan);
+
+    expect(await teamRow(a)).toEqual({ affiliation: "club", clubId: issaquah });
+    expect(await teamRow(b)).toEqual({ affiliation: "club", clubId: issaquah });
+    // The alias is the point: "ifc" has to keep meaning this club.
+    const alias = await db.query.clubAliases.findFirst({
+      where: eq(clubAliases.alias, "ifc"),
+    });
+    expect(alias?.clubId).toBe(issaquah);
+    expect(await db.query.clubs.findFirst({ where: eq(clubs.id, ifc) })).toBeUndefined();
+  });
+
+  it("drops an alias the survivor already answers to", async () => {
+    // Both rows collected "ifc"; moving the second would break the unique key,
+    // and it already points where it would have been sent.
+    const ifc = await makeClub("ifc", "IFC");
+    const issaquah = await makeClub("issaquah-fc", "Issaquah FC");
+    const a = await makeTeam("ifc-bu13", "IFC BU13");
+    const b = await makeTeam("issaquah-bu13", "Issaquah FC BU13");
+    await linkTeamsToClub(ifc, "ifc", [a], null);
+    await db.insert(clubAliases).values({ alias: "ifc", clubId: issaquah }).onConflictDoNothing();
+    await linkTeamsToClub(issaquah, "issaquahfc", [b], null);
+
+    const plan = await planClubMerge("ifc", "issaquah-fc");
+    if ("error" in plan) throw new Error(plan.error);
+    await mergeClubs(plan);
+
+    const rows = await db.query.clubAliases.findMany({
+      where: eq(clubAliases.alias, "ifc"),
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].clubId).toBe(issaquah);
+  });
+
+  it("refuses a club that is not there, and a club merged into itself", async () => {
+    await makeClub("issaquah-fc", "Issaquah FC");
+    expect(await planClubMerge("nope", "issaquah-fc")).toEqual({
+      error: 'No club with slug "nope".',
+    });
+    expect(await planClubMerge("issaquah-fc", "nope")).toEqual({
+      error: 'No club with slug "nope".',
+    });
+    expect(await planClubMerge("issaquah-fc", "issaquah-fc")).toEqual({
+      error: "Those are the same club.",
+    });
+  });
+
+  it("leaves nothing behind pointing at a club that no longer exists", async () => {
+    // teams.club_id is ON DELETE RESTRICT, so a team left behind would make
+    // the delete throw rather than orphan a row — this proves it does not.
+    const from = await makeClub("tc", "TC");
+    const into = await makeClub("tc-united", "TC United");
+    const t = await makeTeam("tc-b12", "TC B12/13 Navy");
+    await linkTeamsToClub(from, "tc", [t], null);
+
+    const plan = await planClubMerge("tc", "tc-united");
+    if ("error" in plan) throw new Error(plan.error);
+    await expect(mergeClubs(plan)).resolves.toBeUndefined();
+
+    const left = await db.query.clubs.findMany();
+    expect(left.map((c) => c.slug)).toEqual(["tc-united"]);
   });
 });

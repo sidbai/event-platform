@@ -20,6 +20,7 @@
     "db:backfill:covers": "tsx scripts/backfill-news-cover-size.ts",
     "db:backfill:age": "NODE_OPTIONS=--conditions=react-server tsx scripts/backfill-team-age.ts",
     "ai:suggest-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/suggest-team-matches.ts",
+    "db:clubs:merge": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-clubs.ts",
     "db:merge:teams": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-duplicate-teams.ts",
     "db:teams:export": "NODE_OPTIONS=--conditions=react-server tsx scripts/export-team-facts.ts",
     "db:teams:import": "NODE_OPTIONS=--conditions=react-server tsx scripts/import-team-facts.ts",
