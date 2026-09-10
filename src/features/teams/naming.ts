@@ -88,7 +88,19 @@ const TIERS: [RegExp, string][] = [
   [/\bsamba\b/i, "Samba"],
   [/\bnova\b/i, "Nova"],
   [/\bgold\b/i, "Gold"],
-  [/\boro\b/i, "Gold"],
+  /*
+   * "Oro" is not here, though it is the Spanish for the word above it.
+   *
+   * Atletico Futbol Club names its sides Azul, Rojo and Oro, and prints the
+   * tier separately — "Atletico Futbol Club B07/08 MLS Next Oro". Read as a
+   * tier, the one side that carries no other tier came out as "Gold" while
+   * its own club-mates kept Azul and Rojo, which is the club's word replaced
+   * by a translation of it in one row out of four.
+   *
+   * A club that does mean the tier writes Gold; this list is read anywhere in
+   * a name, so a word that is a squad name at one club and a tier at another
+   * is not safe to assume about.
+   */
   [/\bsilver\b/i, "Silver"],
   [/\bbronze\b/i, "Bronze"],
 ];
