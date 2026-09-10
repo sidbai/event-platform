@@ -16,8 +16,9 @@ import {
   teams,
 } from "@/db/schema";
 import { clubIndex, matchClub, type ClubMatch } from "@/features/clubs/matching";
-import { canonicalName } from "@/features/teams/canonical-name";
 import { teamFactsFrom, type TeamFacts } from "@/features/teams/facts";
+
+import { writtenName } from "./planned-team";
 import { teamToBindTo } from "@/features/teams/binding";
 import { normaliseTeamName } from "@/features/teams/merge-plan";
 import { uniqueTeamSlug } from "@/features/teams/slug";
@@ -520,14 +521,7 @@ async function insertSyncedTeam(
    * "XF BU14 ECNL 1" still lands on this row. Only a club's teams: a side
    * with no club has nothing to normalise against and keeps its name.
    */
-  const written = canonicalName({
-    name,
-    club,
-    gender: facts.gender,
-    birthYears: facts.birthYears,
-    tier: facts.tier,
-    program: facts.program,
-  });
+  const written = writtenName(name, club && { id: clubId!, ...club }, facts);
   const base = slugify(written).slice(0, 60);
 
   for (let attempt = 0; ; attempt++) {

@@ -4,11 +4,14 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  isSlot,
   matchesOf,
   parseSportsAffinityUrl,
+  played,
   readFlightList,
   readRclFlight,
   teamsOf,
+  type RclRow,
 } from "./sportsaffinity";
 
 /** One date heading and the fixtures under it, from a real RCL flight page. */
@@ -145,5 +148,33 @@ describe("parseSportsAffinityUrl", () => {
     expect(parseSportsAffinityUrl("https://theecnl.com/x.aspx?tournamentguid=X")).toBeNull();
     expect(parseSportsAffinityUrl("https://wys.sportsaffinity.com/tour/public/info/index.asp")).toBeNull();
     expect(parseSportsAffinityUrl("not a url")).toBeNull();
+  });
+});
+
+describe("a slot that is not a club yet", () => {
+  it("drops a fixture whose side is its own group label", () => {
+    /*
+     * "A11 vs A7" in the group column and "A11" in the team column. The
+     * league has scheduled the game — some carry a real time and ground — but
+     * has not said which club is in that slot. Read literally it makes a team
+     * called A11 that sits in the directory beside real clubs and binds to the
+     * A11 of every other flight.
+     */
+    const rows: RclRow[] = [
+      { gameId: "1", date: "2026-09-12", time: null, venue: null, field: null,
+        group: "A11 vs A7", home: "A11", away: "Valor Soccer - BU11 White",
+        homeScore: null, awayScore: null },
+      { gameId: "2", date: "2026-09-12", time: "09:00", venue: null, field: null,
+        group: "A2 vs A4", home: "PacNW BU8 Maroon A", away: "XF U8 B18-19 RCL 1",
+        homeScore: null, awayScore: null },
+    ];
+    expect(played(rows).map((r) => r.gameId)).toEqual(["2"]);
+  });
+
+  it("keeps a club whose name only looks like a slot", () => {
+    // The group is what says which tokens are slots. Without that agreement
+    // a name is a name.
+    expect(isSlot("A11", "A2 vs A4")).toBe(false);
+    expect(isSlot("A11", "A11 vs A4")).toBe(true);
   });
 });

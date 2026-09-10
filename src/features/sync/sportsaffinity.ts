@@ -137,6 +137,35 @@ export function readRclFlight(html: string): RclRow[] {
   return out;
 }
 
+/**
+ * A fixture one of whose sides is a slot rather than a club.
+ *
+ * "A11 vs A7" in the group column and "A11" in the team column: the league
+ * has scheduled the game — some of these carry a real time and a real ground
+ * — but has not yet said which club is in that slot. Read literally it makes
+ * a team called A11, which would sit in the directory beside real clubs, be
+ * bound to the A11 of every other flight, and appear as somebody's opponent.
+ *
+ * So the fixture is dropped until the slot is filled, and the next sync picks
+ * it up when it is. What is lost is a row that could have read "Valor Soccer
+ * BU11 White v TBD" on one team's page; showing that means a fixture with one
+ * side missing, which nothing here carries yet. Worth doing, and bigger than
+ * this.
+ */
+export function isSlot(name: string, group: string | null): boolean {
+  const own = name.trim();
+  if (own === "") return true;
+  const slots = (group ?? "").split(/\s+vs\.?\s+/i).map((s) => s.trim());
+  if (slots.length > 1 && slots.some((s) => s.toLowerCase() === own.toLowerCase())) return true;
+  // No group to check against — a bare slot code is one all the same.
+  return group === null && /^[A-Z]\d{1,2}$/.test(own);
+}
+
+/** The fixtures with both sides known. */
+export function played(rows: RclRow[]): RclRow[] {
+  return rows.filter((r) => !isSlot(r.home, r.group) && !isSlot(r.away, r.group));
+}
+
 export type RclFlight = { flightguid: string; agecode: string };
 
 /**
@@ -282,7 +311,7 @@ export const sportsaffinity: ExternalEventProvider = {
       }
 
       for (const flight of flights) {
-        const rows = readRclFlight(await get(flightScheduleUrl(ref.eventId, flight.flightguid)));
+        const rows = played(readRclFlight(await get(flightScheduleUrl(ref.eventId, flight.flightguid))));
         /*
          * The age code is the division, because it is the only name the
          * platform gives a flight that is worth reading — the page's own
