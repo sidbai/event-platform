@@ -381,3 +381,46 @@ describe("a stream word welded into a phrase", () => {
     ).toBe("Warriors Academy B16/17");
   });
 });
+
+describe("the written name reads back as itself", () => {
+  /*
+   * The dry run is the only check on a rewrite, so a rewrite that keeps
+   * rewriting cannot be checked at all. This one did: a colour counts as a
+   * tier only behind an age group, and the canonical form is what puts one
+   * there, so the first pass left Blue in the remainder and the second moved
+   * it in front. Nine Western WA Surf teams, found by a re-sync that was
+   * supposed to report no renames at all.
+   */
+  const surf = {
+    name: "Western WA Surf Academy Blue",
+    club: {
+      name: "Western Washington Surf",
+      slug: "western-washington-surf",
+      shortName: "WW Surf",
+      aliases: ["wwsurf"],
+    },
+    gender: "boys" as const,
+    birthYears: [2007, 2008],
+  };
+
+  it("reads a colour as the tier when the cohort will precede it", () => {
+    expect(name(surf)).toBe("WW Surf B07/08 Blue Surf Academy");
+  });
+
+  it("gives the same answer when handed its own output", () => {
+    const once = name(surf);
+    expect(name({ ...surf, name: once })).toBe(once);
+  });
+
+  it("still ignores a colour that sits in front of the age the name states", () => {
+    // "Blue" here is part of what the club calls itself, not a squad.
+    expect(
+      name({
+        name: "Blue Angels B14 Red",
+        club: club("Blue Angels"),
+        gender: "boys",
+        birthYears: [2014],
+      }),
+    ).toContain("Red");
+  });
+});
