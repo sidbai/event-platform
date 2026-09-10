@@ -102,6 +102,29 @@ describe("divisions and teams", () => {
   });
 });
 
+describe("the gender they state in a column", () => {
+  it("carries it on the team, because nothing else in their data says it", () => {
+    /*
+     * Their team names are a club and nothing else, and their division label
+     * is "U13 EA PACNW". So the age survives the trip and the gender does
+     * not — and a team with no gender has no canonical name to build, which
+     * is how seven ages of one club all arrived called "Harbor SC".
+     */
+    const teams = teamsOf(readModular11Page(page));
+    expect(teams.every((t) => t.gender === "boys")).toBe(true);
+  });
+
+  it("reads their word for it rather than ours", () => {
+    const girls = page.replaceAll("MALE", "FEMALE");
+    expect(teamsOf(readModular11Page(girls))[0].gender).toBe("girls");
+  });
+
+  it("says nothing where they say nothing", () => {
+    const silent = page.replaceAll("MALE", "");
+    expect(teamsOf(readModular11Page(silent))[0].gender).toBeNull();
+  });
+});
+
 describe("mergePages", () => {
   const row = (id: string): Modular11Row => ({
     matchId: id,

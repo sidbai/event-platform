@@ -200,7 +200,15 @@ function initialisms(words: string[]): string[] {
  * and the gaps are closed, so anything unaccounted for survives in the order
  * it was written.
  */
-export function remainderOf(facts: NameFacts): string {
+export function remainderOf(
+  facts: NameFacts,
+  /*
+   * Whether the stream word has been lifted out in front of the cohort. Where
+   * it has not — "Warriors Sports Academy" — it belongs here, in the order it
+   * was written, rather than being cut from both places and lost.
+   */
+  streamHoisted = true,
+): string {
   let rest = facts.name;
 
   if (facts.club) {
@@ -232,9 +240,7 @@ export function remainderOf(facts: NameFacts): string {
     tier?.label,
     branch?.text,
     branch?.label,
-    stream?.text,
-    stream?.label,
-    facts.program,
+    ...(streamHoisted ? [stream?.text, stream?.label, facts.program] : []),
   ];
   for (const text of said) {
     if (text) rest = rest.replace(text, " ");
@@ -318,6 +324,31 @@ function balanceBrackets(text: string): string {
 }
 
 /**
+ * Whether a stream word is the first thing left once everything else is cut.
+ *
+ * "Select" and "Academy" belong in front of the cohort because that is where
+ * a club puts them — "Crossfire Select B13/14" — and a source that printed
+ * the age first still means the same thing. So the test is made against the
+ * remainder with the stream left in it: whatever the published order, if the
+ * stream opens what is unaccounted for, it is a stream.
+ *
+ * "Warriors Sports Academy" and "Western WA Surf Academy Blue" do not open
+ * with it. Those are naming a club and a side, not a stream, and lifting the
+ * one word out of the middle strands the words around it — "Warriors Academy
+ * B11/12 Sports", which is not what anybody is called.
+ */
+function opensRemainder(facts: NameFacts, stream: string | null): boolean {
+  if (!stream) return false;
+  const match = streamMatch(facts.name);
+  if (!match) return false;
+  const kept = remainderOf(facts, false).toLowerCase();
+  return (
+    kept.startsWith(match.text.trim().toLowerCase()) ||
+    kept.startsWith(match.label.toLowerCase())
+  );
+}
+
+/**
  * The team's name, written the one way.
  *
  * Falls back to the published name whenever the rewrite would say less than
@@ -340,13 +371,33 @@ export function canonicalName(facts: NameFacts): string {
    * is a column of the same two words with the team hidden behind them.
    */
   const club = facts.club.shortName || facts.club.name;
-  const rest = remainderOf(facts);
+  const hoisted = opensRemainder(facts, stream) ? stream : null;
+  /*
+   * The program is a fact on the row and is printed even when the name no
+   * longer carries the word — "Warriors B16/17" is the Academy side and its
+   * own name stopped saying so. Suppressed in one case only: the name does
+   * carry the word and it has been left where it stands, so announcing it
+   * here as well would print it twice.
+   */
+  const program = stream !== null && hoisted === null ? null : facts.program;
+  const rest = remainderOf(facts, hoisted !== null);
 
   // A team whose years or gender nobody has established yet. Half a name is
   // worse than the whole one somebody published.
   if (!cohort) return published(facts.name);
 
-  const parts = [branch, stream, facts.program, cohort, tier, rest].filter(
+  /*
+   * A stream word welded into a longer phrase is not a stream.
+   *
+   * "Select" and "Academy" are hoisted in front of the cohort because that is
+   * where a club puts them — "Crossfire Select B13/14". But "Warriors Sports
+   * Academy" and "Western WA Surf Academy Blue" are not naming a stream, they
+   * are naming a club and a side, and lifting the one word out of the middle
+   * strands the words around it: "Warriors Academy B11/12 Sports". So it is
+   * hoisted only where it opens what is left after the club is taken off, and
+   * otherwise stays in the remainder in the order it was written.
+   */
+  const parts = [branch, hoisted, program, cohort, tier, rest].filter(
     (p): p is string => typeof p === "string" && p !== "",
   );
   /*
