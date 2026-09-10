@@ -139,7 +139,9 @@ export async function applySync(
    * alternative is a query inside a loop that runs three hundred times for a
    * club tournament.
    */
-  const clubRows = await db.select({ id: clubs.id, name: clubs.name, slug: clubs.slug }).from(clubs);
+  const clubRows = await db
+    .select({ id: clubs.id, name: clubs.name, slug: clubs.slug, shortName: clubs.shortName })
+    .from(clubs);
   const aliasRows = await db
     .select({ alias: clubAliases.alias, clubId: clubAliases.clubId })
     .from(clubAliases);
@@ -459,7 +461,10 @@ async function insertSyncedTeam(
   context: {
     seasonStart: Date | null;
     club: ClubMatch | null;
-    clubsById: Map<string, { name: string; slug: string; aliases: string[] }>;
+    clubsById: Map<
+      string,
+      { name: string; slug: string; shortName: string | null; aliases: string[] }
+    >;
     division?: string | null;
   },
 ) {

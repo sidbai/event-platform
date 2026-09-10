@@ -50,6 +50,7 @@ async function main() {
       clubId: clubs.id,
       clubName: clubs.name,
       clubSlug: clubs.slug,
+      clubShortName: clubs.shortName,
     })
     .from(teams)
     // Only a club's teams. A side with no club in the directory has no fixed
@@ -67,6 +68,7 @@ async function main() {
       club: {
         name: team.clubName,
         slug: team.clubSlug,
+        shortName: team.clubShortName,
         aliases: aliasesFor.get(team.clubId) ?? [],
       },
       gender: team.gender,
