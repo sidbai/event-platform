@@ -199,6 +199,26 @@ export default async function AdminTeamsPage() {
        * Confirming one writes the name against the survivor, so the next
        * import lands on it instead of arriving here again.
        */}
+      {/*
+        Its own page because it is about one summer. When it is empty the page
+        goes, and nothing about 2026 is left in the machinery that has to keep
+        working in 2030.
+      */}
+      <section className="mt-12 rounded-xl border border-line bg-elevated p-4">
+        <h2 className="text-base font-semibold">The school-year split</h2>
+        <p className="mt-1 text-sm text-muted">
+          Age groups moved from a calendar year to a school year this summer,
+          so some clubs have both a <span className="font-mono">B14</span> and
+          a <span className="font-mono">B14/15</span> for one side.
+        </p>
+        <Link
+          href="/admin/teams/age-bands"
+          className="mt-3 inline-block rounded-md border border-line bg-card px-2.5 py-1 text-xs hover:bg-elevated"
+        >
+          Fold them in →
+        </Link>
+      </section>
+
       <section className="mt-12">
         <h2 className="text-lg font-semibold">Possible matches</h2>
         <p className="mt-1 text-sm text-muted">
