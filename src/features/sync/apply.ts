@@ -51,6 +51,17 @@ export function contentHash(data: SyncedEvent): string {
   return createHash("sha256").update(JSON.stringify(shape)).digest("hex");
 }
 
+/**
+ * Below this many fixtures an event is too small for the shape of a loss to
+ * mean anything, and above this share of them a loss is ordinary pruning.
+ *
+ * Half is deliberately far from the edge. The failure it catches took
+ * seventy-three per cent of a league in one sync; a season that genuinely
+ * halves between two polls is not something anybody here has seen.
+ */
+const COLLAPSE_FLOOR = 20;
+const COLLAPSE_SHARE = 0.5;
+
 export type ApplyOutcome = {
   divisions: number;
   teams: number;
@@ -110,6 +121,34 @@ export async function applySync(
       })
       .where(eq(events.id, eventId));
     return { divisions: 0, teams: 0, matches: 0, removed: 0, unchanged: true };
+  }
+
+  /*
+   * A read that would delete most of a schedule is a read that went wrong.
+   *
+   * Imperva served the Regional Club League's boys accepted-teams page as a
+   * challenge — 200, eighty kilobytes, no flights — and the connector read
+   * that as an age group with no teams, kept going with the girls half, and
+   * this function deleted three thousand one hundred and twenty-nine
+   * fixtures. Nothing errored. The admin screen said it had synced.
+   *
+   * A league does not lose half its season between two Mondays. A connector
+   * that thinks it has is a connector that could not see, so nothing is
+   * written and the error stands where somebody will read it — and the next
+   * poll tries again, which is what fixes it when the block lifts.
+   *
+   * Small events are exempt: a five-fixture friendly losing three is a real
+   * thing an organizer does, and there is no signal in it either way.
+   */
+  const held = await db.$count(
+    matches,
+    and(eq(matches.eventId, eventId), isNotNull(matches.sourceMatchId)),
+  );
+  if (prune && held >= COLLAPSE_FLOOR && data.matches.length < held * COLLAPSE_SHARE) {
+    throw new Error(
+      `refusing to shrink this event from ${held} fixtures to ${data.matches.length} — ` +
+        `a read that small is usually a page that did not arrive`,
+    );
   }
 
   const tz = event.timezone ?? "America/Los_Angeles";
