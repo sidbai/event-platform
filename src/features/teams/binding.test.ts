@@ -136,3 +136,45 @@ describe("canBind", () => {
     ).toBe(false);
   });
 });
+
+describe("adjacent age groups", () => {
+  let seq = 0;
+  const side = (years: number[]) => ({
+    id: `t${seq++}`,
+    name: "Emerald City FC",
+    clubId: "emerald",
+    gender: "boys",
+    birthYears: years,
+    tier: null,
+  });
+
+  it("does not bind a club's U13 side to its U14 side", () => {
+    /*
+     * Every two-year band overlaps the one above it by exactly a year, so
+     * "shares a year" was true of every pair of adjacent age groups a club
+     * fields. Binding them made one team of two, and since a team may hold
+     * only one entry per event the second was dropped on the way in — 344
+     * Elite Academy fixtures filed under an age group whose teams were in
+     * another one.
+     */
+    expect(canBind(side([2013, 2014]), side([2012, 2013]))).toBe(false);
+    expect(contradiction(side([2013, 2014]), side([2012, 2013]))).toBe(
+      "different birth years",
+    );
+  });
+
+  it("still binds the same band to itself", () => {
+    expect(canBind(side([2013, 2014]), side([2013, 2014]))).toBe(true);
+  });
+
+  it("binds a single-year side to the band that contains it", () => {
+    // "Seattle Celtic B14" against a U12 band is a team within that age
+    // group, not a different one — a club that names one year still means it.
+    expect(canBind(side([2014]), side([2014, 2015]))).toBe(true);
+    expect(canBind(side([2014, 2015]), side([2014]))).toBe(true);
+  });
+
+  it("does not bind a single year to a band that does not contain it", () => {
+    expect(canBind(side([2016]), side([2014, 2015]))).toBe(false);
+  });
+});

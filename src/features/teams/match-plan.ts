@@ -1,3 +1,4 @@
+import { sameCohort } from "./age";
 import { normaliseTeamName } from "./merge-plan";
 
 /**
@@ -93,9 +94,14 @@ export function whyNot(a: MatchCandidate, b: MatchCandidate): string | null {
   if (a.clubId === null || a.clubId !== b.clubId) return "different clubs";
   if (a.gender && b.gender && a.gender !== b.gender) return "different genders";
 
+  /*
+   * The same rule the binder uses, and for the same reason: a club's U13 side
+   * and its U14 side share a year, so asking whether they share one offered
+   * every club its own age group as a duplicate to merge. Somebody took one
+   * of those offers.
+   */
   if (a.birthYears.length > 0 && b.birthYears.length > 0) {
-    const shared = a.birthYears.some((y) => b.birthYears.includes(y));
-    if (!shared) return "different birth years";
+    if (!sameCohort(a.birthYears, b.birthYears)) return "different birth years";
   }
   if (a.tier && b.tier && a.tier !== b.tier) return "different tiers";
 

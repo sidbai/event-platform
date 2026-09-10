@@ -1,3 +1,4 @@
+import { sameCohort } from "./age";
 import { normaliseTeamName } from "./merge-plan";
 
 /**
@@ -25,14 +26,12 @@ export type BindCandidate = {
   tier: string | null;
 };
 
-const sharesYear = (a: number[], b: number[]) => a.some((y) => b.includes(y));
-
 /** A fact that rules the two out, or null. Unknowns rule out nothing. */
 export function contradiction(a: BindCandidate, b: BindCandidate): string | null {
   if (a.clubId && b.clubId && a.clubId !== b.clubId) return "different clubs";
   if (a.gender && b.gender && a.gender !== b.gender) return "different genders";
   if (a.tier && b.tier && a.tier !== b.tier) return "different tiers";
-  if (a.birthYears.length && b.birthYears.length && !sharesYear(a.birthYears, b.birthYears)) {
+  if (a.birthYears.length && b.birthYears.length && !sameCohort(a.birthYears, b.birthYears)) {
     return "different birth years";
   }
   return null;
@@ -41,7 +40,7 @@ export function contradiction(a: BindCandidate, b: BindCandidate): string | null
 /** A fact that actively says these are the same side. */
 export function agreement(a: BindCandidate, b: BindCandidate): boolean {
   if (a.clubId && a.clubId === b.clubId) return true;
-  if (a.birthYears.length && b.birthYears.length && sharesYear(a.birthYears, b.birthYears)) {
+  if (a.birthYears.length && b.birthYears.length && sameCohort(a.birthYears, b.birthYears)) {
     return true;
   }
   return Boolean(a.tier && a.tier === b.tier);
