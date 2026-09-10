@@ -1,8 +1,9 @@
 "use server";
 
-import { eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db";
+import { searchTerms } from "@/features/search/terms";
 import { clubs, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -15,11 +16,6 @@ export type TeamHit = {
   name: string;
   detail: string;
 };
-
-/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
 
 /**
  * Find a team by name, for an admin who already knows which two are one.
@@ -34,7 +30,7 @@ export async function searchTeamsToMerge(query: string): Promise<TeamHit[]> {
 
   const q = query.trim();
   if (q.length < 2) return [];
-  const term = `%${escapeLike(q)}%`;
+  const terms = searchTerms(q);
 
   const rows = await db
     .select({
@@ -48,7 +44,7 @@ export async function searchTeamsToMerge(query: string): Promise<TeamHit[]> {
     })
     .from(teams)
     .leftJoin(clubs, eq(clubs.id, teams.clubId))
-    .where(or(ilike(teams.name, term), ilike(teams.slug, term)))
+    .where(and(...terms.map((term) => or(ilike(teams.name, term), ilike(teams.slug, term)))))
     .limit(12);
 
   return rows.map((r) => ({
