@@ -142,3 +142,40 @@ describe("platformOf", () => {
     expect(platformOf("not a url")).toBeNull();
   });
 });
+
+/**
+ * The three registries a platform has to appear in, and the failure when it
+ * does not appear in all of them.
+ *
+ * Modular11 was added to PROVIDER_POLICIES and to the provider list but not
+ * to the host table, so connecting its URL produced "we have not assessed
+ * that site. It will not refresh by itself" — a connector that existed,
+ * worked, and was never reached. Nothing failed; it just quietly saved a link.
+ */
+describe("a platform is registered in every place it has to be", () => {
+  const withConnector = ["athletes2events", "modular11"] as const;
+
+  it("recognises the URL of every platform that has a connector", () => {
+    const sample: Record<(typeof withConnector)[number], string> = {
+      athletes2events: "https://crossfire.athletes2events.com/events/123",
+      modular11: "https://www.modular11.com/league-schedule/elite-academy-league/47",
+    };
+    for (const platform of withConnector) {
+      expect(platformOf(sample[platform])).toBe(platform);
+    }
+  });
+
+  it("has a policy recorded for every platform it recognises", () => {
+    for (const platform of withConnector) {
+      expect(PROVIDER_POLICIES[platform]).toBeDefined();
+    }
+  });
+
+  it("would let each of them be polled", () => {
+    // A connector nothing may call is the same as no connector, and this is
+    // the check that says which of the two a platform is in.
+    for (const platform of withConnector) {
+      expect(mayPoll(platform).may).toBe(true);
+    }
+  });
+});
