@@ -162,14 +162,54 @@ describe("nextSyncAt for a season", () => {
       hourCycle: "h23",
     }).format(d);
 
-  it("asks once, on the Monday morning after the weekend", () => {
+  it("asks on the Monday morning after the weekend", () => {
     /*
-     * A league is thirty Saturdays, and what happened on one of them does not
-     * change again until the next. Monday rather than every seventh day
-     * because the day is the point: results are entered on the Sunday evening
-     * and corrected on the Monday.
+     * Monday is the one that matters: results are entered on the Sunday
+     * evening and corrected on the Monday, so that is when a weekend settles.
+     * Named days rather than every third, because the day is the point.
      */
     expect(local(nextSyncAt({ ...league, timezone: PT }, now)!)).toBe("Mon, 08");
+  });
+
+  it("and again on the Thursday, for the week the weekend has not settled", () => {
+    /*
+     * Kick-off times and grounds for the coming weekend are set midweek. A
+     * parent asking on a Friday should not be reading Monday's answer.
+     */
+    const monday = new Date("2026-09-07T18:00:00Z"); // 11am Pacific, Monday
+    const next = nextSyncAt({ ...league, timezone: PT }, monday)!;
+    expect(local(next)).toBe("Thu, 08");
+    // This week's Thursday, not next week's.
+    expect(next.getTime()).toBeLessThan(monday.getTime() + 4 * 24 * 3_600_000);
+  });
+
+  it("comes back round to Monday after the Thursday", () => {
+    const thursday = new Date("2026-09-10T18:00:00Z"); // 11am Pacific, Thursday
+    expect(local(nextSyncAt({ ...league, timezone: PT }, thursday)!)).toBe("Mon, 08");
+  });
+
+  it("reads a league twice a week and no more", () => {
+    /*
+     * Fifty-two pages against somebody else's server is the other half of why
+     * this is two mornings. Walking a season forward, every gap is three or
+     * four days — never a day, and never a week.
+     */
+    const days: string[] = [];
+    const at: number[] = [];
+    let cursor = new Date("2026-09-06T12:00:00Z");
+    for (let i = 0; i < 8; i++) {
+      const next = nextSyncAt({ ...league, timezone: PT }, cursor)!;
+      days.push(local(next));
+      at.push(next.getTime());
+      // Three hours after being read, which is where the next one is decided.
+      cursor = new Date(next.getTime() + 3 * 3_600_000);
+    }
+    expect(new Set(days)).toEqual(new Set(["Mon, 08", "Thu, 08"]));
+
+    // Between one read and the next: three days or four, never one or seven.
+    const gaps = at.slice(1).map((t, i) => Math.round((t - at[i]) / 3_600_000 / 24));
+    expect(Math.min(...gaps)).toBe(3);
+    expect(Math.max(...gaps)).toBe(4);
   });
 
   it("does not care where the kickoffs are", () => {
@@ -180,7 +220,7 @@ describe("nextSyncAt for a season", () => {
     }
   });
 
-  it("reads Monday in the event's own zone, not the server's", () => {
+  it("reads the day in the event's own zone, not the server's", () => {
     /*
      * Computed through Intl rather than by adding hours to a timestamp: the
      * offset moves twice a year, and "Monday 08:00" as a fixed distance from
@@ -195,14 +235,6 @@ describe("nextSyncAt for a season", () => {
       hourCycle: "h23",
     }).format(nextSyncAt({ ...league, timezone: tokyo }, now)!);
     expect(inTokyo).toBe("Mon, 08");
-  });
-
-  it("moves to next week when Monday morning has already gone", () => {
-    const monday = new Date("2026-09-07T18:00:00Z"); // 11am Pacific, Monday
-    const next = nextSyncAt({ ...league, timezone: PT }, monday)!;
-    expect(local(next)).toBe("Mon, 08");
-    // Not today's, which is behind us.
-    expect(next.getTime()).toBeGreaterThan(monday.getTime() + 5 * 24 * 3_600_000);
   });
 
   it("does not outlive the season by more than the settling days", () => {

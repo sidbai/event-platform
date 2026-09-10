@@ -141,30 +141,43 @@ export function isStale(
   return now.getTime() - event.lastSyncedAt.getTime() > limit;
 }
 
-/** When a weekly read happens, in the event's own zone. */
+/** When one of those reads happens, in the event's own zone. */
 const WEEKLY_HOUR = 8;
 
 /**
- * How often to look at a season that is under way: once, on a Monday morning.
+ * The mornings a season is read on: Monday and Thursday.
  *
  * This was keyed on the nearest kickoff, polling every twenty minutes while
  * games were on. That rule is right for a tournament, where somebody is
  * standing on the touchline refreshing — and wrong for a league, where the
  * question is "what happened at the weekend" and the answer does not change
- * again until the next one. A season is thirty Saturdays; asking on the
- * thirty Mondays after them is the whole of what a league needs.
+ * again until the next one.
  *
- * Monday rather than every seventh day, because the day is the point. Results
- * are entered on the Sunday evening and corrected on the Monday, and a poll
- * that drifted to a Thursday would read a settled week late every time.
+ * Monday is the one that matters: results are entered on the Sunday evening
+ * and corrected on the Monday, so that is when a weekend settles. Thursday is
+ * the other half of the week — kick-off times and grounds for the coming
+ * weekend are set midweek, and a parent asking on a Friday should not be
+ * reading Monday's answer.
  *
- * Refreshing by hand is still there, and is what covers the exception: a
- * midweek cup date, a postponement, or simply wanting to see it now.
+ * Named days rather than every third or fourth, because the day is the point.
+ * A poll that drifted would read a settled week late every time, and reading
+ * a league is fifty-two pages against somebody else's server — which is the
+ * other reason this is two mornings and not seven.
+ *
+ * Refreshing by hand is still there, and covers the exception: a postponement,
+ * a midweek cup date, or simply wanting to see it now.
  */
+const SEASON_DAYS_OF_WEEK = [1, 4];
+
 function seasonCadence(event: Syncable, now: Date, end: number): Date {
-  const next = nextWeekday(now, 1, WEEKLY_HOUR, event.timezone ?? "America/Los_Angeles");
+  const zone = event.timezone ?? "America/Los_Angeles";
+  const next = Math.min(
+    ...SEASON_DAYS_OF_WEEK.map((day) =>
+      nextWeekday(now, day, WEEKLY_HOUR, zone).getTime(),
+    ),
+  );
   // Never past the point where polling stops anyway.
-  return new Date(Math.min(next.getTime(), end + 2 * DAY));
+  return new Date(Math.min(next, end + 2 * DAY));
 }
 
 /**
