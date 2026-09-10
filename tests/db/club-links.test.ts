@@ -14,8 +14,9 @@ import { requireTestDatabase, truncateAll } from "./helpers";
 requireTestDatabase();
 
 const { db } = await import("@/db");
-const { clubAliases, clubs, teams } = await import("@/db/schema");
+const { clubAliases, clubs, eventTeams, events, teams } = await import("@/db/schema");
 const { linkTeamsToClub, setIndependent } = await import("@/features/clubs/link");
+const { planUnfile, unfileTeams } = await import("@/features/clubs/unfile");
 const { eq } = await import("drizzle-orm");
 
 async function makeClub(slug: string, name: string) {
@@ -46,6 +47,8 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await db.delete(clubAliases);
+  await db.delete(eventTeams);
+  await db.delete(events);
   await db.delete(teams);
   await db.delete(clubs);
 });
@@ -151,5 +154,83 @@ describe("setIndependent", () => {
     await setIndependent([t]);
     // Both columns move together or the constraint rejects the write.
     expect(await teamRow(t)).toEqual({ affiliation: "independent", clubId: null });
+  });
+});
+
+describe("unfiling a team from the wrong club", () => {
+  /*
+   * "lake" reached only Lake Washington Premier FC, so Lake Chelan FC's teams
+   * were filed under it — and the canonical rename then wrote that club's
+   * name over their own. Both halves have to come back.
+   */
+  async function importedAs(teamId: string, sourceName: string | null) {
+    const [e] = await db
+      .insert(events)
+      .values({
+        slug: `e-${teamId.slice(0, 8)}`,
+        kind: "tournament",
+        title: "A cup",
+        startsAt: new Date(),
+      })
+      .returning({ id: events.id });
+    await db.insert(eventTeams).values({ eventId: e.id, teamId, sourceName });
+  }
+
+  it("puts back the name the team was imported under", async () => {
+    const club = await makeClub("lake-washington-premier-fc", "Lake Washington Premier FC");
+    const t = await makeTeam("lwpfc-b08-09-lake-chelan", "Lake Chelan FC BU18/19");
+    await importedAs(t, "Lake Chelan FC BU18/19");
+    await linkTeamsToClub(club, "lake", [t], null);
+    await db
+      .update(teams)
+      .set({ name: "Lake Washington Premier FC B08/09 Lake Chelan" })
+      .where(eq(teams.id, t));
+
+    const plan = await planUnfile("lake-washington-premier-fc", "%Lake Chelan%");
+    expect(plan?.teams).toHaveLength(1);
+    expect(plan?.teams[0].restored).toBe("Lake Chelan FC BU18/19");
+
+    expect(await unfileTeams(plan!)).toBe(1);
+    const row = await db.query.teams.findFirst({ where: eq(teams.id, t) });
+    expect(row?.name).toBe("Lake Chelan FC BU18/19");
+    // Both columns move together or the constraint rejects the write.
+    expect(row?.affiliation).toBe("unknown");
+    expect(row?.clubId).toBeNull();
+  });
+
+  it("keeps the name when nothing recorded what it was imported as", async () => {
+    // Guessing it back would be the rename run in reverse, and the rename
+    // removed those words rather than keeping them.
+    const club = await makeClub("lake-washington-premier-fc", "Lake Washington Premier FC");
+    const t = await makeTeam("lwpfc-lake-hills-orcas", "Lake Hills Orcas, GU11, Kerr");
+    await importedAs(t, null);
+    await linkTeamsToClub(club, "lake", [t], null);
+    await db
+      .update(teams)
+      .set({ name: "Lake Washington Premier FC G15/16 Lake Hills Orcas Kerr" })
+      .where(eq(teams.id, t));
+
+    const plan = await planUnfile("lake-washington-premier-fc", "%Lake Hills%");
+    expect(plan?.teams[0].restored).toBeNull();
+
+    await unfileTeams(plan!);
+    const row = await db.query.teams.findFirst({ where: eq(teams.id, t) });
+    expect(row?.name).toBe("Lake Washington Premier FC G15/16 Lake Hills Orcas Kerr");
+    expect(row?.affiliation).toBe("unknown");
+  });
+
+  it("leaves the club's own teams where they are", async () => {
+    const club = await makeClub("lake-washington-premier-fc", "Lake Washington Premier FC");
+    const theirs = await makeTeam("lwpfc-b13-piranhas", "Lake Washington Premier FC B13 Piranhas");
+    await linkTeamsToClub(club, "lakewashington", [theirs], null);
+
+    const plan = await planUnfile("lake-washington-premier-fc", "%Lake Chelan%");
+    expect(plan?.teams).toHaveLength(0);
+    expect(await unfileTeams(plan!)).toBe(0);
+    expect((await teamRow(theirs))?.clubId).toBe(club);
+  });
+
+  it("says so rather than throwing when the club is not there", async () => {
+    expect(await planUnfile("no-such-club", "%anything%")).toBeNull();
   });
 });
