@@ -8,6 +8,7 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 
 import { NavSelect } from "@/components/nav-select";
+import { fieldAnnounced, timeAnnounced } from "@/features/events/kickoff";
 
 import {
   byCluster,
@@ -113,7 +114,22 @@ function shortDay(key: string, timeZone: string) {
  * a single day, since there it would repeat what is already above.
  */
 function fmtTime(d: Date | null, timeZone: string, withDay = false) {
-  if (!d) return "TBD";
+  if (!d) return "Time TBD";
+  /*
+   * A league publishes its season before it has times, and a fixture with no
+   * time arrives as the date at midnight — which we were printing as
+   * "12:00 AM", our own placeholder in the clothes of a fact.
+   *
+   * The day is still worth saying where the heading covers two of them.
+   */
+  if (!timeAnnounced(d, timeZone)) {
+    if (!withDay) return "Time TBD";
+    const day = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone,
+    }).format(d);
+    return `${day}, time TBD`;
+  }
   return new Intl.DateTimeFormat("en-US", {
     ...(withDay ? { weekday: "short" as const } : {}),
     hour: "numeric",
@@ -425,7 +441,10 @@ export function ScheduleSection({
                       {[
                         showAll ? (m.division?.label ?? m.division?.name) : null,
                         m.groupLabel ? `Bracket ${m.groupLabel}` : null,
-                        [fmtTime(m.kickoffAt, tz, sd.through !== undefined), m.field]
+                        [
+                          fmtTime(m.kickoffAt, tz, sd.through !== undefined),
+                          fieldAnnounced(m.field),
+                        ]
                           .filter(Boolean)
                           .join(" · "),
                       ]
