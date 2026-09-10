@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupName,
-  isChallenge,
+  arrived,
   isSlot,
   matchesOf,
   parseSportsAffinityUrl,
@@ -207,19 +207,26 @@ describe("the group column", () => {
 });
 
 describe("a page that did not arrive", () => {
-  it("knows the challenge Imperva serves instead of the page", () => {
+  it("asks whether what we came for is here, not who blocked it", () => {
     /*
-     * 200, eighty kilobytes of markup, and no fixtures in it — which is
-     * indistinguishable from an age group that has none. That read the boys
-     * half of the Regional Club League as empty and deleted 3,129 fixtures.
+     * The first attempt looked for Imperva's name in the markup. That is on
+     * every page they serve, good or bad — including the one this fixture was
+     * cut from — so it condemned all of them. A blocker cannot be identified
+     * by what it looks like.
      */
-    expect(isChallenge('<html><head><title>Washington Youth Soccer</title></head>' +
-      '<body><script>var _Incapsula_Resource="..."</script></body></html>')).toBe(true);
-    expect(isChallenge("<html><body>Request unsuccessful. Incapsula incident ID: 1</body></html>")).toBe(true);
+    const served = '<script>var _Incapsula_Resource="..."</script>';
+    expect(arrived(served, "flights")).toBe(false);
+    expect(arrived(served + '<a href="accepted_flight.asp?x">U8</a>', "flights")).toBe(true);
   });
 
-  it("does not mistake a real page for one", () => {
-    expect(isChallenge(flight)).toBe(false);
-    expect(isChallenge("<html><body>Bracket - Saturday, September 12, 2026</body></html>")).toBe(false);
+  it("knows a schedule when it sees one", () => {
+    expect(arrived(flight, "schedule")).toBe(true);
+    expect(arrived("<html><body>Bracket - Saturday, September 12, 2026</body></html>", "schedule")).toBe(false);
+  });
+
+  it("does not take a flight list for a schedule", () => {
+    // They are different pages, and a redirect between them is exactly the
+    // kind of thing that would otherwise pass unnoticed.
+    expect(arrived('<a href="accepted_flight.asp?x">U8</a>', "schedule")).toBe(false);
   });
 });
