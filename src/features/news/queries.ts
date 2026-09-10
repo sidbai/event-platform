@@ -58,7 +58,7 @@ export async function listNews(
     limit: window?.limit ?? 40,
     offset: window?.offset,
     with: {
-      author: { columns: { displayName: true, name: true, username: true } },
+      author: { columns: { displayName: true, username: true } },
     },
   });
 
@@ -77,7 +77,7 @@ export async function getNewsPost(slug: string) {
   const post = await db.query.newsPosts.findFirst({
     where: eq(newsPosts.slug, slug),
     with: {
-      author: { columns: { displayName: true, name: true, username: true } },
+      author: { columns: { displayName: true, username: true } },
     },
   });
   if (!post) return null;
@@ -107,7 +107,7 @@ export async function pendingNews() {
     where: eq(newsPosts.status, "pending"),
     orderBy: [desc(newsPosts.updatedAt)],
     with: {
-      author: { columns: { displayName: true, name: true, username: true } },
+      author: { columns: { displayName: true, username: true } },
     },
   });
 }

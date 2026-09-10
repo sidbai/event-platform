@@ -104,7 +104,7 @@ export async function listClubs(
 export async function getClub(slug: string) {
   return db.query.clubs.findFirst({
     where: eq(clubs.slug, slug),
-    with: { updatedByUser: { columns: { username: true, displayName: true, name: true } } },
+    with: { updatedByUser: { columns: { username: true, displayName: true } } },
   });
 }
 
@@ -212,7 +212,7 @@ export async function clubHistory(clubId: string): Promise<ClubEditRow[]> {
     orderBy: [desc(clubEdits.createdAt)],
     limit: 20,
     with: {
-      editor: { columns: { displayName: true, name: true, username: true } },
+      editor: { columns: { displayName: true, username: true } },
     },
   });
 

@@ -277,6 +277,11 @@ export default async function AdminPage({
               <li key={c.id} className="rounded-lg border border-line p-3">
                 <div className="text-sm">
                   <span className="font-medium">{c.who}</span>
+                  {/* The account's own name, because everyone is anonymous by
+                      default and the handle above says nothing to judge. */}
+                  {c.account && c.account !== c.who && (
+                    <span className="text-muted"> ({c.account})</span>
+                  )}
                   {c.email && <span className="text-muted"> · {c.email}</span>}
                   <span className="text-muted"> says they are </span>
                   <Link

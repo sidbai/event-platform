@@ -239,9 +239,16 @@ export async function pendingCoachClaims() {
     note: c.note,
     createdAt: c.createdAt,
     coach: c.coach,
-    // The admin needs a real identity to judge a claim against, so this one
-    // place deliberately shows the account rather than a pseudonym.
     who: c.user ? publicName(c.user) : "Someone",
+    /*
+     * What the provider says their name is. Never shown outside /admin.
+     *
+     * Carried beside the handle rather than instead of it: publicName is
+     * anonymous everywhere now, so an admin judging a claim has nothing to
+     * weigh unless this is passed deliberately. Same shape as the team
+     * claims in teams/claim-queries.ts.
+     */
+    account: c.user?.name ?? null,
     email: c.user?.email ?? null,
   }));
 }
@@ -271,7 +278,7 @@ export async function coachHistory(coachId: string) {
     orderBy: [desc(coachEdits.createdAt)],
     limit: 20,
     with: {
-      editor: { columns: { displayName: true, name: true, username: true } },
+      editor: { columns: { displayName: true, username: true } },
     },
   });
 

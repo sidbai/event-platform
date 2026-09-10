@@ -226,13 +226,7 @@ export async function getTeamBySlug(slug: string) {
       members: {
         with: {
           user: {
-            columns: {
-              name: true,
-              displayName: true,
-              username: true,
-              email: true,
-              image: true,
-            },
+            columns: { displayName: true, username: true },
           },
         },
       },

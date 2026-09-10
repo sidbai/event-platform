@@ -31,7 +31,7 @@ export async function recentForumPosts(page: number, perPage: number) {
     limit: pagination.perPage,
     offset: pagination.offset,
     with: {
-      author: { columns: { displayName: true, name: true, username: true } },
+      author: { columns: { displayName: true, username: true } },
     },
   });
   return {

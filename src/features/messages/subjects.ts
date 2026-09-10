@@ -78,7 +78,7 @@ export async function namesFor(userIds: string[]) {
   if (userIds.length === 0) return new Map<string, string>();
   const rows = await db.query.users.findMany({
     where: inArray(users.id, userIds),
-    columns: { id: true, displayName: true, name: true, username: true },
+    columns: { id: true, displayName: true, username: true },
   });
   return new Map(rows.map((u) => [u.id, publicName(u)]));
 }

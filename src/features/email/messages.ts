@@ -53,10 +53,11 @@ function escape(value: string): string {
  * somebody happens to wonder, not on the schedule we would choose.
  *
  * The wording is what is actually true, which is narrower than it could be
- * made to sound. A Google sign-in hands us a name and a picture and they stay
- * on the account row; saying otherwise would be the one lie a privacy notice
- * cannot afford. What is unqualified is the part that matters: none of it is
- * ever shown.
+ * made to sound. A Google sign-in leaves a name and a URL on the account row —
+ * the picture is a link to Google's copy, never a file of ours — and saying
+ * otherwise would be the one lie a privacy notice cannot afford. What is
+ * unqualified is the part that matters: publicName cannot reach either of
+ * them, so neither is ever shown.
  */
 const PRIVACY_TEXT = [
   "Anonymous by default",
@@ -64,8 +65,9 @@ const PRIVACY_TEXT = [
   "change it yourself in settings.",
   "",
   "Your email address is your account, and it is the only thing we need to",
-  "keep. Signing in with Google also leaves the name and picture Google gives",
-  "us on your account — shown to nobody, and yours to delete with the account.",
+  "keep. A Google sign-in also leaves your name and a link to your Google",
+  "profile photo — we never hold the photo itself, neither is ever shown, and",
+  "both go when the account does.",
   "",
   `${SITE_URL}/privacy`,
 ];
@@ -79,8 +81,9 @@ const PRIVACY_HTML = `
     </p>
     <p style="margin:0;font-size:13px;line-height:20px;color:${BRAND_SOFT_TEXT};">
       Your email address is your account, and it is the only thing we need to keep.
-      Signing in with Google also leaves the name and picture Google gives us on your
-      account &mdash; shown to nobody, and yours to delete with the account.
+      A Google sign-in also leaves your name and a link to your Google profile photo
+      &mdash; we never hold the photo itself, neither is ever shown, and both go when
+      the account does.
     </p>
   </td></tr>
 </table>`;

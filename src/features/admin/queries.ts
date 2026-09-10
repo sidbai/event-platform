@@ -31,7 +31,7 @@ export async function reportedComments() {
     where: and(gt(comments.reportCount, 0), isNull(comments.hiddenAt)),
     orderBy: [desc(comments.reportCount)],
     with: {
-      author: { columns: { name: true, displayName: true, username: true, email: true } },
+      author: { columns: { displayName: true, username: true, email: true } },
       discussion: { columns: { subjectType: true, subjectId: true } },
     },
   });
@@ -136,7 +136,7 @@ export async function reportedMessages() {
       isNull(messages.hiddenAt),
     ),
     with: {
-      author: { columns: { displayName: true, name: true, username: true } },
+      author: { columns: { displayName: true, username: true } },
     },
   });
 
@@ -162,7 +162,7 @@ export async function recentClubEdits() {
     limit: 15,
     with: {
       club: { columns: { name: true, slug: true } },
-      editor: { columns: { username: true, displayName: true, name: true } },
+      editor: { columns: { username: true, displayName: true } },
     },
   });
   return rows

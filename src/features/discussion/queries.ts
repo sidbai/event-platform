@@ -43,13 +43,7 @@ export async function getThread(subjectType: SubjectType, subjectId: string) {
     orderBy: [asc(comments.createdAt)],
     with: {
       author: {
-        columns: {
-          name: true,
-          displayName: true,
-          username: true,
-          image: true,
-          avatarUrl: true,
-        },
+        columns: { displayName: true, username: true, avatarUrl: true },
       },
     },
   });

@@ -50,7 +50,7 @@ export async function pendingMatchProposals() {
     with: {
       team: { columns: { name: true, slug: true } },
       opponent: { columns: { name: true, slug: true } },
-      proposer: { columns: { displayName: true, name: true, username: true } },
+      proposer: { columns: { displayName: true, username: true } },
     },
   });
 
@@ -58,7 +58,7 @@ export async function pendingMatchProposals() {
     id: p.id,
     team: p.team,
     opponent: p.opponent,
-    who: p.proposer?.displayName ?? p.proposer?.name ?? p.proposer?.username ?? "someone",
+    who: p.proposer ? publicName(p.proposer) : "Someone",
     playedOn: p.playedOn,
     competition: p.competition,
     // From the proposing team's side, which is how they entered it.
@@ -78,7 +78,7 @@ export async function pendingTeamNames() {
         columns: { name: true, slug: true },
         with: { club: { columns: { name: true } } },
       },
-      proposer: { columns: { displayName: true, name: true, username: true } },
+      proposer: { columns: { displayName: true, username: true } },
     },
   });
 

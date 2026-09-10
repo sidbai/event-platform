@@ -24,7 +24,7 @@ export async function listTeamInvites(teamId: string): Promise<TeamInviteRow[]> 
     orderBy: [asc(teamInvites.createdAt)],
     with: {
       invitedUser: {
-        columns: { displayName: true, name: true, username: true, email: true },
+        columns: { displayName: true, username: true, email: true },
       },
     },
   });

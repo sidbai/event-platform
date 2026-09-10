@@ -122,7 +122,7 @@ export async function listMessages(conversationId: string) {
     ),
     orderBy: [messages.createdAt],
     with: {
-      author: { columns: { id: true, displayName: true, name: true, username: true } },
+      author: { columns: { id: true, displayName: true, username: true } },
     },
   });
   return rows.map((m) => ({
