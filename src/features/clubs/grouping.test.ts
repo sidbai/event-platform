@@ -87,6 +87,42 @@ describe("groupUnplaced", () => {
     expect(groups[0].key).toBe("capitalfc");
   });
 
+  it("does not split a club up over which age group each side is", () => {
+    /*
+     * Three MRFC teams say "B09/10" and three say "B16/17", which on size
+     * alone reads as two clubs. It is one club and six squads.
+     */
+    const { groups } = groupUnplaced(
+      [
+        "MRFC B09/10 Academy 2",
+        "MRFC B09/10 Academy Cornejo",
+        "MRFC B09/10 Red",
+        "MRFC B16/17 Academy",
+        "MRFC B16/17 Navy",
+        "MRFC B16/17 White",
+      ].map(team),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].key).toBe("mrfc");
+    expect(groups[0].teams).toHaveLength(6);
+  });
+
+  it("needs a crowd on both sides to call it two clubs", () => {
+    // One club that names its teams two ways, not two clubs.
+    const { groups } = groupUnplaced(
+      [
+        "WFC Rangers Boys U13 Silver",
+        "WFC Rangers Boys U14 ECNL RL",
+        "WFC Rangers Boys U12 Blue",
+        "WFC Rangers U15 Boys ECNL RL",
+        "WFC Rangers U16 Boys ECNL RL",
+      ].map(team),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].key).toBe("wfcrangers");
+    expect(groups[0].teams).toHaveLength(5);
+  });
+
   it("stops at four words, where the age group starts", () => {
     const { groups } = groupUnplaced(
       [

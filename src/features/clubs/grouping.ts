@@ -63,6 +63,12 @@ function by<T>(members: Entry<T>[], depth: number): Map<string, Entry<T>[]> {
  * its own, they are separate clubs and are taken apart. Otherwise the words
  * they already agree on are the club, and the rest is squad numbering.
  *
+ * Except that squad numbering repeats too — three MRFC teams are "B09/10",
+ * three more are "B16/17" — and on size alone that reads as a crowd and
+ * splits the club into fragments. A word carrying a digit is an age group or
+ * a birth year, never the second word of a club's name, so where the argument
+ * is over one of those the club's name has already ended.
+ *
  * This errs long: a club fielding twelve ECNL sides and eight Pre-ECNL ones
  * arrives as two groups keyed "…fcecnl" and "…fcpre" rather than one. Both
  * get filed under the same club in two clicks, and the aliases they save are
@@ -102,25 +108,32 @@ function collect<T extends Groupable>(
   if (depth >= MAX_WORDS) return emit();
 
   const buckets = by(members, depth);
+  const split = () => {
+    for (const [word, bucket] of buckets) {
+      // A name that stops here is already the prefix and cannot grow.
+      if (word === "") rest.push(...bucket.map((m) => m.team));
+      else collect(bucket, depth, min, groups, rest);
+    }
+  };
+
+  // Nothing is agreed yet, so there is no prefix to call a club. Whatever
+  // does not become a group below is a stray the caller lists on its own.
+  if (depth === 0) return split();
+
   // Every name says the same thing here and the prefix still would not take
   // it — a repeat. There is nothing left to split on.
   if (buckets.size === 1) return emit();
-  const biggest = Math.max(...[...buckets.values()].map((b) => b.length));
-  if (biggest < min) {
-    // Nothing agreed on even the first word, so there is no group here at
-    // all — these are the strays the caller lists one by one.
-    if (depth === 0) {
-      rest.push(...members.map((m) => m.team));
-      return;
-    }
-    return emit();
-  }
 
-  for (const [word, bucket] of buckets) {
-    // A name that simply stops here is already the prefix and cannot grow.
-    if (word === "") rest.push(...bucket.map((m) => m.team));
-    else collect(bucket, depth, min, groups, rest);
-  }
+  const sides = [...buckets].sort((a, b) => b[1].length - a[1].length);
+  // "mrfc" then "b0910": the argument is over which age group, which means
+  // the name ran out a word ago.
+  if (/\d/.test(sides[0][0])) return emit();
+  // A split needs a crowd on both sides. One crowd and a scatter of ones is
+  // a club whose teams are named unevenly — "WFC Rangers Boys U13" beside
+  // "WFC Rangers U15 Boys" — not two clubs.
+  if (sides.filter(([, b]) => b.length >= min).length < 2) return emit();
+
+  split();
 }
 
 /**
