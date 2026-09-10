@@ -2,20 +2,23 @@ import { normaliseTeamName } from "./merge-plan";
 import { remainderOf } from "./canonical-name";
 
 /**
- * The teams the school-year change split in two.
+ * One side recorded twice — once as a year, once as a band.
  *
- * Youth soccer here moved its age groups from a calendar year to a school
- * year in the summer of 2026, so a side that was "B14" became "B14/15" — and
- * a directory that holds four seasons of imports now holds both, as two teams
- * with one history between them.
+ * Named for the summer of 2026, when youth soccer here moved its age groups
+ * from a calendar year to a school year and a side that was "B14" became
+ * "B14/15". That was the day it produced fifty-five pairs at once. It is not
+ * the reason it keeps producing them.
  *
- * This is a one-off. It exists to be run, read by a person, and deleted; a
- * rule about 2026 does not belong in the binder, which has to keep working in
- * 2030.
+ * A club enters its own tournaments under one convention and a league enters
+ * the same squad under the other, so the two spellings arrive from different
+ * sources and go on arriving. This is a standing reconciliation rather than a
+ * cleanup with an end, which is worth saying because it was written as the
+ * second and read as one.
  *
- * The single year merges into the band and never the other way round. The
- * band is what the club calls the side now, and the name a team is called is
- * the name that should survive it.
+ * The single year folds into the band and never the other way round. The band
+ * is what a league calls the side, it is the form that carries the age a
+ * season is played at, and the name a team is called is the name that should
+ * survive it.
  */
 
 export type BandTeam = {

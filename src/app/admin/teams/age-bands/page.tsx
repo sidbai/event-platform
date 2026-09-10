@@ -13,22 +13,23 @@ export const metadata: Metadata = { title: "The school-year split" };
 export const dynamic = "force-dynamic";
 
 /**
- * The teams the school-year change split in two.
+ * One side recorded twice — once as a year, once as a band.
  *
- * Youth soccer here moved its age groups from a calendar year to a school
- * year in the summer of 2026, so a side that was "B14" became "B14/15" — and
- * a directory holding four seasons of imports now holds both, as two teams
- * with one history between them.
+ * The school-year change in the summer of 2026 is what filled this page the
+ * first time; it is not what keeps filling it. A club enters its own
+ * tournaments under one convention and a league enters the same squad under
+ * the other, so the two spellings keep arriving from different sources. An
+ * empty list here means the imports are caught up, not that the job is over.
  *
- * Deliberately its own page rather than a section of the duplicate queue.
- * This is a list about one summer: when it is empty, delete the page, the
- * query and the rule. A rule about 2026 living in the binder is a rule that
- * has to keep being right in 2030.
+ * Its own page rather than a section of the duplicate queue, because it
+ * answers a different question. The queue asks whether two rows are the same
+ * side and has to be careful about it; here that much is given by the rule,
+ * and what is left to decide is whether these particular two are.
  *
- * The pairs are offered, not applied. Every one of these is two teams with
- * real fixtures behind them, a merge is a person's decision, and the queue's
- * own machinery — merge, swap which one survives, or say they are different
- * and never be asked again — is what does the work here too.
+ * The pairs are offered, not applied. Every one is two teams with real
+ * fixtures behind them, a merge is a person's decision, and the queue's own
+ * machinery — merge, swap which one survives, or say they are different and
+ * never be asked again — does the work.
  */
 export default async function AgeBandsPage() {
   const user = await getCurrentUser();
@@ -43,11 +44,12 @@ export default async function AgeBandsPage() {
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">The school-year split</h1>
       <p className="mt-2 text-sm text-muted">
-        Age groups moved from a calendar year to a school year in the summer of
-        2026, so a side that was <span className="font-mono">B14</span> is now{" "}
-        <span className="font-mono">B14/15</span> &mdash; and this directory,
-        holding four seasons of imports, has both. The band is kept, because it
-        is what the club calls the side now.
+        One side, recorded twice: once as a year and once as a band. A club
+        enters its own tournaments as <span className="font-mono">B14</span>{" "}
+        and a league enters the same squad as{" "}
+        <span className="font-mono">B14/15</span>, so both arrive and neither
+        is wrong. The band is kept &mdash; it is the form that carries the age
+        a season is played at.
       </p>
       <p className="mt-2 text-sm text-muted">
         Only where everything else agrees: the same club, the same gender, the
@@ -60,7 +62,8 @@ export default async function AgeBandsPage() {
 
       {pairs.length === 0 ? (
         <p className="mt-8 text-muted">
-          Nothing left to fold in. This page has done its job &mdash; delete it.
+          Nothing to fold in. The imports are caught up &mdash; the next one
+          that spells a side the other way will show up here.
         </p>
       ) : (
         <>

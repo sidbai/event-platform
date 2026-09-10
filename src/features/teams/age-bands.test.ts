@@ -31,8 +31,9 @@ describe("isBandOf", () => {
   });
 
   it("is not the band that ends with it", () => {
-    // B14 belongs to B14/15, not to B13/14. The change moved sides down a
-    // year, and offering the other one would move them the wrong way.
+    // B14 belongs to B14/15, not to B13/14: a band is named for the older of
+    // its two years, so the year a side is entered under is the first of them.
+    // Offering the other one would move a squad up an age group.
     expect(isBandOf(team("x", [2014]), team("y", [2013, 2014]))).toBe(false);
   });
 });

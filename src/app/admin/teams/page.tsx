@@ -200,16 +200,16 @@ export default async function AdminTeamsPage() {
        * import lands on it instead of arriving here again.
        */}
       {/*
-        Its own page because it is about one summer. When it is empty the page
-        goes, and nothing about 2026 is left in the machinery that has to keep
-        working in 2030.
+        Its own page because it answers a different question: this queue asks
+        whether two rows are the same side, and there the rule gives that and
+        the question is which of two spellings to keep.
       */}
       <section className="mt-12 rounded-xl border border-line bg-elevated p-4">
         <h2 className="text-base font-semibold">The school-year split</h2>
         <p className="mt-1 text-sm text-muted">
-          Age groups moved from a calendar year to a school year this summer,
-          so some clubs have both a <span className="font-mono">B14</span> and
-          a <span className="font-mono">B14/15</span> for one side.
+          One side recorded twice, once as a year and once as a band &mdash; a
+          club enters <span className="font-mono">B14</span> and a league
+          enters <span className="font-mono">B14/15</span> for the same squad.
         </p>
         <Link
           href="/admin/teams/age-bands"
