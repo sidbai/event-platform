@@ -6,6 +6,8 @@
  * 3,549 of the Regional Club League's 4,275 fixtures arrived with no date at
  * all, and a team page listed seventeen of them in a row with nothing to say.
  */
+import { createHash } from "node:crypto";
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { requireTestDatabase, truncateAll } from "./helpers";
@@ -89,5 +91,29 @@ describe("a date with no time", () => {
     // A different fact, and one this must not invent a day for.
     await applySync(eventId, fixture({ date: null, time: null }), NOW);
     expect(await kickoff()).toBeNull();
+  });
+});
+
+describe("the digest", () => {
+  it("does not call a fetch unchanged when the writer has changed", async () => {
+    /*
+     * The digest is of what the platform published, which answers "has
+     * anything changed over there" and not "would we write this differently
+     * now". A fix to how a fetch becomes rows is invisible to it, so the same
+     * fetch keeps returning "unchanged" and the fix never lands — which is
+     * how a date-keeping fix would have left three and a half thousand
+     * fixtures null forever.
+     */
+    const { contentHash } = await import("@/features/sync/apply");
+    const data = fixture({ date: "2026-09-19", time: null });
+
+    // Same fetch, same digest — that part still has to hold.
+    expect(contentHash(data)).toBe(contentHash(fixture({ date: "2026-09-19", time: null })));
+    // And the version is in it, so bumping it moves every event once.
+    expect(contentHash(data)).not.toBe(
+      createHash("sha256")
+        .update(JSON.stringify({ teams: data.teams, matches: data.matches }))
+        .digest("hex"),
+    );
   });
 });

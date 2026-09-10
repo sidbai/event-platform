@@ -38,11 +38,30 @@ import type { SyncedEvent } from "./provider";
  * only list, which is the entire point.
  */
 
+/**
+ * Bump when this file starts turning the same fetch into different rows.
+ *
+ * The digest below is of what the platform published, which is the right
+ * question for "has anything changed over there" and the wrong one for "would
+ * we write this differently now". Those came apart twice: a fix that kept the
+ * date of a fixture whose time is not set would have left three and a half
+ * thousand of them null forever, because the source had not changed and every
+ * poll answered "unchanged" — and a reset needed the digest cleared by hand
+ * for the same reason.
+ *
+ * So the version goes into the digest. Change how a fetch becomes rows, bump
+ * this, and the next poll of every event writes once and settles.
+ *
+ * 2 — a date with no time keeps its date (2026-09-10)
+ */
+const WRITE_VERSION = 2;
+
 /** A digest of what a platform published, so an unchanged fetch writes nothing. */
 export function contentHash(data: SyncedEvent): string {
   // Sorted, because a platform reordering its rows is not a change. Without
   // this every poll would look different and rewrite the whole schedule.
   const shape = {
+    v: WRITE_VERSION,
     teams: [...data.teams].sort((a, b) => a.sourceTeamId.localeCompare(b.sourceTeamId)),
     matches: [...data.matches].sort((a, b) =>
       a.sourceMatchId.localeCompare(b.sourceMatchId),
