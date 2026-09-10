@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { isImported } from "@/features/discovery/sitemap-entries";
+
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -65,6 +67,16 @@ export async function generateMetadata({
     title: event.title,
     description: desc,
     openGraph: { title: event.title, description: desc },
+    /*
+     * An event whose schedule was read off another platform is not ours to
+     * offer a search engine. It stays readable to anyone with the address —
+     * that is the whole reason to hold it — and follow stays on so a crawler
+     * still reaches the clubs and the pages that are ours.
+     *
+     * Here rather than in robots.txt because which events these are is a fact
+     * in the database, and a static file cannot name them.
+     */
+    ...(isImported(event) ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

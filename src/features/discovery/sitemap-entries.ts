@@ -21,7 +21,26 @@ export type ListedEvent = {
   visibility: string;
   startsAt: Date | null;
   endsAt: Date | null;
+  /** The platform this event's schedule was read from, where it was read. */
+  sourcePlatform?: string | null;
 };
+
+/**
+ * Whether this event's schedule is somebody else's work.
+ *
+ * The owner's decision, 2026-09-10: what other organizers publish is theirs,
+ * and this directory should not be the copy a search engine indexes. It stays
+ * readable to anyone with the address — the point of holding it is that a
+ * parent can find their child's fixture — but it is not offered up to be
+ * crawled, and it is not in the sitemap.
+ *
+ * "manual" is not a platform. An event somebody typed in here was not taken
+ * from anywhere.
+ */
+export function isImported(event: ListedEvent): boolean {
+  const from = event.sourcePlatform;
+  return typeof from === "string" && from !== "" && from !== "manual";
+}
 
 export type ListedTeam = {
   slug: string;
@@ -39,6 +58,7 @@ export type ListedTeam = {
  */
 export function eventIsIndexable(event: ListedEvent): boolean {
   if (event.visibility !== "public") return false;
+  if (isImported(event)) return false;
   return event.status === "published" || event.status === "completed";
 }
 

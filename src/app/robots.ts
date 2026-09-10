@@ -11,14 +11,23 @@ import { siteUrl } from "@/lib/site-url";
  * this is the answer to somebody standing where we stood: unambiguous, and
  * generous about the part that is worth finding.
  *
- * Allow everything, because being found is the point. A directory nobody can
- * index is a directory of things nobody can discover, and the whole reason
- * these tournaments are worth listing is that a parent searching for "U12
- * Eastside September" currently gets nothing.
+ * Allow what is ours, because being found is the point for that part: the
+ * events we run, the clubs and their reviews, the writing.
  *
- * The exceptions are not secrets — every one of them already refuses a
- * stranger — they are pages with nothing in them for a reader who is not
- * signed in, and a crawl trap.
+ * Not what is somebody else's. The owner's decision on 2026-09-10 is that
+ * what other organizers publish belongs to them and this directory should not
+ * be the copy a search engine indexes. Team pages are the whole of that by
+ * count, so /teams/ is closed here; the events read off another platform
+ * carry noindex on the page itself, because which ones those are is a fact
+ * in the database and not something a static file can name.
+ *
+ * None of it is hidden. Every page stays readable to anyone with the address,
+ * and a parent following a link to their child's fixture is the entire reason
+ * to hold it. The ask is only that it not be crawled and republished.
+ *
+ * The rest of the exceptions are not secrets either — every one already
+ * refuses a stranger — they are pages with nothing in them for a reader who
+ * is not signed in, and a crawl trap.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -27,6 +36,14 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
+          /*
+           * Somebody else's teams, which is nearly all of them: a club's
+           * squads, named by the club, published on the league's own pages.
+           * The sitemap agrees — it stopped listing them on the same day —
+           * because a sitemap offering a page this file forbids teaches a
+           * crawler to trust neither.
+           */
+          "/teams/",
           // Signed-in surfaces. They redirect or 404 for anyone else, so
           // crawling them spends a budget to arrive nowhere.
           "/admin",
@@ -35,8 +52,9 @@ export default function robots(): MetadataRoute.Robots {
           "/messages",
           "/signin",
           // Organizer tools on an event: entries, rosters, scores, the
-          // check-in sheets. The event itself is very much crawlable — these
-          // are the pages behind it.
+          // check-in sheets. An event we run is very much crawlable — these
+          // are the pages behind it. One read off another platform carries
+          // noindex on the page itself, which a static file cannot do.
           "/events/*/registrations",
           "/events/*/roster",
           "/events/*/scores",

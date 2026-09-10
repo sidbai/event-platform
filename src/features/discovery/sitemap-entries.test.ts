@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   eventFreshness,
   eventIsIndexable,
+  isImported,
   teamIsIndexable,
   type ListedEvent,
 } from "./sitemap-entries";
@@ -100,5 +101,38 @@ describe("eventFreshness", () => {
     expect(
       eventFreshness(event({ startsAt: at(-0.1), endsAt: null }), now).changeFrequency,
     ).toBe("daily");
+  });
+});
+
+describe("somebody else's schedule", () => {
+  const event = (over: Partial<ListedEvent>): ListedEvent => ({
+    slug: "e",
+    updatedAt: null,
+    status: "published",
+    visibility: "public",
+    startsAt: null,
+    endsAt: null,
+    ...over,
+  });
+
+  it("is not offered to a crawler, however public it is", () => {
+    /*
+     * The owner's decision on 2026-09-10. What other organizers publish is
+     * theirs, and this directory should not be the copy a search engine
+     * indexes. The page stays readable to anyone with the address.
+     */
+    expect(eventIsIndexable(event({ sourcePlatform: "modular11" }))).toBe(false);
+    expect(isImported(event({ sourcePlatform: "sportsaffinity" }))).toBe(true);
+  });
+
+  it("still offers the events we run", () => {
+    expect(eventIsIndexable(event({}))).toBe(true);
+    expect(eventIsIndexable(event({ sourcePlatform: null }))).toBe(true);
+  });
+
+  it("does not count typing one in as importing it", () => {
+    // "manual" is not a platform — nothing was taken from anywhere.
+    expect(isImported(event({ sourcePlatform: "manual" }))).toBe(false);
+    expect(eventIsIndexable(event({ sourcePlatform: "manual" }))).toBe(true);
   });
 });

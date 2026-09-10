@@ -34,8 +34,9 @@ describe("robots.txt", () => {
       "/clubs",
       "/clubs/crossfire-premier",
       "/coaches",
+      // The list itself, which is ours — a page of the directory. The team
+      // pages under it are not; see below.
       "/teams",
-      "/teams/marymoor-united",
       "/people",
       "/guidelines",
       "/privacy",
@@ -69,14 +70,28 @@ describe("robots.txt", () => {
     }
   });
 
+  it("keeps them off somebody else's teams, without hiding them", () => {
+    /*
+     * The owner's decision on 2026-09-10: a club's squads are named and
+     * published by that club, and this directory should not be the copy a
+     * search engine indexes. The pages stay readable to anyone with the
+     * address — a parent following a link to their child's fixture is the
+     * whole reason to hold them.
+     *
+     * The list at /teams stays crawlable. It is a page of this directory.
+     */
+    expect(blocks("/teams/marymoor-united")).toBe(true);
+    expect(blocks("/teams")).toBe(false);
+  });
+
   it("keeps them out of the search box, which is a trap not a page", () => {
     // Every query is a new URL and none of them is a page anybody links to.
     expect(blocks("/search")).toBe(true);
   });
 
   it("says allow before it says anything else", () => {
-    // Being found is the point. A directory nobody can index is a directory
-    // of things nobody can discover.
+    // Being found is still the point for the part that is ours: the events we
+    // run, the clubs and their reviews, the writing.
     expect(rule.allow).toBe("/");
     expect(rule.userAgent).toBe("*");
   });
