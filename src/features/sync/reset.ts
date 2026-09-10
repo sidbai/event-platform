@@ -124,6 +124,21 @@ export async function resetEventSync(plan: ResetPlan): Promise<void> {
   const ids = plan.deleting.map((t) => t.id);
 
   await db.transaction(async (tx) => {
+    /*
+     * The digest of what the platform last published, which is how a sync
+     * that would write the same rows again writes nothing at all.
+     *
+     * Forgetting to clear it makes this whole thing look like it worked and
+     * do nothing: the fixtures are deleted, the next sync fetches the same
+     * 928 rows, hashes them to the same value, matches, and returns
+     * "unchanged" — success, no error, an empty league. Which is what
+     * happened the first time this ran.
+     */
+    await tx
+      .update(events)
+      .set({ lastContentHash: null, lastSyncedAt: null, lastSyncError: null })
+      .where(eq(events.id, plan.event.id));
+
     await tx.delete(matches).where(eq(matches.eventId, plan.event.id));
     await tx.delete(eventTeams).where(eq(eventTeams.eventId, plan.event.id));
     await tx.delete(eventDivisions).where(eq(eventDivisions.eventId, plan.event.id));

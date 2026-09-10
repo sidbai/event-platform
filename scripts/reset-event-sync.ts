@@ -44,6 +44,7 @@ async function main() {
   console.log(`  ${plan.entries} entr(ies) deleted, ${plan.divisions} division(s)`);
   console.log(`  ${plan.deleting.length} team(s) deleted — this event is the whole of them`);
   console.log(`  ${plan.keeping.length} team(s) kept`);
+  console.log(`  the digest of the last fetch is forgotten, so the next sync writes`);
 
   for (const t of plan.keeping) console.log(`    ${t.name}  —  ${t.because}`);
 
