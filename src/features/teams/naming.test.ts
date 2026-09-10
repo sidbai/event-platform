@@ -30,8 +30,20 @@ describe("parseTier", () => {
     expect(parseTier("Team RCL1")).toBe("RCL 1");
     expect(parseTier("Team rcl 1")).toBe("RCL 1");
     expect(parseTier("Team ECRL")).toBe("ECNL RL");
-    // Oro is Gold in the same club's other teams.
-    expect(parseTier("Atletico BU10 Oro")).toBe("Gold");
+  });
+
+  it("leaves a club's own word for a side alone, even in another language", () => {
+    /*
+     * "Oro" was read as the tier Gold on the premise that it meant the same
+     * thing at the same club. Atletico Futbol Club says otherwise: it names
+     * its sides Azul, Rojo and Oro and prints the tier separately — "Atletico
+     * Futbol Club B07/08 MLS Next Oro". Three of the four kept the club's
+     * word and the fourth had it translated.
+     */
+    expect(parseTier("Atletico BU10 Oro")).toBeNull();
+    expect(parseTier("Atletico BU9 Pre MLS Next Oro")).toBe("Pre-MLS Next");
+    // A club that does mean the tier writes it in English, and still gets it.
+    expect(parseTier("Team BU12 Gold")).toBe("Gold");
   });
 
   it("reads the organizers' own misspelling of ECNL", () => {
