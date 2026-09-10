@@ -27,6 +27,7 @@
     "db:teams:export": "NODE_OPTIONS=--conditions=react-server tsx scripts/export-team-facts.ts",
     "db:teams:import": "NODE_OPTIONS=--conditions=react-server tsx scripts/import-team-facts.ts",
     "db:teams:unmerge": "NODE_OPTIONS=--conditions=react-server tsx scripts/unmerge-team.ts",
+    "db:import:schedule": "NODE_OPTIONS=--conditions=react-server tsx scripts/import-schedule.ts",
     "db:teams:file": "NODE_OPTIONS=--conditions=react-server tsx scripts/file-teams.ts",
     "db:teams:unfile": "NODE_OPTIONS=--conditions=react-server tsx scripts/unfile-teams.ts",
     "db:teams:rename": "NODE_OPTIONS=--conditions=react-server tsx scripts/rename-teams.ts",
