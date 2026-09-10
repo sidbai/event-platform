@@ -143,6 +143,28 @@ export function tierMatch(name: string): { label: string; text: string } | null 
   return null;
 }
 
+/**
+ * Whether a name states an age group at all.
+ *
+ * The colour rule above needs one to sit behind; the canonical form is about
+ * to add one to a name that has none, which is why anybody outside asks.
+ */
+export function namesAnAge(name: string): boolean {
+  return AGE_ANCHOR.test(name);
+}
+
+/**
+ * A colour read as a tier without an age group in front of it.
+ *
+ * For a caller that knows the age group even though the name does not print
+ * one — the canonical form knows the cohort from the team's facts, and puts
+ * it in front of everything that follows.
+ */
+export function colourTier(text: string): { label: string; text: string } | null {
+  const m = COLOURS.exec(text);
+  return m ? { label: upperFirst(m[1]), text: m[0] } : null;
+}
+
 /** The tier a name states, in its canonical spelling, or null. */
 export function parseTier(name: string): string | null {
   return tierMatch(name)?.label ?? null;

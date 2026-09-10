@@ -1,5 +1,13 @@
 import { looksLikeBirthYear } from "./age";
-import { branchMatch, fullerTier, parseTier, streamMatch, tierMatch } from "./naming";
+import {
+  branchMatch,
+  colourTier,
+  fullerTier,
+  namesAnAge,
+  parseTier,
+  streamMatch,
+  tierMatch,
+} from "./naming";
 
 /**
  * One way to write a team's name.
@@ -364,7 +372,7 @@ export function canonicalName(facts: NameFacts): string {
   // "WW SURF BU10 Central Academy A" is the Central Academy's A side.
   const branch = branchMatch(facts.name, slug)?.label ?? null;
   const stream = streamMatch(facts.name)?.label ?? null;
-  const tier = fullerTier(facts.tier, parseTier(facts.name));
+  const named = fullerTier(facts.tier, parseTier(facts.name));
   /*
    * "XF B13/14 ECNL 2" rather than "Crossfire Premier B13/14 ECNL 2". The
    * club is a prefix here, not the subject: a directory page of the full name
@@ -380,11 +388,34 @@ export function canonicalName(facts: NameFacts): string {
    * here as well would print it twice.
    */
   const program = stream !== null && hoisted === null ? null : facts.program;
-  const rest = remainderOf(facts, hoisted !== null);
-
   // A team whose years or gender nobody has established yet. Half a name is
   // worse than the whole one somebody published.
   if (!cohort) return published(facts.name);
+
+  /*
+   * A colour counts as a tier only behind an age group — and this is the
+   * thing that puts one there.
+   *
+   * "Western WA Surf Academy Blue" names no age, so Blue stays in the
+   * remainder and the first pass writes "WW Surf B07/08 Surf Academy Blue".
+   * Read again, that name does have an age group in front of the colour, so
+   * the second pass calls Blue the tier and moves it: a different answer from
+   * its own output. A rewrite that keeps rewriting is one nobody can check,
+   * and checking it is the whole point of the dry run.
+   *
+   * So where the name states no age and the cohort supplies one, the colour
+   * is read the way the written name will read it — and the remainder is
+   * taken again with that settled, or the colour would be printed twice.
+   */
+  let tier = named;
+  let rest = remainderOf(facts, hoisted !== null);
+  if (!tier && !namesAnAge(facts.name)) {
+    const colour = colourTier(rest);
+    if (colour) {
+      tier = colour.label;
+      rest = remainderOf({ ...facts, tier: colour.text }, hoisted !== null);
+    }
+  }
 
   /*
    * A stream word welded into a longer phrase is not a stream.
