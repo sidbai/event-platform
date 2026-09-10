@@ -82,6 +82,66 @@ makes requests the tool must not make.
 so there is no list of addresses to give anybody. Routing is client-side,
 which is why the bookmarklet's basket survives it.
 
+## The ids a connector needs, and where next season's are
+
+Every connector here is pointed at a season by ids that are somebody else's
+and change when the season does. The failure is loud rather than quiet —
+a stale id returns an empty list, not a short one — but it still has to be
+findable in a year.
+
+**ECNL (AthleteOne, bookmarklet).** `ecnl-leagues.ts` holds six leagues with
+three ids each: `org`, `season`, `event`. Read them off a league's schedule
+page in DevTools — the Network tab shows
+`get-division-list-by-event-id/{org}/{event}/0/0` and then
+`get-conference-schedules/{org}/{season}/{event}/{division}/0`. Six leagues,
+one Northwest conference each.
+
+**EA (Modular11, connector).** Three numbers in an event id, `27-47-216`:
+tournament, bracket, conference. Only the bracket is in the page's address
+(`/league-schedule/elite-academy-league/47`); the other two are in the
+requests its scripts make. `groups=` is plural — `group=` is accepted,
+ignored, and returns the whole country.
+
+**RCL (Sports Affinity, connector).** One id: the tournament guid, out of any
+of their public pages. Their own links spell the parameter two ways, so the
+reader looks it up case-insensitively and strips braces. Flights are not
+listed anywhere — they are discovered from the accepted-teams pages, one per
+gender, which is also the only place a flight's age code is written down.
+
+**WPL (GotSport).** Not connected. An unauthenticated request 302s to
+`/verify_captchas/new`. Nobody here solves captchas, so this is browser-only
+until the organizer says otherwise.
+
+## Reading a page a browser was going to render
+
+Two things learned doing this three times in a week, both of which cost an
+afternoon:
+
+**Read the markup, not what a browser would have shown.** Modular11's rows
+are a responsive grid carrying every value twice, and the copy a browser
+hides is the complete one — the visible column truncates the venue with an
+ellipsis. A test written against the visible column passes and imports
+`Lincoln Field -…`.
+
+**A fixture's date may not be in its row.** Sports Affinity puts it in a
+heading above a run of rows, the way a printed fixture list is laid out. The
+reader splits the page on those headings and gives each segment the date that
+opened it; a row with no heading above it yields nothing, because a guessed
+date is worse than none.
+
+And a placeholder is not data. `--`, `Virtual TBD`, `TBD` — most of a season
+looks like that before the fields are booked, and carrying them through puts
+them on a parent's screen as a real time at a real ground.
+
+## A platform must be registered in three places
+
+`PROVIDERS` in `sync/run.ts`, `PROVIDER_POLICIES` and `HOSTS` in
+`sync/policy.ts`. Miss `HOSTS` and everything looks fine until a connect
+silently saves a link instead of syncing — `platformOf` returns null, so the
+admin screen cannot even say why. This has happened. `policy.test.ts` now
+checks all three agree; verify a change to it by deleting a line and watching
+it go red.
+
 ## Before the data lands
 
 - **Dates are checked.** `sync/date-guard.ts` refuses a paste whose dates fall

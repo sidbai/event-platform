@@ -16,7 +16,7 @@
 
 /** What a platform calls this event, so a sync can find it again. */
 export type SourceRef = {
-  platform: "athletes2events" | "eventconnect" | "modular11" | "manual";
+  platform: "athletes2events" | "eventconnect" | "modular11" | "sportsaffinity" | "manual";
   eventId: string;
   /**
    * The club's own subdomain, where a platform gives each one.

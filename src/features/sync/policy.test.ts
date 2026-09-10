@@ -153,12 +153,14 @@ describe("platformOf", () => {
  * worked, and was never reached. Nothing failed; it just quietly saved a link.
  */
 describe("a platform is registered in every place it has to be", () => {
-  const withConnector = ["athletes2events", "modular11"] as const;
+  const withConnector = ["athletes2events", "modular11", "sportsaffinity"] as const;
 
   it("recognises the URL of every platform that has a connector", () => {
     const sample: Record<(typeof withConnector)[number], string> = {
       athletes2events: "https://crossfire.athletes2events.com/events/123",
       modular11: "https://www.modular11.com/league-schedule/elite-academy-league/47",
+      sportsaffinity:
+        "https://wys.sportsaffinity.com/tour/public/info/accepted_list.asp?Tournamentguid=6DBB3AF6-DEC3-4341-8D25-2DC23F01177B",
     };
     for (const platform of withConnector) {
       expect(platformOf(sample[platform])).toBe(platform);
