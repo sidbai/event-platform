@@ -124,6 +124,30 @@ export async function verifyEvent(slug: string): Promise<Verification | null> {
     where m.event_id = ${id} and m.division_id is distinct from et.division_id
   `;
 
+  /*
+   * An address whose stem is no longer the one the name would make.
+   *
+   * Either spelling counts: the address the name makes, or that address with
+   * a number after it — two teams can genuinely want one and the second gets
+   * a number. "XF B18/19 RCL 2" is called xf-b18-19-rcl-2, and stripping the
+   * number off before comparing called that stale, which is how a first
+   * attempt reported a hundred and eighteen where the tool that does the
+   * moving reported seventy-eight.
+   *
+   * The same rule db:teams:readdress moves a team by, expressed the other
+   * way round. An earlier version here only looked at addresses ending in a
+   * number, which found thirteen of the Regional Club League's seventy-eight
+   * — two tools disagreeing about the same question, which is worse than
+   * either answer.
+   */
+  const staleAddress = sql`
+    not (
+      t.slug = trim(both '-' from regexp_replace(lower(t.name), '[^a-z0-9]+', '-', 'g'))
+      or regexp_replace(t.slug, '-[0-9]+$', '')
+         = trim(both '-' from regexp_replace(lower(t.name), '[^a-z0-9]+', '-', 'g'))
+    )
+  `;
+
   const findings = await Promise.all([
     check(
       "cohorts",
@@ -215,19 +239,12 @@ export async function verifyEvent(slug: string): Promise<Verification | null> {
       "addresses",
       "look",
       "teams whose address does not come from their name",
-      // A slug ending in a bare number that the name does not account for:
-      // harbor-sc-7 for "Harbor Soccer Club B13/14". A cohort ending in
-      // digits — albion-sc-hawaii-b07-08 — is not one of these.
       sql`select count(*)::int as n from event_teams et
           join teams t on t.id = et.team_id
-          where et.event_id = ${id}
-            and t.slug ~ '-[0-9]+$'
-            and t.slug !~ ('^' || regexp_replace(lower(t.name), '[^a-z0-9]+', '-', 'g'))`,
+          where et.event_id = ${id} and ${staleAddress}`,
       sql`select t.name || '  ->  /teams/' || t.slug as line from event_teams et
           join teams t on t.id = et.team_id
-          where et.event_id = ${id}
-            and t.slug ~ '-[0-9]+$'
-            and t.slug !~ ('^' || regexp_replace(lower(t.name), '[^a-z0-9]+', '-', 'g'))
+          where et.event_id = ${id} and ${staleAddress}
           limit 5`,
     ),
   ]);
