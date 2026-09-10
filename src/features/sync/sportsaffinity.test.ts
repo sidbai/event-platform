@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupName,
+  isChallenge,
   isSlot,
   matchesOf,
   parseSportsAffinityUrl,
@@ -202,5 +203,23 @@ describe("the group column", () => {
   it("still reads the column to tell a slot from a club", () => {
     // The two uses are separate: this one decides what is worth publishing.
     expect(isSlot("A11", "A11 vs A7")).toBe(true);
+  });
+});
+
+describe("a page that did not arrive", () => {
+  it("knows the challenge Imperva serves instead of the page", () => {
+    /*
+     * 200, eighty kilobytes of markup, and no fixtures in it — which is
+     * indistinguishable from an age group that has none. That read the boys
+     * half of the Regional Club League as empty and deleted 3,129 fixtures.
+     */
+    expect(isChallenge('<html><head><title>Washington Youth Soccer</title></head>' +
+      '<body><script>var _Incapsula_Resource="..."</script></body></html>')).toBe(true);
+    expect(isChallenge("<html><body>Request unsuccessful. Incapsula incident ID: 1</body></html>")).toBe(true);
+  });
+
+  it("does not mistake a real page for one", () => {
+    expect(isChallenge(flight)).toBe(false);
+    expect(isChallenge("<html><body>Bracket - Saturday, September 12, 2026</body></html>")).toBe(false);
   });
 });

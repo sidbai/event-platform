@@ -104,7 +104,25 @@ export async function syncEvent(eventId: string, now = new Date()): Promise<Sync
     return { slug: event.slug, ok: false, detail: result.error.kind };
   }
 
-  const applied = await applySync(event.id, result.data, now);
+  /*
+   * A refusal from the writer is a failure of this sync, not of the process.
+   *
+   * applySync throws when what it was handed would delete most of a schedule
+   * — a page that did not arrive, read as a league that shrank. Letting that
+   * escape would leave the event with no error recorded and its last-synced
+   * time untouched, which reads on the admin screen as a sync that has not
+   * run rather than one that refused. Written down, and the next poll tries
+   * again.
+   */
+  let applied;
+  try {
+    applied = await applySync(event.id, result.data, now);
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    await recordSyncFailure(event.id, detail, now);
+    return { slug: event.slug, ok: false, detail };
+  }
+
   return {
     slug: event.slug,
     ok: true,

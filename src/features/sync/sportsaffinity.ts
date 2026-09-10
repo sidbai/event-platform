@@ -268,7 +268,27 @@ async function get(url: string): Promise<string> {
     },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.text();
+  const html = await res.text();
+  if (isChallenge(html)) throw new Error(`blocked by Imperva: ${url}`);
+  return html;
+}
+
+/**
+ * The page Imperva serves instead of the one asked for.
+ *
+ * It answers 200 with eighty kilobytes of markup, so nothing about the
+ * response says no — and the parser finds no fixtures in it, which is
+ * indistinguishable from an age group that has none. That read the boys half
+ * of the Regional Club League as empty and deleted three thousand one hundred
+ * and twenty-nine fixtures.
+ *
+ * Checked by name because that is what the page contains and nothing else
+ * here does. If they change it, this stops recognising it — which is why the
+ * count guard in apply.ts exists as well, and why neither of them is enough
+ * on its own.
+ */
+export function isChallenge(html: string): boolean {
+  return /_?Incapsula|Request unsuccessful\.\s*Incapsula/i.test(html);
 }
 
 /** The tournament id out of any of their public pages. */
@@ -312,20 +332,28 @@ export const sportsaffinity: ExternalEventProvider = {
     const matches: SyncedMatch[] = [];
 
     try {
+      /*
+       * Each half has to answer, and answer with flights.
+       *
+       * Both genders always have some. A list that comes back empty is a page
+       * that did not arrive — the shape this connector has already been
+       * caught by — and carrying on with the other half publishes half a
+       * league as the whole of it.
+       */
       const flights: RclFlight[] = [];
       for (const show of ["boys", "girls"] as const) {
-        flights.push(...readFlightList(await get(flightListUrl(ref.eventId, show))));
+        const found = readFlightList(await get(flightListUrl(ref.eventId, show)));
+        if (found.length === 0) {
+          return {
+            ok: false,
+            error: {
+              kind: "unrecognised",
+              detail: `no flights on the ${show} accepted-teams page — it did not arrive, or their markup changed`,
+            },
+          };
+        }
+        flights.push(...found);
         await new Promise((r) => setTimeout(r, PAUSE_MS));
-      }
-
-      if (flights.length === 0) {
-        return {
-          ok: false,
-          error: {
-            kind: "unrecognised",
-            detail: "no flights on either accepted-teams page — their markup or the id may have changed",
-          },
-        };
       }
 
       for (const flight of flights) {
