@@ -80,19 +80,25 @@ export function nextSyncAt(event: Syncable, now: Date): Date | null {
   if (t > end) return new Date(t + 2 * HOUR);
 
   /*
-   * Being played — for a weekend, which is what this rule was written for.
+   * A season is a season before it starts, too.
    *
-   * A league breaks it. "Started" is true for seven months, and twenty-minute
-   * polling across all of them is about fifteen thousand requests to answer a
-   * question that changes on thirty Saturdays. So a season is asked a
-   * different question: not "has it started" but "is there football today".
+   * Every rule below this line is written for a weekend: twenty minutes while
+   * it is being played, an hour the night before, six hours the week before.
+   * A league breaks all of them the same way — "started" is true for seven
+   * months, "the week before" is a week of six-hourly reads of fifty-two
+   * pages, and none of it answers a question that changes on thirty
+   * Saturdays.
+   *
+   * This was nested inside "has it started", so the Regional Club League sat
+   * two days from kick-off being read four times a day. That rate is what
+   * drew a challenge page and cost most of a season, and the fixture list it
+   * was reading had not changed since August.
    */
-  if (t >= start) {
-    if (end - start > SEASON_DAYS * DAY) return seasonCadence(event, now, end);
-    // Kick-off times move between fields and scores land every few minutes;
-    // this is the only window where minutes matter.
-    return new Date(t + 20 * MINUTE);
-  }
+  if (end - start > SEASON_DAYS * DAY) return seasonCadence(event, now, end);
+
+  // Being played. Kick-off times move between fields and scores land every
+  // few minutes; this is the only window where minutes matter.
+  if (t >= start) return new Date(t + 20 * MINUTE);
 
   const until = start - t;
   // The day before, and the morning of: the schedule is being finalised.
