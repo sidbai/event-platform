@@ -29,6 +29,8 @@ export type Syncable = {
    * March is being played on about thirty Saturdays out of two hundred days.
    */
   kickoffs?: (Date | null)[];
+  /** The event's own zone, so "Monday morning" means its Monday. */
+  timezone?: string | null;
 };
 
 /**
@@ -40,8 +42,6 @@ export type Syncable = {
  * one.
  */
 const SEASON_DAYS = 10;
-/** Close enough to a kickoff that scores are landing. */
-const LIVE_WINDOW = 4 * HOUR;
 
 /**
  * When to look again, or null to stop.
@@ -141,33 +141,71 @@ export function isStale(
   return now.getTime() - event.lastSyncedAt.getTime() > limit;
 }
 
+/** When a weekly read happens, in the event's own zone. */
+const WEEKLY_HOUR = 8;
+
 /**
- * How often to look at a season that is under way.
+ * How often to look at a season that is under way: once, on a Monday morning.
  *
- * Keyed on the nearest kickoff rather than on the calendar, because a league
- * postpones a round into midweek and plays a cup date on a Wednesday, and a
- * rule that assumed Saturdays would miss both. With no kickoffs to go on —
- * a league listed before its fixtures are published — daily is the honest
- * answer: something will change, but not in the next hour.
+ * This was keyed on the nearest kickoff, polling every twenty minutes while
+ * games were on. That rule is right for a tournament, where somebody is
+ * standing on the touchline refreshing — and wrong for a league, where the
+ * question is "what happened at the weekend" and the answer does not change
+ * again until the next one. A season is thirty Saturdays; asking on the
+ * thirty Mondays after them is the whole of what a league needs.
+ *
+ * Monday rather than every seventh day, because the day is the point. Results
+ * are entered on the Sunday evening and corrected on the Monday, and a poll
+ * that drifted to a Thursday would read a settled week late every time.
+ *
+ * Refreshing by hand is still there, and is what covers the exception: a
+ * midweek cup date, a postponement, or simply wanting to see it now.
  */
 function seasonCadence(event: Syncable, now: Date, end: number): Date {
-  const t = now.getTime();
-  const kickoffs = (event.kickoffs ?? [])
-    .filter((k): k is Date => k !== null)
-    .map((k) => k.getTime());
-  if (kickoffs.length === 0) return new Date(Math.min(t + DAY, end + 2 * DAY));
+  const next = nextWeekday(now, 1, WEEKLY_HOUR, event.timezone ?? "America/Los_Angeles");
+  // Never past the point where polling stops anyway.
+  return new Date(Math.min(next.getTime(), end + 2 * DAY));
+}
 
-  const nearest = kickoffs.reduce(
-    (best, k) => (Math.abs(k - t) < Math.abs(best - t) ? k : best),
-    kickoffs[0],
+/**
+ * The next `weekday` at `hour`, read in `timeZone`.
+ *
+ * Built by asking Intl what the parts of `now` are in that zone rather than
+ * by arithmetic on a UTC timestamp: the offset changes twice a year, and a
+ * "Monday 08:00" computed as a fixed number of hours from UTC is Monday 07:00
+ * for half of the season. Off by an hour is not important here; being wrong
+ * in a way nobody would think to look for is.
+ */
+export function nextWeekday(
+  now: Date,
+  weekday: number,
+  hour: number,
+  timeZone: string,
+): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const dayName = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+  const localHour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = Math.max(0, days.indexOf(dayName));
+
+  let ahead = (weekday - today + 7) % 7;
+  // Already past the hour on the day itself, so it is next week's.
+  if (ahead === 0 && localHour >= hour) ahead = 7;
+
+  /*
+   * Anchored on local midnight of the target day, found by stepping whole
+   * days from now and then correcting to the hour the zone actually reads.
+   * Cheaper than a date library and exact enough for a weekly poll.
+   */
+  const target = new Date(now.getTime() + ahead * DAY);
+  const at = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hourCycle: "h23" })
+      .format(target),
   );
-  const away = Math.abs(nearest - t);
-
-  // Games are on. This is the window the twenty minutes were always for.
-  if (away <= LIVE_WINDOW) return new Date(t + 20 * MINUTE);
-  // Later today, or earlier today: the schedule is being finalised, or the
-  // last results are landing.
-  if (away <= DAY) return new Date(t + 2 * HOUR);
-  // Between rounds. Nothing changes that anybody needs within a day.
-  return new Date(t + DAY);
+  return new Date(target.getTime() + (hour - at) * HOUR);
 }

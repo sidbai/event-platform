@@ -150,53 +150,75 @@ describe("an event somebody has closed", () => {
  * question that changes on thirty Saturdays.
  */
 describe("nextSyncAt for a season", () => {
-  // Started six weeks ago, runs another five months.
+  // Started six weeks ago, runs another five months. `now` is a Sunday.
   const league = { startsAt: at(-24 * 42), endsAt: at(24 * 150) };
+  const PT = "America/Los_Angeles";
+  /** What the event's own zone says the moment is. */
+  const local = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: PT,
+      weekday: "short",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(d);
 
-  it("asks once a day between rounds", () => {
-    expect(
-      minutesUntil(nextSyncAt({ ...league, kickoffs: [at(24 * 4)] }, now)),
-    ).toBe(1440);
+  it("asks once, on the Monday morning after the weekend", () => {
+    /*
+     * A league is thirty Saturdays, and what happened on one of them does not
+     * change again until the next. Monday rather than every seventh day
+     * because the day is the point: results are entered on the Sunday evening
+     * and corrected on the Monday.
+     */
+    expect(local(nextSyncAt({ ...league, timezone: PT }, now)!)).toBe("Mon, 08");
   });
 
-  it("asks every twenty minutes while games are on", () => {
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(1)] }, now))).toBe(20);
-    // And just after, when the last results are landing.
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(-3)] }, now))).toBe(20);
+  it("does not care where the kickoffs are", () => {
+    // This is the rule that changed. Games being on used to mean twenty
+    // minutes; for a league nobody is watching a U13 result land.
+    for (const kickoffs of [[at(1)], [at(-3)], [at(20)], [at(24 * 4)], []]) {
+      expect(local(nextSyncAt({ ...league, kickoffs, timezone: PT }, now)!)).toBe("Mon, 08");
+    }
   });
 
-  it("asks every couple of hours on the day either side", () => {
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(20)] }, now))).toBe(120);
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [at(-20)] }, now))).toBe(120);
+  it("reads Monday in the event's own zone, not the server's", () => {
+    /*
+     * Computed through Intl rather than by adding hours to a timestamp: the
+     * offset moves twice a year, and "Monday 08:00" as a fixed distance from
+     * UTC is Monday 07:00 for half of a season.
+     */
+    expect(local(nextSyncAt({ ...league, timezone: PT }, now)!)).toBe("Mon, 08");
+    const tokyo = "Asia/Tokyo";
+    const inTokyo = new Intl.DateTimeFormat("en-US", {
+      timeZone: tokyo,
+      weekday: "short",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(nextSyncAt({ ...league, timezone: tokyo }, now)!);
+    expect(inTokyo).toBe("Mon, 08");
   });
 
-  it("takes the nearest kickoff, not the first in the list", () => {
-    // A season's fixtures arrive in whatever order the platform published
-    // them, and most of them are months away.
-    const kickoffs = [at(24 * 60), at(2), at(-24 * 30)];
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs }, now))).toBe(20);
-  });
-
-  it("asks daily when the fixtures have not been published yet", () => {
-    // A league listed before its schedule exists. Something will change, but
-    // not in the next hour.
-    expect(minutesUntil(nextSyncAt({ ...league, kickoffs: [] }, now))).toBe(1440);
-    expect(minutesUntil(nextSyncAt(league, now))).toBe(1440);
+  it("moves to next week when Monday morning has already gone", () => {
+    const monday = new Date("2026-09-07T18:00:00Z"); // 11am Pacific, Monday
+    const next = nextSyncAt({ ...league, timezone: PT }, monday)!;
+    expect(local(next)).toBe("Mon, 08");
+    // Not today's, which is behind us.
+    expect(next.getTime()).toBeGreaterThan(monday.getTime() + 5 * 24 * 3_600_000);
   });
 
   it("does not outlive the season by more than the settling days", () => {
-    // Ends tomorrow, no fixtures left. A daily poll must not be scheduled
-    // past the point the rule above would have stopped asking altogether.
-    const ending = { startsAt: at(-24 * 60), endsAt: at(12) };
+    // Ends tomorrow. A weekly poll must not be scheduled past the point the
+    // rule above would have stopped asking altogether.
+    const ending = { startsAt: at(-24 * 60), endsAt: at(12), timezone: PT };
     const next = nextSyncAt({ ...ending, kickoffs: [] }, now)!;
     expect(next.getTime()).toBeLessThanOrEqual(at(12 + 48).getTime());
   });
 
   it("leaves a weekend tournament exactly as it was", () => {
     // Started this morning, ends tomorrow: the twenty minutes are still
-    // right, and the kickoffs are not consulted at all.
+    // right, and neither the kickoffs nor the weekday are consulted.
     const weekend = { startsAt: at(-2), endsAt: at(24) };
     expect(minutesUntil(nextSyncAt(weekend, now))).toBe(20);
     expect(minutesUntil(nextSyncAt({ ...weekend, kickoffs: [at(24 * 5)] }, now))).toBe(20);
   });
 });
+
