@@ -20,6 +20,7 @@ const { linkTeamsToClub, setIndependent } = await import("@/features/clubs/link"
 const { planUnfile, unfileTeams } = await import("@/features/clubs/unfile");
 const { createClubRow } = await import("@/features/clubs/create");
 const { mergeClubs, planClubMerge } = await import("@/features/clubs/merge");
+const { planFile } = await import("@/features/clubs/file");
 const { eq } = await import("drizzle-orm");
 
 async function makeClub(slug: string, name: string) {
@@ -388,5 +389,64 @@ describe("merging one club into another", () => {
 
     const left = await db.query.clubs.findMany();
     expect(left.map((c) => c.slug)).toEqual(["tc-united"]);
+  });
+});
+
+/**
+ * Taking back "not with a club".
+ *
+ * The queue lists only teams nobody has answered for, so a group marked
+ * independent before its club was in the directory drops out of the one
+ * screen that could correct it.
+ */
+describe("filing teams under a club by name", () => {
+  it("finds the ones marked independent, which the queue no longer shows", async () => {
+    const club = await makeClub("sparta-tacoma", "Sparta Tacoma");
+    const a = await makeTeam("sparta-b14", "Sparta Tacoma B14/15 Red EA");
+    const b = await makeTeam("sparta-g12", "Sparta Tacoma G12/13 White");
+    await setIndependent([a, b]);
+
+    const plan = await planFile("sparta-tacoma", "Sparta Tacoma%");
+    if ("error" in plan) throw new Error(plan.error);
+    expect(plan.teams).toHaveLength(2);
+    expect(plan.teams.every((t) => t.affiliation === "independent")).toBe(true);
+
+    await linkTeamsToClub(club, "", plan.teams.map((t) => t.id), null);
+    expect(await teamRow(a)).toEqual({ affiliation: "club", clubId: club });
+    expect(await teamRow(b)).toEqual({ affiliation: "club", clubId: club });
+  });
+
+  it("takes the unanswered ones too", async () => {
+    await makeClub("sparta-tacoma", "Sparta Tacoma");
+    const a = await makeTeam("sparta-b16", "Sparta Tacoma B16/17 Red");
+    await setIndependent([a]);
+    const b = await makeTeam("sparta-b17", "Sparta Tacoma B17/18 White");
+
+    const plan = await planFile("sparta-tacoma", "Sparta Tacoma%");
+    if ("error" in plan) throw new Error(plan.error);
+    expect(plan.teams.map((t) => t.affiliation).sort()).toEqual(["independent", "unknown"]);
+  });
+
+  it("leaves a team another club already holds alone", async () => {
+    /*
+     * Moving one is what a club merge is for. Doing it quietly here would
+     * undo a decision somebody made without saying so.
+     */
+    const sparta = await makeClub("sparta-tacoma", "Sparta Tacoma");
+    const spartan = await makeClub("spartan-fc", "Spartan FC");
+    const theirs = await makeTeam("spartan-b12", "Sparta Tacoma B12/13 Blue");
+    await linkTeamsToClub(spartan, "spartanfc", [theirs], null);
+
+    const plan = await planFile("sparta-tacoma", "Sparta Tacoma%");
+    if ("error" in plan) throw new Error(plan.error);
+    expect(plan.teams).toHaveLength(0);
+    expect((await teamRow(theirs))?.clubId).toBe(spartan);
+    expect(sparta).toBeTruthy();
+  });
+
+  it("says so when the club is not there", async () => {
+    expect(await planFile("no-such-club", "%")).toEqual({
+      error: 'No club with slug "no-such-club".',
+    });
   });
 });
