@@ -104,9 +104,18 @@ function shortDay(key: string, timeZone: string) {
   }).format(new Date(Date.UTC(y, m - 1, d, 12)));
 }
 
-function fmtTime(d: Date | null, timeZone: string) {
+/**
+ * The kickoff, with its day where the heading covers more than one.
+ *
+ * A league round is played over a Saturday and a Sunday, and under a heading
+ * reading "Saturday, September 26 – Sunday, September 27" a row saying only
+ * "11:00 AM" does not say which of them it is. Left off where the heading is
+ * a single day, since there it would repeat what is already above.
+ */
+function fmtTime(d: Date | null, timeZone: string, withDay = false) {
   if (!d) return "TBD";
   return new Intl.DateTimeFormat("en-US", {
+    ...(withDay ? { weekday: "short" as const } : {}),
     hour: "numeric",
     minute: "2-digit",
     timeZone,
@@ -416,7 +425,9 @@ export function ScheduleSection({
                       {[
                         showAll ? (m.division?.label ?? m.division?.name) : null,
                         m.groupLabel ? `Bracket ${m.groupLabel}` : null,
-                        [fmtTime(m.kickoffAt, tz), m.field].filter(Boolean).join(" · "),
+                        [fmtTime(m.kickoffAt, tz, sd.through !== undefined), m.field]
+                          .filter(Boolean)
+                          .join(" · "),
                       ]
                         .filter(Boolean)
                         .join(" - ")}
