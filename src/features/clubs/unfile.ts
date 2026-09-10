@@ -27,7 +27,17 @@ export type UnfilePlan = {
     id: string;
     slug: string;
     name: string;
-    /** The name it was imported under, or null when nothing recorded one. */
+    /**
+     * The name it was imported under, where any entry recorded one.
+     *
+     * Kept apart from `restored` because the two nulls mean opposite things.
+     * A team whose current name already is the imported one needs nothing
+     * done; a team with no imported name recorded is the one nobody can put
+     * right without looking. Reporting them the same way sent somebody to
+     * rename seven teams that were already called what they should be.
+     */
+    imported: string | null;
+    /** The name to put back, or null when the team is already called it. */
     restored: string | null;
     /** Whether the crest it wears is the club's rather than its own. */
     inheritedCrest: boolean;
@@ -75,6 +85,7 @@ export async function planUnfile(
       id: r.id,
       slug: r.slug,
       name: r.name,
+      imported: r.restored,
       // A name it already has is not a restoration.
       restored: r.restored && r.restored !== r.name ? r.restored : null,
       inheritedCrest: (r.crestUrl ?? "").includes("/clubs/"),
