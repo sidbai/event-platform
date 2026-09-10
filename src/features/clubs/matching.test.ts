@@ -12,6 +12,8 @@ const CLUBS = [
   { id: "northlake", name: "Northlake Soccer Club" },
   { id: "valor", name: "Valor Soccer" },
   { id: "wa-surf", name: "Western Washington Surf" },
+  { id: "wa-premier", name: "Washington Premier FC" },
+  { id: "lk-wa-premier", name: "Lake Washington Premier FC" },
 ];
 
 const index = clubIndex(CLUBS);
@@ -73,6 +75,30 @@ describe("clubIndex", () => {
     // "Valor Soccer" in the directory, "Valor B14 Red" in a schedule.
     expect(index.get("valor")).toBe("valor");
   });
+
+  it("keeps two generic words together, which one of them could not be", () => {
+    // The club is "Washington Premier FC" and not one of its teams says "FC".
+    expect(index.has("washington")).toBe(false);
+    expect(index.get("washingtonpremier")).toBe("wa-premier");
+  });
+
+  it("will not let a place-name modifier stand for the only club using it", () => {
+    /*
+     * "lake" reached Lake Washington Premier FC because no other club in the
+     * directory began with it. Lake Chelan FC and Lake Hills SC were filed
+     * under it on that basis, and the rename then wrote the club's name over
+     * their own.
+     */
+    expect(index.has("lake")).toBe(false);
+    expect(index.get("lakewashington")).toBe("lk-wa-premier");
+  });
+
+  it("still drops a pair two clubs answer to", () => {
+    // "Western Washington Surf" and "Washington East Surf" would both like
+    // "washington", and neither gets it; the pairs they own are their own.
+    expect(index.get("lakewashington")).toBe("lk-wa-premier");
+    expect(index.get("westernwashington")).toBe("wa-surf");
+  });
 });
 
 describe("matchClub", () => {
@@ -88,6 +114,18 @@ describe("matchClub", () => {
   it("does not confuse two clubs that share a first word", () => {
     expect(match("United PDX BU13")).toBeNull();
     expect(match("North Sound BU12")).toBeNull();
+  });
+
+  it("reaches a club whose name is generic all the way through", () => {
+    expect(match("Washington Premier ECNL B2013/14")?.clubId).toBe("wa-premier");
+    // And does not drag its neighbour's teams along with it.
+    expect(match("Lake Washington Premier G14")?.clubId).toBe("lk-wa-premier");
+  });
+
+  it("leaves a club the directory does not have for a person to place", () => {
+    // Both were filed under Lake Washington Premier FC and renamed for it.
+    expect(match("Lake Chelan FC BU18/19")).toBeNull();
+    expect(match("Lake Hills Select GU15/GU16")).toBeNull();
   });
 
   it("follows an alias somebody approved", () => {

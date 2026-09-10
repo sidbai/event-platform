@@ -19,12 +19,17 @@
  * United; "Seattle" leads five clubs. Matching a team called "United PDX" to
  * United Sports FC because both start with "united" is not a near miss, it is
  * a different club in a different state.
+ *
+ * "Lake" is here for the same reason and cost more to learn: it reached only
+ * Lake Washington Premier FC, so Lake Chelan FC and Lake Hills SC were filed
+ * under it and then renamed to say so. A club page carries reviews about
+ * named coaches, which is what makes this the expensive kind of wrong.
  */
 const GENERIC = new Set([
   "fc", "sc", "cf", "afc", "soccer", "club", "academy", "premier", "select",
   "youth", "alliance", "association", "sports", "seattle", "washington",
   "north", "south", "east", "west", "northwest", "northeast", "southwest",
-  "southeast", "greater", "united", "city", "the",
+  "southeast", "greater", "united", "city", "lake", "the",
 ]);
 
 /** Words, lowercased, with punctuation and spacing thrown away. */
@@ -88,9 +93,18 @@ export function clubIndex(clubs: ClubRef[]): Map<string, string> {
     const w = words(club.name);
     for (let i = w.length; i > 0; i--) {
       const key = w.slice(0, i).join("");
-      // A key made only of words like "seattle united" describes a dozen
-      // clubs; the full name is kept regardless, since that is the club.
-      const distinctive = i === w.length || w.slice(0, i).some((x) => !GENERIC.has(x));
+      /*
+       * A single generic word describes a dozen clubs, so it identifies none.
+       * Two of them together are a different matter: "washington" leads five
+       * clubs but "washington premier" leads one, and the schedules spell that
+       * club without its "FC" — which is how 51 of its teams sat unplaced
+       * while the club they belong to was right there with 51 more.
+       *
+       * Anything longer than a single word is offered here and then has to
+       * survive the ambiguity check below, which is the real guard: a key two
+       * clubs answer to is dropped whatever it is made of.
+       */
+      const distinctive = i > 1 || i === w.length || !GENERIC.has(w[0]);
       if (key.length < 3 || !distinctive) continue;
       const held = claims.get(key) ?? new Set<string>();
       held.add(club.id);
