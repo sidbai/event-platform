@@ -958,9 +958,50 @@ export const teamMembers = pgTable(
   (t) => [primaryKey({ columns: [t.teamId, t.userId] })],
 );
 
+/**
+ * A team somebody is keeping an eye on.
+ *
+ * Not a claim, and deliberately nothing like one. Claiming a team says you
+ * run it and has to be proved; a side has one manager and fifteen families,
+ * and until now the fourteen who only want to know when the next game is had
+ * nowhere to say so.
+ *
+ * Private, the way an email address is. Nobody is told who follows a team and
+ * no page counts them — this directory's standing promise is that it holds
+ * nothing about a person beyond what it needs, and a follower list is a list
+ * of which real families care about which children's team.
+ *
+ * The same shape as team_members: the pair is the identity, so following
+ * twice is not a thing that can happen.
+ */
+export const teamFollows = pgTable(
+  "team_follows",
+  {
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.teamId, t.userId] }),
+    // "What am I following" is the read that happens on every page load of
+    // the list, and the primary key leads with the team.
+    index("team_follows_user_idx").on(t.userId),
+  ],
+);
+
+export const teamFollowsRelations = relations(teamFollows, ({ one }) => ({
+  team: one(teams, { fields: [teamFollows.teamId], references: [teams.id] }),
+  user: one(users, { fields: [teamFollows.userId], references: [users.id] }),
+}));
+
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   eventTeams: many(eventTeams),
   members: many(teamMembers),
+  followers: many(teamFollows),
   club: one(clubs, { fields: [teams.clubId], references: [clubs.id] }),
   originEvent: one(events, {
     fields: [teams.originEventId],
