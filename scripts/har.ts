@@ -100,9 +100,36 @@ async function main() {
   }
   if (hits.length > 25) console.log(`  and ${hits.length - 25} more`);
 
+  /*
+   * The one platform there is a reader for. Everything above is generic and
+   * stays that way; this is the step that knows what AthleteOne's markup
+   * means, and it stops at the TSV the paste box already takes.
+   */
+  if (args.includes("--tsv")) {
+    const { fragmentsToTsv } = await import("../src/features/sync/athleteone-fragment");
+    const tsv = fragmentsToTsv(hits.map((r) => r.text ?? ""));
+    const lines = tsv.split("\n").length - 1;
+    if (lines === 0) {
+      console.log("\nNone of those look like an AthleteOne schedule table.");
+      process.exit(1);
+    }
+    const to = arg("out");
+    if (to) {
+      mkdirSync(to, { recursive: true });
+      writeFileSync(join(to, "schedule.tsv"), tsv, "utf8");
+      console.log(`\n${lines} fixture(s) → ${join(to, "schedule.tsv")}`);
+      console.log("Paste that into the event's box on /admin/sync.");
+    } else {
+      console.log(`\n${lines} fixture(s):\n`);
+      console.log(tsv);
+    }
+    process.exit(0);
+  }
+
   const out = arg("out");
   if (!out) {
-    console.log("\nPass --out=<dir> to write the bodies out.");
+    console.log("\nPass --out=<dir> to write the bodies out, or --tsv to read");
+    console.log("an AthleteOne schedule out of them.");
     process.exit(0);
   }
 
