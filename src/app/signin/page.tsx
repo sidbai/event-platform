@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { devLoginEnabled, emailSignInEnabled, googleEnabled, signIn } from "@/auth";
@@ -75,6 +76,18 @@ export default async function SignInPage({
                 the site having done nothing. */}
             <p className="text-xs text-muted">
               No password. We send a link that signs you in and then stops working.
+            </p>
+            {/*
+              Asked here because this is where somebody is deciding, and the
+              honest answer is short: reading needs none of this. A sign-in
+              page that only offers a way in and never says what for is asking
+              for an address without saying why.
+            */}
+            <p className="text-xs text-muted">
+              <Link href="/why-an-account" className="text-brand-text hover:underline">
+                What an account is for
+              </Link>{" "}
+              &mdash; and what it is not.
             </p>
           </form>
         )}
