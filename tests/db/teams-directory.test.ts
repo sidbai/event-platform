@@ -15,8 +15,8 @@ import { requireTestDatabase, truncateAll } from "./helpers";
 requireTestDatabase();
 
 const { db } = await import("@/db");
-const { clubs, eventKinds, events, teams } = await import("@/db/schema");
-const { listTeams, pinnedClubs, teamCounts } = await import(
+const { clubs, eventKinds, eventTeams, events, teams } = await import("@/db/schema");
+const { getTeamBySlug, listTeams, pinnedClubs, teamCounts } = await import(
   "@/features/teams/queries"
 );
 
@@ -59,6 +59,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  // Entries first: they point at both of the next two, and the tests below
+  // now create them.
+  await db.delete(eventTeams);
   await db.delete(teams);
   await db.delete(clubs);
   await db.delete(events);
@@ -269,5 +272,62 @@ describe("the order teams come back in", () => {
     await makeTeam({ slug: "b", name: "Bravo" });
     await makeTeam({ slug: "a", name: "Alpha" });
     expect(await names()).toEqual(["Alpha", "Bravo"]);
+  });
+});
+
+/**
+ * A team's competitions, latest to finish first.
+ *
+ * Only began to matter once a season was in the list. The ECNL league runs to
+ * next May and started a week before Labor Day weekend, so ordered by start
+ * date the competition being played now sat underneath a tournament that had
+ * already finished.
+ */
+describe("the events a team has entered", () => {
+  async function enter(team: string, slug: string, from: string, to: string | null) {
+    const [e] = await db
+      .insert(events)
+      .values({
+        slug,
+        title: slug,
+        kind: "tournament",
+        modules: [],
+        status: "published",
+        visibility: "public",
+        locationType: "in_person",
+        timezone: "America/Los_Angeles",
+        startsAt: new Date(`${from}T16:00:00Z`),
+        endsAt: to ? new Date(`${to}T23:00:00Z`) : null,
+      })
+      .returning({ id: events.id });
+    await db.insert(eventTeams).values({ eventId: e.id, teamId: team });
+  }
+
+  it("puts the season being played above the weekend that has finished", async () => {
+    const id = await makeTeam({ slug: "xf-b13", name: "XF B13/14 ECNL 2" });
+    await enter(id, "labor-day", "2026-09-05", "2026-09-07");
+    await enter(id, "ecnl-league", "2026-08-30", "2027-05-16");
+    await enter(id, "zipfizz", "2026-08-14", "2026-08-16");
+
+    const team = await getTeamBySlug("xf-b13");
+    expect(team?.eventTeams.map((et) => et.event.slug)).toEqual([
+      "ecnl-league",
+      "labor-day",
+      "zipfizz",
+    ]);
+  });
+
+  it("places an event with no end time the way endOf does", async () => {
+    // A day from kickoff, not to midnight — the same rule the lifecycle chip
+    // uses, so the two cannot disagree about which finished last.
+    const id = await makeTeam({ slug: "open-ended", name: "Open Ended" });
+    await enter(id, "one-day", "2026-09-05", null);
+    await enter(id, "ended-sep-5", "2026-09-03", "2026-09-05");
+
+    const team = await getTeamBySlug("open-ended");
+    expect(team?.eventTeams.map((et) => et.event.slug)).toEqual([
+      "one-day",
+      "ended-sep-5",
+    ]);
   });
 });

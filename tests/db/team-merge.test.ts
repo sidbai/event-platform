@@ -26,7 +26,7 @@ const { mergeTeams, teamBySoleOldSlug } = await import("@/features/teams/merge")
 const { planUnmerge, unmergeTeam } = await import("@/features/teams/unmerge");
 const { duplicateTeamGroups } = await import("@/features/teams/merge-queries");
 const { teamAliases } = await import("@/db/schema");
-const { eq, inArray, sql } = await import("drizzle-orm");
+const { eq, sql } = await import("drizzle-orm");
 
 async function makeEvent(slug: string) {
   const [e] = await db
