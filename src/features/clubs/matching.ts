@@ -19,12 +19,17 @@
  * United; "Seattle" leads five clubs. Matching a team called "United PDX" to
  * United Sports FC because both start with "united" is not a near miss, it is
  * a different club in a different state.
+ *
+ * "Lake" is here for the same reason and cost more to learn: it reached only
+ * Lake Washington Premier FC, so Lake Chelan FC and Lake Hills SC were filed
+ * under it and then renamed to say so. A club page carries reviews about
+ * named coaches, which is what makes this the expensive kind of wrong.
  */
 const GENERIC = new Set([
   "fc", "sc", "cf", "afc", "soccer", "club", "academy", "premier", "select",
   "youth", "alliance", "association", "sports", "seattle", "washington",
   "north", "south", "east", "west", "northwest", "northeast", "southwest",
-  "southeast", "greater", "united", "city", "the",
+  "southeast", "greater", "united", "city", "lake", "the",
 ]);
 
 /** Words, lowercased, with punctuation and spacing thrown away. */

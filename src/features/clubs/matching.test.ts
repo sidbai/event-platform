@@ -82,6 +82,17 @@ describe("clubIndex", () => {
     expect(index.get("washingtonpremier")).toBe("wa-premier");
   });
 
+  it("will not let a place-name modifier stand for the only club using it", () => {
+    /*
+     * "lake" reached Lake Washington Premier FC because no other club in the
+     * directory began with it. Lake Chelan FC and Lake Hills SC were filed
+     * under it on that basis, and the rename then wrote the club's name over
+     * their own.
+     */
+    expect(index.has("lake")).toBe(false);
+    expect(index.get("lakewashington")).toBe("lk-wa-premier");
+  });
+
   it("still drops a pair two clubs answer to", () => {
     // "Western Washington Surf" and "Washington East Surf" would both like
     // "washington", and neither gets it; the pairs they own are their own.
@@ -109,6 +120,12 @@ describe("matchClub", () => {
     expect(match("Washington Premier ECNL B2013/14")?.clubId).toBe("wa-premier");
     // And does not drag its neighbour's teams along with it.
     expect(match("Lake Washington Premier G14")?.clubId).toBe("lk-wa-premier");
+  });
+
+  it("leaves a club the directory does not have for a person to place", () => {
+    // Both were filed under Lake Washington Premier FC and renamed for it.
+    expect(match("Lake Chelan FC BU18/19")).toBeNull();
+    expect(match("Lake Hills Select GU15/GU16")).toBeNull();
   });
 
   it("follows an alias somebody approved", () => {
