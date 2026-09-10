@@ -5,6 +5,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { clubAliases, clubs, eventTeams, teams } from "@/db/schema";
 
+import { groupUnplaced, type UnplacedGroup } from "./grouping";
 import { clubIndex, matchClub, type ClubMatch } from "./matching";
 
 /** Every club, for a picker. Deliberately without the review aggregates. */
@@ -107,28 +108,44 @@ export async function clubProposals(): Promise<{
   return { proposals, unmatched };
 }
 
-/** Teams no club claims, for the tail of the queue. */
-export async function unplacedTeams(limit = 60): Promise<ProposedTeam[]> {
-  const rows = await db
-    .select({
-      id: teams.id,
-      slug: teams.slug,
-      name: teams.name,
-      events: sql<number>`count(${eventTeams.id})::int`,
-    })
-    .from(teams)
-    .leftJoin(eventTeams, eq(eventTeams.teamId, teams.id))
-    .where(eq(teams.affiliation, "unknown"))
-    .groupBy(teams.id)
-    .orderBy(asc(teams.name))
-    .limit(limit * 4);
-
-  const [clubRows, aliases] = await Promise.all([
+/**
+ * Teams no club claims, gathered by the club they came from.
+ *
+ * The directory does not have these clubs, so `clubProposals` cannot see
+ * them and every one arrives as its own row: thirty-nine MRFC teams spread
+ * alphabetically through nine hundred others. Grouped on the words their
+ * names share, that is one decision instead of thirty-nine — and filing it
+ * saves the alias, so the next sync places the same names on its own.
+ *
+ * `rest` is capped because it is the part nobody can act on in bulk; the
+ * count says how much of it there is.
+ */
+export async function unplacedGroups(restLimit = 60): Promise<{
+  groups: UnplacedGroup<ProposedTeam>[];
+  rest: ProposedTeam[];
+  restTotal: number;
+}> {
+  const [rows, clubRows, aliases] = await Promise.all([
+    db
+      .select({
+        id: teams.id,
+        slug: teams.slug,
+        name: teams.name,
+        events: sql<number>`count(${eventTeams.id})::int`,
+      })
+      .from(teams)
+      .leftJoin(eventTeams, eq(eventTeams.teamId, teams.id))
+      .where(eq(teams.affiliation, "unknown"))
+      .groupBy(teams.id)
+      .orderBy(asc(teams.name)),
     db.select({ id: clubs.id, name: clubs.name }).from(clubs),
     clubAliasMap(),
   ]);
+
   const index = clubIndex(clubRows);
-  return rows.filter((t) => !matchClub(t.name, aliases, index)).slice(0, limit);
+  const unmatched = rows.filter((t) => !matchClub(t.name, aliases, index));
+  const { groups, rest } = groupUnplaced(unmatched);
+  return { groups, rest: rest.slice(0, restLimit), restTotal: rest.length };
 }
 
 /** The teams a club has, for its page. */
