@@ -161,6 +161,24 @@ export function isSlot(name: string, group: string | null): boolean {
   return group === null && /^[A-Z]\d{1,2}$/.test(own);
 }
 
+/**
+ * A group name, where that column holds one.
+ *
+ * It usually does not. Sports Affinity puts the bracket pairing there —
+ * "A6 vs A4", meaning the side in slot A6 plays the one in slot A4 — which is
+ * how the league builds a fixture list, not something anybody calls a group.
+ * Published as-is it printed "Bracket A6 vs A4" over every one of four
+ * thousand fixtures, on the line a parent reads to find their child's game.
+ *
+ * The same column is what tells a slot from a club, so it is still read; this
+ * only decides what is worth passing on. A flight that does name its groups
+ * keeps them.
+ */
+export function groupName(raw: string | null): string | null {
+  if (!raw) return null;
+  return /^\s*\S+\s+vs\.?\s+\S+\s*$/i.test(raw) ? null : raw;
+}
+
 /** The fixtures with both sides known. */
 export function played(rows: RclRow[]): RclRow[] {
   return rows.filter((r) => !isSlot(r.home, r.group) && !isSlot(r.away, r.group));
@@ -217,7 +235,7 @@ export function matchesOf(rows: RclRow[], division: string): SyncedMatch[] {
   return rows.map((row) => ({
     sourceMatchId: row.gameId,
     division,
-    group: row.group,
+    group: groupName(row.group),
     date: row.date,
     time: row.time,
     homeTeamId: `${division}::${row.home}`,
