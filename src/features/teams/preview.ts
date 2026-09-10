@@ -123,17 +123,26 @@ export function worthShowing(preview: Preview): boolean {
  * The next one stays in the list rather than being left to the panel above
  * it: that panel says more, but it only renders when the opponent resolves to
  * a team here, and the list should stand on its own.
+ *
+ * A fixture with no date at all gets the same treatment, one and no more.
+ * These used to fall through — not ahead, since there is no clock to be ahead
+ * of — and a PacNW side in the Regional Club League listed seventeen of them
+ * in a row, each saying nothing but who it was against. One says the same
+ * thing; seventeen says it seventeen times.
  */
 export function playedAndNext<T extends { kickoffAt: Date | null; homeScore: number | null }>(
   matches: T[],
   now: Date = new Date(),
 ): T[] {
+  const waiting = (m: T) => m.homeScore === null;
   const ahead = (m: T) =>
-    m.homeScore === null && m.kickoffAt !== null && m.kickoffAt.getTime() > now.getTime();
+    waiting(m) && m.kickoffAt !== null && m.kickoffAt.getTime() > now.getTime();
+  const undated = (m: T) => waiting(m) && m.kickoffAt === null;
 
   const next = matches
     .filter(ahead)
     .sort((a, b) => a.kickoffAt!.getTime() - b.kickoffAt!.getTime())[0];
+  const someday = matches.find(undated);
 
-  return matches.filter((m) => !ahead(m) || m === next);
+  return matches.filter((m) => (!ahead(m) && !undated(m)) || m === next || m === someday);
 }
