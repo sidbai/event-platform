@@ -10,8 +10,7 @@ import { publicName } from "@/features/auth";
 import type { ForumCategory } from "./constants";
 
 function authorFields(a: {
-  displayName?: string | null;
-  name?: string | null;
+  displayName: string | null;
   username?: string | null;
   avatarUrl?: string | null;
 } | null) {
@@ -84,7 +83,6 @@ export async function listForumPosts(
       author: {
         columns: {
           displayName: true,
-          name: true,
           username: true,
           avatarUrl: true,
         },
@@ -131,7 +129,7 @@ export async function searchForumPosts(q: string, limit = 20) {
     limit,
     with: {
       author: {
-        columns: { displayName: true, name: true, username: true, avatarUrl: true },
+        columns: { displayName: true, username: true, avatarUrl: true },
       },
       convertedEvent: { columns: { slug: true } },
     },
@@ -157,7 +155,6 @@ export async function getForumPost(slug: string) {
       author: {
         columns: {
           displayName: true,
-          name: true,
           username: true,
           avatarUrl: true,
         },

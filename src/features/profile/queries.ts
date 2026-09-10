@@ -12,8 +12,6 @@ export async function getProfileByUsername(username: string) {
       id: true,
       username: true,
       displayName: true,
-      name: true,
-      image: true,
       avatarUrl: true,
       tags: true,
       club: true,

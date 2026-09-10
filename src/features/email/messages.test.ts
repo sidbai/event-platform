@@ -119,8 +119,8 @@ describe("every message", () => {
      */
     for (const mail of ALL()) {
       expect(mail.text).toMatch(/email address is your account/);
-      expect(mail.text).toMatch(/Google also leaves the name and picture/);
-      expect(mail.html).toMatch(/Google also leaves the name and picture/);
+      expect(mail.text).toMatch(/Google sign-in also leaves your name and a link/);
+      expect(mail.html).toMatch(/never hold the photo itself/);
       expect(mail.text).toContain("https://kingjuansoccer.com/privacy");
     }
   });

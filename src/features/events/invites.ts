@@ -22,7 +22,7 @@ export async function listEventInvites(eventId: string): Promise<EventInvite[]> 
     orderBy: [asc(eventInvites.createdAt)],
     with: {
       invitedUser: {
-        columns: { displayName: true, name: true, username: true, email: true },
+        columns: { displayName: true, username: true, email: true },
       },
     },
   });

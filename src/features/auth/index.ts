@@ -26,12 +26,4 @@ export async function requireUser(returnTo?: string) {
   return user;
 }
 
-/** A name safe to show in public UI. */
-export function publicName(u: {
-  displayName?: string | null;
-  name?: string | null;
-  username?: string | null;
-  email?: string | null;
-}) {
-  return u.displayName || u.name || (u.username ? `@${u.username}` : null) || "Someone";
-}
+export { publicName } from "./public-name";

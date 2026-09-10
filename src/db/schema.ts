@@ -72,11 +72,19 @@ export const users = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { withTimezone: true }),
-  image: text("image"), // from Google
+  /**
+   * A URL at googleusercontent.com, written by the provider at sign-in.
+   *
+   * Not a picture — a link to Google's copy of one. Nothing here fetches it
+   * and no page renders it: every avatar goes through avatarOf(), which
+   * returns avatarUrl and only avatarUrl.
+   */
+  image: text("image"),
   // profile
   username: text("username").unique(),
   displayName: text("display_name"),
-  avatarUrl: text("avatar_url"), // custom upload; falls back to `image`
+  /** The only avatar ever shown. A deliberate upload, and no fallback. */
+  avatarUrl: text("avatar_url"),
   tags: text("tags").array().notNull().default([]),
   /**
    * Stable pseudonym shown on club reviews. Generated on first review so
