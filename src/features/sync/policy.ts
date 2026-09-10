@@ -102,6 +102,18 @@ export const PROVIDER_POLICIES = {
     reviewedAt: "2026-09-10",
     note: "The Elite Academy League's schedules. No robots.txt at all (404), no bot protection, and no origin check: a plain request with our own user agent is answered in full. The endpoint's own path is public_schedule, which is what it reads like — the same data the page shows anybody, without the page. Silence is a weaker signal than permission and is recorded as such; if they publish a robots.txt that says otherwise, this becomes 'refused' and the connector stops with it. Twenty-five rows a page and no total anywhere in the response, so the reader pages until a page brings nothing new — twenty-five of nine hundred looks exactly like nine hundred. groups= is plural; group= is accepted, ignored, and quietly returns the whole country.",
   },
+  sportsaffinity: {
+    label: "Sports Affinity",
+    automatedAccess: "allowed",
+    robots: "silent",
+    /*
+     * No robots.txt to point at — /robots.txt is a 404 served by Imperva —
+     * so the address recorded is a page the decision was read from.
+     */
+    termsUrl: "https://wys.sportsaffinity.com/tour/public/info/accepted_list.asp",
+    reviewedAt: "2026-09-10",
+    note: "Washington Youth Soccer's Regional Club League. No robots.txt (404), and the pages are server-rendered and answered in full to a plain request. The site does sit behind Imperva, which is a thing to keep checking rather than to assume stays true: it serves some clients a challenge instead of a page, and ours has not been. Silence is a weaker signal than permission and is recorded as such. Fifty flights across two accepted-teams pages, one page each, so a full read is fifty-two requests spaced a second apart — the reason a season is polled on Mondays rather than hourly.",
+  },
   manual: {
     label: "Entered by hand",
     automatedAccess: "not-applicable",
@@ -184,6 +196,7 @@ const HOSTS: { pattern: RegExp; platform: Platform }[] = [
   { pattern: /(^|\.)athletes2events\.com$/i, platform: "athletes2events" },
   { pattern: /(^|\.)eventconnect\.io$/i, platform: "eventconnect" },
   { pattern: /(^|\.)modular11\.com$/i, platform: "modular11" },
+  { pattern: /(^|\.)sportsaffinity\.com$/i, platform: "sportsaffinity" },
 ];
 
 export function platformOf(url: string): Platform | null {

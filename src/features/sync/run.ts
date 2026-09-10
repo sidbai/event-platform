@@ -8,6 +8,7 @@ import { events } from "@/db/schema";
 import { applySync, recordSyncFailure } from "./apply";
 import { athletes2events } from "./athletes2events";
 import { modular11 } from "./modular11";
+import { sportsaffinity } from "./sportsaffinity";
 import { mayPoll } from "./policy";
 import type { ExternalEventProvider, SourceRef } from "./provider";
 
@@ -20,7 +21,7 @@ import type { ExternalEventProvider, SourceRef } from "./provider";
  * sell an API, so that connector waits on an answer from them rather than on
  * an engineering decision.
  */
-const PROVIDERS: ExternalEventProvider[] = [athletes2events, modular11];
+const PROVIDERS: ExternalEventProvider[] = [athletes2events, modular11, sportsaffinity];
 
 export function providerFor(platform: string): ExternalEventProvider | null {
   return PROVIDERS.find((p) => p.platform === platform) ?? null;
