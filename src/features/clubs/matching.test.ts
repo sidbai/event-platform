@@ -12,6 +12,8 @@ const CLUBS = [
   { id: "northlake", name: "Northlake Soccer Club" },
   { id: "valor", name: "Valor Soccer" },
   { id: "wa-surf", name: "Western Washington Surf" },
+  { id: "wa-premier", name: "Washington Premier FC" },
+  { id: "lk-wa-premier", name: "Lake Washington Premier FC" },
 ];
 
 const index = clubIndex(CLUBS);
@@ -73,6 +75,19 @@ describe("clubIndex", () => {
     // "Valor Soccer" in the directory, "Valor B14 Red" in a schedule.
     expect(index.get("valor")).toBe("valor");
   });
+
+  it("keeps two generic words together, which one of them could not be", () => {
+    // The club is "Washington Premier FC" and not one of its teams says "FC".
+    expect(index.has("washington")).toBe(false);
+    expect(index.get("washingtonpremier")).toBe("wa-premier");
+  });
+
+  it("still drops a pair two clubs answer to", () => {
+    // "Western Washington Surf" and "Washington East Surf" would both like
+    // "washington", and neither gets it; the pairs they own are their own.
+    expect(index.get("lakewashington")).toBe("lk-wa-premier");
+    expect(index.get("westernwashington")).toBe("wa-surf");
+  });
 });
 
 describe("matchClub", () => {
@@ -88,6 +103,12 @@ describe("matchClub", () => {
   it("does not confuse two clubs that share a first word", () => {
     expect(match("United PDX BU13")).toBeNull();
     expect(match("North Sound BU12")).toBeNull();
+  });
+
+  it("reaches a club whose name is generic all the way through", () => {
+    expect(match("Washington Premier ECNL B2013/14")?.clubId).toBe("wa-premier");
+    // And does not drag its neighbour's teams along with it.
+    expect(match("Lake Washington Premier G14")?.clubId).toBe("lk-wa-premier");
   });
 
   it("follows an alias somebody approved", () => {
