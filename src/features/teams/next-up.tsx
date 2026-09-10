@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TeamCrest } from "@/components/team-crest";
+import { timeAnnounced } from "@/features/events/kickoff";
 
 import type { Outcome, Side } from "./preview";
 import type { NextUp } from "./queries";
@@ -71,16 +72,29 @@ export function NextUpPanel({
 }) {
   const { opponent, preview, fixture, opponentNames } = nextUp;
   const { ours, theirs } = preview;
-  const when = fixture.kickoffAt
+  const tz = timezone ?? "America/Los_Angeles";
+  /*
+   * The day, and the time only where the organizer has given one. A league
+   * that has published its season but not its times leaves the kick-off at
+   * midnight, and "12:00 AM" reads as a fact rather than as the gap it is.
+   */
+  const day = fixture.kickoffAt
     ? new Intl.DateTimeFormat("en-US", {
         weekday: "short",
         month: "short",
         day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: timezone ?? "America/Los_Angeles",
+        timeZone: tz,
       }).format(fixture.kickoffAt)
     : null;
+  const when = !day
+    ? null
+    : timeAnnounced(fixture.kickoffAt, tz)
+      ? `${day}, ${new Intl.DateTimeFormat("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: tz,
+        }).format(fixture.kickoffAt!)}`
+      : `${day}, time TBD`;
 
   return (
     <section className="mt-8">
