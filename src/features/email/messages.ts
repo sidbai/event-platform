@@ -2,15 +2,39 @@
  * What our emails say — pure, so the words can be read in a test rather than
  * in somebody's inbox.
  *
- * Plain text first, and HTML only as a courtesy copy of the same words. A
- * sign-in link that renders as a wall of nothing in a client that blocks
- * images or CSS is a person who cannot get in, and every message this site
- * sends is short enough not to need a layout.
+ * Plain text is still written first and still says everything. The HTML is
+ * now laid out rather than a bare stack of paragraphs, but it is built on the
+ * same rule it always was: a client that drops the styling must leave a
+ * readable message behind, because somebody who cannot read the mail cannot
+ * sign in. So — tables and inline styles, which is what mail clients have
+ * agreed on for twenty years, and **no images at all**. A remote image is a
+ * tracking pixel whether it is meant as one or not, and most inboxes block it
+ * anyway, so the wordmark is text.
+ *
+ * The sign-in link is written out in full underneath its button for the same
+ * reason it always was: a button whose destination cannot be read is the
+ * shape of every phishing mail there is.
  */
 
 export type Message = { subject: string; text: string; html: string };
 
 const SITE = "King Juan Soccer";
+const SITE_URL = "https://kingjuansoccer.com";
+
+/** The site's own palette, from globals.css. Inline, because email. */
+const INK = "#1f2020";
+const MUTED = "#5c5c5c";
+const LINE = "#e7e7e9";
+const PAGE = "#fafafa";
+const CARD = "#ffffff";
+const HEADER = "#131313";
+const GOLD = "#d4af37";
+const BRAND_TEXT = "#8a6a15";
+const BRAND_SOFT = "#faf3da";
+const BRAND_SOFT_TEXT = "#6b520f";
+
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 /** Escapes the few characters that would otherwise break out of the markup. */
 function escape(value: string): string {
@@ -19,6 +43,104 @@ function escape(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * What the site does with a person, in the two lines worth reading.
+ *
+ * On every message rather than only the first, because the question it
+ * answers — "what have I just given you" — is asked at whatever moment
+ * somebody happens to wonder, not on the schedule we would choose.
+ *
+ * The wording is what is actually true, which is narrower than it could be
+ * made to sound. A Google sign-in hands us a name and a picture and they stay
+ * on the account row; saying otherwise would be the one lie a privacy notice
+ * cannot afford. What is unqualified is the part that matters: none of it is
+ * ever shown.
+ */
+const PRIVACY_TEXT = [
+  "Anonymous by default",
+  "You appear under a generated handle, never your real name, unless you",
+  "change it yourself in settings.",
+  "",
+  "Your email address is your account, and it is the only thing we need to",
+  "keep. Signing in with Google also leaves the name and picture Google gives",
+  "us on your account — shown to nobody, and yours to delete with the account.",
+  "",
+  `${SITE_URL}/privacy`,
+];
+
+const PRIVACY_HTML = `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;background:${BRAND_SOFT};border-radius:8px;">
+  <tr><td style="padding:18px 20px;font-family:${FONT};">
+    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:${BRAND_SOFT_TEXT};">Anonymous by default</p>
+    <p style="margin:0 0 10px;font-size:13px;line-height:20px;color:${BRAND_SOFT_TEXT};">
+      You appear under a generated handle, never your real name, unless you change it yourself in settings.
+    </p>
+    <p style="margin:0;font-size:13px;line-height:20px;color:${BRAND_SOFT_TEXT};">
+      Your email address is your account, and it is the only thing we need to keep.
+      Signing in with Google also leaves the name and picture Google gives us on your
+      account &mdash; shown to nobody, and yours to delete with the account.
+    </p>
+  </td></tr>
+</table>`;
+
+/**
+ * The frame every message is poured into.
+ *
+ * `preheader` is the line an inbox shows beside the subject. Hidden in the
+ * body, because a client that shows no preview text would otherwise print it
+ * twice.
+ */
+function shell(preheader: string, body: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;padding:0;background:${PAGE};">
+  <tr><td align="center" style="padding:24px 12px;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escape(preheader)}</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:100%;max-width:560px;background:${CARD};border:1px solid ${LINE};border-radius:12px;overflow:hidden;">
+      <tr><td style="background:${HEADER};padding:18px 24px;font-family:${FONT};">
+        <a href="${SITE_URL}" style="font-size:16px;font-weight:600;letter-spacing:0.02em;color:${GOLD};text-decoration:none;">King Juan Soccer</a>
+      </td></tr>
+      <tr><td style="padding:28px 24px 24px;font-family:${FONT};color:${INK};">
+${body}
+${PRIVACY_HTML}
+      </td></tr>
+      <tr><td style="border-top:1px solid ${LINE};padding:16px 24px;font-family:${FONT};">
+        <p style="margin:0;font-size:12px;line-height:18px;color:${MUTED};">
+          Youth soccer around Seattle &mdash;
+          <a href="${SITE_URL}" style="color:${BRAND_TEXT};">kingjuansoccer.com</a>
+          &middot; <a href="${SITE_URL}/privacy" style="color:${BRAND_TEXT};">Privacy</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`;
+}
+
+/** A gold button. Always with the address written out somewhere near it. */
+function button(url: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0;">
+  <tr><td style="background:${GOLD};border-radius:8px;">
+    <a href="${escape(url)}" style="display:inline-block;padding:11px 22px;font-family:${FONT};font-size:15px;font-weight:600;color:${HEADER};text-decoration:none;">${label}</a>
+  </td></tr>
+</table>`;
+}
+
+function h1(text: string): string {
+  return `<h1 style="margin:0 0 12px;font-size:20px;line-height:28px;font-weight:600;color:${INK};">${text}</h1>`;
+}
+
+function p(text: string): string {
+  return `<p style="margin:0 0 12px;font-size:15px;line-height:23px;color:${INK};">${text}</p>`;
+}
+
+/** A quieter line, set apart from the thing it is a footnote to. */
+function note(text: string): string {
+  return `<p style="margin:18px 0 0;font-size:13px;line-height:20px;color:${MUTED};">${text}</p>`;
+}
+
+/** The address, readable, for somebody deciding whether to follow it. */
+function rawUrl(url: string): string {
+  return `<p style="margin:16px 0 0;font-size:13px;line-height:20px;color:${MUTED};word-break:break-all;">Or paste this into your browser:<br><a href="${escape(url)}" style="color:${BRAND_TEXT};">${escape(url)}</a></p>`;
 }
 
 /**
@@ -38,14 +160,24 @@ export function signInEmail(url: string, minutes: number): Message {
     "",
     `The link works once and expires in ${minutes} minutes.`,
     "If you didn't ask to sign in, you can ignore this — nobody gets in without the link.",
+    "",
+    "—",
+    "",
+    ...PRIVACY_TEXT,
   ].join("\n");
 
-  const html = [
-    `<p>Open this link to sign in to ${SITE}:</p>`,
-    `<p><a href="${escape(url)}">${escape(url)}</a></p>`,
-    `<p>The link works once and expires in ${minutes} minutes.</p>`,
-    `<p>If you didn't ask to sign in, you can ignore this &mdash; nobody gets in without the link.</p>`,
-  ].join("\n");
+  const html = shell(
+    `Your sign-in link — good once, for ${minutes} minutes.`,
+    [
+      h1(`Sign in to ${SITE}`),
+      p(`The button below signs you in. It works once and expires in ${minutes} minutes.`),
+      button(url, "Sign in"),
+      rawUrl(url),
+      note(
+        "If you didn&rsquo;t ask to sign in, you can ignore this &mdash; nobody gets in without the link.",
+      ),
+    ].join("\n"),
+  );
 
   return { subject, text, html };
 }
@@ -73,15 +205,24 @@ export function claimApprovedEmail(teamName: string, url: string): Message {
     "from the team's settings and an admin will look at it.",
     "",
     url,
+    "",
+    "—",
+    "",
+    ...PRIVACY_TEXT,
   ];
   const text = lines.join("\n");
 
-  const html = [
-    `<p>Your request to manage <strong>${escape(teamName)}</strong> on ${SITE} was approved.</p>`,
-    "<p>You can now add the team&rsquo;s description and crest, invite other managers, coaches and players, put events on its calendar, and take scrimmage offers.</p>",
-    "<p>Its club, birth years, gender and tier stay with the club, so nobody can restate whose team it is. To change the name, propose one from the team&rsquo;s settings and an admin will look at it.</p>",
-    `<p><a href="${escape(url)}">${escape(url)}</a></p>`,
-  ].join("\n");
+  const html = shell(
+    `You can now manage ${teamName}.`,
+    [
+      h1(`You can now manage ${escape(teamName)}`),
+      p(`Your request to manage <strong>${escape(teamName)}</strong> was approved.`),
+      p("You can now add the team&rsquo;s description and crest, invite other managers, coaches and players, put events on its calendar, and take scrimmage offers."),
+      p("Its club, birth years, gender and tier stay with the club, so nobody can restate whose team it is. To change the name, propose one from the team&rsquo;s settings and an admin will look at it."),
+      button(url, "Open the team"),
+      rawUrl(url),
+    ].join("\n"),
+  );
 
   return { subject, text, html };
 }
@@ -105,13 +246,22 @@ export function claimRejectedEmail(teamName: string, url: string): Message {
     "touch and we will sort it out.",
     "",
     url,
+    "",
+    "—",
+    "",
+    ...PRIVACY_TEXT,
   ].join("\n");
 
-  const html = [
-    `<p>An admin looked at your request to manage <strong>${escape(teamName)}</strong> on ${SITE} and did not approve it. Nothing about the team has changed.</p>`,
-    "<p>This is usually because there was no way to check the request from the outside. If the club can confirm you run the team, ask them to get in touch and we will sort it out.</p>",
-    `<p><a href="${escape(url)}">${escape(url)}</a></p>`,
-  ].join("\n");
+  const html = shell(
+    `About your request to manage ${teamName}.`,
+    [
+      h1(`About ${escape(teamName)}`),
+      p(`An admin looked at your request to manage <strong>${escape(teamName)}</strong> and did not approve it. Nothing about the team has changed.`),
+      p("This is usually because there was no way to check the request from the outside. If the club can confirm you run the team, ask them to get in touch and we will sort it out."),
+      button(url, "Open the team"),
+      rawUrl(url),
+    ].join("\n"),
+  );
 
   return { subject, text, html };
 }
