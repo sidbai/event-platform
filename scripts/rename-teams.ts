@@ -10,6 +10,7 @@ config({ path: ".env.local" });
  *
  *   pnpm db:teams:rename                 # says what it would do
  *   pnpm db:teams:rename --all           # every rename, not a sample
+ *   pnpm db:teams:rename --event=<slug>  # only the teams in that event
  *   pnpm db:teams:rename --apply
  *
  *   <club> <program> <B|G>yy/yy <tier> <the rest>
@@ -21,14 +22,24 @@ config({ path: ".env.local" });
  *
  * The dry run is the point. This touches 1,484 rows, and the only way to
  * know a rewrite says as much as the name it replaces is to read them.
+ *
+ * --event is for reading them. A directory that imports three leagues in a
+ * week accumulates renames from all three, and a hundred of those at once is
+ * a list nobody can check — which defeats the dry run. Narrowed to the event
+ * that just landed, it is a list somebody can actually read before writing.
  */
 
 const APPLY = process.argv.includes("--apply");
 const ALL = process.argv.includes("--all");
+const EVENT = process.argv
+  .find((a) => a.startsWith("--event="))
+  ?.split("=")
+  .slice(1)
+  .join("=");
 
 async function main() {
   const { db } = await import("../src/db");
-  const { clubs, clubAliases, teams } = await import("../src/db/schema");
+  const { clubs, clubAliases, eventTeams, events, teams } = await import("../src/db/schema");
   const { canonicalName } = await import("../src/features/teams/canonical-name");
 
   const aliasRows = await db
@@ -56,7 +67,33 @@ async function main() {
     // Only a club's teams. A side with no club in the directory has no fixed
     // vocabulary behind its name, and nothing to normalise it against.
     .innerJoin(clubs, eq(clubs.id, teams.clubId))
+    .where(
+      EVENT
+        ? sql`exists (
+            select 1 from ${eventTeams}
+            join ${events} on ${events.id} = ${eventTeams.eventId}
+            where ${eventTeams.teamId} = ${teams.id} and ${events.slug} = ${EVENT}
+          )`
+        : undefined,
+    )
     .orderBy(teams.name);
+
+  /*
+   * A slug nobody has is the failure worth being loud about: it selects no
+   * teams, reports "0 renames", and reads exactly like a directory that is
+   * already tidy.
+   */
+  if (EVENT) {
+    const event = await db.query.events.findFirst({
+      where: eq(events.slug, EVENT),
+      columns: { slug: true, title: true },
+    });
+    if (!event) {
+      console.log(`No event with slug "${EVENT}".`);
+      process.exit(1);
+    }
+    console.log(`Only the teams in ${event.title}.\n`);
+  }
 
   const changes: { id: string; from: string; to: string }[] = [];
   let unchanged = 0;
