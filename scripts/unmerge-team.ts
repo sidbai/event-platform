@@ -50,6 +50,14 @@ async function main() {
     `  ${plan.slugs.length} redirect(s) removed` +
       (plan.alias ? `, alias "${plan.alias}" removed` : ""),
   );
+  if (plan.slugTaken) {
+    console.log(
+      `\n  /teams/${plan.team.slug} is a live team now — the merge gave that\n` +
+        `  address to the survivor. This row comes back at the next free\n` +
+        `  number instead; everything else about it is restored.`,
+    );
+  }
+
   console.log(
     "\nWhere a row belongs, not what it looked like: a score entered on a moved\n" +
       "fixture since the merge stays as it is now.",

@@ -15,6 +15,8 @@ import {
   teams,
 } from "@/db/schema";
 
+import { uniqueTeamSlug } from "./slug";
+
 /**
  * Put back a team a merge absorbed.
  *
@@ -39,6 +41,13 @@ export type UnmergePlan = {
   members: number;
   slugs: string[];
   alias: string | null;
+  /**
+   * Whether a live team now sits at the address this row left under.
+   *
+   * The merge is what took it: it gives the survivor the best of the slugs in
+   * play. The row still comes back, at the next free number.
+   */
+  slugTaken: boolean;
 };
 
 type Moved = {
@@ -112,6 +121,10 @@ export async function planUnmerge(mergeId: string): Promise<UnmergePlan> {
     members: moved.members.length,
     slugs: dropped.slugs,
     alias: dropped.alias,
+    slugTaken: (await db.query.teams.findFirst({
+      where: eq(teams.slug, team.slug),
+      columns: { id: true },
+    })) !== undefined,
   };
 }
 
@@ -137,7 +150,25 @@ export async function unmergeTeam(mergeId: string): Promise<UnmergePlan> {
     await db.delete(teamAliases).where(eq(teamAliases.alias, dropped.alias));
   }
 
-  await db.insert(teams).values(team);
+  /*
+   * The address may not be free any more, and the merge is what took it.
+   *
+   * A merge gives the survivor the best of the slugs in play — the bare one,
+   * adopted from a loser when it shares the stem — so undoing that merge can
+   * find a live team sitting at the address the absorbed row used to have.
+   * Restoring it there would mean moving the survivor a second time, and the
+   * survivor's address has been the public one ever since.
+   *
+   * So the row comes back at the next free number instead. Not the address it
+   * left under, and said out loud rather than discovered: everything else
+   * about the team — its fixtures, its entries, its facts — is restored.
+   */
+  const taken = await db.query.teams.findFirst({
+    where: eq(teams.slug, plan.team.slug),
+    columns: { id: true },
+  });
+  const slug = taken ? await uniqueTeamSlug(plan.team.slug) : plan.team.slug;
+  await db.insert(teams).values({ ...(team as object), slug } as never);
 
   if (moved.matchesHome.length > 0) {
     await db
