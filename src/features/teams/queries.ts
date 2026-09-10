@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
 
 import { endOf } from "@/features/events/completion";
+import { searchTerms } from "@/features/search/terms";
 
 import { ageGroupOf, parseAgeGroupFilter, seasonYearOf } from "./age";
 import { nextFixture, previewOf, worthShowing, type Preview } from "./preview";
@@ -33,11 +34,6 @@ export type TeamFilter = {
   window?: { limit: number; offset: number };
 };
 
-/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 /**
  * How the directory is ordered.
  *
@@ -60,7 +56,7 @@ const directoryOrder = [
 ];
 
 function teamWhere(filter: TeamFilter) {
-  const term = filter.q?.trim() ? `%${escapeLike(filter.q.trim())}%` : null;
+  const terms = searchTerms(filter.q);
   const affiliation =
     filter.affiliation === "club" || filter.affiliation === "independent"
       ? filter.affiliation
@@ -71,9 +67,12 @@ function teamWhere(filter: TeamFilter) {
     // The club's name is searched as well as the team's, because "Crossfire"
     // is what somebody types and no Crossfire team is called that: they are
     // "XF, U14, B12 - 13, RCL 1, Plackov".
-    term
-      ? or(ilike(teams.name, term), ilike(teams.city, term), ilike(clubs.name, term))
-      : undefined,
+    //
+    // Every word has to land, but each may land in a different column —
+    // "crossfire b14" is the club in one and the age group in another.
+    ...terms.map((term) =>
+      or(ilike(teams.name, term), ilike(teams.city, term), ilike(clubs.name, term)),
+    ),
     affiliation ? eq(teams.affiliation, affiliation) : undefined,
     filter.club ? eq(clubs.slug, filter.club) : undefined,
     ...ageWhere(filter.age),

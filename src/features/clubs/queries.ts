@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { searchTerms } from "@/features/search/terms";
 import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
 
 import { publicName } from "@/features/auth";
@@ -43,19 +44,15 @@ function ratingsOf(row: { ratings: Record<string, number> }): Ratings {
   };
 }
 
-/** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 /** Club directory with each club's aggregate score. */
 export async function listClubs(
   q?: string,
   window?: { limit: number; offset: number },
 ) {
-  const term = q?.trim() ? `%${escapeLike(q.trim())}%` : null;
-  const where = term
-    ? or(ilike(clubs.name, term), ilike(clubs.city, term))
+  // Every word has to land, though not all in the same column.
+  const terms = searchTerms(q);
+  const where = terms.length
+    ? and(...terms.map((term) => or(ilike(clubs.name, term), ilike(clubs.city, term))))
     : undefined;
 
   // Counted before slicing, so the pager sizes the whole result.
