@@ -399,8 +399,8 @@ export function copierSource(): string {
  * browsing put on screen. The property that makes this not a crawler is
  * untouched.
  */
-export function copierBookmarklet(origin: string): string {
-  const src = `${origin.replace(/\/$/, "")}${COPIER_PATH}`;
+export function copierBookmarklet(origin: string, token: string): string {
+  const src = `${origin.replace(/\/$/, "")}${copierPath(token)}`;
   /*
    * Cache-busted on purpose. A bookmarklet that loads a stale copy is the
    * self-updating property quietly not working, and the file is small.
@@ -428,5 +428,22 @@ export function copierBookmarklet(origin: string): string {
   return `javascript:${encodeURIComponent(loader)}`;
 }
 
-/** Where the copier's code is served. Shared by the route and the bookmark. */
-export const COPIER_PATH = "/copier.js";
+/**
+ * Where the copier's code is served. Shared by the route and the bookmark.
+ *
+ * Under a secret rather than at a fixed address. The script guards nothing —
+ * it reads the page whoever ran it already had open and carries nothing of
+ * ours — but a fixed public path publishes a scraping tool to anybody who
+ * looks, which is a different thing from handing it to the person who needs
+ * it, and this project decides those questions carefully enough elsewhere
+ * that it should decide this one too.
+ *
+ * Obscurity, and named as such: it is not authentication and cannot be.
+ * The bookmark loads this from somebody else's page, which makes it a
+ * cross-site subresource request, and a Lax session cookie is not sent on
+ * one — a login here would only mean failing silently on the one page this
+ * exists to read. Rotating the secret is what revocation looks like.
+ */
+export function copierPath(token: string): string {
+  return `/copier/${token}.js`;
+}
