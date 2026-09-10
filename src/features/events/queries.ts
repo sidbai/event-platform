@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/db";
+import { searchTerms } from "@/features/search/terms";
 import { eventKinds, events, venues } from "@/db/schema";
 import { weekendRange } from "@/lib/dates";
 
@@ -37,15 +38,6 @@ export type EventFilters = {
 };
 
 /**
- * % and _ are wildcards to LIKE, so a search for "50%" would otherwise match
- * anything. Not an injection risk — the value is still parameterised — just
- * wrong matching.
- */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
-/**
  * The conditions every public listing of events shares.
  *
  * Shared rather than repeated because the facet counts run a second query over
@@ -61,8 +53,9 @@ function visibleEventsWhere(filters: EventFilters): SQL[] {
     isNull(events.hiddenAt),
   ];
 
-  if (filters.q) {
-    const term = `%${escapeLike(filters.q)}%`;
+  // Every word has to land, though each may land somewhere different: "surf
+  // tacoma" is a word of the title and a word of the venue's city.
+  for (const term of searchTerms(filters.q)) {
     where.push(
       or(
         ilike(events.title, term),
