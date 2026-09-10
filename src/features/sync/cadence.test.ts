@@ -237,6 +237,29 @@ describe("nextSyncAt for a season", () => {
     expect(inTokyo).toBe("Mon, 08");
   });
 
+  it("is a season before it starts, too", () => {
+    /*
+     * Every other rule here is written for a weekend — an hour the night
+     * before, six hours the week before — and a league breaks them the same
+     * way it breaks the twenty-minute one. The Regional Club League sat two
+     * days from kick-off being read four times a day, fifty-two pages each
+     * time, off a fixture list that had not changed since August.
+     */
+    const soon = { startsAt: at(48), endsAt: at(24 * 250), kickoffs: [], timezone: PT };
+    expect(local(nextSyncAt(soon, now)!)).toMatch(/^(Mon|Thu), 08$/);
+
+    const tomorrow = { startsAt: at(12), endsAt: at(24 * 250), kickoffs: [], timezone: PT };
+    expect(local(nextSyncAt(tomorrow, now)!)).toMatch(/^(Mon|Thu), 08$/);
+  });
+
+  it("still reads a weekend the way a weekend wants", () => {
+    // The rules this moved past are right for the thing they were written
+    // for: a tournament the night before its first whistle.
+    const cup = { startsAt: at(12), endsAt: at(60), kickoffs: [] };
+    const next = nextSyncAt(cup, now)!;
+    expect(next.getTime()).toBeLessThanOrEqual(now.getTime() + 3_600_000 + 1000);
+  });
+
   it("does not outlive the season by more than the settling days", () => {
     // Ends tomorrow. A weekly poll must not be scheduled past the point the
     // rule above would have stopped asking altogether.
