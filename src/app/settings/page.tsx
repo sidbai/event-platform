@@ -19,7 +19,7 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Your profile</h1>
 
       <div className="mt-5 flex items-start gap-4">
-        <Avatar src={avatarOf(user)} name={user.displayName ?? user.name} size={64} />
+        <Avatar src={avatarOf(user)} name={user.displayName} size={64} />
         <div className="text-sm">
           <ImageUpload
             target={{ kind: "avatar" }}
@@ -43,7 +43,6 @@ export default async function SettingsPage() {
         profile={{
           username: user.username,
           displayName: user.displayName,
-          name: user.name,
           tags: user.tags,
           club: user.club,
           city: user.city,
