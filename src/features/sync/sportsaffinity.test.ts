@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  groupName,
   isSlot,
   matchesOf,
   parseSportsAffinityUrl,
@@ -176,5 +177,30 @@ describe("a slot that is not a club yet", () => {
     // a name is a name.
     expect(isSlot("A11", "A2 vs A4")).toBe(false);
     expect(isSlot("A11", "A11 vs A4")).toBe(true);
+  });
+});
+
+describe("the group column", () => {
+  it("does not pass on a bracket pairing as a group name", () => {
+    /*
+     * "A6 vs A4" is how the league builds a fixture list — the side in slot
+     * A6 plays the one in slot A4. Published as-is it printed "Bracket A6 vs
+     * A4" over four thousand fixtures, on the line a parent reads to find
+     * their child's game.
+     */
+    expect(groupName("A6 vs A4")).toBeNull();
+    expect(groupName("A10 vs A6")).toBeNull();
+    expect(groupName("B1 vs. B2")).toBeNull();
+  });
+
+  it("keeps a group a flight actually names", () => {
+    expect(groupName("Group A")).toBe("Group A");
+    expect(groupName("Championship")).toBe("Championship");
+    expect(groupName(null)).toBeNull();
+  });
+
+  it("still reads the column to tell a slot from a club", () => {
+    // The two uses are separate: this one decides what is worth publishing.
+    expect(isSlot("A11", "A11 vs A7")).toBe(true);
   });
 });
