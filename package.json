@@ -34,6 +34,7 @@
     "db:sync:preflight": "NODE_OPTIONS=--conditions=react-server tsx scripts/preflight-sync.ts",
     "db:sync:verify": "NODE_OPTIONS=--conditions=react-server tsx scripts/verify-import.ts",
     "db:sync:reset": "NODE_OPTIONS=--conditions=react-server tsx scripts/reset-event-sync.ts",
+    "db:teams:readdress": "NODE_OPTIONS=--conditions=react-server tsx scripts/readdress-teams.ts",
     "db:teams:rename": "NODE_OPTIONS=--conditions=react-server tsx scripts/rename-teams.ts",
     "db:teams:coverage": "NODE_OPTIONS=--conditions=react-server tsx scripts/team-coverage.ts",
     "db:backfill:teams": "tsx scripts/backfill-teams.ts",
