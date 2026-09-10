@@ -8,7 +8,8 @@ import { copierBookmarklet, copierSource, STANDINGS_HEADER } from "./copier";
 /** The tool's own code, which the bookmark now loads rather than carries. */
 const body = () => copierSource();
 
-const bookmark = () => copierBookmarklet("https://kingjuansoccer.com");
+const bookmark = () => copierBookmarklet("https://kingjuansoccer.com", TOKEN);
+const TOKEN = "s3cr3t-t0k3n-abcdef";
 
 /**
  * The bookmarklet's own functions, taken out of the artifact a person clicks.
@@ -78,9 +79,16 @@ describe("the copier bookmarklet", () => {
 
   it("loads the tool from this site, and says so when it cannot", () => {
     const url = bookmark();
-    expect(url).toContain(encodeURIComponent("kingjuansoccer.com/copier.js"));
+    expect(url).toContain(encodeURIComponent(`kingjuansoccer.com/copier/${TOKEN}.js`));
     // Silence is the alternative: a bookmark that does nothing at all.
     expect(decodeURIComponent(url)).toContain("alert(");
+  });
+
+  it("carries the secret, and nothing at a guessable address", () => {
+    // The whole point of the secret is that /copier.js is not a thing.
+    const url = decodeURIComponent(bookmark());
+    expect(url).toContain(TOKEN);
+    expect(url).not.toMatch(/\/copier\.js/);
   });
 
   it("does not claim to know why the load failed", () => {

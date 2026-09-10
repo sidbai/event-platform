@@ -7,7 +7,7 @@ import { isAdmin } from "@/features/auth/admin";
 import { connectSchedule, importPastedSchedule, refreshNow } from "@/features/sync/actions";
 import { ConnectForm, PasteForm, RefreshButton } from "@/features/sync/connect-form";
 import { CopierPanel } from "@/features/sync/copier-panel";
-import { copierBookmarklet } from "@/features/sync/copier";
+import { copierBookmarklet, copierPath } from "@/features/sync/copier";
 import { siteUrl } from "@/lib/site-url";
 import { formatAgo } from "@/features/sync/freshness";
 import { PROVIDER_POLICIES, mayPoll } from "@/features/sync/policy";
@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Connected schedules" };
 
 export default async function AdminSyncPage() {
+  const copierToken = process.env.COPIER_TOKEN;
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
@@ -41,7 +42,23 @@ export default async function AdminSyncPage() {
         organizer&rsquo;s front page to hunt.
       </p>
 
-      <CopierPanel source={copierBookmarklet(siteUrl())} />
+      {/*
+        No token, no copier. The address is the only thing keeping this off a
+        public path, so a deployment without one is told rather than quietly
+        handed a bookmark that 404s.
+      */}
+      {copierToken ? (
+        <CopierPanel
+          source={copierBookmarklet(siteUrl(), copierToken)}
+          codeUrl={`${siteUrl().replace(/\/$/, "")}${copierPath(copierToken)}`}
+        />
+      ) : (
+        <p className="mt-4 rounded-lg border border-line bg-elevated p-3 text-sm text-muted">
+          The schedule copier is served under a secret address and this
+          deployment has none. Set <span className="font-mono">COPIER_TOKEN</span>{" "}
+          to a long random string and it appears here.
+        </p>
+      )}
 
       <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">
         Connected ({connected.length})
