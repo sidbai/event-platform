@@ -8,7 +8,7 @@ import { confirmMerge } from "@/features/teams/merge-actions";
 import { ManualMerge } from "@/features/teams/manual-merge";
 import { MergeButton } from "@/features/teams/merge-button";
 import { dismissProposal } from "@/features/teams/dismiss-actions";
-import { ProposalButtons } from "@/features/teams/proposal-buttons";
+import { ProposalRow } from "@/features/teams/proposal-row";
 import {
   duplicateTeamGroups,
   proposedTeamMatches,
@@ -203,9 +203,11 @@ export default async function AdminTeamsPage() {
         <h2 className="text-lg font-semibold">Possible matches</h2>
         <p className="mt-1 text-sm text-muted">
           Same club, same age group, same gender, and most of the name — but
-          spelled differently by two tournaments. Read both names: these are
-          proposals, and a merge cannot be undone. Saying they are different
-          is remembered, so the pair is not offered again.
+          spelled differently by two tournaments. Read both names, and check
+          which one is being kept: the team you keep holds the history and the
+          address, and the other one&rsquo;s name is remembered against it.
+          Saying they are different is remembered too, so the pair is not
+          offered again.
         </p>
 
         {proposals.length === 0 ? (
@@ -213,35 +215,20 @@ export default async function AdminTeamsPage() {
         ) : (
           <ul className="mt-4 divide-y divide-line">
             {proposals.slice(0, 40).map((p) => (
-              <li key={`${p.a.id}-${p.b.id}`} className="py-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm">
-                    <Link href={`/teams/${p.a.slug}`} className="font-medium hover:underline">
-                      {p.a.name}
-                    </Link>
-                    <span className="mx-2 text-muted">and</span>
-                    <Link href={`/teams/${p.b.slug}`} className="font-medium hover:underline">
-                      {p.b.name}
-                    </Link>
-                  </span>
-                  <span className="text-xs text-muted">{p.because}</span>
-                </div>
-
-                {/* What each side would bring, so the choice of survivor is
-                    visible rather than implied. */}
-                <p className="mt-0.5 text-xs text-muted">
-                  {p.a.matches} matches over {p.a.events} event
-                  {p.a.events === 1 ? "" : "s"} · {p.b.matches} matches over{" "}
-                  {p.b.events} event{p.b.events === 1 ? "" : "s"}
-                </p>
-
-                <div className="mt-2">
-                  <ProposalButtons
-                    merge={confirmMerge.bind(null, p.a.id, [p.b.id])}
-                    dismiss={dismissProposal.bind(null, p.a.id, p.b.id)}
-                  />
-                </div>
-              </li>
+              /*
+               * Both directions are bound here rather than sent up from the
+               * browser: the pair an admin is looking at is the pair the
+               * action runs on, and nothing on the page names a team id.
+               */
+              <ProposalRow
+                key={`${p.a.id}-${p.b.id}`}
+                a={p.a}
+                b={p.b}
+                because={p.because}
+                mergeAB={confirmMerge.bind(null, p.a.id, [p.b.id])}
+                mergeBA={confirmMerge.bind(null, p.b.id, [p.a.id])}
+                dismiss={dismissProposal.bind(null, p.a.id, p.b.id)}
+              />
             ))}
           </ul>
         )}
