@@ -38,6 +38,33 @@ function tokens(name: string): string[] {
   return name.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 }
 
+/**
+ * The part of a name that could be a club's, and no further.
+ *
+ * Three things end it, and all three are the same observation: a club's name
+ * does not carry them.
+ *
+ *   - a word with a digit in it, which is an age group or a birth year.
+ *     "MRFC B09/10 Academy" is one club and its under-nines. The first word
+ *     is exempt, because 3RSC is a club.
+ *   - a word already used, from a platform that prints the club twice:
+ *     "Capital FC - Capital FC G15 Pre-ECNL 1".
+ *   - the fourth word, past which a name is describing a coach.
+ *
+ * Cutting here rather than while comparing is what keeps the comparison
+ * simple: what is left is what the names actually claim to be called, and
+ * two of those either agree or they do not.
+ */
+function clubPart(name: string): string[] {
+  const w = words(name);
+  const out: string[] = [];
+  for (const word of w.slice(0, MAX_WORDS)) {
+    if (out.length > 0 && (/\d/.test(word) || out.includes(word))) break;
+    out.push(word);
+  }
+  return out;
+}
+
 type Entry<T> = { team: T; w: string[] };
 
 function by<T>(members: Entry<T>[], depth: number): Map<string, Entry<T>[]> {
@@ -50,31 +77,21 @@ function by<T>(members: Entry<T>[], depth: number): Map<string, Entry<T>[]> {
 }
 
 /**
- * Deciding how many leading words a group of names has in common, and whether
- * that prefix is one club or several.
+ * Deciding how many leading words a group of names has in common.
  *
  * The prefix grows while every name agrees. Where they stop agreeing, the
- * question is what they disagree *about*: thirty-nine MRFC teams differ at the
- * second word because that is where the age group starts, and no two of them
- * share it. "Oregon Surf" and "Oregon Premier" differ at the second word
- * because they are two clubs, and each side of the split is a crowd.
+ * question is whether that is two clubs or one club written down two ways —
+ * and the answer is whether there is a crowd on both sides of it.
  *
- * So: if one of the things they split into is large enough to be a group of
- * its own, they are separate clubs and are taken apart. Otherwise the words
- * they already agree on are the club, and the rest is squad numbering.
+ * "Oregon Surf" and "Oregon Premier" are twenty-nine and twenty-one, so they
+ * are two clubs. "WFC Rangers Boys U13" and "WFC Rangers U15 Boys" are four
+ * and a scattering of ones, so they are one club with untidy names, and the
+ * words they all share are what it is called.
  *
- * Except that squad numbering repeats too — three MRFC teams are "B09/10",
- * three more are "B16/17" — and on size alone that reads as a crowd and
- * splits the club into fragments. A word carrying a digit is an age group or
- * a birth year, never the second word of a club's name, so where the argument
- * is over one of those the club's name has already ended.
- *
- * This errs long: a club fielding twelve ECNL sides and eight Pre-ECNL ones
- * arrives as two groups keyed "…fcecnl" and "…fcpre" rather than one. Both
- * get filed under the same club in two clicks, and the aliases they save are
- * narrower than they could be. That is the cheap direction to be wrong in —
- * a prefix that reaches too far only fails to match next time, while one that
- * does not reach far enough files another club's teams.
+ * A name that simply stops at the prefix — "Chuckanut Tide GU9" where the
+ * others say "Chuckanut Tide FC" — is never a side of a split. It is the
+ * shortest way the club writes itself down, which is evidence that the
+ * prefix is already the whole name.
  */
 function collect<T extends Groupable>(
   members: Entry<T>[],
@@ -91,9 +108,6 @@ function collect<T extends Groupable>(
   let depth = from;
   const agreed = () =>
     members[0].w[depth] !== undefined &&
-    // "Capital FC - Capital FC G15" says it twice; an alias of
-    // "capitalfccapitalfc" matches the group and nothing else ever again.
-    !members[0].w.slice(0, depth).includes(members[0].w[depth]) &&
     members.every((m) => m.w[depth] === members[0].w[depth]);
   while (depth < MAX_WORDS && agreed()) depth++;
 
@@ -104,8 +118,6 @@ function collect<T extends Groupable>(
       teams: members.map((m) => m.team),
     });
   };
-
-  if (depth >= MAX_WORDS) return emit();
 
   const buckets = by(members, depth);
   const split = () => {
@@ -120,20 +132,9 @@ function collect<T extends Groupable>(
   // does not become a group below is a stray the caller lists on its own.
   if (depth === 0) return split();
 
-  // Every name says the same thing here and the prefix still would not take
-  // it — a repeat. There is nothing left to split on.
-  if (buckets.size === 1) return emit();
-
-  const sides = [...buckets].sort((a, b) => b[1].length - a[1].length);
-  // "mrfc" then "b0910": the argument is over which age group, which means
-  // the name ran out a word ago.
-  if (/\d/.test(sides[0][0])) return emit();
-  // A split needs a crowd on both sides. One crowd and a scatter of ones is
-  // a club whose teams are named unevenly — "WFC Rangers Boys U13" beside
-  // "WFC Rangers U15 Boys" — not two clubs.
-  if (sides.filter(([, b]) => b.length >= min).length < 2) return emit();
-
-  split();
+  const crowds = [...buckets].filter(([w, b]) => w !== "" && b.length >= min);
+  if (crowds.length >= 2) return split();
+  emit();
 }
 
 /**
@@ -150,7 +151,7 @@ export function groupUnplaced<T extends Groupable>(
   const groups: UnplacedGroup<T>[] = [];
   const rest: T[] = [];
   collect(
-    teams.map((team) => ({ team, w: words(team.name) })),
+    teams.map((team) => ({ team, w: clubPart(team.name) })),
     0,
     min,
     groups,

@@ -123,6 +123,44 @@ describe("groupUnplaced", () => {
     expect(groups[0].teams).toHaveLength(5);
   });
 
+  it("keeps the club's own short spelling of itself in the group", () => {
+    // Thirty-two say "Sparta Tacoma" and one says "Sparta". They are one
+    // club, and casting the odd one out to the tail helps nobody.
+    const { groups, rest } = groupUnplaced(
+      [
+        "Sparta Tacoma - B14/15 Red EA",
+        "Sparta Tacoma - B14/15 White",
+        "Sparta Tacoma - GU12 Red",
+        "Sparta Tacoma - BU16 Navy",
+        "Sparta G09 Select",
+      ].map(team),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].teams).toHaveLength(5);
+    expect(rest).toEqual([]);
+  });
+
+  it("does not let a name the platform repeats split the club up", () => {
+    /*
+     * AthleteOne exports "Sparta Tacoma - Sparta Tacoma B10/11 Red". On the
+     * words alone that second "Sparta" is a crowd of its own, and it takes
+     * three teams away from the other three.
+     */
+    const { groups } = groupUnplaced(
+      [
+        "Sparta Tacoma - Sparta Tacoma B10/11 Red - EA",
+        "Sparta Tacoma - Sparta Tacoma B10/11 White",
+        "Sparta Tacoma - Sparta Tacoma G12/13 Red",
+        "Sparta Tacoma B16/17 Red",
+        "Sparta Tacoma B16/17 White",
+        "Sparta Tacoma B09/10 Red",
+      ].map(team),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].key).toBe("spartatacoma");
+    expect(groups[0].teams).toHaveLength(6);
+  });
+
   it("stops at four words, where the age group starts", () => {
     const { groups } = groupUnplaced(
       [
