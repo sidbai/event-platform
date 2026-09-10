@@ -1,10 +1,11 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 /**
  * Look inside a HAR export, and pull the responses worth parsing out of it.
  *
  *   pnpm har <file.har>                        # what is in here
+ *   pnpm har <bundle.json> --out=./tmp         # fragments pasted from a console
  *   pnpm har <file.har> --host=athleteone      # narrow it
  *   pnpm har <file.har> --host=athleteone --path=schedules --out=./tmp/ecnl
  *
@@ -37,7 +38,9 @@ async function main() {
     process.exit(1);
   }
 
-  const { readHar, matching, summarise, fileNameFor } = await import("../src/features/sync/har");
+  const { readHar, matching, summarise, fileNameFor, htmlIn } = await import(
+    "../src/features/sync/har"
+  );
 
   let parsed: unknown;
   try {
@@ -48,9 +51,41 @@ async function main() {
   }
 
   const all = readHar(parsed);
+
+  /*
+   * Not a HAR, but JSON with markup in it — what a few lines pasted into the
+   * console produce, and the only route left for a platform that answers us
+   * 403 and whose bulk collection this tool is not permitted to drive.
+   * Handled here rather than as a second command: the question is the same
+   * one, and the answer ends at the same TSV.
+   */
   if (all.length === 0) {
-    console.log("No requests in that file. Is it a HAR?");
-    process.exit(1);
+    const found = htmlIn(parsed);
+    if (found.length === 0) {
+      console.log("No requests and no markup in that file. Is it a HAR, or a bundle of fragments?");
+      process.exit(1);
+    }
+    console.log(`${found.length} fragment(s) of markup in ${file}\n`);
+    for (const f of found) console.log(`  ${kb(f.html.length).padStart(5)}  ${f.label}`);
+
+    const { fragmentsToTsv } = await import("../src/features/sync/athleteone-fragment");
+    const tsv = fragmentsToTsv(found.map((f) => f.html));
+    const lines = tsv.split("\n").length - 1;
+    if (lines === 0) {
+      console.log("\nNone of those look like an AthleteOne schedule table.");
+      process.exit(1);
+    }
+    const to = arg("out");
+    if (to) {
+      mkdirSync(to, { recursive: true });
+      const name = basename(file).replace(/\.[^.]+$/, "") + ".tsv";
+      writeFileSync(join(to, name), tsv, "utf8");
+      console.log(`\n${lines} fixture(s) → ${join(to, name)}`);
+      console.log("Paste that into the event's box on /admin/sync.");
+    } else {
+      console.log(`\n${lines} fixture(s). Pass --out=<dir> to write the TSV.`);
+    }
+    process.exit(0);
   }
 
   const filter = {
