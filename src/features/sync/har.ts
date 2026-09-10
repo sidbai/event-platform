@@ -187,6 +187,34 @@ export function summarise(responses: HarResponse[]): HostSummary[] {
   );
 }
 
+/**
+ * The HTML in any JSON, wherever somebody put it.
+ *
+ * A HAR is one way a browser hands over what it fetched; a few lines pasted
+ * into the console is another, and that one produces whatever shape the
+ * person writing it chose — `{divisions: {BU13: "<table…"}}` today. Rather
+ * than name a schema and have it be wrong next time, this walks the whole
+ * document and takes the strings that look like markup, labelled by where
+ * they were found.
+ *
+ * The label matters: `divisions.BU13` is the age group, and it is the only
+ * place that survives a fragment which does not name itself.
+ */
+export function htmlIn(json: unknown, path: string[] = []): { label: string; html: string }[] {
+  if (typeof json === "string") {
+    return /<t(?:able|body|r)\b/i.test(json)
+      ? [{ label: path.join(".") || "(root)", html: json }]
+      : [];
+  }
+  if (Array.isArray(json)) {
+    return json.flatMap((v, i) => htmlIn(v, [...path, String(i)]));
+  }
+  if (json && typeof json === "object") {
+    return Object.entries(json).flatMap(([k, v]) => htmlIn(v, [...path, k]));
+  }
+  return [];
+}
+
 /** A filename for one response, stable enough to diff two exports. */
 export function fileNameFor(r: HarResponse, index: number): string {
   const tail =

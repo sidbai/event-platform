@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fileNameFor, matching, readHar, summarise } from "./har";
+import { fileNameFor, htmlIn, matching, readHar, summarise } from "./har";
 
 /** A HAR as a browser writes one, trimmed to the fields that are read. */
 function har(
@@ -178,5 +178,38 @@ describe("fileNameFor", () => {
   it("has something to call a response from the root", () => {
     const [r] = readHar(har([{ url: "https://x.test/", mimeType: "application/json" }]));
     expect(fileNameFor(r, 0)).toBe("000-x.test-root.json");
+  });
+});
+
+describe("htmlIn", () => {
+  it("finds markup wherever a console snippet happened to put it", () => {
+    const bundle = {
+      league: "ECNL RL Boys",
+      divisions: { BU13: "<table><tr><td>x</td></tr></table>", BU14: "<table></table>" },
+    };
+    expect(htmlIn(bundle).map((f) => f.label)).toEqual(["divisions.BU13", "divisions.BU14"]);
+  });
+
+  it("keeps the label, because it is the only thing naming the age group", () => {
+    const [first] = htmlIn({ divisions: { "BU18/19": "<table></table>" } });
+    expect(first.label).toBe("divisions.BU18/19");
+  });
+
+  it("walks arrays as readily as objects", () => {
+    expect(htmlIn(["<tbody></tbody>", { a: ["<tr></tr>"] }]).map((f) => f.label)).toEqual([
+      "0",
+      "1.a.0",
+    ]);
+  });
+
+  it("leaves alone the strings that are not markup", () => {
+    // A conference name is not a schedule, and neither is a URL.
+    expect(htmlIn({ conference: "Northwest 2026-27", url: "https://x.test/table" })).toEqual([]);
+  });
+
+  it("has nothing to say about anything else", () => {
+    expect(htmlIn(null)).toEqual([]);
+    expect(htmlIn(42)).toEqual([]);
+    expect(htmlIn({ n: 1, b: true })).toEqual([]);
   });
 });
