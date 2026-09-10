@@ -22,6 +22,7 @@
     "ai:suggest-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/suggest-team-matches.ts",
     "har": "tsx scripts/har.ts",
     "db:clubs:short-name": "NODE_OPTIONS=--conditions=react-server tsx scripts/club-short-name.ts",
+    "db:clubs:alias": "NODE_OPTIONS=--conditions=react-server tsx scripts/club-alias.ts",
     "db:clubs:merge": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-clubs.ts",
     "db:merge:teams": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-duplicate-teams.ts",
     "db:teams:export": "NODE_OPTIONS=--conditions=react-server tsx scripts/export-team-facts.ts",
