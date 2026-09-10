@@ -38,8 +38,17 @@ export type ProviderPolicy = {
   /** What the platform calls itself, for anything a person reads. */
   label: string;
   automatedAccess: AutomatedAccess;
-  /** What robots.txt says about the pages we would read. */
-  robots: "allows" | "disallows" | "not-applicable";
+  /**
+   * What robots.txt says about the pages we would read.
+   *
+   * "silent" is its own state and not a synonym for "allows". A site that
+   * publishes no robots.txt has not permitted anything; it has said nothing,
+   * and the difference is the whole reason to write down which one it was.
+   * Modular11 is silent. Athletes2Events allows. Reading them the same way is
+   * how a decision gets made once and then quietly re-used somewhere it does
+   * not hold.
+   */
+  robots: "allows" | "disallows" | "silent" | "not-applicable";
   /** What was read to decide this, so the next person can check it changed. */
   termsUrl: string | null;
   /** ISO date. A stale decision should look stale. */
@@ -78,6 +87,20 @@ export const PROVIDER_POLICIES = {
     termsUrl: "https://app.athleteone.com/robots.txt",
     reviewedAt: "2026-09-08",
     note: "Also the source behind ECNL's schedules, which is not obvious from the address: theecnl.com loads public.totalglobalsports.com/schedules.min.js, and that script calls api.athleteone.com. Three hops, and only the third is the platform whose robots.txt binds — TGS's own is a permissive Allow, but it serves the widget rather than the data, and api.athleteone.com answers 401 without one at all. app.athleteone.com/robots.txt is a blanket Disallow with only the auth pages allowed, and it names the AI crawlers individually on top of that. The schedule is client-rendered, so reading it without a browser would mean calling their internal API — which the Disallow covers whatever the transport. Their public event pages carry no export of any kind: no CSV, no print, no iCal. Divisions are click handlers rather than links, so there is no address list to hand anybody. A person can still open a page and copy what is on it: the bookmarklet in copier.ts reads the AthleteOne row shape and collects across flights.",
+  },
+  modular11: {
+    label: "Modular11",
+    automatedAccess: "allowed",
+    robots: "silent",
+    /*
+     * There is no robots.txt to point at — /robots.txt is a 404 — so the
+     * address recorded is the endpoint the decision was actually read from.
+     * Saying "we checked" about a document nobody can re-check is not a
+     * record, and this is the closest thing that exists.
+     */
+    termsUrl: "https://www.modular11.com/public_schedule/league/get_matches",
+    reviewedAt: "2026-09-10",
+    note: "The Elite Academy League's schedules. No robots.txt at all (404), no bot protection, and no origin check: a plain request with our own user agent is answered in full. The endpoint's own path is public_schedule, which is what it reads like — the same data the page shows anybody, without the page. Silence is a weaker signal than permission and is recorded as such; if they publish a robots.txt that says otherwise, this becomes 'refused' and the connector stops with it. Twenty-five rows a page and no total anywhere in the response, so the reader pages until a page brings nothing new — twenty-five of nine hundred looks exactly like nine hundred. groups= is plural; group= is accepted, ignored, and quietly returns the whole country.",
   },
   manual: {
     label: "Entered by hand",
