@@ -183,6 +183,7 @@ export function mayPoll(
 const HOSTS: { pattern: RegExp; platform: Platform }[] = [
   { pattern: /(^|\.)athletes2events\.com$/i, platform: "athletes2events" },
   { pattern: /(^|\.)eventconnect\.io$/i, platform: "eventconnect" },
+  { pattern: /(^|\.)modular11\.com$/i, platform: "modular11" },
 ];
 
 export function platformOf(url: string): Platform | null {
