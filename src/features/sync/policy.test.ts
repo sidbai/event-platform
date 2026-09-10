@@ -138,7 +138,9 @@ describe("platformOf", () => {
   });
 
   it("has no opinion about a site nobody has assessed", () => {
-    expect(platformOf("https://system.gotsport.com/events/123")).toBeNull();
+    // GotSport used to be the example here, and is not any more — which is
+    // the point of the table: a host moves out of this case by being read.
+    expect(platformOf("https://www.demosphere.com/events/123")).toBeNull();
     expect(platformOf("not a url")).toBeNull();
   });
 });
@@ -179,5 +181,24 @@ describe("a platform is registered in every place it has to be", () => {
     for (const platform of withConnector) {
       expect(mayPoll(platform).may).toBe(true);
     }
+  });
+});
+
+describe("GotSport", () => {
+  it("is recognised, so an admin is told why their paste became a link", () => {
+    /*
+     * Recognising a platform and having a connector for it are different
+     * questions, and only the first one lets the admin screen say "their
+     * robots.txt refuses crawlers" rather than leaving it indistinguishable
+     * from "we have not built that yet".
+     */
+    expect(platformOf("https://system.gotsport.com/org_event/events/55357")).toBe("gotsport");
+  });
+
+  it("is not pollable, and no environment variable changes that", () => {
+    // Disallow: / is the site saying no in the only way a machine can read.
+    // The override exists for platforms that have not said no.
+    expect(mayPoll("gotsport").may).toBe(false);
+    expect(mayPoll("gotsport", "gotsport").may).toBe(false);
   });
 });

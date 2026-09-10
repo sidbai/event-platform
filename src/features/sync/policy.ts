@@ -114,6 +114,14 @@ export const PROVIDER_POLICIES = {
     reviewedAt: "2026-09-10",
     note: "Washington Youth Soccer's Regional Club League. No robots.txt (404), and the pages are server-rendered and answered in full to a plain request. The site does sit behind Imperva, which is a thing to keep checking rather than to assume stays true: it serves some clients a challenge instead of a page, and ours has not been. Silence is a weaker signal than permission and is recorded as such. Fifty flights across two accepted-teams pages, one page each, so a full read is fifty-two requests spaced a second apart — the reason a season is polled on Mondays rather than hourly.",
   },
+  gotsport: {
+    label: "GotSport",
+    automatedAccess: "refused",
+    robots: "disallows",
+    termsUrl: "https://system.gotsport.com/robots.txt",
+    reviewedAt: "2026-09-10",
+    note: "The Washington Premier League's schedules, and a large share of American youth soccer besides. system.gotsport.com/robots.txt is a bare Disallow: / for every agent — the same refusal EventConnect gives, and it refuses Googlebot with us. Separately, and independently of that, an unauthenticated request to an event page answers 302 to /verify_captchas/new whatever user agent it carries; getting past that means solving a captcha, which is not something this codebase does at any price. Either one on its own settles it. Link only, or the copier: a person opening the page in their own browser is a visitor, and the bookmarklet reads what their browsing already put on screen without making a request of its own.",
+  },
   manual: {
     label: "Entered by hand",
     automatedAccess: "not-applicable",
@@ -197,6 +205,7 @@ const HOSTS: { pattern: RegExp; platform: Platform }[] = [
   { pattern: /(^|\.)eventconnect\.io$/i, platform: "eventconnect" },
   { pattern: /(^|\.)modular11\.com$/i, platform: "modular11" },
   { pattern: /(^|\.)sportsaffinity\.com$/i, platform: "sportsaffinity" },
+  { pattern: /(^|\.)gotsport\.com$/i, platform: "gotsport" },
 ];
 
 export function platformOf(url: string): Platform | null {
