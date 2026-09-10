@@ -1,9 +1,11 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { matches, teamFollows, teams } from "@/db/schema";
+
+import { resultFor } from "./record";
 
 /**
  * Reading who follows what — always in one direction.
@@ -115,6 +117,80 @@ export async function nextGames(teamIds: string[], now = new Date()): Promise<Ne
         kickoffAt: m.kickoffAt,
         eventSlug: m.event.slug,
         eventTitle: m.event.title,
+        opponent: opponent ? { name: opponent.name, slug: opponent.slug } : null,
+      });
+    }
+    if (found.size === wanted.size) break;
+  }
+  return [...found.values()];
+}
+
+export type LastResult = {
+  teamId: string;
+  kickoffAt: Date | null;
+  outcome: "won" | "drawn" | "lost";
+  for: number;
+  against: number;
+  opponent: { name: string; slug: string } | null;
+};
+
+/**
+ * How each of these teams last got on.
+ *
+ * The other half of why this list is worth keeping. A next fixture answers
+ * "when"; on a Sunday evening the question is "how did it go" — and a parent
+ * who was not at the game is exactly the person following the team.
+ *
+ * Played means scored. A fixture whose date has passed with no score is not a
+ * nil-nil, it is a game nobody has entered yet — resultFor already refuses to
+ * read it as anything else, and this only has to not ask about it.
+ */
+export async function lastResults(teamIds: string[], now = new Date()): Promise<LastResult[]> {
+  if (teamIds.length === 0) return [];
+
+  const played = await db.query.matches.findMany({
+    where: and(
+      isNotNull(matches.homeScore),
+      isNotNull(matches.awayScore),
+      isNotNull(matches.kickoffAt),
+      lt(matches.kickoffAt, now),
+      or(inArray(matches.homeTeamId, teamIds), inArray(matches.awayTeamId, teamIds)),
+    ),
+    orderBy: desc(matches.kickoffAt),
+    columns: {
+      kickoffAt: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      homeScore: true,
+      awayScore: true,
+    },
+    with: {
+      homeTeam: { columns: { name: true, slug: true } },
+      awayTeam: { columns: { name: true, slug: true } },
+    },
+  });
+
+  // Newest first already, so the first one seen for a team is its last.
+  const wanted = new Set(teamIds);
+  const found = new Map<string, LastResult>();
+  for (const m of played) {
+    for (const [id, opponent] of [
+      [m.homeTeamId, m.awayTeam],
+      [m.awayTeamId, m.homeTeam],
+    ] as const) {
+      if (!id || !wanted.has(id) || found.has(id)) continue;
+      /*
+       * The one place that decides what a scoreline meant for a side, shared
+       * with the record and the form guide so the three cannot disagree.
+       */
+      const result = resultFor(m, id);
+      if (!result) continue;
+      found.set(id, {
+        teamId: id,
+        kickoffAt: m.kickoffAt,
+        outcome: result.outcome,
+        for: result.for,
+        against: result.against,
         opponent: opponent ? { name: opponent.name, slug: opponent.slug } : null,
       });
     }
