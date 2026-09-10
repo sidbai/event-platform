@@ -214,3 +214,21 @@ export function parseAgeGroupFilter(
     firstBirthYear: seasonYear - u,
   };
 }
+
+/**
+ * Whether two cohorts are the same one.
+ *
+ * Not "share a year". An age group here is a two-year band and every band
+ * overlaps the one above it by exactly a year — U11 is 2015 and 2016, U12 is
+ * 2014 and 2015, U13 is 2013 and 2014 — so "shares a year" is true of every
+ * pair of adjacent age groups a club fields.
+ *
+ * The same set is the same cohort, and one inside the other is too: a club
+ * that names a single-year side, "Seattle Celtic B14", against a band that
+ * contains it is naming a team within that age group rather than a different
+ * one. Two different bands are two different sides.
+ */
+export function sameCohort(a: number[], b: number[]): boolean {
+  const [small, large] = a.length <= b.length ? [a, b] : [b, a];
+  return small.every((y) => large.includes(y));
+}
