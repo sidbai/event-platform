@@ -46,13 +46,23 @@ async function main() {
     `Taking ${plan.teams.length} team(s) back from ${plan.club.name}${dry}\n`,
   );
 
-  const unnamed = plan.teams.filter((t) => !t.restored);
+  /*
+   * Two teams keep their name for opposite reasons, and only one is a
+   * problem. A team already called what it was imported as needs nothing;
+   * a team with no imported name recorded is the one nobody can put right
+   * without looking it up. The first version said both the same way and
+   * then listed all of them as work to do.
+   */
+  const unnamed = plan.teams.filter((t) => !t.restored && !t.imported);
+  const settled = plan.teams.filter((t) => !t.restored && t.imported);
   for (const team of plan.teams) {
     console.log(`  ${team.name}`);
     console.log(
       team.restored
         ? `    → ${team.restored}`
-        : `    → name kept: nothing recorded what it was imported as`,
+        : team.imported
+          ? `    → name kept: already what it was imported as`
+          : `    → name kept: nothing recorded what it was imported as`,
     );
   }
 
@@ -61,9 +71,17 @@ async function main() {
     process.exit(0);
   }
 
+  if (settled.length > 0) {
+    console.log(
+      `\n${settled.length} already carry their own name — the rename never ` +
+        `reached them, and there is nothing to do about those.`,
+    );
+  }
+
   if (unnamed.length > 0) {
     console.log(
-      `\n${unnamed.length} keep a name that still says ${plan.club.name}. ` +
+      `\n${unnamed.length} may still carry ${plan.club.name}'s name and ` +
+        `nothing recorded what they were called. ` +
         `The slug was made before the rename, so it still carries what the ` +
         `team was called — rename each by hand from it:`,
     );
