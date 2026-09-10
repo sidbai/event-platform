@@ -17,6 +17,7 @@ export type Bucket =
   | "invite:send"
   | "message:send"
   | "like:toggle"
+  | "follow:toggle"
   | "view:count";
 
 export type Limit = {
@@ -102,6 +103,13 @@ export const LIMITS: Record<Bucket, Limit> = {
     limit: 300,
     windowSeconds: HOUR,
     message: "That's a lot of likes at once.",
+  },
+  // Looser still. Following is one row and a person has a handful of teams;
+  // this only stops something walking the directory.
+  "follow:toggle": {
+    limit: 200,
+    windowSeconds: HOUR,
+    message: "That's a lot of teams at once.",
   },
 };
 

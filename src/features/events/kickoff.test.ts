@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fieldAnnounced, timeAnnounced } from "./kickoff";
+import { fieldAnnounced, kickoffLabel, timeAnnounced } from "./kickoff";
 
 const PT = "America/Los_Angeles";
 /** Midnight Pacific on 26 September 2026, which is 07:00 UTC. */
@@ -47,5 +47,26 @@ describe("fieldAnnounced", () => {
   it("keeps a real one, trimmed", () => {
     expect(fieldAnnounced(" Field 3 ")).toBe("Field 3");
     expect(fieldAnnounced("Marymoor Park")).toBe("Marymoor Park");
+  });
+});
+
+describe("kickoffLabel", () => {
+  const tz = "America/Los_Angeles";
+
+  it("reads as a person would say it", () => {
+    expect(kickoffLabel(new Date("2026-09-12T16:00:00Z"), tz)).toBe("Sat, Sep 12, 9:00 AM");
+  });
+
+  it("says the time is unknown rather than saying midnight", () => {
+    /*
+     * A league that has published its season but not its grounds leaves the
+     * kick-off at midnight local. "12:00 AM" reads as a fact; it is a gap.
+     */
+    expect(kickoffLabel(new Date("2026-09-12T07:00:00Z"), tz)).toBe("Sat, Sep 12, time TBD");
+  });
+
+  it("has nothing to say without a date", () => {
+    expect(kickoffLabel(null, tz)).toBeNull();
+    expect(kickoffLabel(undefined, tz)).toBeNull();
   });
 });

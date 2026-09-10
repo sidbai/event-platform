@@ -42,3 +42,35 @@ export function fieldAnnounced(field: string | null | undefined): string | null 
   if (text === "" || text === "-" || text === "—" || text === "TBD") return null;
   return text;
 }
+
+/**
+ * A kick-off as a person reads it, or null when there is no date at all.
+ *
+ * "Sat, Sep 12, 9:00 AM", and "Sat, Sep 12, time TBD" where the league has
+ * published its season but not its times — that leaves midnight in the
+ * column, and "12:00 AM" reads as a fact rather than as the gap it is.
+ *
+ * One function because two pages were about to disagree: the team page and
+ * the list of teams somebody follows are the same sentence in two places, and
+ * a fixture that says "12:00 AM" on one of them undoes the care taken on the
+ * other.
+ */
+export function kickoffLabel(
+  kickoffAt: Date | null | undefined,
+  timeZone: string,
+): string | null {
+  if (!kickoffAt) return null;
+  const day = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone,
+  }).format(kickoffAt);
+  if (!timeAnnounced(kickoffAt, timeZone)) return `${day}, time TBD`;
+  const at = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(kickoffAt);
+  return `${day}, ${at}`;
+}

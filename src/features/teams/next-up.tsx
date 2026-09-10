@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { TeamCrest } from "@/components/team-crest";
-import { timeAnnounced } from "@/features/events/kickoff";
+import { kickoffLabel } from "@/features/events/kickoff";
 
 import type { Outcome, Side } from "./preview";
 import type { NextUp } from "./queries";
@@ -78,23 +78,7 @@ export function NextUpPanel({
    * that has published its season but not its times leaves the kick-off at
    * midnight, and "12:00 AM" reads as a fact rather than as the gap it is.
    */
-  const day = fixture.kickoffAt
-    ? new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        timeZone: tz,
-      }).format(fixture.kickoffAt)
-    : null;
-  const when = !day
-    ? null
-    : timeAnnounced(fixture.kickoffAt, tz)
-      ? `${day}, ${new Intl.DateTimeFormat("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          timeZone: tz,
-        }).format(fixture.kickoffAt!)}`
-      : `${day}, time TBD`;
+  const when = kickoffLabel(fixture.kickoffAt, tz);
 
   return (
     <section className="mt-8">

@@ -3,6 +3,9 @@ import { notFound, permanentRedirect } from "next/navigation";
 
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
+import { toggleFollow } from "@/features/teams/follow-actions";
+import { FollowButton } from "@/features/teams/follow-button";
+import { isFollowing } from "@/features/teams/follow-queries";
 import { isAdmin } from "@/features/auth/admin";
 import {
   canManageTeam,
@@ -69,6 +72,9 @@ export default async function TeamPage({
 
   const pending = team ? await pendingEntriesForTeam(team.id) : [];
   if (!team) notFound();
+
+  // Only ever "do I follow this" — see follow-queries.
+  const following = user ? await isFollowing(user.id, team.id) : false;
   // A team someone created as private is members-only; teams auto-created for
   // an event stay open, since public standings link to them.
   if (!(await canViewTeam(team, user?.id ?? null))) notFound();
@@ -182,6 +188,27 @@ export default async function TeamPage({
               .filter(Boolean)
               .join(" · ") || "Youth soccer team"}
           </p>
+        </div>
+
+        {/*
+         * Follow sits with the name rather than at the foot of the page,
+         * because it is the one thing on here a passing parent can do — and
+         * signing in is asked for at the moment somebody wants it, not before.
+         */}
+        <div className="ml-auto self-start">
+          {user ? (
+            <FollowButton
+              following={following}
+              toggle={toggleFollow.bind(null, team.slug)}
+            />
+          ) : (
+            <Link
+              href={`/signin?next=${encodeURIComponent(`/teams/${team.slug}`)}`}
+              className="rounded-md border border-line px-3 py-1.5 text-sm font-medium hover:bg-elevated"
+            >
+              Follow
+            </Link>
+          )}
         </div>
       </header>
 

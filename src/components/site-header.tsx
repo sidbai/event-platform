@@ -119,6 +119,9 @@ export async function SiteHeader() {
                   href: "/messages",
                   label: unread > 0 ? `Messages (${unread})` : "Messages",
                 },
+                // Above the directory-wide Teams link on purpose: this one is
+                // the handful somebody chose, and it is what they came back for.
+                { href: "/following", label: "Following" },
                 { href: "/teams", label: "Teams" },
                 { href: "/settings", label: "Settings" },
               ]}

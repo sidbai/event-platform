@@ -39,6 +39,7 @@ const CAN_DO = [
   {
     who: "As a parent or player",
     items: [
+      "Follow a team, and see when it next plays — yours alone, never counted or shown",
       "Ask and answer in the community, and reply to a discussion",
       "Message another family directly",
       "Write a review under a handle, so people can see your other posts",
