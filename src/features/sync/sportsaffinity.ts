@@ -250,45 +250,103 @@ export function matchesOf(rows: RclRow[], division: string): SyncedMatch[] {
 }
 
 /**
- * One polite request, named so their logs can tell who we are.
+ * What we call ourselves, which is now just ourselves.
  *
- * A browser's user agent, unlike everywhere else in this codebase, and it is
- * worth saying why rather than leaving it to be discovered: the site sits
- * behind Imperva, which serves some clients a challenge instead of a page.
- * Ours is answered in full — but that is a thing to keep checking rather than
- * to assume, and the identifying comment in the string is what a log reader
- * has to go on.
+ * This began "Mozilla/5.0 (compatible; KingJuanSoccerBot/1.0; …)". The
+ * browser prefix was not a lie — the string says who we are and how to reach
+ * us — but it was there to get past the thing in front of the site, and a
+ * string shaped to pass a check is a string written for the check rather than
+ * for the log reader. Dropped, at the cost of being easier to refuse.
+ *
+ * It also has to be true for the other half of this to work: asking Washington
+ * Youth Soccer to let a named reader through is a conversation you can only
+ * have if the name in their logs is the one you are asking about.
  */
-async function get(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (compatible; KingJuanSoccerBot/1.0; +https://kingjuansoccer.com)",
-      accept: "text/html",
-    },
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const html = await res.text();
-  if (isChallenge(html)) throw new Error(`blocked by Imperva: ${url}`);
-  return html;
+const AGENT =
+  "KingJuanSoccerBot/1.0 (+https://kingjuansoccer.com; youth soccer event directory)";
+
+/**
+ * One session, not fifty-two strangers.
+ *
+ * Node's fetch keeps nothing between calls, so every request arrived with no
+ * cookies — which is not what a reader looks like to anything sitting in
+ * front of a site, and is part of why fifty-two of them in seventy-three
+ * seconds ended in a challenge page. Whatever they set, we send back: this is
+ * a plain HTTP client doing what a plain HTTP client does, and nothing here
+ * makes up a value they did not give us.
+ */
+class Session {
+  private jar = new Map<string, string>();
+
+  private take(res: Response) {
+    for (const line of res.headers.getSetCookie()) {
+      const [pair] = line.split(";");
+      const eq = pair.indexOf("=");
+      if (eq > 0) this.jar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+    }
+  }
+
+  private header(): string | undefined {
+    if (this.jar.size === 0) return undefined;
+    return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
+  }
+
+  async get(url: string, want: "flights" | "schedule"): Promise<string> {
+    const cookie = this.header();
+    const res = await fetch(url, {
+      headers: { "user-agent": AGENT, accept: "text/html", ...(cookie ? { cookie } : {}) },
+    });
+    this.take(res);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const html = await res.text();
+    if (!arrived(html, want)) throw new Error(`no ${want} in the page at ${url}`);
+    return html;
+  }
+
+  /**
+   * A refusal is worth waiting out once or twice.
+   *
+   * The block is not absolute — the same fifty-two requests read the whole
+   * league on Tuesday and half of it on Wednesday — so it is a rate somebody
+   * is over rather than a door that is shut. Backing off and asking again is
+   * the polite reading of that, and giving up after three is what stops it
+   * becoming a way of hammering them until they relent.
+   */
+  async patiently(url: string, want: "flights" | "schedule"): Promise<string> {
+    let last: unknown;
+    for (const wait of [0, BACKOFF_MS, BACKOFF_MS * 4]) {
+      if (wait > 0) await pause(wait);
+      try {
+        return await this.get(url, want);
+      } catch (e) {
+        last = e;
+      }
+    }
+    throw last;
+  }
 }
 
 /**
- * The page Imperva serves instead of the one asked for.
+ * Whether the page we asked for is the page that came back.
  *
- * It answers 200 with eighty kilobytes of markup, so nothing about the
- * response says no — and the parser finds no fixtures in it, which is
- * indistinguishable from an age group that has none. That read the boys half
- * of the Regional Club League as empty and deleted three thousand one hundred
- * and twenty-nine fixtures.
+ * Imperva sits in front of this site and sometimes answers with a challenge
+ * instead: 200, eighty kilobytes of markup, nothing in it. The parser finds no
+ * fixtures, which is indistinguishable from an age group that has none — and
+ * that read the boys half of the Regional Club League as empty and deleted
+ * 3,129 fixtures.
  *
- * Checked by name because that is what the page contains and nothing else
- * here does. If they change it, this stops recognising it — which is why the
- * count guard in apply.ts exists as well, and why neither of them is enough
- * on its own.
+ * The first attempt at catching it looked for Imperva's name in the markup.
+ * That is on every page they serve, good or bad, so it condemned all of them.
+ * A blocker cannot be identified by what it looks like; what can be checked is
+ * whether the thing we came for is here. A flight list has links to flights. A
+ * schedule has the class their fixture tables put on a header row.
+ *
+ * A flight with genuinely no fixtures published would fail this too, and that
+ * is the right way round: a loud failure costs a week of staleness, and the
+ * quiet one cost most of a season.
  */
-export function isChallenge(html: string): boolean {
-  return /_?Incapsula|Request unsuccessful\.\s*Incapsula/i.test(html);
+export function arrived(html: string, want: "flights" | "schedule"): boolean {
+  return want === "flights" ? html.includes("accepted_flight.asp") : html.includes("theadb");
 }
 
 /** The tournament id out of any of their public pages. */
@@ -313,8 +371,20 @@ export function parseSportsAffinityUrl(url: string): SourceRef | null {
   }
 }
 
-/** Between requests. Fifty flights is fifty pages; none of them is urgent. */
-const PAUSE_MS = 1000;
+/**
+ * Between requests. Fifty flights is fifty pages; none of them is urgent.
+ *
+ * Raised from one second after a run of fifty-two at that rate came back as a
+ * challenge page. Nothing here needs to be quick — this league is read once a
+ * week, on a Monday morning, and the difference between one minute and four
+ * is invisible to everybody except the server being read.
+ */
+const PAUSE_MS = 2500;
+
+/** After a refusal, before asking again. */
+const BACKOFF_MS = 20_000;
+
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const sportsaffinity: ExternalEventProvider = {
   platform: "sportsaffinity",
@@ -340,9 +410,12 @@ export const sportsaffinity: ExternalEventProvider = {
        * caught by — and carrying on with the other half publishes half a
        * league as the whole of it.
        */
+      const session = new Session();
       const flights: RclFlight[] = [];
       for (const show of ["boys", "girls"] as const) {
-        const found = readFlightList(await get(flightListUrl(ref.eventId, show)));
+        const found = readFlightList(
+          await session.patiently(flightListUrl(ref.eventId, show), "flights"),
+        );
         if (found.length === 0) {
           return {
             ok: false,
@@ -353,11 +426,15 @@ export const sportsaffinity: ExternalEventProvider = {
           };
         }
         flights.push(...found);
-        await new Promise((r) => setTimeout(r, PAUSE_MS));
+        await pause(PAUSE_MS);
       }
 
       for (const flight of flights) {
-        const rows = played(readRclFlight(await get(flightScheduleUrl(ref.eventId, flight.flightguid))));
+        const rows = played(
+          readRclFlight(
+            await session.patiently(flightScheduleUrl(ref.eventId, flight.flightguid), "schedule"),
+          ),
+        );
         /*
          * The age code is the division, because it is the only name the
          * platform gives a flight that is worth reading — the page's own
@@ -365,7 +442,7 @@ export const sportsaffinity: ExternalEventProvider = {
          */
         teams.push(...teamsOf(rows, flight.agecode));
         matches.push(...matchesOf(rows, flight.agecode));
-        await new Promise((r) => setTimeout(r, PAUSE_MS));
+        await pause(PAUSE_MS);
       }
     } catch (e) {
       return {

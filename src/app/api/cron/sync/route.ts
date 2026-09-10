@@ -4,8 +4,19 @@ export const dynamic = "force-dynamic";
 /**
  * Long enough to work through a handful of tournaments, each of which is
  * several page fetches against somebody else's server.
+ *
+ * Raised from sixty when reading a league politely stopped fitting in it. The
+ * Regional Club League is fifty-two pages, and two and a half seconds between
+ * them — which is what a server being read once a week deserves — is over
+ * three minutes on its own. At sixty this timed out every time, silently:
+ * nothing is written until the whole read finishes, so the failure was a
+ * league that simply never refreshed.
+ *
+ * A run that is killed writes nothing, which is the right way round. What it
+ * must not do is get killed so often that the schedule goes stale without
+ * anybody noticing — hence the room.
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * The scheduled refresh of every external listing that has come due.
