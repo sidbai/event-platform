@@ -37,37 +37,21 @@ export async function SiteHeader() {
     // No "Me": signed in, the front page is yours, and the logo is the way to
     // it. A link beside the logo that goes where the logo goes is a second
     // door in the same wall.
-    ...(admin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
+  // Admin sits at the account end of the bar, apart from the sections: it is
+  // not a part of the site, it is the back of it. The phone drawer lists it
+  // with the rest, where there is no "end" to keep it at.
+  const drawerSections = admin ? [...sections, { href: "/admin", label: "Admin" }] : sections;
 
   return (
     <header className="sticky top-0 z-40 bg-header text-header-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] print:hidden">
       {/*
-        Wider than the page underneath it, and deliberately so.
-
-        The bar carries a logo, a search box and six section links; the pages
-        carry prose, and 768px is a reading measure rather than a layout. At
-        768 the search box is squeezed to 171px with 24px of slack in the whole
-        bar. 1024 is the width where it stops being squeezed and the links stop
-        crowding it; past that the extra would be empty space between two
-        groups that are already far apart — and it is also what stops the box
-        below, which takes whatever is going, from running away.
+        The bar and the signed-in front page share one measure (max-w-6xl,
+        px-5), so the logo starts where the page's sidebar does and the
+        account end stops where its feed does — the owner's spec. Logo, then
+        the sections, then search; Admin and the account at the far end.
       */}
-      <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4 sm:px-5">
-        {/*
-          Indented at lg with the search box, so the box starts exactly where a
-          page's own column does and the logo stays beside it.
-
-          The bar is max-w-5xl and a page is max-w-3xl, both centred, so from
-          1024px up the page's text begins a constant (1024 - 768) / 2 = 128px
-          inside the bar's content edge. This is that 128 less the logo's own
-          48 and the 8px flex gap after it. Below 1024 the two containers no
-          longer sit a fixed distance apart — the page is still 768 while the
-          bar is the window — so both go back to the bar's own edge. In the
-          narrow band where a classic scrollbar has taken the bar just under
-          1024 while lg has already fired, the two sit within a few pixels
-          rather than exactly.
-        */}
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-5">
         {/* The drawer's button leads on a phone, as a forum's does; from md
             the sections are inline and it is not needed. */}
         <div className="md:hidden">
@@ -78,12 +62,12 @@ export async function SiteHeader() {
                 last={follows.last}
                 events={follows.events}
                 unread={unread}
-                sections={sections}
+                sections={drawerSections}
               />
             ) : (
               <nav aria-label="Sections" className="text-sm">
                 <ul className="space-y-0.5">
-                  {sections.map((item) => (
+                  {drawerSections.map((item) => (
                     <li key={item.href}>
                       <Link
                         href={item.href}
@@ -106,7 +90,7 @@ export async function SiteHeader() {
         </div>
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2.5 lg:ml-[72px]"
+          className="flex shrink-0 items-center gap-2.5"
         >
           {/* One file for both surfaces now. The old mark was drawn in
               near-black on white, so it needed a knockout version to survive
@@ -121,28 +105,34 @@ export async function SiteHeader() {
             className="h-11 w-11 object-contain sm:h-12 sm:w-12"
           />
         </Link>
-        {/* The box takes whatever the links do not want, rather than stopping
-            at a fixed width — so it reaches from the page's own left margin to
-            a hand's width short of the links. The links collapse into a menu
-            on phones, where four of them plus a search box do not fit at
-            375px. */}
+        {/* The sections beside the logo, as a forum lays its bar out; on a
+            phone they are in the drawer, where five of them plus a search box
+            would not fit at 375px. */}
+        <div className="hidden items-center gap-4 md:ml-3 md:flex">
+          {sections.map((item) => (
+            <Link key={item.href} href={item.href} className={navLink}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+        {/* Then search, taking what is left between the sections and the
+            account end, but capped: a box the width of the feed is a field
+            waiting to be filled, not a way to look something up. */}
         <SearchBar
           suggest={suggestAnything}
-          className="ml-2 min-w-0 flex-1 sm:ml-3 lg:ml-0 lg:mr-6"
+          className="ml-2 min-w-0 flex-1 sm:ml-3 md:ml-4 md:max-w-sm lg:max-w-md"
           action="/search"
           compact
           label="Search events, teams, clubs and community posts"
           placeholder="Search"
         />
 
-        <nav className="flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
-          <div className="hidden items-center gap-4 md:flex">
-            {sections.map((item) => (
-              <Link key={item.href} href={item.href} className={navLink}>
-                {item.label}
-              </Link>
-            ))}
-          </div>
+        <nav className="ml-auto flex items-center gap-2 text-[13px] sm:gap-4 sm:text-sm">
+          {admin && (
+            <Link href="/admin" className={`hidden md:inline ${navLink}`}>
+              Admin
+            </Link>
+          )}
           {user ? (
             <ProfileMenu
               name={publicName(user)}
