@@ -24,12 +24,20 @@ export async function isFollowing(userId: string, teamId: string): Promise<boole
   return row !== undefined;
 }
 
+/**
+ * Shaped for crestOf, which is the only thing that knows which image stands
+ * for a team: its own where it has one, its club's otherwise. Nearly every
+ * team here was made by an import and has no crest, and the club almost
+ * always does — reading team.crestUrl alone put a grey square beside Seattle
+ * Celtic on somebody's own page while Warriors, which happens to have one of
+ * its own, looked fine.
+ */
 export type FollowedTeam = {
   id: string;
   slug: string;
   name: string;
   crestUrl: string | null;
-  clubName: string | null;
+  club: { name: string; crestUrl: string | null } | null;
 };
 
 /** The teams this person follows, most recently followed first. */
@@ -52,14 +60,20 @@ export async function followedTeams(userId: string): Promise<FollowedTeam[]> {
       rows.map((r) => r.teamId),
     ),
     columns: { id: true, slug: true, name: true, crestUrl: true },
-    with: { club: { columns: { name: true } } },
+    with: { club: { columns: { name: true, crestUrl: true } } },
   });
   const byId = new Map(found.map((t) => [t.id, t]));
 
   return rows.flatMap((r) => {
     const team = byId.get(r.teamId);
     return team
-      ? [{ ...team, crestUrl: team.crestUrl ?? null, clubName: team.club?.name ?? null }]
+      ? [{
+          id: team.id,
+          slug: team.slug,
+          name: team.name,
+          crestUrl: team.crestUrl ?? null,
+          club: team.club ? { name: team.club.name, crestUrl: team.club.crestUrl } : null,
+        }]
       : [];
   });
 }
