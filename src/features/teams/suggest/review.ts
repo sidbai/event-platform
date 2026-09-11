@@ -46,6 +46,24 @@ export type ReviewOutcome = {
   unsure: number;
   /** Rows written to the queue: the "same" verdicts that were not already there. */
   written: number;
+  /**
+   * Every "same" verdict with the names it is about, so a run can be read
+   * before it is believed.
+   *
+   * Populated on a dry run and on a real one alike: the queue shows the same
+   * thing afterwards, but the first pass of a model over a whole backlog is
+   * the one worth looking at in a terminal before it lands anywhere.
+   */
+  proposed: { a: string; b: string; why: string }[];
+  /**
+   * Every verdict, including the refusals, on a dry run.
+   *
+   * A run that reports "40 of 41 are two teams" and shows only the one it
+   * agreed with cannot be judged: a model that answers "different" to
+   * everything scores exactly the same. The refusals are where a prompt goes
+   * wrong, so they are the half worth reading.
+   */
+  verdicts: { a: string; b: string; verdict: string; why: string }[];
   skipped?: string;
   stoppedEarly?: string;
 };
@@ -59,9 +77,11 @@ function chunk<T>(list: T[], size: number): T[][] {
 }
 
 export async function reviewProposals(
-  options: { limit?: number } = {},
+  options: { limit?: number; dryRun?: boolean } = {},
 ): Promise<ReviewOutcome> {
-  const empty = { reviewed: 0, same: 0, different: 0, unsure: 0, written: 0 };
+  const empty = {
+    reviewed: 0, same: 0, different: 0, unsure: 0, written: 0, proposed: [], verdicts: [],
+  };
   if (!process.env.AI_GATEWAY_API_KEY) {
     return { ...empty, skipped: "AI_GATEWAY_API_KEY is not set." };
   }
@@ -163,12 +183,22 @@ export async function reviewProposals(
   }
 
   let written = 0;
+  const proposed: ReviewOutcome["proposed"] = [];
+  const readable: ReviewOutcome["verdicts"] = verdicts.flatMap((v) => {
+    const p = held.get(v.key);
+    return p ? [{ a: p.a.name, b: p.b.name, verdict: v.verdict, why: v.why }] : [];
+  });
+
   for (const v of verdicts) {
     if (v.verdict !== "same") continue;
     const proposal = held.get(v.key);
     if (!proposal) continue;
 
     const { thin, thick } = mergeDirection(proposal.a, proposal.b);
+    proposed.push({ a: thin.name, b: thick.name, why: v.why });
+
+    // A dry run asks the same questions and answers to the terminal instead.
+    if (options.dryRun) continue;
 
     await db
       .insert(teamMatchSuggestions)
@@ -186,6 +216,8 @@ export async function reviewProposals(
   }
 
   return {
+    proposed,
+    verdicts: options.dryRun ? readable : [],
     reviewed,
     same: verdicts.filter((v) => v.verdict === "same").length,
     different: verdicts.filter((v) => v.verdict === "different").length,
