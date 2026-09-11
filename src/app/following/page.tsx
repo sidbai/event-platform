@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { kickoffLabel } from "@/features/events/kickoff";
-import { followedTeams, nextGames } from "@/features/teams/follow-queries";
+import { followedTeams, lastResults, nextGames } from "@/features/teams/follow-queries";
 
 export const metadata: Metadata = { title: "Following" };
 export const dynamic = "force-dynamic";
@@ -16,6 +16,19 @@ export const dynamic = "force-dynamic";
  * another zone, this is the line that has to read it per fixture.
  */
 const TZ = "America/Los_Angeles";
+
+const WORD = { won: "Won", drawn: "Drew", lost: "Lost" } as const;
+
+/*
+ * Colour carries none of the meaning — the word does. A parent reading this
+ * on a phone in sunlight, or with any of the several kinds of colour
+ * blindness, gets the same sentence either way.
+ */
+const OUTCOME = {
+  won: "font-medium text-emerald-700 dark:text-emerald-400",
+  drawn: "font-medium text-ink",
+  lost: "font-medium text-ink",
+} as const;
 
 /**
  * The teams you follow, and when they next play.
@@ -33,7 +46,11 @@ export default async function FollowingPage() {
   if (!user) redirect(`/signin?next=${encodeURIComponent("/following")}`);
 
   const teams = await followedTeams(user.id);
-  const next = new Map((await nextGames(teams.map((t) => t.id))).map((g) => [g.teamId, g]));
+  const ids = teams.map((t) => t.id);
+  const [next, last] = await Promise.all([
+    nextGames(ids).then((rows) => new Map(rows.map((g) => [g.teamId, g]))),
+    lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
+  ]);
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
@@ -56,6 +73,7 @@ export default async function FollowingPage() {
         <ul className="mt-6 divide-y divide-line">
           {teams.map((team) => {
             const game = next.get(team.id);
+            const result = last.get(team.id);
             return (
               <li key={team.id} className="flex items-center gap-3 py-4">
                 <TeamCrest src={team.crestUrl} size={40} />
@@ -90,6 +108,34 @@ export default async function FollowingPage() {
                     </p>
                   ) : (
                     <p className="text-sm text-muted">No fixture scheduled yet</p>
+                  )}
+
+                  {/*
+                    Under the next game rather than instead of it: on a Sunday
+                    evening both are the question. Said as a word before a
+                    scoreline, because "Lost 0–2" is read at a glance and
+                    "0–2" has to be worked out from which side you are on.
+                  */}
+                  {result && (
+                    <p className="text-sm text-muted">
+                      <span className={OUTCOME[result.outcome]}>
+                        {WORD[result.outcome]} {result.for}&ndash;{result.against}
+                      </span>
+                      {result.opponent && (
+                        <>
+                          {" v "}
+                          <Link
+                            href={`/teams/${result.opponent.slug}`}
+                            className="hover:underline"
+                          >
+                            {result.opponent.name}
+                          </Link>
+                        </>
+                      )}
+                      {result.kickoffAt && (
+                        <> &middot; {kickoffLabel(result.kickoffAt, TZ)?.split(",")[1]?.trim()}</>
+                      )}
+                    </p>
                   )}
                 </div>
               </li>
