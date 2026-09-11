@@ -1,23 +1,32 @@
 import type { ClubProfile } from "./profile";
 
 /**
- * Throwing away everything the pages did not actually say.
+ * Throwing away anything the pages did not actually say.
  *
- * The first run of this read Atletico Futbol Club's home page — a mission
- * statement, a jamboree flyer and four nav links — and recorded that the club
- * runs "MLS NEXT" and "Elite Academy" tiers. Neither phrase appears anywhere
- * on the page. Nothing in the prompt was ambiguous; the model simply knew
- * something about a club with that name and answered from that.
+ * A profile is a claim about what a document says, and that is the rare kind
+ * of generated claim a machine can check for itself — for free, without a
+ * second model, without a person. So it is checked, before the entry can go
+ * on to argue about merges under the authority of "their own website says so".
  *
- * That entry would have gone on to argue about merges under the authority of
- * "their own website says so", which is worse than having no knowledge base
- * at all. Asking the model more firmly is not a fix — the fix is that a claim
- * about what a page says is checkable against the page, deterministically,
- * here, for free.
+ * A caution about this file's own history, because it is the useful part.
+ * It was written after a run appeared to invent two tiers for Atletico
+ * Futbol Club. It had not: their page says "MLS NEXT | Elite Academy" on one
+ * line, and the reading that called it a fabrication had only looked at the
+ * first 1,500 characters. Both faults that followed were in the checker, not
+ * in what it checked — a version that only asked whether each word appeared
+ * somewhere, and a version that stripped short words from the middle of a
+ * phrase and so reported Crossfire's own "Crossfire Jr Teams" as unsourced.
  *
- * What cannot be checked this way is dropped to "unknown" rather than
- * trusted: `colours: "mixed"` is a judgement rather than a quotation, so it
- * survives only if the pages contain a colour at all.
+ * That is the shape to expect. A guard over generated text is itself
+ * generated, gets no review from the thing it is guarding, and its failures
+ * are quiet in both directions: waving through what it should catch, and
+ * condemning what is on the page. Hence `dropped` is reported rather than
+ * swallowed, and `pnpm clubs:verify` re-runs the whole check against the
+ * cached pages so a change to these rules is measured and not assumed.
+ *
+ * What cannot be checked by quotation is not trusted: `colours: "mixed"` is a
+ * judgement, not a phrase, so it survives only if the pages name a colour at
+ * all.
  */
 
 /** Matching is loose on purpose: "Elite Academy (EA)" against "elite academy". */
@@ -31,29 +40,37 @@ function flatten(value: string): string {
 }
 
 /**
- * Is this phrase in the evidence?
+ * Is this phrase in the evidence, as a phrase?
  *
- * Every word of it has to appear, as a word — so "NPL" is not found inside
- * "NPLayers", which a substring check happily does.
+ * The words have to appear **together, in order, on one line**. An earlier
+ * version only asked whether each word appeared somewhere, and that is not a
+ * check at all: Atletico's page happens to contain "mls" and it happens to
+ * contain "next", so the invented tier "MLS NEXT" walked straight through the
+ * guard written to stop it. Two words scattered across a 2,000-word page are
+ * not a phrase.
  *
- * Words of one or two letters are not required, because a club writes
- * "Elite Academy (EA)" and the pages that describe it say "elite academy".
- * Demanding the parenthetical too rejected the thing we came for. Where the
- * whole phrase is short — "A", "B", "II", which are real squad markers — the
- * phrase itself must appear as a word.
+ * The phrase is tried whole first. A one- or two-letter token is dropped only
+ * from the *ends*, because a club writes "Elite Academy (EA)" and the page
+ * describing it says "elite academy" — while an interior short word is part
+ * of the phrase and removing it invents a different one. Dropping short words
+ * everywhere turned "Crossfire Jr Teams", which is on their page word for
+ * word, into "crossfire teams", which is not, and reported the club's own
+ * programme as something nobody had written down.
  *
- * Adjacency is not required: a page saying "elite" in one line and "academy"
- * in another counts. That is the deliberate loose end, and it is the right
- * way round — this check exists to catch a club being described from memory,
- * where none of the words appear at all.
+ * Per line rather than per page, because flattening turns every line break
+ * into a space and a menu item ending in "Elite" above one starting with
+ * "Academy" is not a club that runs an Elite Academy.
  */
-export function grounded(haystack: string, phrase: string): boolean {
-  const needle = flatten(phrase);
-  if (!needle) return false;
-  const words = new Set(haystack.split(" "));
-  const wanted = needle.split(" ").filter((w) => w.length >= 3);
-  if (wanted.length === 0) return needle.split(" ").every((w) => words.has(w));
-  return wanted.every((w) => words.has(w));
+export function grounded(lines: readonly string[], phrase: string): boolean {
+  const whole = flatten(phrase);
+  if (!whole) return false;
+
+  const words = whole.split(" ");
+  while (words.length > 1 && words[0].length <= 2) words.shift();
+  while (words.length > 1 && words[words.length - 1].length <= 2) words.pop();
+
+  const has = (needle: string) => lines.some((line) => ` ${line} `.includes(` ${needle} `));
+  return has(whole) || has(words.join(" "));
 }
 
 const COLOUR =
@@ -73,8 +90,8 @@ export function ground(
   profile: ClubProfile,
   pages: { text: string }[],
 ): { profile: ClubProfile; dropped: string[] } {
-  const evidence = flatten(pages.map((p) => p.text).join("\n"));
   const raw = pages.map((p) => p.text).join("\n");
+  const evidence = raw.split("\n").map(flatten).filter(Boolean);
   const dropped: string[] = [];
 
   const keep = (values: string[], label: string) =>

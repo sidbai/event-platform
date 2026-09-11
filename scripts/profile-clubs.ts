@@ -128,13 +128,11 @@ async function main() {
     }
 
     /*
-     * Everything the pages did not actually say is thrown away here.
-     *
-     * The first run of this recorded that Atletico Futbol Club runs "MLS
-     * NEXT" and "Elite Academy" tiers, from a home page that is a mission
-     * statement and a jamboree flyer. Neither phrase is on it. An entry like
-     * that would have gone on to argue about merges under the authority of
-     * "their own website says so", which is worse than knowing nothing.
+     * Anything the pages did not actually say is thrown away here — a profile
+     * is a claim about a document, which is the rare generated claim that can
+     * be checked against the document for free. What it drops is printed
+     * below rather than swallowed, because the check has been wrong in both
+     * directions before and a silent one cannot be caught.
      */
     const { profile, dropped } = ground(
       parseProfile(text, {

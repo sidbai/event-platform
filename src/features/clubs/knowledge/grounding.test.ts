@@ -11,39 +11,59 @@ const base: ClubProfile = {
 };
 
 describe("grounded", () => {
+  const lines = (...rows: string[]) => rows;
+
   it("ignores case, punctuation and spacing", () => {
-    expect(grounded("we run an elite academy for boys", "Elite Academy (EA)")).toBe(true);
+    expect(grounded(lines("we run an elite academy for boys"), "Elite Academy (EA)")).toBe(true);
   });
 
   it("is false for a phrase nobody wrote", () => {
-    expect(grounded("our story where dreams are enabled", "MLS NEXT")).toBe(false);
+    expect(grounded(lines("our story where dreams are enabled"), "MLS NEXT")).toBe(false);
+  });
+
+  /*
+   * The failure this check was rewritten for. Atletico's page contains "mls"
+   * and contains "next"; it does not contain "MLS NEXT". Asking only whether
+   * each word appears somewhere let the invented tier through the guard that
+   * existed to stop it.
+   */
+  it("refuses two words that appear apart rather than together", () => {
+    expect(grounded(lines("mls watch party", "next tryout is sunday"), "MLS NEXT")).toBe(false);
+    expect(grounded(lines("we play in mls next this season"), "MLS NEXT")).toBe(true);
+  });
+
+  it("refuses a phrase straddling two lines", () => {
+    expect(grounded(lines("Elite", "Academy"), "Elite Academy")).toBe(false);
+  });
+
+  it("keeps a short word in the middle of a phrase", () => {
+    // "Crossfire Jr Teams" is on their page word for word. Stripping every
+    // short word turned it into "crossfire teams", which is not.
+    expect(grounded(lines("crossfire jr teams"), "Crossfire Jr Teams")).toBe(true);
+    expect(grounded(lines("crossfire premier teams"), "Crossfire Jr Teams")).toBe(false);
   });
 
   it("does not find a short word inside a longer one", () => {
-    expect(grounded("our nplayers train weekly", "NPL")).toBe(false);
+    expect(grounded(lines("our nplayers train weekly"), "NPL")).toBe(false);
   });
 
   it("is false for an empty phrase", () => {
-    expect(grounded("anything at all", "   ")).toBe(false);
+    expect(grounded(lines("anything at all"), "   ")).toBe(false);
   });
 });
 
 describe("ground", () => {
-  /*
-   * The case this exists for, kept verbatim: Atletico's home page is a
-   * mission statement and a jamboree flyer, and the first run recorded two
-   * tiers from it that appear nowhere on the page.
-   */
-  const atletico = [
+  /* A page that describes a club without ever stating how it is organised. */
+  const thin = [
     {
-      text: 'Atlético "Where dreams are enabled" for all. FREE 4v4 Futbol for Kids. Kickoff Jamboree - Nov 9. Our Programs. Our Coaches. Financial Assistance.',
+      text: 'Atlético "Where dreams are enabled" for all.\nFREE 4v4 Futbol for Kids.\nKickoff Jamboree - Nov 9.\nOur Programs.\nOur Coaches.\nFinancial Assistance.',
     },
   ];
 
   it("drops tiers the page never mentions, and the summary that rested on them", () => {
     const { profile, dropped } = ground(
-      { ...base, tiers: ["MLS NEXT", "Elite Academy"], summary: "Atletico runs MLS NEXT." },
-      atletico,
+      { ...base, tiers: ["MLS NEXT", "Elite Academy"], summary: "This club runs MLS NEXT." },
+      thin,
     );
     expect(profile.tiers).toEqual([]);
     expect(profile.summary).toBe("");
@@ -76,7 +96,7 @@ describe("ground", () => {
   });
 
   it("refuses a colour rule when the pages contain no colour", () => {
-    const { profile } = ground({ ...base, colours: "mixed" }, atletico);
+    const { profile } = ground({ ...base, colours: "mixed" }, thin);
     expect(profile.colours).toBe("unknown");
   });
 
@@ -88,7 +108,7 @@ describe("ground", () => {
   });
 
   it("refuses an age-band reading when no page writes an age", () => {
-    expect(ground({ ...base, ageBands: "two-year" }, atletico).profile.ageBands).toBe("unknown");
+    expect(ground({ ...base, ageBands: "two-year" }, thin).profile.ageBands).toBe("unknown");
     expect(
       ground({ ...base, ageBands: "two-year" }, [{ text: "B13/14 and G11 squads" }]).profile
         .ageBands,

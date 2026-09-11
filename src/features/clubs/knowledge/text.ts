@@ -70,6 +70,42 @@ export function readable(html: string, limit = 8000): string {
 }
 
 /**
+ * The same pages with each club's navigation said once.
+ *
+ * `readable` drops a line that repeats itself, which handles a menu rendered
+ * twice in one document. It cannot see across pages, and a club site puts the
+ * whole menu on every page — so Western WA Surf's thirteen pages carried
+ * thirteen copies of ACADEMY OVERVIEW / PREMIER / JOIN A TEAM, and two thirds
+ * of a 67KB read was furniture.
+ *
+ * A line kept once is still evidence: grounding only ever asks whether a
+ * phrase appears somewhere, and a reader only needs to be told once. What is
+ * cut is the repetition, which costs tokens and buries the six lines per club
+ * that actually say something.
+ *
+ * The first page keeps everything. It is the only page some clubs have, and
+ * on a site with one page there is no repetition to find.
+ */
+export function withoutRepeatedFurniture(
+  pages: { url: string; text: string }[],
+): { url: string; text: string }[] {
+  const seen = new Set<string>();
+  return pages.map((page, index) => {
+    const lines = page.text.split("\n");
+    if (index === 0) {
+      for (const line of lines) seen.add(line);
+      return page;
+    }
+    const kept = lines.filter((line) => {
+      if (seen.has(line)) return false;
+      seen.add(line);
+      return true;
+    });
+    return { ...page, text: kept.join("\n") };
+  });
+}
+
+/**
  * Lines that mention how the club is organised, for when a page is mostly nav.
  *
  * Used to decide whether a fetched page said anything: a Squarespace page

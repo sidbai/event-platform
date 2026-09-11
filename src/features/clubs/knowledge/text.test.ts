@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readable, tellsUsSomething } from "./text";
+import { readable, tellsUsSomething, withoutRepeatedFurniture } from "./text";
 
 describe("readable", () => {
   it("drops script and style, keeps the prose", () => {
@@ -39,5 +39,35 @@ describe("tellsUsSomething", () => {
     expect(
       tellsUsSomething("B13 Elite\nG14 Premier\nU12 Select\nHead Coach Ana Ruiz"),
     ).toBe(true);
+  });
+});
+
+describe("withoutRepeatedFurniture", () => {
+  const page = (url: string, text: string) => ({ url, text });
+
+  it("says a club's menu once", () => {
+    const out = withoutRepeatedFurniture([
+      page("/a", "ACADEMY\nPREMIER\nOur academy runs U8 to U12."),
+      page("/b", "ACADEMY\nPREMIER\nPremier plays RCL."),
+    ]);
+    expect(out[1].text).toBe("Premier plays RCL.");
+  });
+
+  it("keeps the first page whole", () => {
+    const out = withoutRepeatedFurniture([page("/a", "ACADEMY\nACADEMY")]);
+    expect(out[0].text).toBe("ACADEMY\nACADEMY");
+  });
+
+  it("keeps a line that is only repeated within one later page", () => {
+    // Deduplication is across pages; a genuine repeat inside one page was
+    // already handled when the page was read.
+    const out = withoutRepeatedFurniture([page("/a", "Home"), page("/b", "B13 Red\nB13 Red")]);
+    expect(out[1].text).toBe("B13 Red");
+  });
+
+  it("leaves a single page alone", () => {
+    const out = withoutRepeatedFurniture([page("/a", "Anything at all")]);
+    expect(out).toHaveLength(1);
+    expect(out[0].text).toBe("Anything at all");
   });
 });
