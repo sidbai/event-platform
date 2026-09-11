@@ -8,5 +8,5 @@ import { permanentRedirect } from "next/navigation";
  * own. Permanent, because it is not coming back.
  */
 export default function FollowingPage() {
-  permanentRedirect("/me");
+  permanentRedirect("/");
 }

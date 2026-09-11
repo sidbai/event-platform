@@ -40,7 +40,7 @@ export async function myFeedToken(): Promise<string | null> {
 
   const token = mint();
   await db.update(users).set({ feedToken: token }).where(eq(users.id, user.id));
-  revalidatePath("/me");
+  revalidatePath("/");
   return token;
 }
 
@@ -57,6 +57,6 @@ export async function rotateFeedToken(): Promise<string | null> {
 
   const token = mint();
   await db.update(users).set({ feedToken: token }).where(eq(users.id, user.id));
-  revalidatePath("/me");
+  revalidatePath("/");
   return token;
 }
