@@ -50,6 +50,8 @@ async function main() {
   const { eq } = await import("drizzle-orm");
   const { htmlIn } = await import("../src/features/sync/har");
   const { fragmentsToTsv, readFragment } = await import("../src/features/sync/fragments");
+  const { logosIn } = await import("../src/features/sync/bundle-logos");
+  const { applyBundleLogos } = await import("../src/features/sync/team-logos");
   const { applyPastedText } = await import("../src/features/sync/import-text");
 
   const event = await db.query.events.findFirst({
@@ -64,6 +66,8 @@ async function main() {
   const raw = readFileSync(file, "utf8");
   let tsv: string;
   let source: string;
+  // The badges the bookmark collected for the leagues being imported.
+  const logos = new Map<string, string>();
 
   if (raw.trimStart().startsWith("{") || raw.trimStart().startsWith("[")) {
     const wanted = arg("league")?.toLowerCase();
@@ -88,6 +92,11 @@ async function main() {
     for (const f of found) {
       console.log(`  ${f.label}  ${readFragment(f.html).length} fixture(s)`);
     }
+    const leagues = new Set(found.map((f) => f.label.split(".")[0]));
+    for (const [league, byName] of logosIn(JSON.parse(raw))) {
+      if (leagues.has(league)) for (const [name, url] of byName) logos.set(name, url);
+    }
+    if (logos.size > 0) console.log(`  ${logos.size} team badge(s) in the bundle`);
     tsv = fragmentsToTsv(found.map((f) => f.html));
     source = `${found.length} fragment(s)`;
   } else {
@@ -124,6 +133,17 @@ async function main() {
     process.exit(1);
   }
   console.log(`\n${out.detail ?? "Done."}`);
+
+  /*
+   * After the fixtures, so the entries exist to match the badges against.
+   * Only teams with no crest take one; the owner's uploads stay.
+   */
+  if (logos.size > 0) {
+    const badges = await applyBundleLogos(event.id, logos);
+    console.log(
+      `Badges: ${badges.set} set, ${badges.kept} already had a crest, ${badges.unmatched} not in this event, ${badges.refused} not usable.`,
+    );
+  }
   process.exit(0);
 }
 

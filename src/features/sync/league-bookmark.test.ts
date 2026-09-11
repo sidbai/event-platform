@@ -34,6 +34,8 @@ describe("the weekly bookmark", () => {
   it("fits in a bookmark", () => {
     const url = leagueFetchBookmarklet();
     expect(url.startsWith("javascript:")).toBe(true);
-    expect(url.length).toBeLessThan(8000);
+    // Chrome and Safari take a bookmark URL well past 64K; this is a leash,
+    // not a limit, so a stray hundred kilobytes of pasted HTML is noticed.
+    expect(url.length).toBeLessThan(16_000);
   });
 });
