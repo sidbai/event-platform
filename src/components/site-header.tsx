@@ -4,6 +4,8 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { Avatar, avatarOf } from "@/components/avatar";
 import { NavMenu } from "@/components/nav-menu";
+import { followsOf } from "@/features/me/follows";
+import { MeSidebar } from "@/features/me/sidebar";
 import { ProfileMenu } from "@/components/profile-menu";
 import { SearchBar } from "@/components/search-bar";
 import { suggestAnything } from "@/features/search/suggest-actions";
@@ -20,6 +22,9 @@ export async function SiteHeader() {
   // With no email yet, this badge is the whole notification story — without it
   // a message would arrive somewhere nobody is looking.
   const unread = user ? await unreadCount(user.id) : 0;
+  // The drawer on a phone carries what you follow; read once per request,
+  // so the front page does not pay for it twice.
+  const follows = user ? await followsOf(user.id) : null;
 
   // Order is the editor's, not alphabetical or by age: News leads, then the
   // two things people come back for, then the directory they arrive through.
@@ -63,6 +68,42 @@ export async function SiteHeader() {
           1024 while lg has already fired, the two sit within a few pixels
           rather than exactly.
         */}
+        {/* The drawer's button leads on a phone, as a forum's does; from md
+            the sections are inline and it is not needed. */}
+        <div className="md:hidden">
+          <NavMenu>
+            {user && follows ? (
+              <MeSidebar
+                teams={follows.teams}
+                last={follows.last}
+                events={follows.events}
+                unread={unread}
+                sections={sections}
+              />
+            ) : (
+              <nav aria-label="Sections" className="text-sm">
+                <ul className="space-y-0.5">
+                  {sections.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="block rounded-lg px-2.5 py-1.5 hover:bg-elevated"
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/signin"
+                  className="mt-6 block rounded-lg bg-brand px-3 py-2 text-center font-medium text-on-brand hover:bg-brand-strong"
+                >
+                  Sign in
+                </Link>
+              </nav>
+            )}
+          </NavMenu>
+        </div>
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2.5 lg:ml-[72px]"
@@ -101,9 +142,6 @@ export async function SiteHeader() {
                 {item.label}
               </Link>
             ))}
-          </div>
-          <div className="md:hidden">
-            <NavMenu items={sections} />
           </div>
           {user ? (
             <ProfileMenu

@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import type { getCurrentUser } from "@/features/auth";
-import { followedEvents } from "@/features/events/follow-queries";
 import { myWeek } from "@/features/events/my-week";
 import { MyWeekGrid } from "@/features/events/my-week-grid";
 import { weekStart } from "@/features/events/week";
@@ -10,11 +9,11 @@ import { CalendarLink } from "@/features/me/calendar-link";
 import { FeedList } from "@/features/me/feed-list";
 import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { NextCard } from "@/features/me/next-card";
+import { followsOf } from "@/features/me/follows";
 import { waitingOn, written, type Written } from "@/features/me/queries";
 import { MeSidebar } from "@/features/me/sidebar";
 import { whatsNext } from "@/features/me/whats-next";
 import { unreadCount } from "@/features/messages/queries";
-import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 import { siteUrl } from "@/lib/site-url";
 
 type User = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
@@ -53,25 +52,22 @@ export async function MeHome({ user, weekParam }: { user: User; weekParam?: stri
   const now = new Date();
   const monday = /^\d{4}-\d{2}-\d{2}$/.test(weekParam ?? "") ? weekParam! : weekStart(now);
 
-  const teams = await followedTeams(user.id);
+  const { teams, last, events } = await followsOf(user.id);
   const ids = teams.map((t) => t.id);
-  const [week, waiting, mine, next, last, events, feed, unread] = await Promise.all([
+  const [week, waiting, mine, next, feed, unread] = await Promise.all([
     myWeek(user.id, monday),
     waitingOn(user.id),
     written(user.id),
     whatsNext(user.id, ids),
-    lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
-    followedEvents(user.id),
     homeFeed(FEED_SIZE),
     unreadCount(user.id),
   ]);
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col px-5 py-8 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
-      {/* Under the feed on a phone, beside it from lg: the things you follow
-          are worth a column when there is room for one and a footer when
-          there is not. */}
-      <aside className="order-last mt-10 lg:order-first lg:mt-0">
+      {/* Beside the feed from lg. On a phone the same lists live in the
+          header's drawer, so the column is not repeated under the feed. */}
+      <aside className="hidden lg:block">
         <div className="lg:sticky lg:top-20">
           <MeSidebar teams={teams} last={last} events={events} unread={unread} />
         </div>

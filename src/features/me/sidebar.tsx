@@ -40,11 +40,17 @@ export function MeSidebar({
   last,
   events,
   unread,
+  sections,
 }: {
   teams: Team[];
   last: Map<string, Result>;
   events: FollowedEvent[];
   unread: number;
+  /**
+   * The site's own sections, for the phone drawer, where this is the whole
+   * menu. Beside the feed on a desktop the header already has them.
+   */
+  sections?: { href: string; label: string }[];
 }) {
   const item = "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-elevated";
   return (
@@ -76,6 +82,23 @@ export function MeSidebar({
           </Link>
         </li>
       </ul>
+
+      {sections && sections.length > 0 && (
+        <>
+          <h2 className="mt-6 px-2.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            Explore
+          </h2>
+          <ul className="mt-2 space-y-0.5">
+            {sections.map((s) => (
+              <li key={s.href}>
+                <Link href={s.href} className={item}>
+                  {s.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h2 className="mt-6 px-2.5 text-xs font-semibold uppercase tracking-wide text-muted">
         Teams you follow
