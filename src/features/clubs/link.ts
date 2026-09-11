@@ -1,9 +1,9 @@
 import "server-only";
 
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubAliases, teams } from "@/db/schema";
+import { clubAliases, clubs, teams } from "@/db/schema";
 
 import { aliasKey } from "./matching";
 
@@ -28,6 +28,30 @@ export async function linkTeamsToClub(
       .update(teams)
       .set({ clubId, affiliation: "club", updatedAt: new Date() })
       .where(inArray(teams.id, teamIds));
+
+    /*
+     * And the badge goes with the filing.
+     *
+     * Teams carry a copy of their club's crest so a page that forgets the
+     * fallback still draws the right one — which means re-filing has to move
+     * it, or nine ALBION teams keep wearing Portland's. Only a crest borrowed
+     * from a club is replaced; one uploaded for the team is untouched.
+     */
+    const club = await tx.query.clubs.findFirst({
+      where: eq(clubs.id, clubId),
+      columns: { crestUrl: true },
+    });
+    if (club?.crestUrl) {
+      await tx
+        .update(teams)
+        .set({ crestUrl: club.crestUrl })
+        .where(
+          and(
+            inArray(teams.id, teamIds),
+            or(isNull(teams.crestUrl), like(teams.crestUrl, "%/clubs/%")),
+          ),
+        );
+    }
 
     if (alias) {
       // Re-pointing an existing alias is a correction rather than a clash:
