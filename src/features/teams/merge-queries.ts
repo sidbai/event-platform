@@ -150,7 +150,10 @@ export async function proposedTeamMatches(
     (counts as unknown as { team_id: string; n: number }[]).map((r) => [r.team_id, r.n]),
   );
 
-  const clubRows = await db.select({ id: clubs.id, name: clubs.name }).from(clubs);
+  const clubRows = await db
+    .select({ id: clubs.id, name: clubs.name, slug: clubs.slug })
+    .from(clubs);
+  const slugById = new Map(clubRows.map((c) => [c.id, c.slug]));
 
   const proposals = proposeMatches(
     rows.map((t) => ({
@@ -158,6 +161,9 @@ export async function proposedTeamMatches(
       slug: t.slug,
       name: t.name,
       clubId: t.clubId,
+      // How the knowledge base is keyed, so the matcher can ask what this
+      // club says about its own names.
+      clubSlug: t.clubId ? (slugById.get(t.clubId) ?? null) : null,
       gender: t.gender,
       birthYears: t.birthYears,
       tier: t.tier,

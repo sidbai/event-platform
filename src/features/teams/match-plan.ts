@@ -1,3 +1,6 @@
+import { vocabularyFor } from "@/features/clubs/knowledge/store";
+import { namedApart } from "@/features/clubs/knowledge/vocabulary";
+
 import { sameCohort } from "./age";
 import { normaliseTeamName } from "./merge-plan";
 
@@ -23,6 +26,14 @@ export type MatchCandidate = {
   slug: string;
   name: string;
   clubId: string | null;
+  /**
+   * The club's slug, which is how the knowledge base is keyed.
+   *
+   * Carried beside `clubId` rather than looked up, so this module stays a
+   * pure function of what it is handed — the same reason `clubNameById` is
+   * passed in rather than queried.
+   */
+  clubSlug?: string | null;
   gender: string | null;
   birthYears: number[];
   tier: string | null;
@@ -115,7 +126,12 @@ export function pairOf(a: string, b: string): string {
  * Exported because the reasons are the interesting part: each one was a false
  * positive in the directory before it became a rule.
  */
-export function whyNot(a: MatchCandidate, b: MatchCandidate): string | null {
+export function whyNot(
+  a: MatchCandidate,
+  b: MatchCandidate,
+  /** Removed before the club's own words are looked for; see `namedApart`. */
+  clubName?: string | null,
+): string | null {
   if (a.clubId === null || a.clubId !== b.clubId) return "different clubs";
   if (a.gender && b.gender && a.gender !== b.gender) return "different genders";
 
@@ -129,6 +145,25 @@ export function whyNot(a: MatchCandidate, b: MatchCandidate): string | null {
     if (!sameCohort(a.birthYears, b.birthYears)) return "different birth years";
   }
   if (a.tier && b.tier && a.tier !== b.tier) return "different tiers";
+
+  /*
+   * What the club itself says about its own names.
+   *
+   * The rules above are general — a lone A or B, a Roman numeral, a trailing
+   * digit — and general rules cannot know that at Eastside FC a colour is a
+   * tier, that Seattle United's Northwest and South are different regions, or
+   * that Mt. Rainier's Academy and Premier are separate programmes a player
+   * is placed into by tryout. All three are published by the club, and all
+   * three were pairs this queue kept offering.
+   *
+   * Silent for a club nothing has been read about, which is most of the small
+   * ones: it can only ever rule a pair out.
+   */
+  const vocabulary = vocabularyFor(a.clubSlug);
+  if (vocabulary) {
+    const apart = namedApart(vocabulary, a.name, b.name, clubName);
+    if (apart) return apart;
+  }
 
   const [ma, mb] = [squadMarks(a.name), squadMarks(b.name)];
   if (ma.size > 0 || mb.size > 0) {
@@ -170,7 +205,7 @@ export function proposeMatches(
       for (let j = i + 1; j < group.length; j++) {
         const [a, b] = [group[i], group[j]];
         if (apart.has(pairOf(a.id, b.id))) continue;
-        if (whyNot(a, b)) continue;
+        if (whyNot(a, b, clubName)) continue;
 
         const wa = distinctiveWords(a.name, clubName);
         const wb = distinctiveWords(b.name, clubName);

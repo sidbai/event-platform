@@ -11,10 +11,14 @@
  * rows in a queue a person reads, never a merge.
  */
 
+import { namedApart, type ClubVocabulary } from "@/features/clubs/knowledge/vocabulary";
+
 export type SuggestTeam = {
   id: string;
   name: string;
   club: string | null;
+  /** How the knowledge base is keyed; absent for a team with no club. */
+  clubSlug?: string | null;
   birthYears: number[];
   gender: string | null;
   tier: string | null;
@@ -48,9 +52,29 @@ export const SYSTEM_PROMPT = [
  * checks every one against what was sent, so a hallucinated id cannot reach
  * the database.
  */
-export function buildPrompt(unmatched: SuggestTeam[], candidates: SuggestTeam[]): string {
+export function buildPrompt(
+  unmatched: SuggestTeam[],
+  candidates: SuggestTeam[],
+  /**
+   * What the club's own website says about how it names teams.
+   *
+   * This is the fact the question turns on and the one nothing in our rows
+   * carries. Whether "Mt. Rainier FC Academy B12" is the same side as "Mt.
+   * Rainier FC B12" depends on whether that club runs an Academy as a
+   * separate programme or as a word it sometimes drops — published on their
+   * tryout page, and nowhere in our database.
+   *
+   * Null is said out loud rather than left silent: a prompt that simply omits
+   * the club facts reads as a club with no conventions, which is a different
+   * claim from one we have not read.
+   */
+  clubContext?: string | null,
+): string {
   return [
     "Which of these newly imported teams are the same team as one already known?",
+    clubContext
+      ? `\nWhat this club's own website says about how it names teams: ${clubContext}`
+      : "\nWe have read nothing about how this club names its teams. Judge from the facts alone.",
     "",
     "NEWLY IMPORTED:",
     ...unmatched.map(describe),
@@ -79,6 +103,15 @@ export function shortlist(
   team: SuggestTeam,
   candidates: SuggestTeam[],
   limit = 12,
+  /**
+   * The club's own words for telling its teams apart.
+   *
+   * Applied before the model is asked rather than after, because a pair the
+   * club itself separates is not a hard question — it is a question with a
+   * published answer, and paying a model to re-derive it is both slower and
+   * less reliable than reading it.
+   */
+  vocabulary?: ClubVocabulary | null,
 ): SuggestTeam[] {
   const GENERIC = new Set([
     "fc", "sc", "select", "academy", "premier", "boys", "girls", "united",
@@ -95,6 +128,7 @@ export function shortlist(
   const mine = words(team.name);
   const scored = candidates.flatMap((c) => {
     if (c.id === team.id) return [];
+    if (vocabulary && namedApart(vocabulary, team.name, c.name, team.club)) return [];
     const theirs = words(c.name);
     const shared = [...mine].filter((w) => theirs.has(w)).length;
     // Same club counts for something even when the names share nothing:

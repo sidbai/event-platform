@@ -1,3 +1,4 @@
+import { vocabularyFor } from "@/features/clubs/knowledge/store";
 import { describe, expect, it } from "vitest";
 
 import { buildPrompt, shortlist, type SuggestTeam } from "./prompt";
@@ -81,5 +82,48 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("club unknown");
     expect(prompt).toContain("birth years unknown");
     expect(prompt).toContain("gender unknown");
+  });
+});
+
+describe("what the club says, on the import path", () => {
+  const team = (name: string, over: Partial<SuggestTeam> = {}): SuggestTeam => ({
+    id: name,
+    name,
+    club: "Eastside FC",
+    clubSlug: "eastside-fc",
+    birthYears: [2014],
+    gender: "boys",
+    tier: null,
+    events: [],
+    ...over,
+  });
+
+  const eastside = vocabularyFor("eastside-fc");
+
+  it("does not ask about a pair the club itself separates", () => {
+    const arriving = team("Eastside FC BU12 Red");
+    const known = [team("Eastside FC BU12 Grey"), team("Eastside FC BU12")];
+    expect(shortlist(arriving, known, 12, eastside).map((t) => t.name)).toEqual([
+      "Eastside FC BU12",
+    ]);
+  });
+
+  it("asks as before when nothing has been read about the club", () => {
+    const arriving = team("Some Club B14 Red", { club: "Some Club", clubSlug: "unread" });
+    const known = [team("Some Club B14 Grey", { club: "Some Club", clubSlug: "unread" })];
+    expect(shortlist(arriving, known, 12, vocabularyFor("unread"))).toHaveLength(1);
+  });
+
+  it("carries the club's conventions into the question", () => {
+    const prompt = buildPrompt(
+      [team("Eastside FC BU12 Red")],
+      [team("Eastside FC BU12")],
+      "a colour in a name is a tier",
+    );
+    expect(prompt).toContain("a colour in a name is a tier");
+  });
+
+  it("says plainly when we have read nothing, rather than saying nothing", () => {
+    expect(buildPrompt([team("A")], [team("B")], null)).toContain("We have read nothing");
   });
 });

@@ -250,3 +250,47 @@ describe("pairOf", () => {
     expect(pairOf("b", "a")).toBe(pairOf("a", "b"));
   });
 });
+
+describe("what the club says about its own names", () => {
+  /*
+   * Real rows, against the real knowledge base. These three pairs are the
+   * ones the queue kept offering and nothing general could rule out.
+   */
+  const pair = (clubSlug: string, clubName: string, a: string, b: string) =>
+    whyNot(
+      team({ name: a, clubSlug, clubId: "c" }),
+      team({ name: b, clubSlug, clubId: "c" }),
+      clubName,
+    );
+
+  it("knows Eastside's colours are tiers", () => {
+    expect(pair("eastside-fc", "Eastside FC", "Eastside FC BU14 Red", "Eastside FC BU14 Grey"))
+      .toMatch(/level/);
+  });
+
+  it("knows Seattle United's regions are different teams", () => {
+    expect(
+      pair(
+        "seattle-united",
+        "Seattle United",
+        "Seattle United Northwest B13 Blue",
+        "Seattle United South B13 Blue",
+      ),
+    ).toMatch(/programme/);
+  });
+
+  it("knows Mt. Rainier's Academy is not its Premier", () => {
+    expect(
+      pair("mt-rainier-fc", "Mt. Rainier FC", "Mt. Rainier FC Academy B12", "Mt. Rainier FC Premier B12"),
+    ).toMatch(/level/);
+  });
+
+  it("still offers a pair where one name simply says more", () => {
+    expect(pair("eastside-fc", "Eastside FC", "Eastside FC BU14", "Eastside FC BU14 Red")).toBeNull();
+  });
+
+  it("says nothing about a club nothing has been read about", () => {
+    expect(pair("some-club-we-never-read", "Some Club", "Some Club B14 Red", "Some Club B14 Grey"))
+      .toBeNull();
+  });
+});
