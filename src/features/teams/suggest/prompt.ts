@@ -1,11 +1,15 @@
 /**
  * What we ask a model about teams the rules could not match.
  *
- * The deterministic matcher gets from 1,625 candidate pairs down to 180 good
- * ones using facts it can check. What it cannot do is know that "Little
- * Warriors" is Warriors' junior programme, or that a club rebranded — world
- * knowledge, which is the one thing a model is genuinely better at than a
- * regular expression.
+ * The deterministic matcher gets from 1,625 candidate pairs down to a couple
+ * of hundred using facts it can check, and the knowledge base now carries
+ * some of what it used to be unable to know — that Little Warriors Sports
+ * Academy is Warriors' junior programme is on their own website, and is read
+ * rather than guessed.
+ *
+ * What is left is the rest of it: that a club rebranded, that an organizer
+ * wrote a side's name the way a parent would say it. World knowledge, which
+ * is the one thing a model is genuinely better at than a regular expression.
  *
  * So it is asked only about the residue, and only to suggest. Its answer is
  * rows in a queue a person reads, never a merge.
