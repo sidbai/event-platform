@@ -77,7 +77,13 @@ export async function reviewProposals(
     for (const member of [g.survivor, ...g.losers]) grouped.set(member.id, g.survivor.id);
   }
 
-  const proposals = await proposedTeamMatches(grouped);
+  /*
+   * Minus the pairs the club's own published naming already separates. Not
+   * dropped from the database and not hidden — the admin page shows them
+   * under their reason — simply not worth a model's opinion when the club has
+   * already answered in writing.
+   */
+  const proposals = (await proposedTeamMatches(grouped)).filter((p) => !p.separatedBy);
   if (proposals.length === 0) return { ...empty, skipped: "Nothing proposed." };
 
   const clubNames = new Map(

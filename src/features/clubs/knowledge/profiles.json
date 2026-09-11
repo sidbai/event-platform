@@ -2441,6 +2441,30 @@
     "readAt": "2026-09-11T06:36:58.583Z",
     "model": "claude-opus-5"
   },
+  "sparta-tacoma": {
+    "slug": "sparta-tacoma",
+    "tiers": [
+      "Elite Academy (EA)",
+      "Washington Premier League",
+      "red"
+    ],
+    "squadMarkers": [
+      "red"
+    ],
+    "colours": "tier",
+    "ageBands": "both",
+    "branches": [
+      "Sparta Tacoma",
+      "North Tacoma Soccer Club"
+    ],
+    "coaches": [],
+    "summary": "Sparta Tacoma is the premier-level, year-round programme of North Tacoma Soccer Club, for players 7 to 19. Its boys teams play the Elite Academy (EA) League, which the club says is for its highest level (red) boys teams from 2015/U11 through 2007-2008/U18/19 — so red is the top level here, not one squad among equals. Teams below that play up to 16 Washington Premier League games a season. The club writes an age both ways, as a birth year and as a U-number.",
+    "sources": [
+      "https://nortac.ottosport.ai/programs/nortac/sparta"
+    ],
+    "readAt": "2026-09-11T07:32:36.179Z",
+    "model": "claude-opus-5"
+  },
   "united-sports-fc": {
     "slug": "united-sports-fc",
     "tiers": [],
