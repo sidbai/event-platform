@@ -61,7 +61,7 @@ return [].slice.call(d.querySelectorAll('option')).filter(function(o){return o.v
 function note(msg){
 var el=document.getElementById('kjs-league-note');
 if(!el){el=document.createElement('div');el.id='kjs-league-note';
-el.style.cssText='position:fixed;z-index:2147483647;right:16px;bottom:16px;max-width:360px;padding:12px 14px;background:#1a1712;color:#c58a24;font:13px system-ui;border-radius:8px;white-space:pre-line';
+el.style.cssText='position:fixed;z-index:2147483647;right:16px;bottom:16px;max-width:360px;padding:12px 14px;background:#221c14;color:#c58a24;font:13px system-ui;border-radius:8px;white-space:pre-line';
 document.body.appendChild(el);}
 el.textContent=msg;
 return el;
