@@ -53,7 +53,8 @@
     "clubs:profile": "tsx scripts/profile-clubs.ts",
     "ai:review-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/review-merges.ts",
     "clubs:verify": "tsx scripts/verify-club-profiles.ts",
-    "db:teams:audit": "NODE_OPTIONS=--conditions=react-server tsx scripts/audit-teams.ts"
+    "db:teams:audit": "NODE_OPTIONS=--conditions=react-server tsx scripts/audit-teams.ts",
+    "db:teams:suggest": "NODE_OPTIONS=--conditions=react-server tsx scripts/queue-team-suggestions.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
