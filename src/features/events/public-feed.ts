@@ -21,6 +21,7 @@ export type FeedGame = {
   group: string;
   time: string;
   field: string;
+  venue: string;
   home_team: string;
   away_team: string;
   home_score: number | null;
@@ -91,6 +92,7 @@ export async function scheduleFeed(slug: string): Promise<FeedSchedule | null> {
     group: m.stage === "ko" ? capitalize(m.round ?? "") : (m.groupLabel ?? ""),
     time: m.kickoffAt ? hhmm(m.kickoffAt, event.timezone) : "",
     field: m.field ?? "",
+    venue: m.venue ?? "",
     home_team: m.homeTeam?.name ?? m.homePlaceholder ?? "",
     away_team: m.awayTeam?.name ?? m.awayPlaceholder ?? "",
     home_score: m.homeScore,

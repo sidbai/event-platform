@@ -9,7 +9,7 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 
 import { NavSelect } from "@/components/nav-select";
-import { fieldAnnounced, timeAnnounced } from "@/features/events/kickoff";
+import { timeAnnounced, whereAnnounced } from "@/features/events/kickoff";
 
 import {
   byCluster,
@@ -450,7 +450,7 @@ export function ScheduleSection({
                         m.groupLabel ? `Bracket ${m.groupLabel}` : null,
                         [
                           fmtTime(m.kickoffAt, tz, sd.through !== undefined),
-                          fieldAnnounced(m.field),
+                          whereAnnounced(m.venue, m.field),
                         ]
                           .filter(Boolean)
                           .join(" · "),

@@ -30,8 +30,8 @@ export type Upcoming = {
     home: { name: string; crest: string | null; followed: boolean } | null;
     away: { name: string; crest: string | null; followed: boolean } | null;
   };
-  /** A fixture: the pitch, when the schedule names one. */
-  field?: string | null;
+  /** A fixture: the ground and the pitch, whichever the schedule names. */
+  where?: string | null;
   /** An event: its logo, or the kind's icon when it has none. */
   logo?: { src: string | null; kind: string };
 };
@@ -119,7 +119,7 @@ export async function whatsNext(
           followed: followedSlugs.has(game.away.slug),
         },
       },
-      field: game.field,
+      where: game.where,
     });
   }
 

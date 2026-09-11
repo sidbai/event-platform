@@ -16,6 +16,7 @@ import { db } from "@/db";
 
 import { crestOf } from "./crest";
 import { matches, teamFollows, teams } from "@/db/schema";
+import { whereAnnounced } from "@/features/events/kickoff";
 
 import { resultFor } from "./record";
 
@@ -112,8 +113,12 @@ export type NextGame = {
    */
   home: { name: string; slug: string; crest: string | null } | null;
   away: { name: string; slug: string; crest: string | null } | null;
-  /** "60A #09" — the one thing a parent needs once they are at the ground. */
-  field: string | null;
+  /**
+   * "Silas High School · Field 1" — where to drive, then where to walk. A
+   * tournament on one ground names only the pitch; a league across forty
+   * grounds needs both, and a field number alone was what a parent saw.
+   */
+  where: string | null;
 };
 
 /**
@@ -145,7 +150,13 @@ export async function nextGames(
       ),
     ),
     orderBy: asc(matches.kickoffAt),
-    columns: { kickoffAt: true, homeTeamId: true, awayTeamId: true, field: true },
+    columns: {
+      kickoffAt: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      field: true,
+      venue: true,
+    },
     with: {
       event: { columns: { slug: true, title: true } },
       homeTeam: {
@@ -187,7 +198,7 @@ export async function nextGames(
           : null,
         home: side(m.homeTeam),
         away: side(m.awayTeam),
-        field: m.field,
+        where: whereAnnounced(m.venue, m.field),
       });
     }
     if (found.size === wanted.size) break;

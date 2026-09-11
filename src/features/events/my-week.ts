@@ -4,6 +4,7 @@ import { and, asc, eq, gte, inArray, isNotNull, lt, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { eventAttendees, events, matches, venues } from "@/db/schema";
+import { whereAnnounced } from "@/features/events/kickoff";
 import { followedTeams } from "@/features/teams/follow-queries";
 
 import { addDays, zonedInstant } from "./week";
@@ -131,7 +132,7 @@ export async function myWeek(
         ),
       ),
       orderBy: asc(matches.kickoffAt),
-      columns: { id: true, kickoffAt: true, field: true },
+      columns: { id: true, kickoffAt: true, field: true, venue: true },
       with: {
         event: { columns: { slug: true, title: true } },
         homeTeam: { columns: { name: true } },
@@ -144,7 +145,9 @@ export async function myWeek(
         id: `match-${m.id}`,
         href: `/events/${m.event.slug}`,
         title: `${m.homeTeam?.name ?? "TBD"} v ${m.awayTeam?.name ?? "TBD"}`,
-        detail: [m.event.title, m.field].filter(Boolean).join(" · "),
+        detail: [m.event.title, whereAnnounced(m.venue, m.field)]
+          .filter(Boolean)
+          .join(" · "),
         startsAt: m.kickoffAt,
         // A youth game is an hour or less; the grid draws an hour when no
         // end is chosen, so none is invented here.
