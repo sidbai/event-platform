@@ -68,7 +68,7 @@ async function main() {
     console.log(`${found.length} fragment(s) of markup in ${file}\n`);
     for (const f of found) console.log(`  ${kb(f.html.length).padStart(5)}  ${f.label}`);
 
-    const { fragmentsToTsv } = await import("../src/features/sync/athleteone-fragment");
+    const { fragmentsToTsv } = await import("../src/features/sync/fragments");
     const tsv = fragmentsToTsv(found.map((f) => f.html));
     const lines = tsv.split("\n").length - 1;
     if (lines === 0) {
@@ -141,7 +141,7 @@ async function main() {
    * means, and it stops at the TSV the paste box already takes.
    */
   if (args.includes("--tsv")) {
-    const { fragmentsToTsv } = await import("../src/features/sync/athleteone-fragment");
+    const { fragmentsToTsv } = await import("../src/features/sync/fragments");
     const tsv = fragmentsToTsv(hits.map((r) => r.text ?? ""));
     const lines = tsv.split("\n").length - 1;
     if (lines === 0) {

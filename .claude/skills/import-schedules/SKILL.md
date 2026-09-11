@@ -121,9 +121,13 @@ reader looks it up case-insensitively and strips braces. Flights are not
 listed anywhere — they are discovered from the accepted-teams pages, one per
 gender, which is also the only place a flight's age code is written down.
 
-**WPL (GotSport).** Not connected. An unauthenticated request 302s to
-`/verify_captchas/new`. Nobody here solves captchas, so this is browser-only
-until the organizer says otherwise.
+**WPL and GA (GotSport, bookmarklet).** Not connected, and never will be: an
+unauthenticated request 302s to `/verify_captchas/new`, and nobody here
+solves captchas. The weekly bookmark (`league-bookmark.ts`) fetches them in
+the owner's own browser instead — see `weekly-league-refresh`. One id per
+league, the number in `system.gotsport.com/org_event/events/<id>`, read off
+the league's own site (wpl-soccer.com, girlsacademyleague.com link every
+season's events by name).
 
 ## Reading a page a browser was going to render
 

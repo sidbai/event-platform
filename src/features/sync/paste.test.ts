@@ -78,6 +78,7 @@ describe("parsePastedSchedule", () => {
         time: "16:00",
         group: "A",
         field: "Field 1 Starfire Sports",
+        venue: null,
         home: "IFC B14 Red",
         away: "Nido Aguila Seattle B12/13",
         homeScore: 1,
@@ -247,7 +248,8 @@ describe("a paste that names its own columns", () => {
         date: "2026-09-04",
         time: "16:00",
         group: "A",
-        field: "Field 1 · Starfire Sports",
+        field: "Field 1",
+        venue: "Starfire Sports",
         home: "IFC B14 Red",
         away: "Nido Aguila Seattle B12/13",
         homeScore: 1,
@@ -318,7 +320,8 @@ describe("what the copier actually produces", () => {
     // Starfire and Valley Ridge are twenty minutes apart. A parent at the
     // wrong one has missed the game.
     const { matches } = parsePastedSchedule(real, options);
-    expect(matches[2].field).toBe("VR 2 · Valley Ridge Community Center & Ball Fields");
+    expect(matches[2].field).toBe("VR 2");
+    expect(matches[2].venue).toBe("Valley Ridge Community Center & Ball Fields");
   });
 
   it("reads a bracket where there is one and none where there isn't", () => {
