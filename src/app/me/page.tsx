@@ -2,8 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
+import { kickoffLabel } from "@/features/events/kickoff";
 import { waitingOn, written, type Written } from "@/features/me/queries";
+import { whatsNext } from "@/features/me/whats-next";
+import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 
 export const metadata: Metadata = {
   title: "Your page",
@@ -25,10 +29,26 @@ export const dynamic = "force-dynamic";
  * is a page of empty boxes, which is what it would be for almost everybody
  * here today.
  *
- * Two sections so far. What is next — the fixtures of teams you follow and
- * the events you said you would be at — goes above both, and waits on the
- * follow table.
+ * What is next leads, and it is one list rather than two. A parent does not
+ * hold their child's fixtures and the sessions they said they would attend as
+ * separate things; they hold "Saturday, and what time". So the two are merged
+ * and sorted by when, and what each one is becomes a label.
  */
+
+const TZ = "America/Los_Angeles";
+
+const WORD = { won: "Won", drawn: "Drew", lost: "Lost" } as const;
+
+/*
+ * Colour carries none of the meaning — the word does. A parent reading this
+ * on a phone in sunlight, or with any of the several kinds of colour
+ * blindness, gets the same sentence either way.
+ */
+const OUTCOME = {
+  won: "font-medium text-emerald-700 dark:text-emerald-400",
+  drawn: "font-medium text-ink",
+  lost: "font-medium text-ink",
+} as const;
 
 const WHAT = { post: "Post", comment: "Comment", review: "Review" } as const;
 
@@ -44,7 +64,14 @@ export default async function MePage() {
   const user = await getCurrentUser();
   if (!user) redirect(`/signin?next=${encodeURIComponent("/me")}`);
 
-  const [waiting, mine] = await Promise.all([waitingOn(user.id), written(user.id)]);
+  const teams = await followedTeams(user.id);
+  const ids = teams.map((t) => t.id);
+  const [waiting, mine, next, last] = await Promise.all([
+    waitingOn(user.id),
+    written(user.id),
+    whatsNext(user.id, ids),
+    lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
+  ]);
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
@@ -53,6 +80,36 @@ export default async function MePage() {
         Only you can see this. Anything you post shows the handle{" "}
         <span className="font-mono">@{user.username}</span> and nothing else.
       </p>
+
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold">What is next</h2>
+        {next.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            Nothing on the way.{" "}
+            <Link href="/teams" className="text-brand-text hover:underline">
+              Follow a team
+            </Link>{" "}
+            and its next game shows up here, with anything you say you are
+            going to.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2.5 text-sm">
+            {next.slice(0, 12).map((item, i) => (
+              <li key={`${item.kind}-${i}`}>
+                <Link href={item.href} className="font-medium hover:underline">
+                  {item.title}
+                </Link>
+                <p className="text-xs text-muted">
+                  {item.timed
+                    ? kickoffLabel(item.at, TZ)
+                    : `${kickoffLabel(item.at, TZ)?.split(",").slice(0, 2).join(",")}`}
+                  {item.detail && <> &middot; {item.detail}</>}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {waiting.length > 0 && (
         <section className="mt-8">
@@ -66,6 +123,44 @@ export default async function MePage() {
                 {item.detail && <p className="text-xs text-muted">{item.detail}</p>}
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {teams.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Teams you follow</h2>
+          {/*
+            Management rather than news — the next game is above. What this
+            adds is the last one, which is the other half of a Sunday evening.
+          */}
+          <ul className="mt-3 divide-y divide-line">
+            {teams.map((team) => {
+              const result = last.get(team.id);
+              return (
+                <li key={team.id} className="flex items-center gap-3 py-3">
+                  <TeamCrest src={team.crestUrl} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/teams/${team.slug}`}
+                      className="text-sm font-medium hover:underline"
+                    >
+                      {team.name}
+                    </Link>
+                    {result ? (
+                      <p className="text-xs text-muted">
+                        <span className={OUTCOME[result.outcome]}>
+                          {WORD[result.outcome]} {result.for}&ndash;{result.against}
+                        </span>
+                        {result.opponent && <> v {result.opponent.name}</>}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted">No result yet</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
