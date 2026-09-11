@@ -26,6 +26,8 @@ export type FollowedEvent = {
   slug: string;
   title: string;
   kind: string;
+  /** Its own where it has one; EventLogo draws the kind's mark otherwise. */
+  logoUrl: string | null;
   startsAt: Date | null;
   endsAt: Date | null;
   venueName: string | null;
@@ -39,6 +41,7 @@ export async function followedEvents(userId: string): Promise<FollowedEvent[]> {
       slug: events.slug,
       title: events.title,
       kind: events.kind,
+      logoUrl: events.logoUrl,
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       venueName: venues.name,
