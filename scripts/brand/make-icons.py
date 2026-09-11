@@ -1,69 +1,70 @@
 """
-The tab icon, from the lockup.
+The tab icon, the touch icon and the header mark, from one drawing.
 
     python3 scripts/brand/make-icons.py
 
-Source is public/logo-lockup.png: the flat emblem — ring, 卷, ball — with
-"KING JUAN SOCCER" set below it. The wordmark is unreadable at 16px, so the
-emblem is cut out by finding the first run of inked rows (the emblem) and
-stopping at the gap before the text; nothing is retouched. It sits on a white
-rounded square whose corners are transparent — a favicon's corners are
-whatever the image's corners are — nearly edge to edge, because a 10% margin
-once read as a smaller, different logo.
+Source is scripts/brand/app-icon.png: the white emblem — ring, 卷, ball — on
+a gold rounded square, as the owner had it drawn. Only the white is taken
+from it. The tile is drawn here in King Juan Gold (#C58A24), the brand's
+primary, so the icon is the same gold as every button on the site rather
+than whatever the drawing's export happened to be (it came out #B88428).
 
-The .ico is rebuilt from the same rendering at every size it holds. The Apple
-touch icon is left square: iOS masks it itself, and pre-rounding it puts
-white ears in the corners.
+The corners are transparent on everything but the Apple touch icon, which
+iOS masks itself; pre-rounding that one puts white ears in the corners. The
+.ico is rebuilt from the same rendering at every size it holds.
 """
 import numpy as np
 from PIL import Image, ImageDraw
 
-SOURCE = "public/logo-lockup.png"
-BG = (255, 255, 255, 255)
-RADIUS = 0.22   # of the side; iOS is ~0.225, Material ~0.2
-INSET = 0.04    # the ring's stroke should not kiss the tile edge at 16px
+SOURCE = "scripts/brand/app-icon.png"
+GOLD = (0xC5, 0x8A, 0x24, 255)
+# Of the side. The drawing's own corner is ~0.237; drawn any tighter than
+# that, the white outside its corner would show inside ours.
+RADIUS = 0.24
 
 
 def emblem() -> Image.Image:
-    """The emblem alone, squared on white, with the wordmark cut away."""
+    """The white of the drawing as an alpha mask, squared on the tile."""
     im = Image.open(SOURCE).convert("RGB")
     a = np.array(im).astype(int)
-    ink = a.min(axis=2) < 200
+    ink = a.min(axis=2) < 240  # gold or emblem; the paper around the tile is not
     ys = np.where(ink.any(axis=1))[0]
-    # The first run of inked rows is the emblem; the text starts after a gap.
-    y1 = ys[0]
-    for y in ys[1:]:
-        if y != y1 + 1:
-            break
-        y1 = y
-    y0 = ys[0]
-    xs = np.where(ink[y0 : y1 + 1].any(axis=0))[0]
-    x0, x1 = xs[0], xs[-1]
+    xs = np.where(ink.any(axis=0))[0]
+    y0, y1, x0, x1 = ys[0], ys[-1], xs[0], xs[-1]
     side = max(x1 - x0, y1 - y0) + 1
     cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
     box = (cx - side // 2, cy - side // 2, cx - side // 2 + side, cy - side // 2 + side)
-    out = Image.new("RGBA", (side, side), BG)
-    out.paste(im.crop(box), (0, 0))
-    return out
+    tile = np.array(im.crop(box)).astype(float)
+    # White is the emblem; the ramp keeps its anti-aliased edge soft.
+    white = np.clip((tile.min(axis=2) - 160) / (235 - 160), 0, 1)
+    mask = Image.fromarray((white * 255).astype(np.uint8))
+    # Nothing outside our own corner counts, whatever the drawing had there —
+    # and nothing along its edge either, where the export's anti-aliasing
+    # blends the gold into the paper and would read as a pale rim.
+    keep = Image.new("L", (side, side), 0)
+    rim = side // 100
+    ImageDraw.Draw(keep).rounded_rectangle(
+        (rim, rim, side - 1 - rim, side - 1 - rim), radius=int(side * RADIUS), fill=255
+    )
+    return Image.fromarray(np.minimum(np.array(mask), np.array(keep)))
 
 
 def tile(mark: Image.Image, side: int, rounded: bool) -> Image.Image:
-    # Draw at 4x and shrink, so the corner is a curve and not a staircase at 16px.
-    s = side * 4
+    # Draw at the mark's own size and shrink, so a 16px corner is a curve.
+    s = mark.size[0]
     r = int(s * RADIUS) if rounded else 0
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
-    ImageDraw.Draw(img).rounded_rectangle((0, 0, s - 1, s - 1), radius=r, fill=BG)
-    box = int(s * (1 - 2 * INSET))
-    m = mark.resize((box, box), Image.LANCZOS)
-    off = (s - box) // 2
-    img.alpha_composite(m, (off, off))
+    ImageDraw.Draw(img).rounded_rectangle((0, 0, s - 1, s - 1), radius=r, fill=GOLD)
+    white = Image.new("RGBA", (s, s), (255, 255, 255, 255))
+    img.paste(white, (0, 0), mark)
     return img.resize((side, side), Image.LANCZOS)
 
 
 mark = emblem()
 tile(mark, 512, rounded=True).save("src/app/icon.png", optimize=True)
 tile(mark, 180, rounded=False).save("src/app/apple-icon.png", optimize=True)
+tile(mark, 512, rounded=True).save("public/logo-mark.png", optimize=True)
 sizes = [16, 32, 48, 64]
 frames = [tile(mark, n, rounded=True) for n in sizes]
 frames[-1].save("src/app/favicon.ico", format="ICO", sizes=[(n, n) for n in sizes], append_images=frames[:-1])
-print("emblem", mark.size, "→ icon.png 512, apple-icon.png 180, favicon.ico", sizes)
+print("mark", mark.size, "→ icon.png 512, apple-icon.png 180, logo-mark.png 512, favicon.ico", sizes)
