@@ -15,7 +15,11 @@ from PIL import Image, ImageDraw
 MARK = "public/logo-mark.png"
 BG = (255, 255, 255, 255)
 RADIUS = 0.22   # of the side; iOS is ~0.225, Material ~0.2
-INSET = 0.10    # padding around the mark, of the side
+# No padding. The mark is a ring that touches the tile's edges at the
+# midpoints and leaves the corners empty on its own, so the icon that shipped
+# for a year drew it edge to edge — and a 10% inset, tried once, read as a
+# different, smaller logo. The rounded corners clip nothing of a round mark.
+INSET = 0.0
 
 
 def tile(side: int, rounded: bool) -> Image.Image:
