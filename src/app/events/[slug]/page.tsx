@@ -16,6 +16,9 @@ import { CompletionControl } from "@/features/events/completion-control";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
 import { AttendanceSection } from "@/features/attendance/section";
+import { toggleEventFollow } from "@/features/events/follow-actions";
+import { isFollowingEvent } from "@/features/events/follow-queries";
+import { FollowButton } from "@/features/teams/follow-button";
 import { canViewEvent } from "@/features/events/can-view";
 import { EventLogo } from "@/components/event-logo";
 import { EventTags } from "@/features/events/event-tags";
@@ -118,6 +121,8 @@ export default async function EventPage({
   const rules = meta?.rules;
   const hasRoster = event.modules.includes("roster");
   const hasAttendance = event.modules.includes("attendance");
+  // Only ever "do I follow this" — see events/follow-queries.
+  const followingEvent = user ? await isFollowingEvent(user.id, event.id) : false;
   const myEntries =
     user && hasRoster ? await managedEntries(event.id, user.id) : [];
 
@@ -200,6 +205,27 @@ export default async function EventPage({
             <EventLogo src={event.logoUrl} kind={event.kind} size={72} />
           )}
           <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
+          {/*
+            Beside the name, and on every event rather than only the ones that
+            ask people to turn up. Saying you will be there and keeping an eye
+            on something are different, and until this the second had nowhere
+            to go on a tournament or a league at all.
+          */}
+          <div className="ml-auto self-start">
+            {user ? (
+              <FollowButton
+                following={followingEvent}
+                toggle={toggleEventFollow.bind(null, event.slug)}
+              />
+            ) : (
+              <Link
+                href={`/signin?next=${encodeURIComponent(`/events/${event.slug}`)}`}
+                className="rounded-md border border-line px-3 py-1.5 text-sm font-medium hover:bg-elevated"
+              >
+                Follow
+              </Link>
+            )}
+          </div>
         </div>
         {event.titleZh && (
           <p className="mt-1 text-lg text-muted">{event.titleZh}</p>

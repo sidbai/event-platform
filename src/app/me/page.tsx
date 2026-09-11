@@ -5,11 +5,13 @@ import type { Metadata } from "next";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { siteUrl } from "@/lib/site-url";
+import { formatEventWhen } from "@/features/events/when";
 import { kickoffLabel } from "@/features/events/kickoff";
 import { waitingOn, written, type Written } from "@/features/me/queries";
 import { CalendarLink } from "@/features/me/calendar-link";
 import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { whatsNext } from "@/features/me/whats-next";
+import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 
 export const metadata: Metadata = {
@@ -69,11 +71,12 @@ export default async function MePage() {
 
   const teams = await followedTeams(user.id);
   const ids = teams.map((t) => t.id);
-  const [waiting, mine, next, last] = await Promise.all([
+  const [waiting, mine, next, last, events] = await Promise.all([
     waitingOn(user.id),
     written(user.id),
     whatsNext(user.id, ids),
     lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
+    followedEvents(user.id),
   ]);
 
   return (
@@ -173,6 +176,29 @@ export default async function MePage() {
                 </li>
               );
             })}
+          </ul>
+        </section>
+      )}
+
+      {events.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Events you follow</h2>
+          {/*
+            A season under way is not in "what is next" — nothing about it is —
+            so this is where a league lives once it has started.
+          */}
+          <ul className="mt-3 space-y-2 text-sm">
+            {events.map((event) => (
+              <li key={event.id}>
+                <Link href={`/events/${event.slug}`} className="font-medium hover:underline">
+                  {event.title}
+                </Link>
+                <p className="text-xs text-muted">
+                  {formatEventWhen(event.startsAt, event.endsAt, TZ, "short", event.kind)}
+                  {event.venueName && <> &middot; {event.venueName}</>}
+                </p>
+              </li>
+            ))}
           </ul>
         </section>
       )}
