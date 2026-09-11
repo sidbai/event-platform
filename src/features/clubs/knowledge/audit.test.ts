@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { auditTeam, groupFindings, type AuditTeam } from "./audit";
+import {
+  acronymPairs,
+  auditTeam,
+  groupFindings,
+  initialsOf,
+  looksLikeInitials,
+  type AuditTeam,
+} from "./audit";
 import { EMPTY_PROFILE, type ClubProfile } from "./profile";
 
 const profile = (over: Partial<ClubProfile> = {}): ClubProfile => ({
@@ -111,5 +118,49 @@ describe("groupFindings", () => {
         { check: "unknown-word", team: "c", clubSlug: "y", about: "Red" },
       ]),
     ).toHaveLength(2);
+  });
+});
+
+describe("acronymPairs", () => {
+  /*
+   * The pair this exists for. "FME SC" held seventeen teams and "Fife Milton
+   * Edgewood SC" three, and nothing could see they were one club: every other
+   * rule compares words, and these two names share none.
+   */
+  const fme = { slug: "fme-sc", name: "FME SC", teams: 17 };
+  const fife = { slug: "fife-milton-edgewood-sc", name: "Fife Milton Edgewood SC", teams: 3 };
+
+  it("finds a club held twice, once as initials", () => {
+    expect(acronymPairs([fme, fife])).toEqual([{ acronym: fme, spelledOut: fife }]);
+  });
+
+  it("ignores the soccer furniture in both names", () => {
+    expect(initialsOf("Fife Milton Edgewood SC")).toBe("FME");
+    expect(initialsOf("FME SC")).toBe("FME");
+  });
+
+  it("refuses two letters, which would match half the directory", () => {
+    expect(
+      acronymPairs([
+        { slug: "tc", name: "TC", teams: 4 },
+        { slug: "tacoma-city", name: "Tacoma City", teams: 9 },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("does not call a real word initials", () => {
+    expect(looksLikeInitials("Valor")).toBe(false);
+    expect(looksLikeInitials("FME SC")).toBe(true);
+    expect(looksLikeInitials("Seattle United")).toBe(false);
+  });
+
+  it("offers the bigger pair first, since that is the one worth reading", () => {
+    const [first] = acronymPairs([
+      { slug: "abc", name: "ABC", teams: 1 },
+      { slug: "a-b-c", name: "Alpha Bravo Charlie", teams: 1 },
+      fme,
+      fife,
+    ]);
+    expect(first.acronym.name).toBe("FME SC");
   });
 });
