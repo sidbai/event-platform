@@ -1,6 +1,7 @@
 import profiles from "./profiles.json";
 
 import { forPrompt, type ClubProfile } from "./profile";
+import { vocabularyOf, type ClubVocabulary } from "./vocabulary";
 
 /**
  * The knowledge base itself: one JSON file, keyed by club slug.
@@ -42,4 +43,22 @@ export function clubContext(slug: string | null | undefined): string | null {
   if (!profile) return null;
   const line = forPrompt(profile);
   return line || null;
+}
+
+/**
+ * The club's own distinguishing words, or null if we have never read it.
+ *
+ * Memoised: the matcher asks this once per pair and there are thousands of
+ * pairs, while the answer is derived from a file that cannot change while the
+ * process is running.
+ */
+const vocabularies = new Map<string, ClubVocabulary | null>();
+
+export function vocabularyFor(slug: string | null | undefined): ClubVocabulary | null {
+  if (!slug) return null;
+  if (!vocabularies.has(slug)) {
+    const profile = ALL[slug];
+    vocabularies.set(slug, profile ? vocabularyOf(profile) : null);
+  }
+  return vocabularies.get(slug) ?? null;
 }

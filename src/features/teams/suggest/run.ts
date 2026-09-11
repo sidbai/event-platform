@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { clubContext, vocabularyFor } from "@/features/clubs/knowledge/store";
 import { clubs, teamAliases, teamMatchSuggestions, teams } from "@/db/schema";
 
 import { buildPrompt, shortlist, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
@@ -82,12 +83,15 @@ type Row = {
 };
 
 async function withClubNames(rows: Row[]): Promise<SuggestTeam[]> {
-  const clubRows = await db.select({ id: clubs.id, name: clubs.name }).from(clubs);
-  const byId = new Map(clubRows.map((c) => [c.id, c.name]));
+  const clubRows = await db
+    .select({ id: clubs.id, name: clubs.name, slug: clubs.slug })
+    .from(clubs);
+  const byId = new Map(clubRows.map((c) => [c.id, c]));
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
-    club: r.clubId ? (byId.get(r.clubId) ?? null) : null,
+    club: r.clubId ? (byId.get(r.clubId)?.name ?? null) : null,
+    clubSlug: r.clubId ? (byId.get(r.clubId)?.slug ?? null) : null,
     birthYears: r.birthYears,
     gender: r.gender,
     tier: r.tier,
@@ -125,14 +129,21 @@ export async function suggestTeamMatches(
   let stoppedEarly: string | undefined;
 
   for (const team of unmatched) {
-    const pool = shortlist(team, known);
+    const pool = shortlist(team, known, 12, vocabularyFor(team.clubSlug));
     if (pool.length === 0) continue;
 
     try {
       const { text } = await generateText({
         model: MODEL,
         system: SYSTEM_PROMPT,
-        prompt: buildPrompt([team], pool),
+        /*
+         * The club's own conventions travel with the question. This is the
+         * import path — a team that has just arrived from somebody else's
+         * schedule — and it is where knowing that Eastside's colours are
+         * tiers or that Seattle United's regions are separate stops a wrong
+         * suggestion before anybody sees it.
+         */
+        prompt: buildPrompt([team], pool, clubContext(team.clubSlug)),
         // Same question, same answer, so a re-run does not churn the queue.
         temperature: 0,
       });
