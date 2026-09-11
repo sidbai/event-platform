@@ -98,6 +98,20 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   /** The only avatar ever shown. A deliberate upload, and no fallback. */
   avatarUrl: text("avatar_url"),
+  /**
+   * The name this person coaches under, if they offer training sessions.
+   *
+   * Everywhere else a person is a generated handle, and that is deliberate.
+   * A coach offering Sunday afternoon to your child is the one case where a
+   * handle is the wrong answer: a parent is choosing a person, and "EJ — EJ
+   * Futball Training" is what they are choosing. So it is a column here, set
+   * by the coach, shown only beside the sessions they publish — and null
+   * for everybody who is not one. A coach is a user with this filled in, not
+   * a role and not a table.
+   */
+  coachName: text("coach_name"),
+  /** A sentence or two: what they coach, where, since when. */
+  coachBlurb: text("coach_blurb"),
   tags: text("tags").array().notNull().default([]),
   /**
    * Stable pseudonym shown on club reviews. Generated on first review so
@@ -1656,6 +1670,8 @@ export const conversationSubject = pgEnum("conversation_subject", [
   "event",
   "team",
   "offer",
+  // A booked training session: the parent and the coach, about one slot.
+  "session",
 ]);
 
 export const conversations = pgTable(
@@ -2299,3 +2315,114 @@ export const pageViews = pgTable(
   },
   (t) => [primaryKey({ columns: [t.subjectType, t.subjectId] })],
 );
+
+// --- private coaching: slots a coach publishes, and who booked them --------
+
+/**
+ * One bookable slot.
+ *
+ * "Sunday one to five-thirty, three slots at Evergreen, the first two
+ * one-on-one and the last a group of four for 2015 to 2017" is three of
+ * these. A slot is the unit a parent books and the unit a coach moves, so it
+ * is the unit stored; the afternoon is just three of them in a row.
+ *
+ * `capacity` is how many players fit — one is a private session, and the
+ * word for that is derived rather than stored, because a coach who offers a
+ * semi-private for two should not have to pick between two labels that are
+ * both wrong.
+ *
+ * Birth years bound who it is for. Nullable at both ends: a goalkeeping
+ * session may be for anyone, and a coach who writes 2015–2017 is describing
+ * the group, not enforcing a rule — a parent of a 2014 can still ask.
+ */
+export const trainingSessions = pgTable(
+  "training_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    /** As the coach wrote it: "Evergreen Playfield, north end". */
+    location: text("location").notNull(),
+    capacity: integer("capacity").notNull().default(1),
+    birthYearFrom: integer("birth_year_from"),
+    birthYearTo: integer("birth_year_to"),
+    /** What the session is: "finishing", "1v1 moves", "GK basics". */
+    notes: text("notes"),
+    /**
+     * A coach taking the slot down. Kept rather than deleted, because a
+     * parent who had it confirmed needs to see that it was cancelled, not
+     * find that it vanished from their calendar.
+     */
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    // The coach's week, which is the page they live on.
+    index("training_sessions_coach_starts_idx").on(t.coachId, t.startsAt),
+    // Everybody else's "what is on this Sunday".
+    index("training_sessions_starts_idx").on(t.startsAt),
+  ],
+);
+
+export const bookingStatus = pgEnum("booking_status", [
+  "requested",
+  "confirmed",
+  "declined",
+  "cancelled",
+]);
+
+/**
+ * A parent asking for a slot, for one named player.
+ *
+ * Requested until the coach says yes or no — nothing is booked by the act of
+ * asking, because a coach who wakes up to a Sunday somebody else filled has
+ * lost the thing this whole feature exists to give them. Confirmed is the
+ * only state that reaches a calendar.
+ *
+ * The player is a name and a birth year, not an account. Children do not
+ * have accounts here and should not; the parent is the one booking, and
+ * "Joshua, 2015" is everything the coach needs to know who is turning up.
+ *
+ * One row per player per slot per parent. A parent with two children in the
+ * same group session books twice, which is what happened.
+ */
+export const sessionBookings = pgTable(
+  "session_bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => trainingSessions.id, { onDelete: "cascade" }),
+    bookedBy: uuid("booked_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    playerName: text("player_name").notNull(),
+    playerBirthYear: integer("player_birth_year"),
+    /** To the coach: "he's a keeper", "we'll be ten minutes late". */
+    note: text("note"),
+    status: bookingStatus("status").notNull().default("requested"),
+    /** When the coach answered, or the parent withdrew. */
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("session_bookings_one_per_player").on(t.sessionId, t.bookedBy, t.playerName),
+    index("session_bookings_booked_by_idx").on(t.bookedBy),
+  ],
+);
+
+export const trainingSessionsRelations = relations(trainingSessions, ({ one, many }) => ({
+  coach: one(users, { fields: [trainingSessions.coachId], references: [users.id] }),
+  bookings: many(sessionBookings),
+}));
+
+export const sessionBookingsRelations = relations(sessionBookings, ({ one }) => ({
+  session: one(trainingSessions, {
+    fields: [sessionBookings.sessionId],
+    references: [trainingSessions.id],
+  }),
+  parent: one(users, { fields: [sessionBookings.bookedBy], references: [users.id] }),
+}));

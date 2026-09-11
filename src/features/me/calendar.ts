@@ -4,7 +4,9 @@ import { and, asc, eq, gte, inArray, isNotNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { eventAttendees, eventDivisions, events, matches, teams, venues } from "@/db/schema";
-import type { CalendarFixture } from "@/features/calendar/ics";
+import type { CalendarEntry, CalendarFixture } from "@/features/calendar/ics";
+import { isPrivate } from "@/features/training/slots";
+import { calendarSessions } from "@/features/training/queries";
 import { timeAnnounced } from "@/features/events/kickoff";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams } from "@/features/teams/follow-queries";
@@ -22,7 +24,10 @@ const LOOK_BACK_DAYS = 14;
  * phone can subscribe to. After that they never have to open the page at all,
  * which is the right ambition for it.
  */
-export async function myCalendar(userId: string, now = new Date()): Promise<CalendarFixture[]> {
+export async function myCalendar(
+  userId: string,
+  now = new Date(),
+): Promise<(CalendarFixture | CalendarEntry)[]> {
   const since = new Date(now.getTime() - LOOK_BACK_DAYS * 24 * 3_600_000);
   const origin = siteUrl().replace(/\/$/, "");
 
@@ -144,7 +149,53 @@ export async function myCalendar(userId: string, now = new Date()): Promise<Cale
     });
   }
 
-  return out.sort(
-    (a, b) => (a.kickoffAt?.getTime() ?? 0) - (b.kickoffAt?.getTime() ?? 0),
-  );
+  /*
+   * Training sessions, both ways round.
+   *
+   * The slots this person coaches — every live one, because a coach's own
+   * calendar should show the open two o'clock as much as the booked one, and
+   * a coach who cannot see their own week is the problem this exists to fix.
+   * And the bookings they made that a coach confirmed. Only confirmed: a
+   * request is a question, and a calendar is for answers.
+   */
+  const sessions = await calendarSessions(userId, since);
+  const entries: CalendarEntry[] = [];
+  for (const s of sessions.coaching) {
+    const confirmed = s.bookings.filter((b) => b.status === "confirmed");
+    const waiting = s.bookings.filter((b) => b.status === "requested").length;
+    const who =
+      confirmed.length > 0
+        ? confirmed.map((b) => b.playerName).join(", ")
+        : waiting > 0
+          ? `${waiting} waiting on you`
+          : "open";
+    entries.push({
+      id: `session-${s.id}`,
+      startsAt: s.startsAt,
+      endsAt: s.endsAt,
+      summary: `${isPrivate(s.capacity) ? "1-on-1" : "Group"} — ${who}`,
+      description: [s.notes, `${origin}/coaching/sessions/${s.id}`].filter(
+        (line): line is string => Boolean(line),
+      ),
+      location: s.location,
+      url: `${origin}/coaching/sessions/${s.id}`,
+    });
+  }
+  for (const b of sessions.booked) {
+    entries.push({
+      id: `booking-${b.bookingId}`,
+      startsAt: b.startsAt,
+      endsAt: b.endsAt,
+      summary: `Training with ${b.coachName ?? "coach"} — ${b.playerName}`,
+      description: [b.notes, `${origin}/training/${b.sessionId}`].filter(
+        (line): line is string => Boolean(line),
+      ),
+      location: b.location,
+      url: `${origin}/training/${b.sessionId}`,
+    });
+  }
+
+  const when = (x: CalendarFixture | CalendarEntry) =>
+    "kickoffAt" in x ? (x.kickoffAt?.getTime() ?? 0) : x.startsAt.getTime();
+  return [...out, ...entries].sort((a, b) => when(a) - when(b));
 }

@@ -13,6 +13,10 @@ import { waitingOn, written, type Written } from "@/features/me/queries";
 import { CalendarLink } from "@/features/me/calendar-link";
 import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { whatsNext } from "@/features/me/whats-next";
+import { withdrawBooking } from "@/features/training/actions";
+import { ConfirmButton } from "@/features/training/decision-buttons";
+import { myBookings } from "@/features/training/queries";
+import { dayLabel, localDate, spanLabel } from "@/features/training/week";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 
@@ -73,12 +77,13 @@ export default async function MePage() {
 
   const teams = await followedTeams(user.id);
   const ids = teams.map((t) => t.id);
-  const [waiting, mine, next, last, events] = await Promise.all([
+  const [waiting, mine, next, last, events, training] = await Promise.all([
     waitingOn(user.id),
     written(user.id),
     whatsNext(user.id, ids),
     lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
     followedEvents(user.id),
+    myBookings(user.id, new Date()),
   ]);
 
   return (
@@ -127,6 +132,61 @@ export default async function MePage() {
           rotate={rotateFeedToken}
         />
       </section>
+
+      {/*
+       * Training you have asked for or booked, with where it stands.
+       *
+       * Separate from "What is next" on purpose: a request is not yet a
+       * thing that is happening, and merging it into the list of fixtures
+       * would put "waiting for the coach" beside a kick-off as though they
+       * were the same kind of certainty. Once confirmed it is in the calendar
+       * feed like everything else.
+       */}
+      {(training.length > 0 || user.coachName) && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Your training</h2>
+          {user.coachName && (
+            <p className="mt-1 text-sm text-muted">
+              You coach as {user.coachName}.{" "}
+              <Link href="/coaching" className="text-brand-text hover:underline">
+                Your week &rarr;
+              </Link>
+            </p>
+          )}
+          {training.length > 0 && (
+            <ul className="mt-3 divide-y divide-line">
+              {training.map((b) => (
+                <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <div className="text-sm">
+                    <Link href={`/training/${b.sessionId}`} className="font-medium hover:underline">
+                      {dayLabel(localDate(b.startsAt))}, {spanLabel(b.startsAt, b.endsAt)}
+                    </Link>
+                    <span className="text-muted">
+                      {" "}
+                      &middot; {b.coachName ?? "coach"} &middot; {b.location} &middot; {b.playerName}
+                    </span>
+                    <div className="text-xs">
+                      {b.status === "confirmed" ? (
+                        <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                          Confirmed
+                        </span>
+                      ) : (
+                        <span className="text-muted">Waiting for the coach</span>
+                      )}
+                    </div>
+                  </div>
+                  <ConfirmButton
+                    label={b.status === "requested" ? "Withdraw" : "Cancel"}
+                    busy="…"
+                    action={withdrawBooking.bind(null, b.id)}
+                    danger
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {waiting.length > 0 && (
         <section className="mt-8">

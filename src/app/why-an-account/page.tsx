@@ -32,6 +32,7 @@ const CAN_READ = [
   "Every event, its schedule, its results and its table",
   "Team pages — fixtures and results gathered across events, not trapped in one",
   "Club and coach pages, and the reviews on them",
+  "Training slots coaches have opened up, by day",
   "The community, and the news",
 ];
 
@@ -44,6 +45,14 @@ const CAN_DO = [
       "Message another family directly",
       "Write a review under a handle, so people can see your other posts",
       "Say you are going to an event",
+      "Ask a coach for a training slot, and have it land in your calendar once they confirm",
+    ],
+  },
+  {
+    who: "If you coach",
+    items: [
+      "Publish the slots you have — private or group, by day and place — under the name parents know you by",
+      "Confirm or decline each request, from one view of your week",
     ],
   },
   {

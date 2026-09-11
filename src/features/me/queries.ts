@@ -19,6 +19,7 @@ import {
   teams,
 } from "@/db/schema";
 import { unreadCount } from "@/features/messages/queries";
+import { requestsWaitingFor } from "@/features/training/queries";
 
 /**
  * The two questions a personal page answers that no other page can.
@@ -31,7 +32,7 @@ import { unreadCount } from "@/features/messages/queries";
  */
 
 export type Waiting = {
-  kind: "invite" | "claim" | "scores" | "messages";
+  kind: "invite" | "claim" | "scores" | "messages" | "training";
   what: string;
   detail: string | null;
   href: string;
@@ -48,7 +49,7 @@ export type Waiting = {
 export async function waitingOn(userId: string): Promise<Waiting[]> {
   const out: Waiting[] = [];
 
-  const [invitedToTeams, invitedToEvents, teamClaimRows, coachClaimRows, unread] =
+  const [invitedToTeams, invitedToEvents, teamClaimRows, coachClaimRows, unread, requests] =
     await Promise.all([
       db
         .select({ team: teams.name, slug: teams.slug })
@@ -75,7 +76,25 @@ export async function waitingOn(userId: string): Promise<Waiting[]> {
         .innerJoin(coaches, eq(coaches.id, coachClaims.coachId))
         .where(eq(coachClaims.userId, userId)),
       unreadCount(userId),
+      requestsWaitingFor(userId, new Date()),
     ]);
+
+  /*
+   * A parent asking for a slot is a person waiting on this coach, and it is
+   * the most time-bound thing on the list — Sunday comes whether or not it
+   * was answered. So it leads.
+   */
+  if (requests.length > 0) {
+    out.push({
+      kind: "training",
+      what:
+        requests.length === 1
+          ? `${requests[0].playerName} asked for a training slot`
+          : `${requests.length} training requests to answer`,
+      detail: requests.length === 1 ? requests[0].location : null,
+      href: "/coaching",
+    });
+  }
 
   for (const row of invitedToTeams) {
     out.push({
