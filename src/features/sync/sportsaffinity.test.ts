@@ -7,6 +7,7 @@ import {
   groupName,
   arrived,
   isSlot,
+  divisionName,
   matchesOf,
   parseSportsAffinityUrl,
   played,
@@ -99,13 +100,39 @@ describe("readFlightList", () => {
       <a href="schedule_results2.asp?sessionguid=&flightguid=941CC90C-8BA1-4FC9-9BC8-E1F8C16835E4&tournamentguid=X">same flight again</a>
       <a href="accepted_flight.asp?sessionguid=&agecode=GU10&flightguid=5111CEC4-6036-402B-AE8C-520867D33A33&tournamentguid=X">y</a>`;
     expect(readFlightList(html)).toEqual([
-      { flightguid: "941CC90C-8BA1-4FC9-9BC8-E1F8C16835E4", agecode: "BU08" },
-      { flightguid: "5111CEC4-6036-402B-AE8C-520867D33A33", agecode: "GU10" },
+      // No row around the link, so nothing but the age code to call it.
+      { flightguid: "941CC90C-8BA1-4FC9-9BC8-E1F8C16835E4", agecode: "BU08", division: "BU08" },
+      { flightguid: "5111CEC4-6036-402B-AE8C-520867D33A33", agecode: "GU10", division: "GU10" },
     ]);
+  });
+
+  it("names the flight after its row — the tier the age code does not say", () => {
+    // A row of the real accepted-teams page, 2026-09-11.
+    const html = `<table>
+      <tr class="report0"> <td class="txt" style="white-space:nowrap" onclick="window.event.cancelBubble=true;">Boys Under 8 (2018/19) Div 3 North</td> <td class="txt" style="white-space:nowrap">&nbsp;&nbsp;<b><a href="accepted_flight.asp?sessionguid=&agecode=BU08&flightguid=941CC90C-8BA1-4FC9-9BC8-E1F8C16835E4&tournamentguid=X">Brackets</a></b></td> <td><a href="schedule_results2.asp?sessionguid=&flightguid=941CC90C-8BA1-4FC9-9BC8-E1F8C16835E4&tournamentguid=X">Schedule & Results</a></td></tr>
+      <tr class="report1"> <td class="txt">Boys Under 19 (2008/2009) Div 1</td> <td><a href="accepted_flight.asp?sessionguid=&agecode=BU19&flightguid=5111CEC4-6036-402B-AE8C-520867D33A33&tournamentguid=X">Brackets</a></td></tr>
+    </table>`;
+    expect(readFlightList(html).map((f) => f.division)).toEqual(["BU08 Div 3 North", "BU19 Div 1"]);
   });
 
   it("finds nothing in a page that lists none", () => {
     expect(readFlightList("<html><body>no flights</body></html>")).toEqual([]);
+  });
+});
+
+describe("divisionName", () => {
+  it("keeps the tier and drops what the age code already says", () => {
+    expect(divisionName("BU10", "Boys Under 10 (2016/17) Div 2 South")).toBe("BU10 Div 2 South");
+    expect(divisionName("GU12", "Girls Under 12 (2014/15) Div 1")).toBe("GU12 Div 1");
+  });
+
+  it("falls back to the age code alone when the name says nothing more", () => {
+    expect(divisionName("BU10", "")).toBe("BU10");
+    expect(divisionName("BU10", "Boys Under 10 (2016/17)")).toBe("BU10");
+  });
+
+  it("keeps a name it does not recognise whole, rather than folding the flight away", () => {
+    expect(divisionName("BU10", "Premier Blue")).toBe("BU10 Premier Blue");
   });
 });
 
@@ -114,6 +141,15 @@ describe("teams", () => {
     // Every age group has an "Eastside F.C.", and the platform gives no ids.
     const rows = readRclFlight(flight);
     const teams = teamsOf(rows, "BU08");
+    // The division is the flight; the key stays on the age, so a team
+    // written last season under it is still the same team.
+    const labelled = teamsOf(rows, "BU08", "BU08 Div 1");
+    expect(labelled[0].sourceTeamId).toBe(teams[0].sourceTeamId);
+    expect(labelled[0].division).toBe("BU08 Div 1");
+    expect(matchesOf(rows, "BU08", "BU08 Div 1")[0]).toMatchObject({
+      division: "BU08 Div 1",
+      homeTeamId: "BU08::PacNW BU8 Maroon A",
+    });
     expect(teams.some((t) => t.sourceTeamId === "BU08::PacNW BU8 Maroon A")).toBe(true);
     expect(matchesOf(rows, "BU08")[0].homeTeamId).toBe("BU08::PacNW BU8 Maroon A");
   });
