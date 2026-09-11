@@ -25,6 +25,13 @@ export type Upcoming = {
   title: string;
   detail: string | null;
   href: string;
+  /** A fixture: the two crests, home then away, as the line reads. */
+  sides?: {
+    home: { name: string; crest: string | null } | null;
+    away: { name: string; crest: string | null } | null;
+  };
+  /** An event: its logo, or the kind's icon when it has none. */
+  logo?: { src: string | null; kind: string };
 };
 
 /**
@@ -51,6 +58,8 @@ export async function whatsNext(
       .select({
         title: events.title,
         slug: events.slug,
+        kind: events.kind,
+        logoUrl: events.logoUrl,
         startsAt: events.startsAt,
         venueName: venues.name,
         status: eventAttendees.status,
@@ -88,9 +97,16 @@ export async function whatsNext(
       at: game.kickoffAt,
       // Midnight local is how this codebase says "day known, hour not".
       timed: timeAnnounced(game.kickoffAt, TZ),
-      title: game.opponent ? `${team.name} v ${game.opponent.name}` : team.name,
+      // Home first, as the fixture reads; the followed team may be either.
+      title:
+        game.home && game.away
+          ? `${game.home.name} v ${game.away.name}`
+          : game.opponent
+            ? `${team.name} v ${game.opponent.name}`
+            : team.name,
       detail: game.eventTitle,
       href: `/teams/${team.slug}`,
+      sides: { home: game.home, away: game.away },
     });
   }
 
@@ -102,7 +118,8 @@ export async function whatsNext(
    */
   const said = new Set(attending.map((e) => e.slug));
   for (const event of followed) {
-    if (!event.startsAt || event.startsAt < now || said.has(event.slug)) continue;
+    if (!event.startsAt || event.startsAt < now || said.has(event.slug))
+      continue;
     out.push({
       kind: "event",
       at: event.startsAt,
@@ -110,6 +127,7 @@ export async function whatsNext(
       title: event.title,
       detail: event.venueName,
       href: `/events/${event.slug}`,
+      logo: { src: event.logoUrl, kind: event.kind },
     });
   }
 
@@ -120,10 +138,12 @@ export async function whatsNext(
       at: event.startsAt,
       timed: timeAnnounced(event.startsAt, TZ),
       title: event.title,
-      detail: [event.venueName, event.status === "maybe" ? "you said maybe" : null]
-        .filter(Boolean)
-        .join(" · ") || null,
+      detail:
+        [event.venueName, event.status === "maybe" ? "you said maybe" : null]
+          .filter(Boolean)
+          .join(" · ") || null,
       href: `/events/${event.slug}`,
+      logo: { src: event.logoUrl, kind: event.kind },
     });
   }
 

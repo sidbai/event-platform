@@ -120,16 +120,40 @@ export default async function MePage({
         ) : (
           <ul className="mt-3 space-y-2.5 text-sm">
             {next.slice(0, 12).map((item, i) => (
-              <li key={`${item.kind}-${i}`}>
-                <Link href={item.href} className="font-medium hover:underline">
-                  {item.title}
-                </Link>
-                <p className="text-xs text-muted">
-                  {item.timed
-                    ? kickoffLabel(item.at, TZ)
-                    : `${kickoffLabel(item.at, TZ)?.split(",").slice(0, 2).join(",")}`}
-                  {item.detail && <> &middot; {item.detail}</>}
-                </p>
+              <li key={`${item.kind}-${i}`} className="flex items-start gap-3">
+                {/*
+                 * A fixture shows both crests in the order the line reads; an
+                 * event shows its logo, or its kind's icon when it has none.
+                 * The same components the team and event pages use, so a
+                 * crest borrowed from the club there is borrowed here too.
+                 */}
+                {item.sides ? (
+                  <span className="mt-0.5 flex shrink-0 items-center gap-0.5">
+                    <TeamCrest src={item.sides.home?.crest} size={22} />
+                    <TeamCrest src={item.sides.away?.crest} size={22} />
+                  </span>
+                ) : item.logo ? (
+                  <EventLogo
+                    src={item.logo.src}
+                    kind={item.logo.kind}
+                    size={28}
+                    className="mt-0.5 shrink-0"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <Link
+                    href={item.href}
+                    className="font-medium hover:underline"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="text-xs text-muted">
+                    {item.timed
+                      ? kickoffLabel(item.at, TZ)
+                      : `${kickoffLabel(item.at, TZ)?.split(",").slice(0, 2).join(",")}`}
+                    {item.detail && <> &middot; {item.detail}</>}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
