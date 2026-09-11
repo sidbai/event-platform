@@ -23,6 +23,12 @@
  * whatever the site it is on allows, names the file after it, and says
  * which leagues want the other site. One league failing does not stop the
  * rest; its line says what happened.
+ *
+ * On GotSport it also collects each team's badge — the platform prints one
+ * beside every team, and the person's browser fetching it is a visitor
+ * loading an image. They ride in the bundle as data URLs (bundle-logos.ts)
+ * and the import copies them into our own store for the teams that have
+ * no crest, so nothing of ours ever hotlinks theirs.
  */
 
 export type League =
@@ -116,7 +122,34 @@ el.textContent=msg;
 return el;
 }
 var out={},done=0,total=0,lines=[];
-function pause(){return new Promise(function(res){setTimeout(res,2500);});}
+function pause(ms){return new Promise(function(res){setTimeout(res,ms||2500);});}
+function asDataUrl(blob){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsDataURL(blob);});}
+async function badges(L,pages){
+var want={};
+pages.forEach(function(html){
+var d=new DOMParser().parseFromString(html,'text/html');
+[].slice.call(d.querySelectorAll('img.match-img-sm')).forEach(function(img){
+var a=img.parentNode&&img.parentNode.querySelector('a[href*="team="]');
+var src=img.getAttribute('src'),name=a&&a.textContent.replace(/\\s+/g,' ').trim();
+if(src&&name&&!want[name])want[name]=src;
+});
+});
+var names=Object.keys(want),got=0,byUrl={};
+out.__logos=out.__logos||{};out.__logos[L.name]={};
+for(var i=0;i<names.length;i++){
+var src=want[names[i]];
+try{
+if(!byUrl[src]){
+var r=await fetch(src);var b=await r.blob();
+if(r.ok&&b.size>0&&b.size<=512*1024&&/^image\\//.test(b.type))byUrl[src]=await asDataUrl(b);
+await pause(300);
+}
+if(byUrl[src]){out.__logos[L.name][names[i]]=byUrl[src];got++;}
+}catch(e){}
+note('Reading '+L.name+' badges ('+got+'/'+names.length+')\\n'+lines.join('\\n'));
+}
+return got+' of '+names.length+' badges';
+}
 async function readGotSport(L){
 var fr=await fetch('/org_event/events/'+L.event);
 if(fr.url.indexOf('captcha')>=0)return L.name+': GotSport wants a captcha first — pass it in this tab and click again';
@@ -132,14 +165,16 @@ if(L.only){var re=new RegExp(L.only,'i');groups=groups.filter(function(g){return
 if(all===0)return L.name+': no groups on the event page — the number may be last season\\'s';
 if(groups.length===0)return L.name+': none of '+all+' groups match /'+L.only+'/i, e.g. '+names.slice(0,4).join(', ');
 out[L.name]={};
+var pages=[];
 for(var k=0;k<groups.length;k++){
 var gt=await (await fetch('/org_event/events/'+L.event+'/schedules?date=All&group='+groups[k][1])).text();
-out[L.name][groups[k][0]]=gt;
+out[L.name][groups[k][0]]=gt;pages.push(gt);
 done++;total+=gt.length;
 note('Reading '+L.name+' '+groups[k][0]+' ('+done+')\\n'+lines.join('\\n'));
 await pause();
 }
-return L.name+': '+groups.length+(all>groups.length?' of '+all:'')+' groups';
+var badgeLine=await badges(L,pages);
+return L.name+': '+groups.length+(all>groups.length?' of '+all:'')+' groups, '+badgeLine;
 }
 async function readAthleteOne(L){
 var divs=opts(await (await fetch(API+'/get-division-list-by-event-id/'+L.org+'/'+L.event+'/0/0')).text());

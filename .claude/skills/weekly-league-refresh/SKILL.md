@@ -96,6 +96,12 @@ The bookmark reads whatever the site it is on allows, names the file after
 it, and lists the leagues that want the other site. One league failing does
 not stop the rest; its line in the note says what happened.
 
+On GotSport it also collects each team's **badge** (the small logo beside
+every team) into the bundle, as data URLs under `__logos`. The import copies
+them into our Blob store for teams that have no crest yet — never over an
+owner's upload — so nothing hotlinks GotSport. Needs `BLOB_READ_WRITE_TOKEN`
+in `.env.local` (it is there). The GotSport file is ~10–15 MB because of it.
+
 For each GotSport league it reads the event's front page for the groups, then
 each group's "View All Matches" page (`schedules?date=All&group=<id>`), which
 is the whole season on one page — the day view paginates, that one does not.
