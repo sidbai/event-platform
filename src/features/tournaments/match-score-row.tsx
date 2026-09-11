@@ -22,6 +22,8 @@ export function MatchScoreRow({
   awayPlaceholder,
   homeScore,
   awayScore,
+  homePens,
+  awayPens,
   status,
   divisionTeams,
   heldSince,
@@ -46,6 +48,9 @@ export function MatchScoreRow({
   awayPlaceholder: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  /** The shootout, for a knockout that ended level. */
+  homePens: number | null;
+  awayPens: number | null;
   status: string;
   divisionTeams: Team[];
 }) {
@@ -106,6 +111,27 @@ export function MatchScoreRow({
       />
       <span className="flex flex-1 items-center gap-2">
         {teamCell("away", away, awayPlaceholder)}
+      </span>
+
+      {/* The shootout, beside the score rather than folded into it: the
+          record reads 2–2 as the draw it was, and this says who went on. */}
+      <span className="flex items-center gap-1 text-xs text-muted" title="Penalty shootout, if the game ended level">
+        <span>pens</span>
+        <input
+          name="homePens"
+          inputMode="numeric"
+          defaultValue={homePens ?? ""}
+          className={`${num} w-10`}
+          aria-label="home penalties"
+        />
+        <span>–</span>
+        <input
+          name="awayPens"
+          inputMode="numeric"
+          defaultValue={awayPens ?? ""}
+          className={`${num} w-10`}
+          aria-label="away penalties"
+        />
       </span>
 
       <select name="status" defaultValue={status} className={sel} aria-label="status">

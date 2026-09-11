@@ -477,6 +477,13 @@
       "when": 1789151251033,
       "tag": "0067_lively_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1789163807804,
+      "tag": "0068_dry_molly_hayes",
+      "breakpoints": true
     }
   ]
 }
