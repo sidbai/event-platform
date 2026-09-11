@@ -16,10 +16,13 @@
  * inline means there is no address to serve, nothing for a page's content
  * policy to refuse, and no secret to keep.
  *
- * Where to click it: on a system.gotsport.com page. GotSport pages can only
- * be read from their own origin; AthleteOne's API answers any origin. So one
- * click there collects every league below. Clicked anywhere else, it still
- * collects the ECNL ones and says which it could not.
+ * Where to click it: twice a week, once on each site. GotSport pages can
+ * only be read from their own origin, and AthleteOne's API answers only the
+ * pages on theecnl.com — its CORS header names that origin and no other,
+ * which a click on GotSport found out the hard way. So the bookmark reads
+ * whatever the site it is on allows, names the file after it, and says
+ * which leagues want the other site. One league failing does not stop the
+ * rest; its line says what happened.
  */
 
 export type League =
@@ -92,8 +95,9 @@ export const ECNL_LEAGUES: EcnlLeague[] = LEAGUES.filter(
 const SOURCE = `
 (function(){
 var API='https://api.athleteone.com/api/Script';
-var GS='system.gotsport.com';
+var GS='system.gotsport.com',ECNL='theecnl.com';
 var LEAGUES=__LEAGUES__;
+var here=location.host===GS?'gotsport':location.host.indexOf(ECNL)>=0?'athleteone':null;
 function opts(html){
 var d=new DOMParser().parseFromString(html,'text/html');
 return [].slice.call(d.querySelectorAll('option')).filter(function(o){return o.value!=='0';})
@@ -107,16 +111,11 @@ document.body.appendChild(el);}
 el.textContent=msg;
 return el;
 }
-(async function(){
 var out={},done=0,total=0,lines=[];
-try{
-for(var i=0;i<LEAGUES.length;i++){
-var L=LEAGUES[i];
-note('Reading '+L.name+'…\\n'+lines.join('\\n'));
-if(L.platform==='gotsport'){
-if(location.host!==GS){lines.push(L.name+': open any system.gotsport.com page and click again');continue;}
+function pause(){return new Promise(function(res){setTimeout(res,2500);});}
+async function readGotSport(L){
 var fr=await fetch('/org_event/events/'+L.event);
-if(fr.url.indexOf('captcha')>=0){lines.push(L.name+': GotSport wants a captcha first — pass it in this tab and click again');continue;}
+if(fr.url.indexOf('captcha')>=0)return L.name+': GotSport wants a captcha first — pass it in this tab and click again';
 var fd=new DOMParser().parseFromString(await fr.text(),'text/html');
 var groups=[],ids={};
 [].slice.call(fd.querySelectorAll('a[href*="schedules?group="]')).forEach(function(a){
@@ -126,42 +125,49 @@ if(id&&b&&!ids[id]){ids[id]=1;groups.push([b.textContent.trim(),id]);}
 });
 var all=groups.length,names=groups.map(function(g){return g[0];});
 if(L.only){var re=new RegExp(L.only,'i');groups=groups.filter(function(g){return re.test(g[0]);});}
-if(all===0){lines.push(L.name+': no groups on the event page — the number may be last season\\'s');continue;}
-if(groups.length===0){lines.push(L.name+': none of '+all+' groups match /'+L.only+'/i, e.g. '+names.slice(0,4).join(', '));continue;}
+if(all===0)return L.name+': no groups on the event page — the number may be last season\\'s';
+if(groups.length===0)return L.name+': none of '+all+' groups match /'+L.only+'/i, e.g. '+names.slice(0,4).join(', ');
 out[L.name]={};
 for(var k=0;k<groups.length;k++){
-var gr=await fetch('/org_event/events/'+L.event+'/schedules?date=All&group='+groups[k][1]);
-var gt=await gr.text();
+var gt=await (await fetch('/org_event/events/'+L.event+'/schedules?date=All&group='+groups[k][1])).text();
 out[L.name][groups[k][0]]=gt;
 done++;total+=gt.length;
 note('Reading '+L.name+' '+groups[k][0]+' ('+done+')\\n'+lines.join('\\n'));
-await new Promise(function(res){setTimeout(res,2500);});
+await pause();
 }
-lines.push(L.name+': '+groups.length+(all>groups.length?' of '+all:'')+' groups');
-continue;
+return L.name+': '+groups.length+(all>groups.length?' of '+all:'')+' groups';
 }
-var dl=await fetch(API+'/get-division-list-by-event-id/'+L.org+'/'+L.event+'/0/0');
-var divs=opts(await dl.text());
-if(divs.length===0){lines.push(L.name+': no divisions — the ids may be last season\\'s');continue;}
+async function readAthleteOne(L){
+var divs=opts(await (await fetch(API+'/get-division-list-by-event-id/'+L.org+'/'+L.event+'/0/0')).text());
+if(divs.length===0)return L.name+': no divisions — the ids may be last season\\'s';
 out[L.name]={};
 for(var j=0;j<divs.length;j++){
-var r=await fetch(API+'/get-conference-schedules/'+L.org+'/'+L.season+'/'+L.event+'/'+divs[j][1]+'/0');
-var t=await r.text();
+var t=await (await fetch(API+'/get-conference-schedules/'+L.org+'/'+L.season+'/'+L.event+'/'+divs[j][1]+'/0')).text();
 out[L.name][divs[j][0]]=t;
 done++;total+=t.length;
 note('Reading '+L.name+' '+divs[j][0]+' ('+done+')\\n'+lines.join('\\n'));
-await new Promise(function(res){setTimeout(res,2500);});
+await pause();
 }
-lines.push(L.name+': '+divs.length+' divisions');
+return L.name+': '+divs.length+' divisions';
 }
+(async function(){
+var skipped=[];
+for(var i=0;i<LEAGUES.length;i++){
+var L=LEAGUES[i];
+if(L.platform!==here){skipped.push(L.name);continue;}
+note('Reading '+L.name+'…\\n'+lines.join('\\n'));
+try{lines.push(await (L.platform==='gotsport'?readGotSport(L):readAthleteOne(L)));}
+catch(e){lines.push(L.name+': '+e.message);}
+}
+var elsewhere=skipped.length?'\\n\\nNot from here: '+skipped.join(', ')+' — click this on '+(here==='gotsport'?'a theecnl.com schedule page':'a system.gotsport.com page')+' for those.':'';
+if(!here){note('Open a theecnl.com schedule page or any system.gotsport.com page and click this there.\\n\\nClick to dismiss').onclick=function(){this.remove();};return;}
+if(done===0){note('Nothing collected.\\n'+lines.join('\\n')+elsewhere+'\\n\\nClick to dismiss').onclick=function(){this.remove();};return;}
+var file=(here==='gotsport'?'gotsport':'ecnl')+'-northwest-all.json';
 var a=document.createElement('a');
 a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));
-a.download='leagues-northwest-all.json';
+a.download=file;
 document.body.appendChild(a);a.click();a.remove();
-note('Saved leagues-northwest-all.json\\n'+done+' divisions, '+Math.round(total/1024)+'K\\n'+lines.join('\\n')+'\\n\\nClick to dismiss').onclick=function(){this.remove();};
-}catch(e){
-note('Stopped: '+e.message+'\\n'+lines.join('\\n')+'\\n\\nClick to dismiss').onclick=function(){this.remove();};
-}
+note('Saved '+file+'\\n'+done+' divisions, '+Math.round(total/1024)+'K\\n'+lines.join('\\n')+elsewhere+'\\n\\nClick to dismiss').onclick=function(){this.remove();};
 })();
 })();
 `;

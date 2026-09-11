@@ -84,11 +84,17 @@ pnpm leagues:snippet              # paste into the console
 pnpm leagues:snippet --bookmark   # or make a bookmark of it, once
 ```
 
-Open **any `system.gotsport.com` page** (the WPL event's front page will do)
-and run it there. GotSport pages can only be read from their own origin;
-AthleteOne's API answers any origin — so one click on GotSport collects all
-nine leagues into one `leagues-northwest-all.json`. Clicked elsewhere it still
-collects the six ECNL ones and says which it could not.
+**Two clicks, one on each site.** GotSport pages can only be read from their
+own origin, and AthleteOne's API answers only pages on theecnl.com (its CORS
+header names that origin and no other — a click on GotSport learned this as
+`blocked by CORS policy`). So:
+
+- on **any theecnl.com schedule page** → `ecnl-northwest-all.json` (six leagues)
+- on **any system.gotsport.com page** → `gotsport-northwest-all.json` (WPL, GA, GA ASPIRE)
+
+The bookmark reads whatever the site it is on allows, names the file after
+it, and lists the leagues that want the other site. One league failing does
+not stop the rest; its line in the note says what happened.
 
 For each GotSport league it reads the event's front page for the groups, then
 each group's "View All Matches" page (`schedules?date=All&group=<id>`), which
@@ -105,7 +111,8 @@ ids (single read-only calls pass), which is why the table above exists.
 ## Step 2 — look before writing
 
 ```
-pnpm har ~/Downloads/leagues-northwest-all.json
+pnpm har ~/Downloads/ecnl-northwest-all.json
+pnpm har ~/Downloads/gotsport-northwest-all.json
 ```
 
 Reports every fragment and its size. Two things worth a glance:
@@ -120,8 +127,9 @@ Reports every fragment and its size. Two things worth a glance:
 ## Step 3 — import
 
 ```
-pnpm db:import:schedule --event=<slug> --file=~/Downloads/leagues-northwest-all.json --league="ECNL RL Boys"
+pnpm db:import:schedule --event=<slug> --file=~/Downloads/ecnl-northwest-all.json --league="ECNL RL Boys"
 pnpm db:import:schedule --event=<slug> --file=… --league="ECNL RL Boys" --apply
+pnpm db:import:schedule --event=<slug> --file=~/Downloads/gotsport-northwest-all.json --league="WPL" --apply
 ```
 
 Which reader applies is decided by the markup, not the label: a GotSport page

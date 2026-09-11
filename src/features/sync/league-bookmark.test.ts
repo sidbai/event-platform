@@ -16,10 +16,13 @@ describe("the weekly bookmark", () => {
     }
   });
 
-  it("knows both platforms, and where it has to be clicked for one of them", () => {
+  it("knows both platforms, and which site each has to be clicked on", () => {
     const src = leagueFetchSource();
     expect(src).toContain("api.athleteone.com");
     expect(src).toContain("system.gotsport.com");
+    expect(src).toContain("theecnl.com");
+    // One file per site, so a week's two clicks do not overwrite each other.
+    expect(src).toContain("-northwest-all.json");
     expect(src).toContain("schedules?date=All&group=");
     // The GA events are national; only the Northwest is taken.
     expect(src).toMatch(/"only":"Northwest"/);
