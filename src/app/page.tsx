@@ -145,7 +145,7 @@ export default async function Home() {
       {/* Kept a step above the cards below it so the page outline still reads,
           but small enough not to shout over the feed. */}
       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        Create. Discover. Play.
+        Discover. Create. Play.
       </h1>
       <p className="mt-2 text-sm text-muted">More information. More opportunities. More soccer.</p>
 
