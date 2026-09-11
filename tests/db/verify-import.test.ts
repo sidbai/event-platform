@@ -21,6 +21,7 @@ const { eventDivisions, eventTeams, events, matches, teams } = await import(
   "@/db/schema"
 );
 const { verifyEvent } = await import("@/features/sync/verify");
+const { eq } = await import("drizzle-orm");
 
 let eventId: string;
 let divisionId: string;
@@ -183,5 +184,61 @@ describe("verifyEvent", () => {
     await makeTeam("ALBION SC Hawaii B07/08", "albion-sc-hawaii-b07-08", [2007, 2008]);
 
     expect((await findingFor("addresses")).count).toBe(0);
+  });
+});
+
+describe("fixtures outside the event's own dates", () => {
+  it("notices a year somebody typed wrong", async () => {
+    /*
+     * The Regional Club League publishes one on "Friday, January 30, 2026",
+     * in the middle of a season running September 2026 to May 2027. Read
+     * faithfully, because a connector correcting somebody's data is a
+     * connector inventing it — but a fixture in the past with no score reads
+     * as a game that was played and never filled in, and nothing else here
+     * would ever notice.
+     */
+    await db
+      .update(events)
+      .set({ startsAt: new Date("2026-09-12"), endsAt: new Date("2027-05-31") })
+      .where(eq(events.slug, "league"));
+    const home = await makeTeam("Harbor B13/14", "harbor-b13-14", [2013, 2014]);
+    const away = await makeTeam("Celtic B13/14", "celtic-b13-14", [2013, 2014]);
+    await db.insert(matches).values([
+      {
+        eventId,
+        divisionId,
+        homeTeamId: home,
+        awayTeamId: away,
+        kickoffAt: new Date("2026-10-03T16:00:00Z"),
+      },
+      {
+        eventId,
+        divisionId,
+        homeTeamId: home,
+        awayTeamId: away,
+        kickoffAt: new Date("2026-01-30T08:00:00Z"),
+      },
+    ]);
+
+    const finding = await findingFor("season");
+    expect(finding.count).toBe(1);
+    expect(finding.severity).toBe("look");
+    expect(finding.examples[0]).toContain("2026-01-30");
+  });
+
+  it("allows a day either side, for a kick-off in another zone", async () => {
+    await db
+      .update(events)
+      .set({ startsAt: new Date("2026-09-12"), endsAt: new Date("2027-05-31") })
+      .where(eq(events.slug, "league"));
+    const home = await makeTeam("Harbor B13/14", "harbor-b13-14", [2013, 2014]);
+    await db.insert(matches).values({
+      eventId,
+      divisionId,
+      homeTeamId: home,
+      kickoffAt: new Date("2026-09-12T03:00:00Z"),
+      awayPlaceholder: "Winner of A1",
+    });
+    expect((await findingFor("season")).count).toBe(0);
   });
 });

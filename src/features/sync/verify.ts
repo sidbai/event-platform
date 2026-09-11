@@ -70,9 +70,13 @@ async function check(
 }
 
 export async function verifyEvent(slug: string): Promise<Verification | null> {
-  const [event] = await db.execute<{ id: string; slug: string; title: string }>(
-    sql`select id, slug, title from events where slug = ${slug}`,
-  );
+  const [event] = await db.execute<{
+    id: string;
+    slug: string;
+    title: string;
+    starts_at: Date | null;
+    ends_at: Date | null;
+  }>(sql`select id, slug, title, starts_at, ends_at from events where slug = ${slug}`);
   if (!event) return null;
   const id = event.id;
 
@@ -147,6 +151,30 @@ export async function verifyEvent(slug: string): Promise<Verification | null> {
          = trim(both '-' from regexp_replace(lower(t.name), '[^a-z0-9]+', '-', 'g'))
     )
   `;
+
+  /*
+   * A fixture outside the event's own dates.
+   *
+   * The Regional Club League publishes one on "Friday, January 30, 2026" —
+   * in the middle of a season that runs from September 2026 to May 2027, and
+   * plainly a year they typed wrong. Read faithfully, which is right: a
+   * connector correcting somebody's data is a connector inventing it. But a
+   * fixture in the past with no score reads as a game that was played and
+   * never filled in, and this is the only thing that would ever notice.
+   *
+   * A day either side, because an evening kick-off in another zone is not an
+   * error.
+   */
+  const outsideSeason =
+    event.starts_at && event.ends_at
+      ? sql`
+          from matches m
+          where m.event_id = ${id}
+            and m.kickoff_at is not null
+            and (m.kickoff_at < ${event.starts_at}::timestamptz - interval '1 day'
+              or m.kickoff_at > ${event.ends_at}::timestamptz + interval '1 day')
+        `
+      : null;
 
   const findings = await Promise.all([
     check(
@@ -247,6 +275,18 @@ export async function verifyEvent(slug: string): Promise<Verification | null> {
           where et.event_id = ${id} and ${staleAddress}
           limit 5`,
     ),
+    ...(outsideSeason
+      ? [
+          check(
+            "season",
+            "look",
+            "fixtures dated outside the event's own dates",
+            sql`select count(*)::int as n ${outsideSeason}`,
+            sql`select to_char(m.kickoff_at, 'YYYY-MM-DD') || '  ' ||
+                  coalesce(m.source_match_id, '?') as line ${outsideSeason} limit 5`,
+          ),
+        ]
+      : []),
   ]);
 
   return {
