@@ -39,6 +39,7 @@ const { applySync, contentHash, recordSyncFailure } = await import(
 const { parseFlightPage } = await import("@/features/sync/athletes2events");
 const { parsePastedSchedule, toSyncedEvent } = await import("@/features/sync/paste");
 const { and, eq } = await import("drizzle-orm");
+const { mergeTeams } = await import("@/features/teams/merge");
 
 const fixture = (name: string) =>
   readFileSync(join(process.cwd(), "tests/fixtures/athletes2events", name), "utf8");
@@ -649,5 +650,55 @@ describe("what each event called a team", () => {
       columns: { sourceName: true },
     });
     expect(entry?.sourceName).toBe("XF B09/10 ECNL 1");
+  });
+});
+
+describe("a team an admin merged away", () => {
+  /*
+   * Both halves entered in the same event, so the merge dropped the loser's
+   * entry — one entry per team per event — and with it the only row that knew
+   * the platform's id for it. The next poll used to find that id unbound and
+   * make the team again, games and all.
+   */
+  it("stays merged on the next poll instead of coming back", async () => {
+    const eventId = await makeListing();
+    const data = syncedFromFixtures();
+    await applySync(eventId, data, NOW);
+
+    const keepSource = data.teams[0].sourceTeamId;
+    const goneSource = data.teams[data.teams.length - 1].sourceTeamId;
+    const teamOf = async (sourceTeamId: string) =>
+      (await db.query.eventTeams.findFirst({
+        where: eq(eventTeams.sourceTeamId, sourceTeamId),
+      }))!.teamId;
+    const keep = await teamOf(keepSource);
+    const gone = await teamOf(goneSource);
+
+    // Renamed by the club's own naming, as they are here — so the alias the
+    // merge writes is not the name the platform publishes.
+    await db.update(teams).set({ name: "XF Select B12 B" }).where(eq(teams.id, gone));
+    await mergeTeams(keep, [gone]);
+    const before = (await db.select().from(teams)).length;
+
+    const revised = {
+      ...data,
+      matches: data.matches.map((m) =>
+        m.sourceMatchId === "377" ? { ...m, homeScore: 5, awayScore: 5 } : m,
+      ),
+    };
+    await applySync(eventId, revised, new Date(NOW.getTime() + 60_000));
+
+    expect((await db.select().from(teams)).length).toBe(before);
+    const theirs = data.matches.filter(
+      (m) => m.homeTeamId === goneSource || m.awayTeamId === goneSource,
+    );
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const m of theirs) {
+      const [row] = await db
+        .select()
+        .from(matches)
+        .where(eq(matches.sourceMatchId, m.sourceMatchId));
+      expect(m.homeTeamId === goneSource ? row.homeTeamId : row.awayTeamId).toBe(keep);
+    }
   });
 });
