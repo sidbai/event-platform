@@ -46,23 +46,26 @@ export function MergePicker({
     setOrder([]);
   }
 
-  if (!picking) {
-    return (
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setPicking(true)}
-          className="rounded-md border border-line px-2.5 py-1 text-xs hover:bg-elevated"
-        >
-          Select teams to merge
-        </button>
-        {said && <span className="text-xs text-muted">{said}</span>}
-      </div>
-    );
-  }
-
   return (
     <div className="mt-4">
+      {/*
+        The list is the page. Everything here is an addition to it, and the
+        first version made that a mode — off, it rendered the button and
+        nothing else, so an admin opening /teams saw no teams at all. Whatever
+        this is doing, the teams are on screen.
+      */}
+      {!picking ? (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPicking(true)}
+            className="rounded-md border border-line px-2.5 py-1 text-xs hover:bg-elevated"
+          >
+            Select teams to merge
+          </button>
+          {said && <span className="text-xs text-muted">{said}</span>}
+        </div>
+      ) : (
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand/30 bg-brand/5 px-3 py-2 text-sm">
         {order.length === 0 ? (
           <span className="text-muted">
@@ -106,11 +109,15 @@ export function MergePicker({
         </div>
       </div>
 
-      {said && <p className="mt-2 text-xs text-muted">{said}</p>}
+      )}
+
+      {picking && said && <p className="mt-2 text-xs text-muted">{said}</p>}
 
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {teams.map((team) => {
           const at = order.indexOf(team.id);
+          // Not picking: the row somebody came here to click.
+          if (!picking) return <TeamCard key={team.id} team={team} />;
           return (
             <li key={team.id} className="relative">
               {/*
