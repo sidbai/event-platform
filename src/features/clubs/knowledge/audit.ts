@@ -160,3 +160,57 @@ export function groupFindings(findings: Finding[]): {
     }))
     .sort((a, b) => b.count - a.count);
 }
+
+
+/**
+ * A club whose name is initials, beside the club those initials spell.
+ *
+ * "FME SC" and "Fife Milton Edgewood SC" are one club held as two, seventeen
+ * teams under one and three under the other — and nothing in the directory
+ * could see it, because the two names share no word at all. Every other rule
+ * here compares words; this one compares first letters, which is the only
+ * comparison that finds this shape.
+ *
+ * It proposes, and nothing else. Folding two clubs together moves every team
+ * under them and is a person's decision, run by hand with `db:clubs:merge`.
+ * The value is that the pair is offered at all.
+ */
+const CLUB_NOISE = /^(fc|sc|cf|afc|sa|soccer|club|academy|association|youth|the|of|and)$/i;
+
+export function initialsOf(name: string): string {
+  const words = name.split(/[^\p{L}\p{N}]+/u).filter((w) => w && !CLUB_NOISE.test(w));
+  /*
+   * A name that is already initials is its own answer. Taking first letters
+   * of "FME SC" gives "F", which matches nothing and quietly disables the
+   * whole check — which is what it did on the first run.
+   */
+  if (words.length === 1 && /^[A-Z]{2,5}$/.test(words[0])) return words[0].toUpperCase();
+  return words.map((w) => w[0]).join("").toUpperCase();
+}
+
+/** An all-capitals name of two to five letters, which is how initials look. */
+export function looksLikeInitials(name: string): boolean {
+  const words = name.split(/[^\p{L}\p{N}]+/u).filter((w) => w && !CLUB_NOISE.test(w));
+  return words.length === 1 && /^[A-Z]{2,5}$/.test(words[0]);
+}
+
+export type ClubName = { slug: string; name: string; teams: number };
+
+export function acronymPairs(
+  clubs: ClubName[],
+): { acronym: ClubName; spelledOut: ClubName }[] {
+  const out: { acronym: ClubName; spelledOut: ClubName }[] = [];
+  const spelled = clubs.filter((c) => !looksLikeInitials(c.name));
+  for (const club of clubs) {
+    if (!looksLikeInitials(club.name)) continue;
+    const letters = initialsOf(club.name);
+    for (const other of spelled) {
+      // Two letters is too little: half the directory would match something.
+      if (letters.length < 3 || initialsOf(other.name) !== letters) continue;
+      out.push({ acronym: club, spelledOut: other });
+    }
+  }
+  return out.sort(
+    (a, b) => b.acronym.teams + b.spelledOut.teams - (a.acronym.teams + a.spelledOut.teams),
+  );
+}

@@ -25,7 +25,9 @@ async function main() {
   const { db } = await import("../src/db");
   const { teams, clubs, clubAliases } = await import("../src/db/schema");
   const { eq } = await import("drizzle-orm");
-  const { auditTeam, groupFindings } = await import("../src/features/clubs/knowledge/audit");
+  const { acronymPairs, auditTeam, groupFindings } = await import(
+    "../src/features/clubs/knowledge/audit"
+  );
   const { profileFor, allProfiles } = await import("../src/features/clubs/knowledge/store");
 
   const onlyClub = flag("club");
@@ -108,6 +110,33 @@ async function main() {
       }
     }
   }
+  /*
+   * Clubs held twice, once as initials and once spelled out. Offered, never
+   * acted on: folding two clubs together moves every team under them.
+   */
+  const teamsByClub = new Map<string, { slug: string; name: string; teams: number }>();
+  for (const r of rows) {
+    if (!r.clubSlug || !r.clubName) continue;
+    const held = teamsByClub.get(r.clubSlug);
+    teamsByClub.set(r.clubSlug, {
+      slug: r.clubSlug,
+      name: r.clubName,
+      teams: (held?.teams ?? 0) + 1,
+    });
+  }
+  const pairs = acronymPairs([...teamsByClub.values()]);
+  if (pairs.length && !onlyClub) {
+    console.log("\nClubs held twice, once as initials and once spelled out:\n");
+    for (const p of pairs) {
+      console.log(
+        `  ${p.acronym.name} (${p.acronym.teams}) may be ${p.spelledOut.name} (${p.spelledOut.teams})`,
+      );
+      console.log(
+        `      pnpm db:clubs:merge --from=${p.spelledOut.slug} --into=${p.acronym.slug}`,
+      );
+    }
+  }
+
   process.exit(0);
 }
 
