@@ -972,6 +972,45 @@ export const teamMembers = pgTable(
 );
 
 /**
+ * An event somebody is keeping an eye on.
+ *
+ * Not the same as saying you will be there. A parent whose child plays in a
+ * tournament is going to it; a parent watching the league their club might
+ * enter next year is not, and neither is anybody following a seven-month
+ * season. Attendance answers "will you be there" and this answers "tell me
+ * about it", and both can be true of one event.
+ *
+ * It also reaches where attendance cannot. The attendance module is only on
+ * the kinds that ask a person to turn up — pickup, meetup, watch party — so
+ * until now there was no way to put a tournament or a league on your own page
+ * at all.
+ *
+ * Private, the way following a team is: nobody is told who follows an event
+ * and no page counts them.
+ */
+export const eventFollows = pgTable(
+  "event_follows",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.userId] }),
+    index("event_follows_user_idx").on(t.userId),
+  ],
+);
+
+export const eventFollowsRelations = relations(eventFollows, ({ one }) => ({
+  event: one(events, { fields: [eventFollows.eventId], references: [events.id] }),
+  user: one(users, { fields: [eventFollows.userId], references: [users.id] }),
+}));
+
+/**
  * A team somebody is keeping an eye on.
  *
  * Not a claim, and deliberately nothing like one. Claiming a team says you

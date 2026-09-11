@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { eventAttendees, eventDivisions, events, matches, teams, venues } from "@/db/schema";
 import type { CalendarFixture } from "@/features/calendar/ics";
 import { timeAnnounced } from "@/features/events/kickoff";
+import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams } from "@/features/teams/follow-queries";
 import { siteUrl } from "@/lib/site-url";
 
@@ -106,6 +107,27 @@ export async function myCalendar(userId: string, now = new Date()): Promise<Cale
     division: f.division,
     url: `${origin}/events/${f.eventSlug}`,
   }));
+
+  /*
+   * A followed event goes in as itself, once. Its fixtures do not: a season
+   * is four thousand of them and almost none are this person's — the ones
+   * that are come from following the teams.
+   */
+  const said = new Set(attending.map((e) => e.id));
+  for (const e of await followedEvents(userId)) {
+    if (!e.startsAt || said.has(e.id) || e.startsAt < since) continue;
+    out.push({
+      id: e.id,
+      kickoffAt: e.startsAt,
+      timed: timeAnnounced(e.startsAt, TZ),
+      home: e.title,
+      away: "",
+      where: e.venueName,
+      event: "You follow this",
+      division: null,
+      url: `${origin}/events/${e.slug}`,
+    });
+  }
 
   for (const e of attending) {
     out.push({
