@@ -2889,7 +2889,12 @@
     "slug": "western-washington-surf",
     "tiers": [
       "Elite",
-      "Premier"
+      "Premier",
+      "EA League",
+      "NPL",
+      "DPL",
+      "WPL",
+      "JDL"
     ],
     "squadMarkers": [
       "A Team",
@@ -2904,6 +2909,8 @@
     "branches": [
       "Elite North",
       "Elite South",
+      "North",
+      "South",
       "Tacoma",
       "Medina",
       "Redmond",
@@ -2913,7 +2920,7 @@
       "Tukwila"
     ],
     "coaches": [],
-    "summary": "Western Washington Surf fields boys' and girls' teams at Elite and Premier levels. Elite is split into Elite North and Elite South, each with an A Team and a B Team. Premier is run town by town — Tacoma, Medina, Redmond, Puyallup and others each publish their own season outline with A Teams and B&C Teams — so two Surf sides of the same age in different towns are different teams. Season outlines group ages in pairs (U9 & U10, U11 & U12) while teams are named by single birth year.",
+    "summary": "Western Washington Surf fields boys' and girls' teams at Elite and Premier levels. Elite is split into Elite North and Elite South, each with an A Team and a B Team. Premier is run town by town — Tacoma, Medina, Redmond, Puyallup and others each publish their own season outline with A Teams and B&C Teams — so two Surf sides of the same age in different towns are different teams. Season outlines group ages in pairs (U9 & U10, U11 & U12) while teams are named by single birth year. Their pages name the leagues each level plays: EA League and DPL for the Elite A teams, NPL and WPL below, and JDL at U6-U7.",
     "sources": [
       "https://westernwasurf.com",
       "https://westernwasurf.com/teams/",
