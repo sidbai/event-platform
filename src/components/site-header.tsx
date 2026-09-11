@@ -29,6 +29,16 @@ export async function SiteHeader() {
     { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
     { href: "/clubs", label: "Reviews" },
+    /*
+     * Last of the sections and next to the avatar, because it is the only one
+     * that is not a part of the site — it is the part that is yours. It was
+     * reachable only from inside the account menu, which is two presses and a
+     * guess for the page somebody has the most reason to open.
+     *
+     * Signed out there is nothing behind it but the sign-in page, so it is
+     * not offered.
+     */
+    ...(user ? [{ href: "/me", label: "Me" }] : []),
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
