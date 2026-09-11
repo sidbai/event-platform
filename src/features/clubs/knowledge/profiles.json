@@ -993,6 +993,49 @@
     "readAt": "2026-09-11T06:34:15.900Z",
     "model": "claude-opus-5"
   },
+  "mukilteo-youth-soccer-club": {
+    "slug": "mukilteo-youth-soccer-club",
+    "tiers": [
+      "Premier",
+      "Select",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Micro"
+    ],
+    "coaches": [],
+    "summary": "Mukilteo Youth Soccer Club separates Recreational, Select and Premier, and its competitive teams play under WPL and NSRL rules. Select and Premier are listed as distinct programmes, so two MYSC sides of the same age in different ones are different teams.",
+    "sources": [
+      "https://mysc.org",
+      "https://mysc.org/coaches/"
+    ],
+    "readAt": "2026-09-11T06:34:26.121Z",
+    "model": "claude-opus-5"
+  },
+  "norpoint-soccer-club": {
+    "slug": "norpoint-soccer-club",
+    "tiers": [
+      "Select",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Micro"
+    ],
+    "coaches": [],
+    "summary": "Norpoint runs recreational and select programs, with a separate Micro programme at the youngest ages. Its recreational age bands are written as ranges — U7-U9 and U10-U12.",
+    "sources": [
+      "https://norpointsoccer.org",
+      "https://norpointsoccer.org/resources/coaches/"
+    ],
+    "readAt": "2026-09-11T06:34:39.433Z",
+    "model": "claude-opus-5"
+  },
   "north-kitsap-soccer-club": {
     "slug": "north-kitsap-soccer-club",
     "tiers": [
@@ -1512,6 +1555,54 @@
       "https://www.pacificnorthwestsoccerclub.org/tryoutschedulegirls"
     ],
     "readAt": "2026-09-11T06:36:01.617Z",
+    "model": "claude-opus-5"
+  },
+  "pilchuck-soccer-alliance": {
+    "slug": "pilchuck-soccer-alliance",
+    "tiers": [
+      "Force Select Soccer",
+      "Force Academy",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Force Academy",
+      "Force Select Soccer",
+      "Micros"
+    ],
+    "coaches": [],
+    "summary": "Pilchuck Soccer Alliance calls its competitive side Force: Force Select Soccer for ages 9-19 and Force Academy for ages 7-8, with recreational soccer for 7-19 beside them. A team published as Pilchuck Force is this club's select programme.",
+    "sources": [
+      "https://www.pilchucksocceralliance.com"
+    ],
+    "readAt": "2026-09-11T06:36:04.089Z",
+    "model": "claude-opus-5"
+  },
+  "rayados-soccer-academy-northwest": {
+    "slug": "rayados-soccer-academy-northwest",
+    "tiers": [
+      "Academy",
+      "Junior Academy",
+      "Mini-Stripes"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "two-year",
+    "branches": [
+      "Mini-Stripes",
+      "Junior Academy",
+      "Academy"
+    ],
+    "coaches": [],
+    "summary": "Rayados Soccer Academy-Northwest, the official academy of CF Monterrey Rayados, runs three named stages rather than one ladder: Mini-Stripes at U5-U6, Junior Academy at U7-U9 and Academy at U10-U15, each described as preparing players for the next. So a Junior Academy side and an Academy side are different programmes.",
+    "sources": [
+      "https://www.rayadosnw.com",
+      "https://www.rayadosnw.com/teams",
+      "https://www.rayadosnw.com/Coaches"
+    ],
+    "readAt": "2026-09-11T06:36:11.315Z",
     "model": "claude-opus-5"
   },
   "seattle-reign-academy": {
@@ -2304,6 +2395,29 @@
     "readAt": "2026-09-11T06:36:51.627Z",
     "model": "claude-opus-5"
   },
+  "south-kitsap-soccer-club": {
+    "slug": "south-kitsap-soccer-club",
+    "tiers": [
+      "Premier",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "two-year",
+    "branches": [
+      "SK United",
+      "Micro",
+      "Mod"
+    ],
+    "coaches": [],
+    "summary": "South Kitsap Soccer Club fields its premier teams under a separate name, SK United, with recreational soccer beside it in three bands — Micro at U5-U8, Mod at U9-U10 and regulation play at U11-U19. A team published as SK United is this club's premier side.",
+    "sources": [
+      "https://www.sksoccer.com",
+      "https://www.sksoccer.com/programs"
+    ],
+    "readAt": "2026-09-11T06:36:56.019Z",
+    "model": "claude-opus-5"
+  },
   "sozo-fc": {
     "slug": "sozo-fc",
     "tiers": [
@@ -2325,6 +2439,24 @@
       "https://www.sozofc.com/"
     ],
     "readAt": "2026-09-11T06:36:58.583Z",
+    "model": "claude-opus-5"
+  },
+  "united-sports-fc": {
+    "slug": "united-sports-fc",
+    "tiers": [],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Winter Cubs Academy"
+    ],
+    "coaches": [],
+    "summary": "United Sports FC runs a Winter Cubs Academy for birth years 2014 to 2018.",
+    "sources": [
+      "https://www.unitedsportsfc.org/",
+      "https://www.unitedsportsfc.org/service-page/winter-cubs-academy-2018-2014"
+    ],
+    "readAt": "2026-09-11T06:37:11.155Z",
     "model": "claude-opus-5"
   },
   "valor-soccer": {
@@ -2363,6 +2495,34 @@
       "https://www.valorsoccer.com/tryout-dates"
     ],
     "readAt": "2026-09-11T06:37:52.745Z",
+    "model": "claude-opus-5"
+  },
+  "warriors": {
+    "slug": "warriors",
+    "tiers": [
+      "EA",
+      "WPL",
+      "DPL/WPL"
+    ],
+    "squadMarkers": [
+      "Attack",
+      "Blue",
+      "Gold"
+    ],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Warriors Sports Academy",
+      "Little Warriors Sports Academy",
+      "Junior Pool 4v4"
+    ],
+    "coaches": [],
+    "summary": "The club publishes itself as Warriors Sports Academy, and Little Warriors Sports Academy is its junior programme — a different thing, not the same name shortened. Teams are named by age group and league: the EA sides (U11 EA through U18 EA) are the top level, and the WPL sides carry Attack, as in U14 Attack. At U9 and U10 there are two Attack teams in the age group, told apart by colour — U10 Attack Blue and U10 Attack Gold. Age groups run August 1 to July 31.",
+    "sources": [
+      "https://www.littlewarriorssports.org/",
+      "https://www.littlewarriorssports.org/teams"
+    ],
+    "readAt": "2026-09-11T06:38:37.343Z",
     "model": "claude-opus-5"
   },
   "washington-east-surf-soccer-club": {
