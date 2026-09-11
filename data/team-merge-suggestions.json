@@ -1,0 +1,96 @@
+{
+  "readAt": "2026-09-11",
+  "source": "228 standing proposals, read by Claude against src/features/clubs/knowledge/profiles.json and each team's events",
+  "rules": [
+    "EA: a bare name whose only event is the Elite Academy league is the club's EA team; the league fields one side per club per age.",
+    "coach: a surname on a tournament entry resolves to a tier through the club's coaching roster in the knowledge base.",
+    "spelling: two entries that differ only in how one league or coach is written."
+  ],
+  "suggestions": [
+    { "a": "Highline Premier FC B13/14 EA", "b": "Highline Premier FC B13/14", "confidence": "high", "why": "EA rule: the bare row's only event is the EA league, so it is the EA team." },
+    { "a": "Highline Premier FC B12/13 EA Heat", "b": "Highline Premier FC B12/13", "confidence": "high", "why": "EA rule; Heat is Highline's team nickname." },
+    { "a": "Highline Premier FC B12/13 EA Zwaller", "b": "Highline Premier FC B12/13", "confidence": "high", "why": "EA rule; Zwaller coaches the EA side." },
+    { "a": "Highline Premier FC B15/16 EA Heat", "b": "Highline Premier FC B15/16", "confidence": "high", "why": "EA rule." },
+    { "a": "Highline Premier FC B07/08 EA Heat", "b": "Highline Premier FC B07/08", "confidence": "high", "why": "EA rule." },
+    { "a": "Highline Premier FC B14/15 Heat Zwaller", "b": "Highline Premier FC B14/15", "confidence": "medium", "why": "Zwaller coaches Highline's EA sides (see B12/13 EA Zwaller); the bare row is the EA league entry." },
+
+    { "a": "Sparta Tacoma B09/10 EA", "b": "Sparta Tacoma B09/10", "confidence": "high", "why": "EA rule." },
+    { "a": "Sparta Tacoma B09/10 Red", "b": "Sparta Tacoma B09/10", "confidence": "high", "why": "Sparta's site: the EA league is for 'our highest level (red)' teams; the bare row is the EA league entry." },
+    { "a": "Sparta Tacoma B10/11 EA Red", "b": "Sparta Tacoma B10/11", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+    { "a": "Sparta Tacoma B11/12 EA Red", "b": "Sparta Tacoma B11/12", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+    { "a": "Sparta Tacoma B12/13 EA Red", "b": "Sparta Tacoma B12/13", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+    { "a": "Sparta Tacoma B13/14 EA Red", "b": "Sparta Tacoma B13/14", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+    { "a": "Sparta Tacoma B14/15 EA Red", "b": "Sparta Tacoma B14/15", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+    { "a": "Sparta Tacoma B15/16 EA Red", "b": "Sparta Tacoma B15/16", "confidence": "high", "why": "EA rule; red = EA at Sparta." },
+
+    { "a": "Harbor Soccer Club Premier B07/08 EA", "b": "Harbor Soccer Club B07/08", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B09/10 EA", "b": "Harbor Soccer Club B09/10", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B10/11 EA", "b": "Harbor Soccer Club B10/11", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B11/12 EA", "b": "Harbor Soccer Club B11/12", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B12/13 EA", "b": "Harbor Soccer Club B12/13", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B13/14 EA", "b": "Harbor Soccer Club B13/14", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club B14/15 EA", "b": "Harbor Soccer Club B14/15", "confidence": "high", "why": "EA rule." },
+    { "a": "Harbor Soccer Club Premier B15/16 EA", "b": "Harbor Soccer Club B15/16", "confidence": "high", "why": "EA rule." },
+
+    { "a": "Everett Youth Soccer Club B09/10 EA", "b": "Everett Youth Soccer Club B09/10", "confidence": "high", "why": "EA rule." },
+    { "a": "Everett Youth Soccer Club B10/11 EA", "b": "Everett Youth Soccer Club B10/11", "confidence": "high", "why": "EA rule." },
+    { "a": "Everett Youth Soccer Club B11/12 EA", "b": "Everett Youth Soccer Club B11/12", "confidence": "high", "why": "EA rule." },
+    { "a": "Everett Youth Soccer Club B12/13 EA", "b": "Everett Youth Soccer Club B12/13", "confidence": "high", "why": "EA rule." },
+
+    { "a": "BVB International Academy Washington B12/13 EA", "b": "BVB International Academy Washington B12/13", "confidence": "high", "why": "EA rule." },
+    { "a": "BVB International Academy Washington B14/15 EA", "b": "BVB International Academy Washington B14/15", "confidence": "high", "why": "EA rule." },
+    { "a": "BVB International Academy Washington B11/12 EA Chapman", "b": "BVB International Academy Washington B11/12", "confidence": "high", "why": "EA rule; Keegan Chapman coaches BVB's U15 EA side per their coaching slate." },
+    { "a": "BVB International Academy Washington B15/16 EA Admassu", "b": "BVB International Academy Washington B15/16", "confidence": "high", "why": "EA rule." },
+
+    { "a": "Mt. Rainier FC B09/10 EA", "b": "Mt. Rainier FC B09/10", "confidence": "high", "why": "EA rule." },
+    { "a": "Mt. Rainier FC Academy B09/10 Gjertsen", "b": "Mt. Rainier FC Academy B09/10", "confidence": "medium", "why": "Coach suffix on a tournament entry; Jason Gjertsen is on MRFC's staff directory." },
+    { "a": "Mt. Rainier FC Academy B08/09 Cornejo", "b": "Mt. Rainier FC Academy B08/09", "confidence": "medium", "why": "Coach suffix on a tournament entry, same programme and age." },
+    { "a": "Mt. Rainier FC Academy B12 I", "b": "Mt. Rainier FC Academy B12/13", "confidence": "medium", "why": "Same programme; 'B12 I' is the first Academy side written by single year where the band is 2012/13." },
+
+    { "a": "Emerald City FC B10/11 Falor", "b": "Emerald City FC B10/11", "confidence": "high", "why": "B10/11 is U16; Emerald City's teams page has Derrek Falor on BU16 EA, and the bare row is the EA league entry." },
+    { "a": "Emerald City FC B12/13 Falor", "b": "Emerald City FC B12/13", "confidence": "high", "why": "B12/13 is U14; Derrek Falor coaches BU14 EA." },
+    { "a": "Emerald City FC B09/10 Ritchie", "b": "Emerald City FC B09/10", "confidence": "high", "why": "B09/10 is U17; James Ritchie coaches BU17 EA." },
+    { "a": "Emerald City FC B11/12 Ritchie", "b": "Emerald City FC B11/12", "confidence": "high", "why": "B11/12 is U15; James Ritchie coaches BU15 EA." },
+    { "a": "Emerald City FC B07/08 Smith", "b": "Emerald City FC B07/08", "confidence": "high", "why": "B07/08 is U19; Scott Smith coaches BU19 EA." },
+    { "a": "Emerald City FC B13/14 Smith", "b": "Emerald City FC B13/14", "confidence": "high", "why": "B13/14 is U13; Scott Smith coaches BU13 EA." },
+
+    { "a": "Atletico Futbol Club B09/10 EA Rojo", "b": "Atletico Futbol Club B09/10 Rojo", "confidence": "high", "why": "Same colour side; the bare Rojo row is the EA league entry." },
+    { "a": "Atletico Futbol Club B07/08 EA Rojo", "b": "Atletico Futbol Club B07/08 Rojo", "confidence": "high", "why": "Same colour side; the bare Rojo row is the EA league entry." },
+
+    { "a": "Washington Rush B12/13 MLSN", "b": "Washington Rush B12/13 MLS Next", "confidence": "high", "why": "Two spellings of MLS Next, same age; Rush fields one MLS Next side per age." },
+    { "a": "Washington Rush B10/11 MLSN", "b": "Washington Rush B10/11 MLS Next", "confidence": "high", "why": "Two spellings of MLS Next, same age." },
+
+    { "a": "PacNW SC B12/13 Maroon Pac NW Peterson", "b": "PacNW SC B12/13 Maroon", "confidence": "high", "why": "B12/13 is U14; PacNW's coaches page has Eli Peterson on BU14 Maroon (RCL)." },
+    { "a": "PacNW SC G15/16 Pre-ECNL Pac NW", "b": "PacNW SC G15/16 Pre-ECNL", "confidence": "high", "why": "One Pre-ECNL side per age; 'Pac NW' is the club name repeated." },
+    { "a": "PacNW SC B09/10 White Pac NW", "b": "PacNW SC B09/10 White", "confidence": "high", "why": "'Pac NW' is the club name repeated." },
+    { "a": "PacNW SC B10/11 M", "b": "PacNW SC B10/11 Maroon", "confidence": "medium", "why": "'M' for Maroon, the club's RCL first side; not the ECNL or ECNL RL team." },
+
+    { "a": "Seattle United G17 Tango Tanaka", "b": "Seattle United G17 Tango", "confidence": "high", "why": "G17 is born 2017 = U9; Seattle United's girls page has Cary Tanaka on GU9 Tango." },
+    { "a": "Seattle United B18 Samba Cooke", "b": "Seattle United B18 Samba", "confidence": "high", "why": "B18 is born 2018 = U8; the boys page has Cade Cook on B18 Samba." },
+
+    { "a": "Eastside FC G16/17 Maroon", "b": "Eastside FC West G16/17 Maroon", "confidence": "high", "why": "Eastside's Maroon sides are all West Maroon (they train on Mercer Island); a tournament dropped the hub." },
+    { "a": "Eastside FC B17/18 Maroon", "b": "Eastside FC West B17/18 Maroon", "confidence": "high", "why": "Same: Maroon at Eastside is the West Maroon team." },
+
+    { "a": "WPFC B15 Pre-ECNL", "b": "WPFC B15/16 Pre-ECNL Black", "confidence": "medium", "why": "One Pre-ECNL side per age; Black is WPFC's label for its first team, written by single year on one entry and band on the other." },
+    { "a": "United PDX B12/13 ECNL Pehr", "b": "United PDX B12/13 ECNL", "confidence": "high", "why": "One ECNL side per club per age; Pehr is the coach." },
+    { "a": "Valor Soccer B13 Gold", "b": "Valor Soccer Premier B13/14 Gold", "confidence": "medium", "why": "Same colour side, single year vs band; Gold is a Premier tier at Valor." },
+    { "a": "Three Rivers Soccer Club B07/08 Gonzalez", "b": "Three Rivers Soccer Club B07/08 RCL Gonzalez/Aquino", "confidence": "medium", "why": "Same coach on both entries." },
+    { "a": "Cascade FC G12 Green (Cluett)", "b": "Cascade FC G12 Green", "confidence": "medium", "why": "Coach suffix on a tournament entry, same colour side." },
+    { "a": "XF Select G14/15 Northrup", "b": "XF Select G14/15", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Southlake FC G16/17 Purple Hussey", "b": "Southlake FC G16/17 Purple", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Southlake FC G13/14 Purple A Lightning Mendez", "b": "Southlake FC G13/14 Purple A", "confidence": "medium", "why": "Coach and nickname suffix on a tournament entry." },
+    { "a": "Legends FC G08/09 Gold GHS", "b": "Legends FC G08/09 Gold", "confidence": "medium", "why": "Suffix on a tournament entry, same colour side." },
+    { "a": "Northshore Select Club B17/18 A Kelly", "b": "Northshore Select Club B17/18 A", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Northshore Select Club B12/13 B de Give", "b": "Northshore Select Club B12/13 B", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Issaquah FC B14/15 Rovers-Peadon", "b": "Issaquah FC B14/15 Rovers", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "HSA Select B13/14 Jones", "b": "HSA Select B13/14", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "90+ B17/18 Valdez", "b": "90+ B17/18", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Spartan FC B12/13 Fjortoft", "b": "Spartan FC B12/13", "confidence": "medium", "why": "Coach suffix on a tournament entry." },
+    { "a": "Sound Football Club G16/17 A Duncan", "b": "Sound Football Club G16/17 A", "confidence": "medium", "why": "Coach suffix on a tournament entry, same A side." },
+    { "a": "Sound Football Club B18/19 A (Spong)", "b": "Sound Football Club B18/19 A", "confidence": "medium", "why": "Coach suffix on a tournament entry, same A side." },
+    { "a": "FME SC B07/08 Blue FMEB10", "b": "FME SC B07/08 Blue", "confidence": "medium", "why": "FMEB10 is a club tag on the same Blue side." },
+    { "a": "Valencia CF Academy B10/11", "b": "Valencia CF Academy B10/11 Seattle", "confidence": "medium", "why": "Seattle is the branch name Eagleclaw's site gives this academy; the bare entry is the same side at a tournament." },
+    { "a": "Valencia CF Academy B07/08", "b": "Valencia CF Academy B07/08 Seattle", "confidence": "medium", "why": "As above." },
+    { "a": "Valencia CF Academy B12/13", "b": "Valencia CF Academy B12/13 Seattle", "confidence": "medium", "why": "As above." }
+  ]
+}
