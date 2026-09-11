@@ -46,3 +46,6 @@ team-facts*.csv
 
 # What the club websites said, re-readable at any time.
 /.cache
+
+# demo recordings and scratch
+tmp/
