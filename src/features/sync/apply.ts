@@ -20,6 +20,7 @@ import { teamFactsFrom, type TeamFacts } from "@/features/teams/facts";
 
 import { writtenName } from "./planned-team";
 import { teamToBindTo } from "@/features/teams/binding";
+import { mergedAwaySources } from "./merged-away";
 import { normaliseTeamName } from "@/features/teams/merge-plan";
 import { uniqueTeamSlug } from "@/features/teams/slug";
 import { zonedDate } from "@/lib/dates";
@@ -278,6 +279,9 @@ export async function applySync(
     existingEntries.filter((e) => e.sourceTeamId).map((e) => [e.sourceTeamId!, e]),
   );
   const teamIdBySource = new Map<string, string>();
+  // Ids whose entry a merge dropped, still meaning the team they were folded
+  // into. See merged-away.ts for the afternoon that made this necessary.
+  const mergedAway = await mergedAwaySources(eventId);
   let teamsWritten = 0;
 
   /*
@@ -342,6 +346,10 @@ export async function applySync(
      * nothing and are left to a person, which is the case this must not take.
      */
     const bound =
+      // A merge an admin already made outranks both: the platform still
+      // publishes the id of the team that was folded away, and it means
+      // the survivor.
+      mergedAway.get(t.sourceTeamId) ??
       teamByAlias.get(normaliseTeamName(t.name)) ??
       teamToBindTo(
         {
