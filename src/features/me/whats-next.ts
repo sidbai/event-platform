@@ -25,11 +25,13 @@ export type Upcoming = {
   title: string;
   detail: string | null;
   href: string;
-  /** A fixture: the two crests, home then away, as the line reads. */
+  /** A fixture: both sides, home then away, and which of them this person follows. */
   sides?: {
-    home: { name: string; crest: string | null } | null;
-    away: { name: string; crest: string | null } | null;
+    home: { name: string; crest: string | null; followed: boolean } | null;
+    away: { name: string; crest: string | null; followed: boolean } | null;
   };
+  /** A fixture: the pitch, when the schedule names one. */
+  field?: string | null;
   /** An event: its logo, or the kind's icon when it has none. */
   logo?: { src: string | null; kind: string };
 };
@@ -86,6 +88,7 @@ export async function whatsNext(
         })
       : [];
   const teamById = new Map(named.map((t) => [t.id, t]));
+  const followedSlugs = new Set(named.map((t) => t.slug));
 
   const out: Upcoming[] = [];
 
@@ -106,7 +109,17 @@ export async function whatsNext(
             : team.name,
       detail: game.eventTitle,
       href: `/teams/${team.slug}`,
-      sides: { home: game.home, away: game.away },
+      sides: {
+        home: game.home && {
+          ...game.home,
+          followed: followedSlugs.has(game.home.slug),
+        },
+        away: game.away && {
+          ...game.away,
+          followed: followedSlugs.has(game.away.slug),
+        },
+      },
+      field: game.field,
     });
   }
 
