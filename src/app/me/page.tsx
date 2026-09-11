@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
+import { EventLogo } from "@/components/event-logo";
 import { TeamCrest } from "@/components/team-crest";
 import { crestOf } from "@/features/teams/crest";
 import { getCurrentUser } from "@/features/auth";
@@ -188,16 +189,24 @@ export default async function MePage() {
             A season under way is not in "what is next" — nothing about it is —
             so this is where a league lives once it has started.
           */}
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-3 space-y-3 text-sm">
             {events.map((event) => (
-              <li key={event.id}>
-                <Link href={`/events/${event.slug}`} className="font-medium hover:underline">
-                  {event.title}
-                </Link>
-                <p className="text-xs text-muted">
-                  {formatEventWhen(event.startsAt, event.endsAt, TZ, "short", event.kind)}
-                  {event.venueName && <> &middot; {event.venueName}</>}
-                </p>
+              <li key={event.id} className="flex items-center gap-3">
+                {/*
+                  Its own where it has one, and the mark for its kind
+                  otherwise — which is what EventLogo is for, and why this is
+                  not a plain image with a fallback written here.
+                */}
+                <EventLogo src={event.logoUrl} kind={event.kind} size={32} />
+                <div className="min-w-0">
+                  <Link href={`/events/${event.slug}`} className="font-medium hover:underline">
+                    {event.title}
+                  </Link>
+                  <p className="text-xs text-muted">
+                    {formatEventWhen(event.startsAt, event.endsAt, TZ, "short", event.kind)}
+                    {event.venueName && <> &middot; {event.venueName}</>}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
