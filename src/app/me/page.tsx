@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
+import { crestOf } from "@/features/teams/crest";
 import { getCurrentUser } from "@/features/auth";
 import { siteUrl } from "@/lib/site-url";
 import { formatEventWhen } from "@/features/events/when";
@@ -154,7 +155,7 @@ export default async function MePage() {
               const result = last.get(team.id);
               return (
                 <li key={team.id} className="flex items-center gap-3 py-3">
-                  <TeamCrest src={team.crestUrl} size={32} />
+                  <TeamCrest src={crestOf(team)} size={32} />
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/teams/${team.slug}`}
