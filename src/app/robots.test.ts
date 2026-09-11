@@ -37,7 +37,6 @@ describe("robots.txt", () => {
       // The list itself, which is ours — a page of the directory. The team
       // pages under it are not; see below.
       "/teams",
-      "/people",
       "/guidelines",
       "/privacy",
       "/terms",

@@ -54,6 +54,5 @@ export async function updateProfile(
     .where(eq(users.id, user.id));
 
   revalidatePath("/settings");
-  revalidatePath(`/people/${rawUsername}`);
   return { ok: true };
 }

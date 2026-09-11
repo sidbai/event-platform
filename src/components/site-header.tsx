@@ -109,12 +109,6 @@ export async function SiteHeader() {
                 <Avatar src={avatarOf(user)} name={publicName(user)} size={24} />
               }
               items={[
-                // Only offer the public profile once there is a username to
-                // point at; it is generated at signup, but older rows may not
-                // have one.
-                ...(user.username
-                  ? [{ href: `/people/${user.username}`, label: "Profile" }]
-                  : []),
                 {
                   href: "/messages",
                   label: unread > 0 ? `Messages (${unread})` : "Messages",

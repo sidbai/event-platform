@@ -13,9 +13,7 @@ function Names({ people }: { people: Attendee[] }) {
         <li key={p.userId} className="flex items-center gap-1.5 text-sm">
           <Avatar src={p.avatarUrl} name={p.name} size={20} />
           {p.username ? (
-            <Link href={`/people/${p.username}`} className="hover:underline">
-              {p.name}
-            </Link>
+            <span className="text-ink">{p.name}</span>
           ) : (
             <span>{p.name}</span>
           )}
