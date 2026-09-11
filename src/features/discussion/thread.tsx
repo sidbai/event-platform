@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 import type { discussionSubject } from "@/db/schema";
@@ -170,12 +169,7 @@ function CommentItem({
           <div className="flex items-center gap-2 text-sm">
             <Avatar src={comment.authorImage} name={comment.authorName} size={20} />
             {comment.authorUsername ? (
-              <Link
-                href={`/people/${comment.authorUsername}`}
-                className="font-medium hover:underline"
-              >
-                {comment.authorName}
-              </Link>
+              <span className="text-ink">{comment.authorName}</span>
             ) : (
               <span className="font-medium">{comment.authorName}</span>
             )}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
 import { Avatar, avatarOf } from "@/components/avatar";
@@ -27,13 +26,15 @@ export default async function SettingsPage() {
             onUploaded={setMyAvatar}
             onCleared={clearMyAvatar}
           />
+          {/*
+            There is no public profile to link to. The handle is what appears
+            beside a post; it is not an address, and nothing here collects a
+            person's activity into a page for strangers to read.
+          */}
           {user.username && (
-            <Link
-              href={`/people/${user.username}`}
-              className="mt-2 inline-block text-brand-text hover:underline"
-            >
-              View public profile →
-            </Link>
+            <p className="mt-2 text-xs text-muted">
+              Posts show as <span className="font-mono">@{user.username}</span>.
+            </p>
           )}
         </div>
       </div>

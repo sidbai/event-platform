@@ -50,7 +50,7 @@ export function SettingsForm({
           />
         </div>
         <p className="mt-1 text-xs text-muted">
-          Letters, numbers and underscores. Your profile is at /people/username.
+          Letters, numbers and underscores. This is the handle shown beside anything you post.
         </p>
         {err.username && <p className="mt-1 text-xs text-red-600">{err.username}</p>}
       </div>

@@ -112,9 +112,7 @@ export default async function ForumPostPage({
         <div className="mt-3 flex items-center gap-2 text-sm text-muted">
           <Avatar src={post.authorAvatar} name={post.authorName} size={22} />
           {post.authorUsername ? (
-            <Link href={`/people/${post.authorUsername}`} className="hover:underline">
-              {post.authorName}
-            </Link>
+            <span className="text-ink">{post.authorName}</span>
           ) : (
             <span>{post.authorName}</span>
           )}

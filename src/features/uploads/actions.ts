@@ -41,7 +41,6 @@ export async function setMyAvatar(url: string): Promise<void> {
   await forget(replaced);
 
   revalidatePath("/settings");
-  if (user.username) revalidatePath(`/people/${user.username}`);
 }
 
 export async function clearMyAvatar(): Promise<void> {
@@ -52,7 +51,6 @@ export async function clearMyAvatar(): Promise<void> {
   await forget(replaced);
 
   revalidatePath("/settings");
-  if (user.username) revalidatePath(`/people/${user.username}`);
 }
 
 export async function setTeamCrest(slug: string, url: string): Promise<void> {
