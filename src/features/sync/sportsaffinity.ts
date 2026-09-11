@@ -184,23 +184,54 @@ export function played(rows: RclRow[]): RclRow[] {
   return rows.filter((r) => !isSlot(r.home, r.group) && !isSlot(r.away, r.group));
 }
 
-export type RclFlight = { flightguid: string; agecode: string };
+export type RclFlight = {
+  flightguid: string;
+  agecode: string;
+  /** "BU08 Div 3 North" — the flight as the platform names it, made short. */
+  division: string;
+};
+
+/**
+ * What to call a flight: its age code and its tier.
+ *
+ * The accepted-teams page writes "Boys Under 8 (2018/19) Div 3 North", and
+ * the age code already says the first half of that. What is left — "Div 3
+ * North" — is the thing the age code does not say, and the thing a season
+ * of fixtures was being filed without: fifty flights landed as eighteen
+ * divisions, one per age, and every table under them was a merge of three
+ * or four leagues that never play each other.
+ *
+ * A name that does not read this way is kept whole after the age code, so
+ * a flight the platform names some new way is still told apart from its
+ * neighbours rather than folded into them.
+ */
+export function divisionName(agecode: string, flightName: string): string {
+  const years = flightName.match(/\(\d{4}\/\d{2,4}\)\s*(.*)$/);
+  const tail = (years ? years[1] : flightName.replace(/^(boys|girls)\s+under\s+\d+\s*/i, "")).trim();
+  return tail ? `${agecode} ${tail}` : agecode;
+}
 
 /**
  * The flights a tournament's accepted-teams page links to.
  *
- * One page per gender, and every flight on it appears as an accepted_flight
- * link carrying both its id and its age code — which is the only place the
- * age is written down in a form worth reading. The schedule page itself only
- * says "Boys Under 8" in a heading.
+ * One page per gender, and every flight on it is a row: its name in the
+ * first cell, then an accepted_flight link carrying both its id and its age
+ * code — which is the only place the age is written down in a form worth
+ * reading. The schedule page itself only says "Boys Under 8" in a heading.
  */
 export function readFlightList(html: string): RclFlight[] {
-  const seen = new Map<string, string>();
+  const seen = new Map<string, RclFlight>();
   const re = /accepted_flight\.asp\?sessionguid=&agecode=([^&"']+)&flightguid=([0-9A-F-]{36})/gi;
   for (const m of html.matchAll(re)) {
-    if (!seen.has(m[2])) seen.set(m[2], m[1]);
+    if (seen.has(m[2])) continue;
+    const agecode = m[1];
+    // The row this link sits in, and the first cell of it.
+    const row = html.slice(html.lastIndexOf("<tr", m.index), m.index);
+    const cell = row.match(/<td[^>]*>([\s\S]*?)<\/td>/);
+    const name = cell ? cell[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+    seen.set(m[2], { flightguid: m[2], agecode, division: divisionName(agecode, name) });
   }
-  return [...seen].map(([flightguid, agecode]) => ({ flightguid, agecode }));
+  return [...seen.values()];
 }
 
 const BASE = "https://wys.sportsaffinity.com/tour/public/info";
@@ -216,30 +247,35 @@ export function flightScheduleUrl(tournamentguid: string, flightguid: string): s
 /**
  * A team's identity, which the platform does not give us.
  *
- * No ids anywhere in the markup, and a name is only unique within its flight:
- * every age group has an "Eastside F.C." Keyed by flight for the same reason
- * Modular11's are keyed by division.
+ * No ids anywhere in the markup, and a name is only unique within its age:
+ * every age group has an "Eastside F.C." Keyed by the age code, and it has
+ * to stay that way — the key is what a synced team's entry is remembered
+ * by, and a season's teams were written under it before the flight became
+ * the division. Re-keying them by flight would make every one of them a
+ * stranger to its own entry and land a second copy beside it.
+ *
+ * The division is the flight; the key is not. They are passed apart.
  */
-export function teamsOf(rows: RclRow[], division: string): SyncedTeam[] {
+export function teamsOf(rows: RclRow[], agecode: string, division = agecode): SyncedTeam[] {
   const seen = new Map<string, SyncedTeam>();
   for (const row of rows) {
     for (const name of [row.home, row.away]) {
-      const key = `${division}::${name}`;
+      const key = `${agecode}::${name}`;
       if (!seen.has(key)) seen.set(key, { sourceTeamId: key, name, division, group: null });
     }
   }
   return [...seen.values()];
 }
 
-export function matchesOf(rows: RclRow[], division: string): SyncedMatch[] {
+export function matchesOf(rows: RclRow[], agecode: string, division = agecode): SyncedMatch[] {
   return rows.map((row) => ({
     sourceMatchId: row.gameId,
     division,
     group: groupName(row.group),
     date: row.date,
     time: row.time,
-    homeTeamId: `${division}::${row.home}`,
-    awayTeamId: `${division}::${row.away}`,
+    homeTeamId: `${agecode}::${row.home}`,
+    awayTeamId: `${agecode}::${row.away}`,
     homeName: row.home,
     awayName: row.away,
     homeScore: row.homeScore,
@@ -436,12 +472,13 @@ export const sportsaffinity: ExternalEventProvider = {
           ),
         );
         /*
-         * The age code is the division, because it is the only name the
-         * platform gives a flight that is worth reading — the page's own
-         * heading says "Boys Under 8" and the standings grid says "Group A".
+         * The flight is the division — "BU08 Div 3 North" — read off the
+         * accepted-teams page, since the schedule page's own heading only
+         * says "Boys Under 8" and the standings grid says "Group A". The
+         * age code stays the key teams are remembered by; see teamsOf.
          */
-        teams.push(...teamsOf(rows, flight.agecode));
-        matches.push(...matchesOf(rows, flight.agecode));
+        teams.push(...teamsOf(rows, flight.agecode, flight.division));
+        matches.push(...matchesOf(rows, flight.agecode, flight.division));
         await pause(PAUSE_MS);
       }
     } catch (e) {
