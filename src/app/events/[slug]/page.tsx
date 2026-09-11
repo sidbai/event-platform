@@ -11,7 +11,11 @@ import {
   setEventHidden,
   setEventVisibility,
 } from "@/features/events/actions";
-import { canMarkCompleted, canReopen, completionSuggestion } from "@/features/events/completion";
+import {
+  canMarkCompleted,
+  canReopen,
+  completionSuggestion,
+} from "@/features/events/completion";
 import { CompletionControl } from "@/features/events/completion-control";
 import { startConversation } from "@/features/messages/actions";
 import { ContactButton } from "@/features/messages/message-form";
@@ -26,17 +30,17 @@ import { DiscussionThread } from "@/features/discussion/thread";
 import { OpponentSection } from "@/features/events/opponent-section";
 import { getEventBySlug } from "@/features/events/queries";
 import { managedEntries } from "@/features/tournaments/roster-queries";
-import { describePeriods, type Rules } from "@/features/tournaments/rules-input";
+import {
+  describePeriods,
+  type Rules,
+} from "@/features/tournaments/rules-input";
 import { formatEventWhen } from "@/features/events/when";
 import {
   attributionOf,
   isRunHere,
   scheduleActionOf,
 } from "@/features/events/listing";
-import {
-  describeOpenness,
-  formatFee,
-} from "@/features/registration/openness";
+import { describeOpenness, formatFee } from "@/features/registration/openness";
 import { divisionsForRegistration } from "@/features/registration/queries";
 import { CountView } from "@/features/views/count-view";
 import { viewsOf } from "@/features/views/queries";
@@ -83,7 +87,12 @@ export async function generateMetadata({
   };
 }
 
-type Champion = { division: string; champion: string; finalist: string; finalScore: string };
+type Champion = {
+  division: string;
+  champion: string;
+  finalist: string;
+  finalScore: string;
+};
 type Sponsor = { name: string; url: string | null; tier: string };
 
 export default async function EventPage({
@@ -101,8 +110,7 @@ export default async function EventPage({
   ]);
   if (!event) notFound();
 
-  const canManage =
-    !!user && (event.organizerId === user.id || isAdmin(user));
+  const canManage = !!user && (event.organizerId === user.id || isAdmin(user));
   /*
    * Wider than canManage, and only for the import box: the person who listed
    * somebody else's tournament holds its fixtures, and a listing has no
@@ -112,17 +120,25 @@ export default async function EventPage({
   if (!(await canViewEvent(event, user))) notFound();
   const notPublic = event.status === "pending" || event.status === "cancelled";
 
-  const champions = (event.result as { champions?: Champion[] } | null)?.champions ?? [];
+  const champions =
+    (event.result as { champions?: Champion[] } | null)?.champions ?? [];
   const crestByName = new Map(
     event.eventTeams.map((et) => [et.team.name, crestOf(et.team)]),
   );
-  const meta = event.metadata as { sponsors?: Sponsor[]; rules?: Rules } | null;
+  const meta = event.metadata as {
+    sponsors?: Sponsor[];
+    rules?: Rules;
+    /** On the day: where to check in, which field, where to park for this event. */
+    notes?: string | null;
+  } | null;
   const sponsors = meta?.sponsors ?? [];
   const rules = meta?.rules;
   const hasRoster = event.modules.includes("roster");
   const hasAttendance = event.modules.includes("attendance");
   // Only ever "do I follow this" — see events/follow-queries.
-  const followingEvent = user ? await isFollowingEvent(user.id, event.id) : false;
+  const followingEvent = user
+    ? await isFollowingEvent(user.id, event.id)
+    : false;
   const myEntries =
     user && hasRoster ? await managedEntries(event.id, user.id) : [];
 
@@ -204,7 +220,9 @@ export default async function EventPage({
           {event.logoUrl && (
             <EventLogo src={event.logoUrl} kind={event.kind} size={72} />
           )}
-          <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {event.title}
+          </h1>
           {/*
             Beside the name, and on every event rather than only the ones that
             ask people to turn up. Saying you will be there and keeping an eye
@@ -233,13 +251,24 @@ export default async function EventPage({
         {event.summary && <p className="mt-3 text-muted">{event.summary}</p>}
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted">Date</dt>
-          <dd>{formatEventWhen(event.startsAt, event.endsAt, event.timezone, "long", event.kind)}</dd>
+          <dd>
+            {formatEventWhen(
+              event.startsAt,
+              event.endsAt,
+              event.timezone,
+              "long",
+              event.kind,
+            )}
+          </dd>
           {event.venue && (
             <>
               <dt className="text-muted">Venue</dt>
               <dd>
                 {event.venue.mapUrl ? (
-                  <a href={event.venue.mapUrl} className="text-brand-text hover:underline">
+                  <a
+                    href={event.venue.mapUrl}
+                    className="text-brand-text hover:underline"
+                  >
                     {event.venue.name}
                   </a>
                 ) : (
@@ -268,6 +297,19 @@ export default async function EventPage({
           )}
         </dl>
         <ViewsCount views={views} className="mt-3 block text-sm text-muted" />
+        {/*
+         * Two kinds of note, kept apart. The event's own — "check in at the
+         * Warriors tent", "main field split into four" — is about this day
+         * and lives with the event. The venue's — gates, parking — is about
+         * the ground and shows for every event held there. The King Juan
+         * Cup's check-in note once sat on the venue, and every training
+         * session at Cherry Crest inherited it.
+         */}
+        {meta?.notes && (
+          <p className="mt-3 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
+            {meta.notes}
+          </p>
+        )}
         {event.venue?.notes && (
           <p className="mt-3 rounded-md bg-elevated px-3 py-2 text-sm text-muted">
             {event.venue.notes}
@@ -290,8 +332,13 @@ export default async function EventPage({
           <h2 className="text-lg font-semibold">Champions</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {champions.map((c) => (
-              <div key={c.division} className="rounded-lg border border-line p-3">
-                <div className="text-xs uppercase tracking-wide text-muted">{c.division}</div>
+              <div
+                key={c.division}
+                className="rounded-lg border border-line p-3"
+              >
+                <div className="text-xs uppercase tracking-wide text-muted">
+                  {c.division}
+                </div>
                 <div className="mt-1 flex items-center gap-2 font-semibold">
                   <TeamCrest src={crestByName.get(c.champion)} size={24} />
                   🏆 {c.champion}
@@ -312,8 +359,8 @@ export default async function EventPage({
         <p className="mt-6 rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">
           {attribution.href ? (
             <>
-              {attribution.text.replace(/^Listed from /, "Listed from ")}{" "}
-              — entries and details are on{" "}
+              {attribution.text.replace(/^Listed from /, "Listed from ")} —
+              entries and details are on{" "}
               <a
                 href={attribution.href}
                 target="_blank"
@@ -588,17 +635,19 @@ export default async function EventPage({
       {mayImport &&
         /* A schedule is fixtures; a training slot or a meetup has none to bring in. */
         event.modules.some((m) => m === "competition" || m === "fixture") && (
-        <section className="mt-8 rounded-lg border border-line p-3">
-          <h2 className="text-sm font-semibold">Bring in the schedule</h2>
-          <p className="mt-1 text-xs text-muted">
-            Paste the organizer&rsquo;s table, or load a file saved with the
-            copier from <a href="/admin/sync" className="text-brand-text hover:underline">
-              the sync page
-            </a>. Fixtures and standings both land here.
-          </p>
-          <PasteForm action={importPastedSchedule} eventId={event.id} />
-        </section>
-      )}
+          <section className="mt-8 rounded-lg border border-line p-3">
+            <h2 className="text-sm font-semibold">Bring in the schedule</h2>
+            <p className="mt-1 text-xs text-muted">
+              Paste the organizer&rsquo;s table, or load a file saved with the
+              copier from{" "}
+              <a href="/admin/sync" className="text-brand-text hover:underline">
+                the sync page
+              </a>
+              . Fixtures and standings both land here.
+            </p>
+            <PasteForm action={importPastedSchedule} eventId={event.id} />
+          </section>
+        )}
 
       <ScheduleSection
         event={event}
@@ -642,10 +691,10 @@ export default async function EventPage({
               </div>
             )}
             {rules.tiebreakers.length > 0 && (
-            <div>
-              <dt className="text-muted">Tiebreakers</dt>
-              <dd>{rules.tiebreakers.join(" → ").replace(/_/g, " ")}</dd>
-            </div>
+              <div>
+                <dt className="text-muted">Tiebreakers</dt>
+                <dd>{rules.tiebreakers.join(" → ").replace(/_/g, " ")}</dd>
+              </div>
             )}
           </dl>
         </section>
@@ -653,7 +702,9 @@ export default async function EventPage({
 
       {sponsors.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Sponsors</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+            Sponsors
+          </h2>
           <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {sponsors.map((s) => (
               <li key={s.name}>

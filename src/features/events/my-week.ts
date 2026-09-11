@@ -1,86 +1,176 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lt, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { eventAttendees, events, venues } from "@/db/schema";
+import { eventAttendees, events, matches, venues } from "@/db/schema";
+import { followedTeams } from "@/features/teams/follow-queries";
 
 import { addDays, zonedInstant } from "./week";
 
 /**
- * The week of somebody who runs events, as a grid rather than a list.
+ * One person's week, as a grid: what they run, what they said they would go
+ * to, and the games of the teams they follow.
  *
- * Written for a coach with three Sunday slots, but nothing here knows what a
- * coach is: it is every event this person organizes that starts in the
- * week, with how many said they are coming against how many fit. Only the
- * organizer sees it, on their own page, because it is their week and nobody
- * else's.
+ * The same three things "What is next" lists, laid out by day. The first cut
+ * showed only what the person organized, which is a coach's week and nobody
+ * else's — a parent who RSVPs to a training session and opens their own page
+ * expects Friday to have it. Organizer detail (how many are coming against
+ * how many fit) is kept where it applies and left off where it does not.
  */
-export type WeekEvent = {
+export type WeekItem = {
   id: string;
-  slug: string;
+  href: string;
   title: string;
-  kind: string;
-  status: "draft" | "pending" | "published" | "cancelled" | "completed";
+  /** Second line: a venue, or the competition a game is in. */
+  detail: string | null;
   startsAt: Date;
   endsAt: Date | null;
-  venueName: string | null;
-  capacity: number | null;
-  /** People plus their guests who said going. */
-  going: number;
+  role: "organizer" | "attending" | "fixture";
+  /** Organizer only: people plus guests who said going, and the room. */
+  going?: number;
+  capacity?: number | null;
+  /** Attending only: what they said. */
+  mine?: "going" | "maybe";
+  cancelled?: boolean;
 };
 
-export async function myWeek(userId: string, monday: string): Promise<WeekEvent[]> {
+export async function myWeek(
+  userId: string,
+  monday: string,
+): Promise<WeekItem[]> {
   // Padded a day each side so a late Sunday is not lost to the zone; the grid
   // drops what falls outside.
   const from = zonedInstant(addDays(monday, -1), "00:00");
   const to = zonedInstant(addDays(monday, 8), "00:00");
+  const inWindow = and(gte(events.startsAt, from), lt(events.startsAt, to));
 
+  const [organized, attending, followed] = await Promise.all([
+    db
+      .select({
+        id: events.id,
+        slug: events.slug,
+        title: events.title,
+        status: events.status,
+        startsAt: events.startsAt,
+        endsAt: events.endsAt,
+        venueName: venues.name,
+        capacity: events.capacity,
+      })
+      .from(events)
+      .leftJoin(venues, eq(venues.id, events.venueId))
+      .where(and(eq(events.organizerId, userId), inWindow))
+      .orderBy(asc(events.startsAt)),
+    db
+      .select({
+        id: events.id,
+        slug: events.slug,
+        title: events.title,
+        status: events.status,
+        startsAt: events.startsAt,
+        endsAt: events.endsAt,
+        venueName: venues.name,
+        mine: eventAttendees.status,
+      })
+      .from(eventAttendees)
+      .innerJoin(events, eq(events.id, eventAttendees.eventId))
+      .leftJoin(venues, eq(venues.id, events.venueId))
+      .where(and(eq(eventAttendees.userId, userId), inWindow))
+      .orderBy(asc(events.startsAt)),
+    followedTeams(userId),
+  ]);
+
+  const items: WeekItem[] = [];
+  const seen = new Set<string>();
+
+  const going = await headcounts(organized.map((e) => e.id));
+  for (const e of organized) {
+    if (!e.startsAt) continue;
+    seen.add(e.id);
+    items.push({
+      id: e.id,
+      href: `/events/${e.slug}`,
+      title: e.title,
+      detail: e.venueName,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt,
+      role: "organizer",
+      going: going.get(e.id) ?? 0,
+      capacity: e.capacity,
+      cancelled: e.status === "cancelled",
+    });
+  }
+
+  for (const e of attending) {
+    // Running it outranks going to it.
+    if (!e.startsAt || seen.has(e.id)) continue;
+    seen.add(e.id);
+    items.push({
+      id: e.id,
+      href: `/events/${e.slug}`,
+      title: e.title,
+      detail: e.venueName,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt,
+      role: "attending",
+      mine: e.mine,
+      cancelled: e.status === "cancelled",
+    });
+  }
+
+  const teamIds = followed.map((t) => t.id);
+  if (teamIds.length > 0) {
+    const games = await db.query.matches.findMany({
+      where: and(
+        isNotNull(matches.kickoffAt),
+        gte(matches.kickoffAt, from),
+        lt(matches.kickoffAt, to),
+        or(
+          inArray(matches.homeTeamId, teamIds),
+          inArray(matches.awayTeamId, teamIds),
+        ),
+      ),
+      orderBy: asc(matches.kickoffAt),
+      columns: { id: true, kickoffAt: true, field: true },
+      with: {
+        event: { columns: { slug: true, title: true } },
+        homeTeam: { columns: { name: true } },
+        awayTeam: { columns: { name: true } },
+      },
+    });
+    for (const m of games) {
+      if (!m.kickoffAt) continue;
+      items.push({
+        id: `match-${m.id}`,
+        href: `/events/${m.event.slug}`,
+        title: `${m.homeTeam?.name ?? "TBD"} v ${m.awayTeam?.name ?? "TBD"}`,
+        detail: [m.event.title, m.field].filter(Boolean).join(" · "),
+        startsAt: m.kickoffAt,
+        // A youth game is an hour or less; the grid draws an hour when no
+        // end is chosen, so none is invented here.
+        endsAt: null,
+        role: "fixture",
+      });
+    }
+  }
+
+  return items.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+}
+
+/** People plus their guests who said going, per event. */
+async function headcounts(eventIds: string[]): Promise<Map<string, number>> {
+  if (eventIds.length === 0) return new Map();
   const rows = await db
-    .select({
-      id: events.id,
-      slug: events.slug,
-      title: events.title,
-      kind: events.kind,
-      status: events.status,
-      startsAt: events.startsAt,
-      endsAt: events.endsAt,
-      venueName: venues.name,
-      capacity: events.capacity,
-    })
-    .from(events)
-    .leftJoin(venues, eq(venues.id, events.venueId))
-    .where(
-      and(eq(events.organizerId, userId), gte(events.startsAt, from), lt(events.startsAt, to)),
-    )
-    .orderBy(asc(events.startsAt));
-
-  const withStart = rows.filter((r): r is typeof r & { startsAt: Date } => r.startsAt !== null);
-  if (withStart.length === 0) return [];
-
-  const going = await db
     .select({ eventId: eventAttendees.eventId, guests: eventAttendees.guests })
     .from(eventAttendees)
     .where(
       and(
-        inArray(
-          eventAttendees.eventId,
-          withStart.map((r) => r.id),
-        ),
+        inArray(eventAttendees.eventId, eventIds),
         eq(eventAttendees.status, "going"),
       ),
     );
-  const heads = new Map<string, number>();
-  for (const g of going) heads.set(g.eventId, (heads.get(g.eventId) ?? 0) + 1 + g.guests);
-
-  return withStart.map((r) => ({ ...r, going: heads.get(r.id) ?? 0 }));
-}
-
-/** Whether this person has anything to draw a week for, cheaply. */
-export async function organizesAnything(userId: string): Promise<boolean> {
-  const row = await db.query.events.findFirst({
-    where: eq(events.organizerId, userId),
-    columns: { id: true },
-  });
-  return Boolean(row);
+  const out = new Map<string, number>();
+  for (const r of rows)
+    out.set(r.eventId, (out.get(r.eventId) ?? 0) + 1 + r.guests);
+  return out;
 }

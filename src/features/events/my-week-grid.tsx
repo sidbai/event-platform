@@ -1,7 +1,14 @@
 import Link from "next/link";
 
-import type { WeekEvent } from "./my-week";
-import { addDays, dayLabel, localDate, spanLabel, timeLabel, week } from "./week";
+import type { WeekItem } from "./my-week";
+import {
+  addDays,
+  dayLabel,
+  localDate,
+  spanLabel,
+  timeLabel,
+  week,
+} from "./week";
 
 /**
  * Seven columns, every event in the column of the day it starts.
@@ -23,7 +30,7 @@ import { addDays, dayLabel, localDate, spanLabel, timeLabel, week } from "./week
  * end on the same local day, and not at the end of it, is a time a person
  * typed — anything else is drawn an hour long and labelled by its start.
  */
-function chosenEnd(e: WeekEvent): Date | null {
+function chosenEnd(e: WeekItem): Date | null {
   if (!e.endsAt || e.endsAt <= e.startsAt) return null;
   if (localDate(e.startsAt) !== localDate(e.endsAt)) return null;
   const clock = new Intl.DateTimeFormat("en-GB", {
@@ -35,9 +42,20 @@ function chosenEnd(e: WeekEvent): Date | null {
   return clock === "23:59" ? null : e.endsAt;
 }
 
-function overlaps(a: WeekEvent, b: WeekEvent): boolean {
-  const aEnd = chosenEnd(a) ?? new Date(a.startsAt.getTime() + 3_600_000);
-  const bEnd = chosenEnd(b) ?? new Date(b.startsAt.getTime() + 3_600_000);
+/**
+ * Two things that share a minute — but only when at least one of them has
+ * an end somebody chose.
+ *
+ * Two assumed hours colliding is not a finding: a followed team's 8:43
+ * kick-off and a league's "season starts 9:00" marker were flagged against
+ * each other, and neither was a slot anybody typed. A coach's 2:00–3:00
+ * against their 2:30–3:30 is, and that is the case the mark exists for.
+ */
+function overlaps(a: WeekItem, b: WeekItem): boolean {
+  const [ca, cb] = [chosenEnd(a), chosenEnd(b)];
+  if (!ca && !cb) return false;
+  const aEnd = ca ?? new Date(a.startsAt.getTime() + 3_600_000);
+  const bEnd = cb ?? new Date(b.startsAt.getTime() + 3_600_000);
   return a.startsAt < bEnd && b.startsAt < aEnd;
 }
 
@@ -47,69 +65,103 @@ export function MyWeekGrid({
   now,
 }: {
   monday: string;
-  items: WeekEvent[];
+  items: WeekItem[];
   now: Date;
 }) {
   const days = week(monday, items);
-  const live = items.filter((i) => i.status !== "cancelled");
+  const live = items.filter((i) => !i.cancelled);
   const clashing = new Set<string>();
   for (let i = 0; i < live.length; i++)
     for (let j = i + 1; j < live.length; j++)
       if (overlaps(live[i], live[j])) clashing.add(live[i].id).add(live[j].id);
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(now);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+  }).format(now);
 
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
-        <Link href={`/me?week=${addDays(monday, -7)}#week`} className="text-brand-text hover:underline">
+        <Link
+          href={`/me?week=${addDays(monday, -7)}#week`}
+          className="text-brand-text hover:underline"
+        >
           &larr; Earlier
         </Link>
         <span className="text-muted">
           {dayLabel(monday)} &ndash; {dayLabel(addDays(monday, 6))}
         </span>
-        <Link href={`/me?week=${addDays(monday, 7)}#week`} className="text-brand-text hover:underline">
+        <Link
+          href={`/me?week=${addDays(monday, 7)}#week`}
+          className="text-brand-text hover:underline"
+        >
           Later &rarr;
         </Link>
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-7">
         {days.map((day) => (
-          <div key={day.date} className={day.date === today ? "rounded-lg p-1 ring-2 ring-brand/40" : "p-1"}>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{day.label}</h3>
+          <div
+            key={day.date}
+            className={
+              day.date === today ? "rounded-lg p-1 ring-2 ring-brand/40" : "p-1"
+            }
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {day.label}
+            </h3>
             <ul className="mt-1 space-y-1.5">
               {day.items.map((e) => {
-                const full = e.capacity != null && e.going >= e.capacity;
+                const full =
+                  e.role === "organizer" &&
+                  e.capacity != null &&
+                  (e.going ?? 0) >= e.capacity;
                 const past = (e.endsAt ?? e.startsAt) < now;
-                const tone =
-                  e.status === "cancelled"
-                    ? "border-line bg-elevated text-muted line-through"
-                    : past
-                      ? "border-line bg-elevated text-muted"
-                      : full
-                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
-                        : "border-line bg-card";
+                const tone = e.cancelled
+                  ? "border-line bg-elevated text-muted line-through"
+                  : past
+                    ? "border-line bg-elevated text-muted"
+                    : full
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+                      : "border-line bg-card";
+                /*
+                 * The last line says the one thing this person needs: as the
+                 * organizer, how many are coming; as an attendee, what they
+                 * said; for a followed team's game, nothing — the fixture is
+                 * the fact.
+                 */
+                const status = e.cancelled
+                  ? "Cancelled"
+                  : e.role === "organizer"
+                    ? e.capacity != null
+                      ? full
+                        ? "Full"
+                        : `${e.going} of ${e.capacity} going`
+                      : `${e.going} going`
+                    : e.role === "attending"
+                      ? e.mine === "going"
+                        ? "You're going"
+                        : "Maybe"
+                      : null;
                 return (
                   <li key={e.id}>
                     <Link
-                      href={`/events/${e.slug}`}
+                      href={e.href}
                       className={`block rounded-md border px-2 py-1.5 text-xs hover:opacity-90 ${tone}`}
                     >
                       <div className="font-medium">
-                        {chosenEnd(e) ? spanLabel(e.startsAt, e.endsAt!) : timeLabel(e.startsAt)}
+                        {chosenEnd(e)
+                          ? spanLabel(e.startsAt, e.endsAt!)
+                          : timeLabel(e.startsAt)}
                       </div>
                       <div className="truncate">{e.title}</div>
-                      {e.venueName && <div className="truncate text-muted">{e.venueName}</div>}
-                      <div className="mt-0.5">
-                        {e.status === "cancelled"
-                          ? "Cancelled"
-                          : e.capacity != null
-                            ? full
-                              ? "Full"
-                              : `${e.going} of ${e.capacity} going`
-                            : `${e.going} going`}
-                      </div>
+                      {e.detail && (
+                        <div className="truncate text-muted">{e.detail}</div>
+                      )}
+                      {status && <div className="mt-0.5">{status}</div>}
                       {clashing.has(e.id) && (
-                        <div className="mt-0.5 font-semibold text-red-600">Overlaps another</div>
+                        <div className="mt-0.5 font-semibold text-red-600">
+                          Overlaps another
+                        </div>
                       )}
                     </Link>
                   </li>
