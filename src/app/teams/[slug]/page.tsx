@@ -131,11 +131,12 @@ export default async function TeamPage({
   const back = { href: "/teams", label: "← All teams" };
 
   /*
-   * What they won, worked out from the finals already loaded with the rest of
-   * the team's games. No extra query, and no stored placing to fall out of
-   * step with a score corrected the day after.
+   * What they won, worked out from the finals already loaded with the rest
+   * of the team's games — and, for a tournament with no final, from the
+   * whole division's table. No stored placing to fall out of step with a
+   * score corrected the day after.
    */
-  const honours = honoursByEvent(team.matches, team.id);
+  const honours = honoursByEvent(team.matches, team.id, team.divisionMatches);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">

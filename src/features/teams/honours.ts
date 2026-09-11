@@ -80,14 +80,65 @@ export function placeIn(match: FinalLike, teamId: string): Place | null {
 }
 
 /**
+ * The top of a round robin, where the table is the record.
+ *
+ * Plenty of youth tournaments have no final: a "Gold" flight of six plays
+ * each other over a weekend and whoever tops the table takes the trophy.
+ * Eastside FC's U11 girls went 4–0 in the Rainier Challenge's A-Gold and
+ * the page said nothing, because nothing was labelled a final.
+ *
+ * Said only when it can be said. Every game in the division decided, at
+ * least three teams, and the leader clear on points alone — tiebreakers
+ * differ by organizer (head-to-head here, goal difference there), so a tie
+ * on points is not resolved, it is declined. The runner-up likewise: clear
+ * of third and clearly behind first, or unsaid.
+ *
+ * Which divisions are handed in is the caller's decision; this only reads a
+ * table, it does not know what kind of event it belongs to.
+ */
+export function tableChampion<T extends FinalLike>(
+  division: T[],
+): { champion: string; runnerUp: string | null } | null {
+  if (division.length < 3) return null;
+  if (division.some((m) => isFinal(m) || isKnockoutDivision(m.division?.name))) return null;
+  if (division.some((m) => m.homeScore === null || m.awayScore === null)) return null;
+
+  const points = new Map<string, number>();
+  const add = (id: string | null, n: number) => {
+    if (id) points.set(id, (points.get(id) ?? 0) + n);
+  };
+  for (const m of division) {
+    // A placeholder side is a table nobody can read.
+    if (!m.homeTeamId || !m.awayTeamId) return null;
+    const home = m.homeScore!;
+    const away = m.awayScore!;
+    add(m.homeTeamId, home > away ? 3 : home === away ? 1 : 0);
+    add(m.awayTeamId, away > home ? 3 : home === away ? 1 : 0);
+  }
+  if (points.size < 3) return null;
+
+  const table = [...points].sort((a, b) => b[1] - a[1]);
+  const [first, second, third] = table;
+  if (first[1] === second[1]) return null;
+  const runnerUp = third === undefined || second[1] > third[1] ? second[0] : null;
+  return { champion: first[0], runnerUp };
+}
+
+/**
  * What a team won, keyed by the event it won it at.
  *
  * One entry per event rather than per division: a team plays in one division
  * of one tournament, and the event is what a reader recognises.
+ *
+ * `tables` are whole divisions — every game, not just this team's — for the
+ * events whose table decides the title. Their finals, where they have one,
+ * are read the same way as the team's own; where they have none, the table
+ * is read instead.
  */
 export function honoursByEvent<T extends FinalLike & { eventId: string }>(
   matches: T[],
   teamId: string,
+  tables: T[] = [],
 ): Map<string, Place> {
   /*
    * How many decided games the team played in each division.
@@ -115,6 +166,20 @@ export function honoursByEvent<T extends FinalLike & { eventId: string }>(
     // there is only one final per division, but an event with two divisions
     // is one a team could in principle appear in twice.
     if (place && out.get(match.eventId) !== "champion") out.set(match.eventId, place);
+  }
+
+  const byDivision = new Map<string, T[]>();
+  for (const match of tables) {
+    const key = `${match.eventId}::${match.divisionId ?? ""}`;
+    byDivision.set(key, [...(byDivision.get(key) ?? []), match]);
+  }
+  for (const division of byDivision.values()) {
+    const eventId = division[0].eventId;
+    if (out.has(eventId)) continue;
+    const top = tableChampion(division);
+    if (!top) continue;
+    if (top.champion === teamId) out.set(eventId, "champion");
+    else if (top.runnerUp === teamId) out.set(eventId, "runner-up");
   }
   return out;
 }

@@ -263,7 +263,9 @@ export async function getTeamBySlug(slug: string) {
       // The timezone comes along because a match's date is the organizer's
       // date: a 6pm Sunday kickoff in Seattle is Monday in UTC, and a history
       // that puts games on the wrong day is worse than one with no dates.
-      event: { columns: { slug: true, title: true, timezone: true, status: true } },
+      event: {
+        columns: { slug: true, title: true, timezone: true, status: true, kind: true },
+      },
       division: { columns: { name: true } },
       homeTeam: {
         columns: { name: true, slug: true, crestUrl: true },
@@ -276,7 +278,40 @@ export async function getTeamBySlug(slug: string) {
     },
   });
 
-  return { ...team, matches: playedMatches };
+  /*
+   * The whole of each tournament division the team played in, for the
+   * titles a table decides rather than a final (see honours.ts). Tournaments
+   * only: a league's table is the organizer's to publish, with their own
+   * tiebreakers, and a showcase crowns nobody.
+   */
+  const tournamentDivisions = [
+    ...new Set(
+      playedMatches
+        .filter((m) => m.event.kind === "tournament" && m.divisionId)
+        .map((m) => m.divisionId!),
+    ),
+  ];
+  const divisionMatches =
+    tournamentDivisions.length === 0
+      ? []
+      : await db.query.matches.findMany({
+          where: inArray(matches.divisionId, tournamentDivisions),
+          columns: {
+            id: true,
+            eventId: true,
+            divisionId: true,
+            stage: true,
+            round: true,
+            groupLabel: true,
+            homeTeamId: true,
+            awayTeamId: true,
+            homeScore: true,
+            awayScore: true,
+          },
+          with: { division: { columns: { name: true } } },
+        });
+
+  return { ...team, matches: playedMatches, divisionMatches };
 }
 
 export type TeamDetail = NonNullable<Awaited<ReturnType<typeof getTeamBySlug>>>;
