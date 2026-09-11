@@ -70,6 +70,20 @@ export function squadMarks(name: string): Set<string> {
   for (const m of lower.matchAll(/(?<=[a-z0-9])-([1-9])(?![0-9])/g)) {
     marks.add(m[1]);
   }
+  /*
+   * And a number standing on its own, which is how most clubs write it:
+   * "Mt. Rainier FC Academy B11/12 2" is that club's second side and the 2 is
+   * the whole of what says so — but it was invisible here (only a hyphenated
+   * one counted) and invisible to distinctiveWords too, which drops anything
+   * one character long. So the second side and the first read as one team at
+   * a hundred per cent, and 143 of 534 proposals were that.
+   *
+   * Not a digit inside a cohort: the lookbehind refuses one after a slash or
+   * a letter, so B11/12 contributes nothing.
+   */
+  for (const m of lower.matchAll(/(?<![a-z0-9/-])([1-9])(?![0-9])/g)) {
+    marks.add(m[1]);
+  }
   return marks;
 }
 
@@ -142,6 +156,23 @@ export function proposeMatches(
         const wa = distinctiveWords(a.name, clubName);
         const wb = distinctiveWords(b.name, clubName);
         if (wa.size === 0 || wb.size === 0) continue;
+
+        /*
+         * One name is the other with more said, or they are two teams.
+         *
+         * Overlap alone put "Eastside FC B14/15 Red" beside "…B14/15 Grey" at
+         * exactly the threshold: everything matches but the one word whose
+         * whole job is to tell them apart. Same for Copper against Silver,
+         * STINGRAYS against Barracuda, and Seattle United's Northwest against
+         * its South.
+         *
+         * A pair worth asking about is one where a side says nothing the
+         * other contradicts — "NW United FC B17/18" and "NW United FC B17/18
+         * Red" are one team written twice. Where each carries a word the
+         * other lacks, the club is telling them apart and we should listen.
+         */
+        const contains = (x: Set<string>, y: Set<string>) => [...x].every((w) => y.has(w));
+        if (!contains(wa, wb) && !contains(wb, wa)) continue;
 
         const shared = [...wa].filter((w) => wb.has(w)).length;
         const score = shared / new Set([...wa, ...wb]).size;

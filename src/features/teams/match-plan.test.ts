@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { proposeMatches, squadMarks, whyNot, type MatchCandidate } from "./match-plan";
+import { proposeMatches, squadMarks, type MatchCandidate, whyNot } from "./match-plan";
 
 const CLUBS = new Map([
   ["xf", "Crossfire Premier"],
@@ -165,5 +165,59 @@ describe("squadMarks", () => {
   it("does not read a letter inside a word as a squad", () => {
     expect(squadMarks("XF Blue Jays 2013")).toEqual(new Set());
     expect(squadMarks("Atletico BU9 Oro")).toEqual(new Set());
+  });
+});
+
+describe("two names that disagree", () => {
+  /*
+   * 534 pairs were waiting in the queue and about half were two different
+   * sides. They shared a shape: everything matched but the one word whose
+   * whole job is to tell them apart.
+   */
+  const club = "Eastside FC";
+  const side = (name: string) => ({
+    id: name,
+    slug: name,
+    name,
+    clubId: "c",
+    gender: "boys" as const,
+    birthYears: [2014, 2015],
+    tier: null,
+    events: 1,
+    matches: 3,
+  });
+  const propose = (a: string, b: string) =>
+    proposeMatches([side(a), side(b)], new Map([["c", club]]));
+
+  it("does not offer Red beside Grey", () => {
+    expect(propose("Eastside FC B14/15 Red", "Eastside FC B14/15 Grey")).toEqual([]);
+  });
+
+  it("does not offer one branch beside another", () => {
+    // Seattle United's Northwest and its South are two sides, and the only
+    // thing that says so is the word they differ by.
+    expect(
+      propose("Eastside FC Northwest B14/15 Blue", "Eastside FC South B14/15 Blue"),
+    ).toEqual([]);
+  });
+
+  it("still offers a name beside the same name said more fully", () => {
+    // One team written twice, which is what this queue is for.
+    expect(propose("Eastside FC B14/15", "Eastside FC B14/15 Red")).toHaveLength(1);
+  });
+
+  it("reads a number standing on its own as the squad it is", () => {
+    /*
+     * "Academy B14/15 2" is that club's second side. Only a hyphenated
+     * number counted before, and distinctiveWords drops anything one
+     * character long, so the second side and the first read as one team at a
+     * hundred per cent — 143 of the 534.
+     */
+    expect(squadMarks("Eastside FC Academy B14/15 2")).toContain("2");
+    expect(propose("Eastside FC Academy B14/15", "Eastside FC Academy B14/15 2")).toEqual([]);
+  });
+
+  it("does not read a cohort's digits as a squad", () => {
+    expect([...squadMarks("Eastside FC B14/15")]).toEqual([]);
   });
 });
