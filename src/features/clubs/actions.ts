@@ -302,6 +302,7 @@ export async function setClubLogo(slug: string, url: string): Promise<void> {
   });
   if (!c) return;
   await applyClubEdit(slug, { ...c, crestUrl: url }, user.id, "Changed the logo");
+  await carryToTeams(slug, url);
 }
 
 export async function clearClubLogo(slug: string): Promise<void> {
@@ -313,6 +314,7 @@ export async function clearClubLogo(slug: string): Promise<void> {
   });
   if (!c) return;
   await applyClubEdit(slug, { ...c, crestUrl: null }, user.id, "Removed the logo");
+  await carryToTeams(slug, null);
 }
 
 type ClubSnapshot = {
@@ -401,4 +403,24 @@ export async function setClubPinned(
   revalidatePath("/clubs");
   revalidatePath(`/clubs/${slug}`);
   revalidatePath("/admin");
+}
+
+/**
+ * A club's teams change with its logo.
+ *
+ * Teams carry a copy of it so that a page which forgets the fallback still
+ * draws the right badge. A copy that never changes is the reason not to copy
+ * at all, so this is the half that makes it safe — and it only touches teams
+ * wearing the club's old crest or nothing, never one somebody uploaded for
+ * the team itself.
+ */
+async function carryToTeams(slug: string, crestUrl: string | null): Promise<void> {
+  const { rewear } = await import("@/features/teams/borrowed-crest");
+  const club = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: { id: true },
+  });
+  if (!club) return;
+  const n = await rewear(club.id, crestUrl);
+  if (n > 0) revalidatePath("/teams");
 }
