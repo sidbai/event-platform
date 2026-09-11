@@ -22,16 +22,19 @@
   --muted: #5c5c5c;
   --line: #e7e7e9;
 
-  /* King Juan Cup identity: black and gold (kingjuancup.org). */
+  /* King Juan Soccer identity: black, and King Juan Gold — the tile the
+     white emblem sits on. The cup's brighter #d4af37 gave way to it on
+     2026-09-11 so the site, the app icon and the Instagram pieces share
+     one gold. */
   --header: #131313;
   --header-fg: #ffffff;
-  --gold: #d4af37;
+  --gold: #c58a24;
 
-  --brand: #d4af37; /* filled buttons */
-  --brand-strong: #c29c26; /* button hover */
+  --brand: #c58a24; /* filled buttons */
+  --brand-strong: #a8741c; /* button hover */
   --on-brand: #131313; /* text on gold */
   --brand-text: #8a6a15; /* links — a gold dark enough to read on white */
-  --brand-soft: #faf3da; /* gold tint for badges */
+  --brand-soft: #f8efdd; /* gold tint for badges */
   --brand-soft-text: #6b520f;
 
   --background: var(--page);

@@ -28,9 +28,9 @@ const LINE = "#e7e7e9";
 const PAGE = "#fafafa";
 const CARD = "#ffffff";
 const HEADER = "#131313";
-const GOLD = "#d4af37";
+const GOLD = "#c58a24";
 const BRAND_TEXT = "#8a6a15";
-const BRAND_SOFT = "#faf3da";
+const BRAND_SOFT = "#f8efdd";
 const BRAND_SOFT_TEXT = "#6b520f";
 
 const FONT =
