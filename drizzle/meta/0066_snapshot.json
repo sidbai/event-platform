@@ -1,5 +1,5 @@
 {
-  "id": "9059a49a-b5d1-4f9e-8d42-0514a1bc78b7",
+  "id": "c70ab97f-a512-410b-ae6c-d76174ccb25a",
   "prevId": "ceade3c4-022f-4028-b596-aa167c16f1d5",
   "version": "7",
   "dialect": "postgresql",
@@ -1333,6 +1333,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -4523,130 +4529,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.session_bookings": {
-      "name": "session_bookings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "booked_by": {
-          "name": "booked_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "player_name": {
-          "name": "player_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "player_birth_year": {
-          "name": "player_birth_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "booking_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'requested'"
-        },
-        "decided_at": {
-          "name": "decided_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "session_bookings_booked_by_idx": {
-          "name": "session_bookings_booked_by_idx",
-          "columns": [
-            {
-              "expression": "booked_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "session_bookings_session_id_training_sessions_id_fk": {
-          "name": "session_bookings_session_id_training_sessions_id_fk",
-          "tableFrom": "session_bookings",
-          "tableTo": "training_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "session_bookings_booked_by_users_id_fk": {
-          "name": "session_bookings_booked_by_users_id_fk",
-          "tableFrom": "session_bookings",
-          "tableTo": "users",
-          "columnsFrom": [
-            "booked_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "session_bookings_one_per_player": {
-          "name": "session_bookings_one_per_player",
-          "nullsNotDistinct": false,
-          "columns": [
-            "session_id",
-            "booked_by",
-            "player_name"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.sessions": {
       "name": "sessions",
       "schema": "",
@@ -5940,146 +5822,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.training_sessions": {
-      "name": "training_sessions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "coach_id": {
-          "name": "coach_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "location": {
-          "name": "location",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "capacity": {
-          "name": "capacity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "birth_year_from": {
-          "name": "birth_year_from",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "birth_year_to": {
-          "name": "birth_year_to",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancelled_at": {
-          "name": "cancelled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "training_sessions_coach_starts_idx": {
-          "name": "training_sessions_coach_starts_idx",
-          "columns": [
-            {
-              "expression": "coach_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "training_sessions_starts_idx": {
-          "name": "training_sessions_starts_idx",
-          "columns": [
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "training_sessions_coach_id_users_id_fk": {
-          "name": "training_sessions_coach_id_users_id_fk",
-          "tableFrom": "training_sessions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "coach_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -6135,18 +5877,6 @@
         },
         "avatar_url": {
           "name": "avatar_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "coach_name": {
-          "name": "coach_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "coach_blurb": {
-          "name": "coach_blurb",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6364,16 +6094,6 @@
         "maybe"
       ]
     },
-    "public.booking_status": {
-      "name": "booking_status",
-      "schema": "public",
-      "values": [
-        "requested",
-        "confirmed",
-        "declined",
-        "cancelled"
-      ]
-    },
     "public.claim_status": {
       "name": "claim_status",
       "schema": "public",
@@ -6407,8 +6127,7 @@
       "values": [
         "event",
         "team",
-        "offer",
-        "session"
+        "offer"
       ]
     },
     "public.discussion_subject": {

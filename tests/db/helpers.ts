@@ -29,9 +29,6 @@ export function requireTestDatabase(): string {
 
 /** The tables this suite writes, children before parents. */
 const TABLES = [
-  "session_bookings",
-  "training_sessions",
-  "coach_profiles",
   "page_views",
   "team_claims",
   "team_name_proposals",

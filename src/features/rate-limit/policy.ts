@@ -18,9 +18,7 @@ export type Bucket =
   | "message:send"
   | "like:toggle"
   | "follow:toggle"
-  | "view:count"
-  | "training:slot"
-  | "training:request";
+  | "view:count";
 
 export type Limit = {
   limit: number;
@@ -99,20 +97,6 @@ export const LIMITS: Record<Bucket, Limit> = {
     limit: 60,
     windowSeconds: HOUR,
     message: "You're sending messages quickly.",
-  },
-  // A coach entering a Sunday is five or six slots in a row; a script is
-  // hundreds. The window is a day because slots are entered in sittings.
-  "training:slot": {
-    limit: 60,
-    windowSeconds: 24 * HOUR,
-    message: "That's a lot of slots at once — take a breather.",
-  },
-  // A parent books a handful a week. Forty is a parent with several children
-  // and a busy Sunday; four hundred is not a parent.
-  "training:request": {
-    limit: 40,
-    windowSeconds: 24 * HOUR,
-    message: "You've asked for a lot of sessions today.",
   },
   // Loose: hearting is cheap and harmless, this only stops a script.
   "like:toggle": {

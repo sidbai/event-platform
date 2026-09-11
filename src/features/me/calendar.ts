@@ -2,11 +2,11 @@ import "server-only";
 
 import { and, asc, eq, gte, inArray, isNotNull, or } from "drizzle-orm";
 
+import { localDate } from "@/features/events/week";
+
 import { db } from "@/db";
 import { eventAttendees, eventDivisions, events, matches, teams, venues } from "@/db/schema";
 import type { CalendarEntry, CalendarFixture } from "@/features/calendar/ics";
-import { isPrivate } from "@/features/training/slots";
-import { calendarSessions } from "@/features/training/queries";
 import { timeAnnounced } from "@/features/events/kickoff";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams } from "@/features/teams/follow-queries";
@@ -71,6 +71,7 @@ export async function myCalendar(
         title: events.title,
         slug: events.slug,
         startsAt: events.startsAt,
+            endsAt: events.endsAt,
         venueName: venues.name,
       })
       .from(eventAttendees)
@@ -101,7 +102,7 @@ export async function myCalendar(
     : [];
   const nameOf = new Map(named.map((t) => [t.id, t.name]));
 
-  const out: CalendarFixture[] = fixtures.map((f) => ({
+  const out: (CalendarFixture | CalendarEntry)[] = fixtures.map((f) => ({
     id: f.id,
     kickoffAt: f.kickoffAt,
     timed: timeAnnounced(f.kickoffAt, TZ),
@@ -118,84 +119,93 @@ export async function myCalendar(
    * is four thousand of them and almost none are this person's — the ones
    * that are come from following the teams.
    */
-  const said = new Set(attending.map((e) => e.id));
-  for (const e of await followedEvents(userId)) {
-    if (!e.startsAt || said.has(e.id) || e.startsAt < since) continue;
-    out.push({
+  /*
+   * An event with a real end on the same day is a slot, and its end is the
+   * end.
+   *
+   * Everything else here is drawn an hour long, or across the day when the
+   * hour is unknown, because a fixture publishes a kick-off and nothing
+   * more. A coach's 2:30–3:30 publishes both, and a phone drawing it until
+   * 3:30 rather than 3:30 is the difference between a calendar and a hint.
+   * A multi-day end (a tournament's last day at 23:59) is not a slot and
+   * keeps the fixture treatment.
+   */
+  const entryOf = (
+    e: { id: string; slug: string; title: string; startsAt: Date | null; endsAt: Date | null; venueName: string | null },
+    why: string,
+  ): CalendarFixture | CalendarEntry => {
+    const slot =
+      e.startsAt &&
+      e.endsAt &&
+      e.endsAt.getTime() > e.startsAt.getTime() &&
+      localDate(e.startsAt, TZ) === localDate(e.endsAt, TZ) &&
+      timeAnnounced(e.startsAt, TZ);
+    if (slot) {
+      return {
+        id: e.id,
+        startsAt: e.startsAt!,
+        endsAt: e.endsAt!,
+        summary: e.title,
+        description: [why, `${origin}/events/${e.slug}`],
+        location: e.venueName,
+        url: `${origin}/events/${e.slug}`,
+      };
+    }
+    return {
       id: e.id,
       kickoffAt: e.startsAt,
-      timed: timeAnnounced(e.startsAt, TZ),
-      home: e.title,
-      away: "",
-      where: e.venueName,
-      event: "You follow this",
-      division: null,
-      url: `${origin}/events/${e.slug}`,
-    });
-  }
-
-  for (const e of attending) {
-    out.push({
-      id: e.id,
-      kickoffAt: e.startsAt,
-      timed: timeAnnounced(e.startsAt, TZ),
+      timed: e.startsAt ? timeAnnounced(e.startsAt, TZ) : false,
       // Not a fixture: one line, the way it reads on the event page.
       home: e.title,
       away: "",
       where: e.venueName,
-      event: "You said you would be there",
+      event: why,
       division: null,
       url: `${origin}/events/${e.slug}`,
-    });
+    };
+  };
+
+  const said = new Set(attending.map((e) => e.id));
+  for (const e of await followedEvents(userId)) {
+    if (!e.startsAt || said.has(e.id) || e.startsAt < since) continue;
+    out.push(entryOf(e, "You follow this"));
+  }
+
+  for (const e of attending) {
+    out.push(entryOf(e, "You said you would be there"));
   }
 
   /*
-   * Training sessions, both ways round.
-   *
-   * The slots this person coaches — every live one, because a coach's own
-   * calendar should show the open two o'clock as much as the booked one, and
-   * a coach who cannot see their own week is the problem this exists to fix.
-   * And the bookings they made that a coach confirmed. Only confirmed: a
-   * request is a question, and a calendar is for answers.
+   * The events this person runs, which are theirs to have on their calendar
+   * before anybody RSVPs. A coach who cannot see their own open two o'clock
+   * is the problem the training kind exists to fix.
    */
-  const sessions = await calendarSessions(userId, since);
-  const entries: CalendarEntry[] = [];
-  for (const s of sessions.coaching) {
-    const confirmed = s.bookings.filter((b) => b.status === "confirmed");
-    const waiting = s.bookings.filter((b) => b.status === "requested").length;
-    const who =
-      confirmed.length > 0
-        ? confirmed.map((b) => b.playerName).join(", ")
-        : waiting > 0
-          ? `${waiting} waiting on you`
-          : "open";
-    entries.push({
-      id: `session-${s.id}`,
-      startsAt: s.startsAt,
-      endsAt: s.endsAt,
-      summary: `${isPrivate(s.capacity) ? "1-on-1" : "Group"} — ${who}`,
-      description: [s.notes, `${origin}/coaching/sessions/${s.id}`].filter(
-        (line): line is string => Boolean(line),
+  const seen = new Set(out.map((x) => x.id));
+  const organizing = await db
+    .select({
+      id: events.id,
+      slug: events.slug,
+      title: events.title,
+      startsAt: events.startsAt,
+      endsAt: events.endsAt,
+      venueName: venues.name,
+    })
+    .from(events)
+    .leftJoin(venues, eq(venues.id, events.venueId))
+    .where(
+      and(
+        eq(events.organizerId, userId),
+        inArray(events.status, ["published", "pending"]),
+        isNotNull(events.startsAt),
+        or(gte(events.endsAt, since), gte(events.startsAt, since)),
       ),
-      location: s.location,
-      url: `${origin}/coaching/sessions/${s.id}`,
-    });
-  }
-  for (const b of sessions.booked) {
-    entries.push({
-      id: `booking-${b.bookingId}`,
-      startsAt: b.startsAt,
-      endsAt: b.endsAt,
-      summary: `Training with ${b.coachName ?? "coach"} — ${b.playerName}`,
-      description: [b.notes, `${origin}/training/${b.sessionId}`].filter(
-        (line): line is string => Boolean(line),
-      ),
-      location: b.location,
-      url: `${origin}/training/${b.sessionId}`,
-    });
+    );
+  for (const e of organizing) {
+    if (seen.has(e.id)) continue;
+    out.push(entryOf(e, "You run this"));
   }
 
   const when = (x: CalendarFixture | CalendarEntry) =>
     "kickoffAt" in x ? (x.kickoffAt?.getTime() ?? 0) : x.startsAt.getTime();
-  return [...out, ...entries].sort((a, b) => when(a) - when(b));
+  return out.sort((a, b) => when(a) - when(b));
 }

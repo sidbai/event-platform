@@ -79,6 +79,8 @@ type ParsedEvent = {
   format: string | null;
   needsOpponent: boolean;
   host: string | null;
+  /** How many fit — one for a private session, four for a small group. */
+  capacity: number | null;
   sourceName: string | null;
   sourceUrl: string | null;
   scheduleUrl: string | null;
@@ -109,6 +111,8 @@ async function parseEventForm(
   const date = get("date");
   const endDate = get("endDate");
   const time = get("time");
+  const endTime = get("endTime");
+  const capacityRaw = get("capacity");
   const venueName = get("venueName");
   const onlineUrl = get("onlineUrl");
 
@@ -136,6 +140,15 @@ async function parseEventForm(
   if (endDate && date && endDate < date) {
     fieldErrors.endDate = "The last day is before the first.";
   }
+  const capacity = capacityRaw === "" ? null : Number(capacityRaw);
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 500)) {
+    fieldErrors.capacity = "How many can come? A whole number, 1 or more.";
+  }
+  // An end time is a time, so it needs a start time to be after.
+  if (endTime && !time) fieldErrors.endTime = "Give it a start time too.";
+  if (endTime && time && !endDate && endTime <= time) {
+    fieldErrors.endTime = "It has to end after it starts.";
+  }
   if (!listed && locationType === "in_person" && !venueName)
     fieldErrors.venueName = "Where is it?";
   if (locationType === "online" && !onlineUrl)
@@ -160,7 +173,12 @@ async function parseEventForm(
   // The end of the last day rather than its start, so a range covers the day
   // it names — "August 29–31" that stopped at midnight on the 31st would end
   // before any of the 31st's games kicked off.
-  const endsAt = endDate ? zonedDate(endDate, "23:59", timezone) : null;
+  /*
+   * A slot ends at its end time; a run of days ends at the end of its last
+   * day; both at once is the last day at that time. Nothing typed is no end.
+   */
+  const endsAt =
+    endTime || endDate ? zonedDate(endDate || date, endTime || "23:59", timezone) : null;
 
   let venueId: string | null = null;
   if (locationType === "in_person" && venueName) {
@@ -200,6 +218,7 @@ async function parseEventForm(
       format: get("format") || null,
       needsOpponent: !listed && formData.get("needsOpponent") === "on",
       host: listed ? get("host") || sourceName : get("host") || null,
+      capacity,
       sourceName: listed ? sourceName : null,
       sourceUrl: listed ? safeSourceUrl(sourceUrl) : null,
       scheduleUrl: listed ? safeSourceUrl(scheduleUrl) : null,
@@ -300,6 +319,7 @@ async function createEvent(
     format: f.format,
     needsOpponent: f.needsOpponent,
     host: f.host,
+    capacity: f.capacity,
     sourceName: f.sourceName,
     sourceUrl: f.sourceUrl,
     scheduleUrl: f.scheduleUrl,
@@ -401,6 +421,7 @@ async function applyEventEdit(
       format: f.format,
       needsOpponent: f.needsOpponent,
       host: f.host,
+    capacity: f.capacity,
       ...(listed
         ? {
             sourceName: f.sourceName,

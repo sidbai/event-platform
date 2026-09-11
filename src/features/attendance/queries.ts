@@ -13,6 +13,8 @@ export type Attendee = {
   avatarUrl: string | null;
   status: "going" | "maybe";
   guests: number;
+  /** Who is actually coming, in their words — or nothing. */
+  note: string | null;
 };
 
 export type Attendance = {
@@ -20,7 +22,7 @@ export type Attendance = {
   maybe: Attendee[];
   /** Heads, counting the guests people are bringing. */
   headcount: number;
-  mine: { status: "going" | "maybe"; guests: number } | null;
+  mine: { status: "going" | "maybe"; guests: number; note: string | null } | null;
 };
 
 export async function getAttendance(
@@ -50,6 +52,7 @@ export async function getAttendance(
     avatarUrl: r.user?.avatarUrl ?? null,
     status: r.status,
     guests: r.guests,
+    note: r.note,
   }));
 
   const going = all.filter((a) => a.status === "going");
@@ -59,6 +62,8 @@ export async function getAttendance(
     going,
     maybe: all.filter((a) => a.status === "maybe"),
     headcount: going.reduce((n, a) => n + 1 + a.guests, 0),
-    mine: mineRow ? { status: mineRow.status, guests: mineRow.guests } : null,
+    mine: mineRow
+      ? { status: mineRow.status, guests: mineRow.guests, note: mineRow.note }
+      : null,
   };
 }

@@ -20,6 +20,7 @@ function Names({ people }: { people: Attendee[] }) {
           {p.guests > 0 && (
             <span className="text-muted">+{p.guests}</span>
           )}
+          {p.note && <span className="text-muted">&mdash; {p.note}</span>}
         </li>
       ))}
     </ul>
@@ -43,21 +44,25 @@ export async function AttendanceSection({
 
   const full = capacity != null && headcount >= capacity;
 
+  /*
+   * One form with two submit buttons, so the note travels with whichever is
+   * pressed. Two forms would mean typing "Joshua, 2015" into the one you did
+   * not click.
+   */
   const button = (status: "going" | "maybe", label: string) => {
     const active = mine?.status === status;
     return (
-      <form action={setAttendance.bind(null, slug, status)}>
-        <button
-          type="submit"
-          className={
-            active
-              ? "rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
-              : "rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-elevated"
-          }
-        >
-          {active ? `✓ ${label}` : label}
-        </button>
-      </form>
+      <button
+        type="submit"
+        formAction={setAttendance.bind(null, slug, status)}
+        className={
+          active
+            ? "rounded-md bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-strong"
+            : "rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-elevated"
+        }
+      >
+        {active ? `✓ ${label}` : label}
+      </button>
     );
   };
 
@@ -77,15 +82,24 @@ export async function AttendanceSection({
       </div>
 
       {user ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {button("going", "Going")}
-          {button("maybe", "Maybe")}
-          {mine && (
-            <span className="text-xs text-muted">
-              Tap again to take your name off.
-            </span>
-          )}
-        </div>
+        <form className="mt-3 space-y-2">
+          <input
+            name="note"
+            maxLength={200}
+            defaultValue={mine?.note ?? ""}
+            placeholder="Who's coming — Joshua, 2015 · bringing two"
+            className="w-full max-w-md rounded-md border border-line bg-card px-3 py-2 text-sm"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {button("going", "Going")}
+            {button("maybe", "Maybe")}
+            {mine && (
+              <span className="text-xs text-muted">
+                Tap again to take your name off.
+              </span>
+            )}
+          </div>
+        </form>
       ) : (
         <p className="mt-3 text-sm text-muted">
           <Link href={`/signin?next=/events/${slug}`} className="text-brand-text hover:underline">

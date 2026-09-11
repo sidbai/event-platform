@@ -29,7 +29,6 @@ export async function SiteHeader() {
     { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
     { href: "/clubs", label: "Reviews" },
-    { href: "/training", label: "Training" },
     /*
      * Last of the sections and next to the avatar, because it is the only one
      * that is not a part of the site — it is the part that is yours. It was

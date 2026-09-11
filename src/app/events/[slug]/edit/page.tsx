@@ -47,6 +47,7 @@ export default async function EditEventPage({
    * without touching the field.
    */
   const [date, time] = toLocalInput(event.startsAt, timezone).split("T");
+  const endClock = event.endsAt ? toLocalInput(event.endsAt, timezone).split("T")[1] : "";
   const [endDate] = toLocalInput(event.endsAt, timezone).split("T");
 
   const initial: EventDefaults = {
@@ -58,6 +59,10 @@ export default async function EditEventPage({
     // Midnight is what the form stores when no start time was given, so it
     // reads back as no start time rather than as "starts at 00:00".
     time: time === "00:00" ? "" : (time ?? ""),
+    // 23:59 is what "the end of the last day" is stored as, so it reads back
+    // as no end time rather than as one somebody chose.
+    endTime: endClock && endClock !== "23:59" ? endClock : "",
+    capacity: event.capacity == null ? "" : String(event.capacity),
     endDate: endDate ?? "",
     locationType: event.locationType ?? "in_person",
     onlineUrl: event.onlineUrl ?? "",

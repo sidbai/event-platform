@@ -91,6 +91,8 @@ const EVENT_KINDS = [
   { slug: "jamboree", label: "Jamboree", defaultModules: ["competition"], sort: 60 },
   { slug: "showcase", label: "Showcase", defaultModules: ["competition", "registration"], sort: 70 },
   { slug: "camp", label: "Camp / Clinic", defaultModules: ["registration", "sessions"], sort: 80 },
+  // A coach's slot: one RSVP per place. See migration 0066 for production.
+  { slug: "training", label: "Training session", defaultModules: ["attendance"], sort: 85 },
   { slug: "tryout", label: "Tryout", defaultModules: ["registration"], sort: 90 },
   { slug: "watch-party", label: "Watch Party", defaultModules: ["attendance", "broadcast"], sort: 100 },
   { slug: "meetup", label: "Meetup", defaultModules: ["attendance"], sort: 110 },

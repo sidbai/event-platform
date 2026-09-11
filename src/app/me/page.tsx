@@ -13,10 +13,9 @@ import { waitingOn, written, type Written } from "@/features/me/queries";
 import { CalendarLink } from "@/features/me/calendar-link";
 import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { whatsNext } from "@/features/me/whats-next";
-import { withdrawBooking } from "@/features/training/actions";
-import { ConfirmButton } from "@/features/training/decision-buttons";
-import { myBookings } from "@/features/training/queries";
-import { dayLabel, localDate, spanLabel } from "@/features/training/week";
+import { myWeek, organizesAnything } from "@/features/events/my-week";
+import { MyWeekGrid } from "@/features/events/my-week-grid";
+import { weekStart } from "@/features/events/week";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 
@@ -71,19 +70,28 @@ function when(at: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(at);
 }
 
-export default async function MePage() {
+export default async function MePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect(`/signin?next=${encodeURIComponent("/me")}`);
 
+  const now = new Date();
+  const { week: weekParam } = await searchParams;
+  const monday = /^\d{4}-\d{2}-\d{2}$/.test(weekParam ?? "") ? weekParam! : weekStart(now);
+  const organizer = await organizesAnything(user.id);
+  const week = organizer ? await myWeek(user.id, monday) : [];
+
   const teams = await followedTeams(user.id);
   const ids = teams.map((t) => t.id);
-  const [waiting, mine, next, last, events, training] = await Promise.all([
+  const [waiting, mine, next, last, events] = await Promise.all([
     waitingOn(user.id),
     written(user.id),
     whatsNext(user.id, ids),
     lastResults(ids).then((rows) => new Map(rows.map((r) => [r.teamId, r]))),
     followedEvents(user.id),
-    myBookings(user.id, new Date()),
   ]);
 
   return (
@@ -134,57 +142,27 @@ export default async function MePage() {
       </section>
 
       {/*
-       * Training you have asked for or booked, with where it stands.
+       * The week of somebody who runs events, as a grid.
        *
-       * Separate from "What is next" on purpose: a request is not yet a
-       * thing that is happening, and merging it into the list of fixtures
-       * would put "waiting for the coach" beside a kick-off as though they
-       * were the same kind of certainty. Once confirmed it is in the calendar
-       * feed like everything else.
+       * Written for a coach with three Sunday slots, and it is the reason the
+       * training kind exists: "these coaches are not time-management
+       * masters", so the whole week is one view, with how many are coming
+       * against how many fit, and a mark on any two that overlap. Only shown
+       * to people who organize anything — for everybody else this page is
+       * about what they follow.
        */}
-      {(training.length > 0 || user.coachName) && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">Your training</h2>
-          {user.coachName && (
-            <p className="mt-1 text-sm text-muted">
-              You coach as {user.coachName}.{" "}
-              <Link href="/coaching" className="text-brand-text hover:underline">
-                Your week &rarr;
-              </Link>
-            </p>
-          )}
-          {training.length > 0 && (
-            <ul className="mt-3 divide-y divide-line">
-              {training.map((b) => (
-                <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                  <div className="text-sm">
-                    <Link href={`/training/${b.sessionId}`} className="font-medium hover:underline">
-                      {dayLabel(localDate(b.startsAt))}, {spanLabel(b.startsAt, b.endsAt)}
-                    </Link>
-                    <span className="text-muted">
-                      {" "}
-                      &middot; {b.coachName ?? "coach"} &middot; {b.location} &middot; {b.playerName}
-                    </span>
-                    <div className="text-xs">
-                      {b.status === "confirmed" ? (
-                        <span className="font-medium text-emerald-700 dark:text-emerald-400">
-                          Confirmed
-                        </span>
-                      ) : (
-                        <span className="text-muted">Waiting for the coach</span>
-                      )}
-                    </div>
-                  </div>
-                  <ConfirmButton
-                    label={b.status === "requested" ? "Withdraw" : "Cancel"}
-                    busy="…"
-                    action={withdrawBooking.bind(null, b.id)}
-                    danger
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+      {organizer && (
+        <section id="week" className="mt-8">
+          <h2 className="text-lg font-semibold">Your week</h2>
+          <p className="mt-1 text-sm text-muted">
+            Everything you run, by day.{" "}
+            <Link href="/events/new" className="text-brand-text hover:underline">
+              Add a session &rarr;
+            </Link>
+          </p>
+          <div className="mt-3">
+            <MyWeekGrid monday={monday} items={week} now={now} />
+          </div>
         </section>
       )}
 

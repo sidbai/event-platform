@@ -81,7 +81,26 @@ export function formatEventWhen(
   const b = parts(endsAt, timeZone);
 
   if (a.y === b.y && a.m === b.m && a.d === b.d) {
-    return fmt(startsAt, timeZone, single);
+    /*
+     * The same day with a real end is a slot, and the hours are the point.
+     *
+     * "Sunday, September 13, 2026 · 2:30–3:30 pm" is what a coach published
+     * and what a parent is choosing between. Guarded on both ends: a start
+     * at midnight is "no time given", and an end at 23:59 is "the end of the
+     * day", which is how a one-day range is stored — neither is a time
+     * anybody chose.
+     */
+    const clock = (at: Date) =>
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: timeZone ?? undefined,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(at);
+    const chosen = clock(startsAt) !== "00:00" && clock(endsAt) !== "23:59";
+    return chosen
+      ? `${fmt(startsAt, timeZone, single)} · ${span(startsAt, endsAt, timeZone)}`
+      : fmt(startsAt, timeZone, single);
   }
 
   if (a.y === b.y && a.m === b.m) {
@@ -101,6 +120,20 @@ export function formatEventWhen(
   const head = fmt(startsAt, timeZone, { month, day: "numeric", year: "numeric" });
   const tail = fmt(endsAt, timeZone, { month, day: "numeric", year: "numeric" });
   return `${head} – ${tail}`;
+}
+
+/** "2:30–3:30 pm", saying the suffix once when both ends share it. */
+function span(startsAt: Date, endsAt: Date, timeZone: string | null): string {
+  const t = (at: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone ?? undefined,
+      hour: "numeric",
+      minute: "2-digit",
+    })
+      .format(at)
+      .toLowerCase();
+  const [a, b] = [t(startsAt), t(endsAt)];
+  return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)}–${b}` : `${a}–${b}`;
 }
 
 /** How the first day reads when it is all we know. */
