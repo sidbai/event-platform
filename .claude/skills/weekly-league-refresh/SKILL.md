@@ -53,8 +53,8 @@ name; `.claude/…/wpl-ga-on-gotsport` in memory lists the ones not yet taken).
 | League | event | groups taken |
 |---|---|---|
 | WPL U11-U14 Fall | 55357 | all 56 |
-| GA League | 56497 | names matching `Northwest` |
-| GA ASPIRE | 56498 | names matching `Northwest` |
+| GA League | 56497 | names matching `Pac(ific)?[- ]?Northwest` — GA also has a plain "Northwest" conference, which is not ours |
+| GA ASPIRE | 56498 | same pattern |
 
 The GA events are national and list every conference; `only` on the league
 row keeps it to ours. If the bookmark says *none of N groups match*, it prints

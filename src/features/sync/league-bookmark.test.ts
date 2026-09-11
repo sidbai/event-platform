@@ -24,8 +24,11 @@ describe("the weekly bookmark", () => {
     // One file per site, so a week's two clicks do not overwrite each other.
     expect(src).toContain("-northwest-all.json");
     expect(src).toContain("schedules?date=All&group=");
-    // The GA events are national; only the Northwest is taken.
-    expect(src).toMatch(/"only":"Northwest"/);
+    // The GA events are national, and list a "Northwest" beside our
+    // "Pacific-Northwest"; only the Pacific one is taken.
+    expect(src).toContain("Pac(ific)?[- ]?Northwest");
+    expect(new RegExp("Pac(ific)?[- ]?Northwest", "i").test("Pacific-Northwest U13")).toBe(true);
+    expect(new RegExp("Pac(ific)?[- ]?Northwest", "i").test("Northwest U13")).toBe(false);
   });
 
   it("fits in a bookmark", () => {

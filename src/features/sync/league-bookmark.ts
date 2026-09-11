@@ -73,10 +73,14 @@ export const LEAGUES: League[] = [
    * GotSport, from 2026-09-11. The event numbers are the ones wpl-soccer.com
    * and girlsacademyleague.com link to; the others on those pages (Boys HS,
    * N1, NSRL, the dev leagues, GA Inspire) wait until the owner asks.
+   *
+   * The GA lists two conferences whose names both end in Northwest —
+   * "Northwest U13" and "Pacific-Northwest U13" — and ours is the Pacific
+   * one. A pattern of "Northwest" alone took both, twelve groups for six.
    */
   { platform: "gotsport", name: "WPL U11-U14 Fall", event: 55357, eventSlug: "wpl-fall-2026-u11-u14" },
-  { platform: "gotsport", name: "GA League", event: 56497, only: "Northwest", eventSlug: "ga-league-2026-27-northwest" },
-  { platform: "gotsport", name: "GA ASPIRE", event: 56498, only: "Northwest", eventSlug: "ga-aspire-2026-27-northwest" },
+  { platform: "gotsport", name: "GA League", event: 56497, only: "Pac(ific)?[- ]?Northwest", eventSlug: "ga-league-2026-27-northwest" },
+  { platform: "gotsport", name: "GA ASPIRE", event: 56498, only: "Pac(ific)?[- ]?Northwest", eventSlug: "ga-aspire-2026-27-northwest" },
 ];
 
 export const ECNL_LEAGUES: EcnlLeague[] = LEAGUES.filter(
