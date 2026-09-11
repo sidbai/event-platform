@@ -109,6 +109,8 @@ export async function SiteHeader() {
                 <Avatar src={avatarOf(user)} name={publicName(user)} size={24} />
               }
               items={[
+                // First, because it is the one that gathers the rest.
+                { href: "/me", label: "Your page" },
                 {
                   href: "/messages",
                   label: unread > 0 ? `Messages (${unread})` : "Messages",
