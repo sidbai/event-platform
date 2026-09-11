@@ -51,7 +51,8 @@
     "sync:event": "NODE_OPTIONS=--conditions=react-server tsx scripts/sync-event.ts",
     "clubs:crawl": "NODE_OPTIONS=--conditions=react-server tsx scripts/crawl-clubs.ts",
     "clubs:profile": "tsx scripts/profile-clubs.ts",
-    "ai:review-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/review-merges.ts"
+    "ai:review-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/review-merges.ts",
+    "clubs:verify": "tsx scripts/verify-club-profiles.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

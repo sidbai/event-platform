@@ -1,5 +1,5 @@
 import { interestingUrls } from "./pages";
-import { readable, tellsUsSomething } from "./text";
+import { readable, tellsUsSomething, withoutRepeatedFurniture } from "./text";
 
 /**
  * Reading a club's website, slowly and once.
@@ -139,5 +139,7 @@ export async function readClub(
   }
 
   if (out.pages.length === 0) out.note = urls.length ? "no readable pages" : "no sitemap and no home page";
+  // Said once rather than once per page: the menu is on all of them.
+  out.pages = withoutRepeatedFurniture(out.pages).filter((p) => p.text.trim().length > 0);
   return out;
 }

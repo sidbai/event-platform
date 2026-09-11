@@ -1,1 +1,2870 @@
-{}
+{
+  "atletico-futbol-club": {
+    "slug": "atletico-futbol-club",
+    "tiers": [
+      "MLS NEXT",
+      "Elite Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [],
+    "coaches": [],
+    "summary": "Atletico Futbol Club organizes its teams into tiers, specifically mentioning MLS NEXT and Elite Academy. There are no specific squad markers or age bands detailed on the website.",
+    "sources": [
+      "https://atleticofutbol.com"
+    ],
+    "readAt": "2026-09-11T06:58:05.103Z",
+    "model": "openai/gpt-4o-mini"
+  },
+  "bvb-international-academy-washington": {
+    "slug": "bvb-international-academy-washington",
+    "tiers": [
+      "Elite Academy (EA)",
+      "NPL",
+      "WPL",
+      "Black & Yellow Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Eastside/Bellevue",
+      "Seattle",
+      "Black & Yellow Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Keegan Chapman",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Sheldon Daniel",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Diego Acuña Muñoz",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Halley Schroeder",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Megan Martinez",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Peggy Ruhr",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Sheriff Grey",
+        "role": null,
+        "ageGroups": []
+      }
+    ],
+    "summary": "BVB IA Washington runs Elite Academy (EA) teams at U11-U15 above its NPL and WPL teams, and the club says plainly that a player not selected for an EA team may be offered an NPL or WPL place instead. Its NPL/WPL sides are split by location — Eastside/Bellevue and Seattle — and are separate teams from each other. The Black & Yellow Academy serves ages 6-10. Age groups are single years on the August-to-July seasonal year.",
+    "sources": [
+      "https://www.bvbia-washington.com",
+      "https://www.bvbia-washington.com/academy",
+      "https://www.bvbia-washington.com/premier",
+      "https://www.bvbia-washington.com/tryouts",
+      "https://www.bvbia-washington.com/hstryouts",
+      "https://www.bvbia-washington.com/opentryouts"
+    ],
+    "readAt": "2026-09-11T06:31:39.555Z",
+    "model": "claude-opus-5"
+  },
+  "cascade-fc": {
+    "slug": "cascade-fc",
+    "tiers": [
+      "Premier",
+      "Jr. Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Jr. Academy"
+    ],
+    "coaches": [],
+    "summary": "Cascade FC runs Premier Soccer with a Jr. Academy below it, whose curriculum is built on the same playing principles and game model used through the rest of the club.",
+    "sources": [
+      "https://www.cascadefc.org",
+      "https://www.cascadefc.org/page/show/7896104-jr-academy-",
+      "https://www.cascadefc.org/page/show/7896118-premier-soccer"
+    ],
+    "readAt": "2026-09-11T06:31:50.766Z",
+    "model": "claude-opus-5"
+  },
+  "crossfire-premier": {
+    "slug": "crossfire-premier",
+    "tiers": [
+      "ECNL",
+      "ECNL RL",
+      "USSDA",
+      "Premier",
+      "RCL"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Crossfire Jr Teams",
+      "XF Futures",
+      "Crossfire Select"
+    ],
+    "coaches": [
+      {
+        "name": "Mandou Bojang",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Aaron Burns",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Arby Busey",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Malie Chamberland",
+        "role": "Goalkeeping Staff",
+        "ageGroups": []
+      },
+      {
+        "name": "Alan Carloza",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Steve Crum",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Javier Cruz",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Ibrahima Drame",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Travers Enslow",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jon Ellis",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Rikky Falagan",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "John Heimbigner",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Eddie Henderson",
+        "role": "Director of Coaching",
+        "ageGroups": []
+      },
+      {
+        "name": "Bernie James",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Angedd Kalsi",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Kevin Legg",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Leo Maric",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Kevin McGibbon",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Tony Mercado",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Mark Metzger",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Wayde Olson",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Dante Perez Martin",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Ethan Peterson",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Marko Plackov",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Sydney Pluhacek",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Slavo Rafailovic",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Devin Rairdon",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Brooke Reece",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Richard Reece",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jim Rilatt",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Amadou Sanyang",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Erik Storkson",
+        "role": null,
+        "ageGroups": []
+      }
+    ],
+    "summary": "Crossfire Premier runs year-round Premier teams from U9 up, with the top boys sides in the USSDA and the top girls sides in ECNL; below those, teams play RCL. Crossfire Jr Teams (the Crossfire Junior Program, U7-U10) is a separate recreational programme, not a tier of the Premier teams. The club's program chart is written by single birth year, U6 through U19.",
+    "sources": [
+      "https://www.crossfiresoccer.org",
+      "https://www.crossfiresoccer.org/teams/",
+      "https://www.crossfiresoccer.org/coaches/",
+      "https://www.crossfiresoccer.org/coaches/team-coaches/",
+      "https://www.crossfiresoccer.org/crossfire-player-development-pathway/",
+      "https://www.crossfiresoccer.org/about-us/playing-for-crossfire/",
+      "https://www.crossfiresoccer.org/about-us/crossfire-player-development-pathway1/",
+      "https://www.crossfiresoccer.org/author/teamsportsadmin/",
+      "https://www.crossfiresoccer.org/about-us/playing-for-crossfire/program-chart/",
+      "https://www.crossfiresoccer.org/teams/xf-u8-spring-rcl-teams/2026-girls-u8-spring-rcl-tryout-results/",
+      "https://www.crossfiresoccer.org/crossfire-premier-academy/",
+      "https://www.crossfiresoccer.org/crossfire-premier-mission-core-values/",
+      "https://www.crossfiresoccer.org/tryouts/"
+    ],
+    "readAt": "2026-09-11T06:32:23.088Z",
+    "model": "claude-opus-5"
+  },
+  "dragons-fc": {
+    "slug": "dragons-fc",
+    "tiers": [
+      "WPL Super",
+      "Classic League",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "two-year",
+    "branches": [
+      "Recreational Programs"
+    ],
+    "coaches": [],
+    "summary": "Dragons FC plays competitively in the WPL Super and Classic leagues and runs recreational programs beside them. Its published recreational age groups are multi-year bands — 2006-2009, 2010-2011 and 2012-2017 — rather than single years.",
+    "sources": [
+      "https://www.dragonsfc.us/",
+      "https://www.dragonsfc.us/page/show/8581966-recreational-programs"
+    ],
+    "readAt": "2026-09-11T06:32:26.700Z",
+    "model": "claude-opus-5"
+  },
+  "eagleclaw-fc": {
+    "slug": "eagleclaw-fc",
+    "tiers": [
+      "Advanced Academy",
+      "Primary Academy",
+      "Valencia CF Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "EFC",
+      "VCF",
+      "Valencia CF Academy",
+      "Primary Academy",
+      "Advanced Academy"
+    ],
+    "coaches": [],
+    "summary": "Eagleclaw FC prefixes a team with the programme it belongs to: EFC for its own sides and VCF for Valencia CF Academy Seattle, so EFC BU14 and VCF BU14 are two different teams. The Advanced Academy covers ages 13-18 and the Primary Academy 5-12, and the club forms no more than two teams per birth year and gender. Its teams play the Washington Premier League's Development League, out of Starfire in Tukwila.",
+    "sources": [
+      "https://www.eagleclawfc.org",
+      "https://www.eagleclawfc.org/staff",
+      "https://www.eagleclawfc.org/advanced-academy",
+      "https://www.eagleclawfc.org/primary-academy-ages-5-13",
+      "https://www.eagleclawfc.org/valencia-cf-summer-academy",
+      "https://www.eagleclawfc.org/valencia-cf-academy-seattle",
+      "https://www.eagleclawfc.org/copy-of-boys-hs-tryouts"
+    ],
+    "readAt": "2026-09-11T06:32:48.331Z",
+    "model": "claude-opus-5"
+  },
+  "eastside-fc": {
+    "slug": "eastside-fc",
+    "tiers": [
+      "ECNL",
+      "ECNL RL",
+      "Pre-ECNL",
+      "Red",
+      "White",
+      "Blue",
+      "Grey",
+      "Navy"
+    ],
+    "squadMarkers": [
+      "Red",
+      "White",
+      "Blue",
+      "Grey",
+      "Navy",
+      "Maroon"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Preston",
+      "Bellevue",
+      "Mercer Island",
+      "West",
+      "West Maroon",
+      "West Red",
+      "West White"
+    ],
+    "coaches": [
+      {
+        "name": "Tom Bialek",
+        "role": "Director of Soccer",
+        "ageGroups": []
+      },
+      {
+        "name": "Anderson 'Xinho' Prestes",
+        "role": "Director of Programming",
+        "ageGroups": []
+      },
+      {
+        "name": "Troy Letherman",
+        "role": "Boys ECNL Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Tim Reynolds",
+        "role": "Girls ECNL Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Claire Knock",
+        "role": "DOC, Girls U13-U19 ECNL RL/RCL",
+        "ageGroups": []
+      },
+      {
+        "name": "Porter Lombard",
+        "role": "DOC, Boys U13-U19 ECNL RL/RCL",
+        "ageGroups": []
+      },
+      {
+        "name": "Andrew Dortch",
+        "role": "DOC, EFC West",
+        "ageGroups": []
+      },
+      {
+        "name": "Sean Morris",
+        "role": "DOC, West Maroon",
+        "ageGroups": []
+      },
+      {
+        "name": "Erin Vaughan",
+        "role": "DOC, Girls West Maroon",
+        "ageGroups": []
+      },
+      {
+        "name": "Joe Mondello",
+        "role": "Director of Goalkeeping",
+        "ageGroups": []
+      },
+      {
+        "name": "Tony Armitage",
+        "role": null,
+        "ageGroups": [
+          "GU13 ECNL",
+          "GU10 Red",
+          "BU8 Red"
+        ]
+      },
+      {
+        "name": "Justi Baumgardt",
+        "role": null,
+        "ageGroups": [
+          "GU17 ECNL",
+          "GU12 Pre-ECNL I"
+        ]
+      },
+      {
+        "name": "Hector Betancourt",
+        "role": null,
+        "ageGroups": [
+          "BU19 Red",
+          "BU12 Red",
+          "BU16 Red"
+        ]
+      },
+      {
+        "name": "Diego Betancourt",
+        "role": null,
+        "ageGroups": [
+          "BU10 Blue",
+          "BU10 Grey"
+        ]
+      },
+      {
+        "name": "Jeff Betts",
+        "role": null,
+        "ageGroups": [
+          "BU19 ECNL",
+          "BU15 Red"
+        ]
+      },
+      {
+        "name": "Diego Botello",
+        "role": null,
+        "ageGroups": [
+          "GU10 West Maroon"
+        ]
+      },
+      {
+        "name": "John Buttle",
+        "role": null,
+        "ageGroups": [
+          "BU16 West Maroon"
+        ]
+      },
+      {
+        "name": "Josh Chasan",
+        "role": null,
+        "ageGroups": [
+          "BU16 ECNL RL",
+          "BU10 Red"
+        ]
+      },
+      {
+        "name": "Hannah Deighton",
+        "role": null,
+        "ageGroups": [
+          "GU13 ECNL RL",
+          "BU17 ECNL",
+          "BU12 West Red"
+        ]
+      },
+      {
+        "name": "Nick Ewing",
+        "role": null,
+        "ageGroups": [
+          "BU11 White",
+          "GU9 Blue"
+        ]
+      },
+      {
+        "name": "Kelvin Galvez",
+        "role": null,
+        "ageGroups": [
+          "GU19 ECNL",
+          "BU17 ECNL RL",
+          "GU16 ECNL RL"
+        ]
+      },
+      {
+        "name": "Nick Games",
+        "role": null,
+        "ageGroups": [
+          "BU12 West White",
+          "BU11 West White"
+        ]
+      },
+      {
+        "name": "Nathan Gehrke",
+        "role": null,
+        "ageGroups": [
+          "GU15 Red",
+          "BU14 Red",
+          "BU9 Blue"
+        ]
+      },
+      {
+        "name": "Quinn Grisham",
+        "role": null,
+        "ageGroups": [
+          "BU12 Pre-ECNL I",
+          "GU9 Red"
+        ]
+      },
+      {
+        "name": "Lucas Hasenmyer",
+        "role": null,
+        "ageGroups": [
+          "BU11 Pre-ECNL II",
+          "BU8 White"
+        ]
+      },
+      {
+        "name": "John Hernandez",
+        "role": null,
+        "ageGroups": [
+          "GU16 Red",
+          "BU13 White",
+          "GU10 Blue"
+        ]
+      },
+      {
+        "name": "Liam Jalalian",
+        "role": null,
+        "ageGroups": [
+          "GU15 West Maroon",
+          "GU9 West Maroon"
+        ]
+      },
+      {
+        "name": "Alieu Kamara",
+        "role": null,
+        "ageGroups": [
+          "BU16 West Red",
+          "BU11 West Red",
+          "BU10 West Red",
+          "BU10 West White"
+        ]
+      },
+      {
+        "name": "Wilson Kasinga",
+        "role": null,
+        "ageGroups": [
+          "BU14 ECNL RL",
+          "BU10 White",
+          "GU9 White"
+        ]
+      },
+      {
+        "name": "Victor King",
+        "role": null,
+        "ageGroups": [
+          "BU9 Grey",
+          "BU9 Navy",
+          "BU8 Blue",
+          "GU17 ECNL RL",
+          "GU15 ECNL"
+        ]
+      },
+      {
+        "name": "Mark Kovats",
+        "role": null,
+        "ageGroups": [
+          "GU19 ECNL RL",
+          "GU14 Red"
+        ]
+      },
+      {
+        "name": "Loren Langley",
+        "role": null,
+        "ageGroups": [
+          "BU9 Red",
+          "BU9 White",
+          "BU14 ECNL",
+          "BU13 ECNL",
+          "GU12 Red",
+          "GU11 Red"
+        ]
+      },
+      {
+        "name": "Mario Martinez",
+        "role": null,
+        "ageGroups": [
+          "BU15 White",
+          "BU12 Blue"
+        ]
+      },
+      {
+        "name": "Mike Mata",
+        "role": null,
+        "ageGroups": [
+          "BU17 West Red",
+          "BU8 West Red",
+          "BU8 West White"
+        ]
+      },
+      {
+        "name": "Ellis McLoughlin",
+        "role": null,
+        "ageGroups": [
+          "BU15 ECNL RL",
+          "BU12 Pre-ECNL II",
+          "GU8 Red"
+        ]
+      },
+      {
+        "name": "Ahmed Mohammed",
+        "role": null,
+        "ageGroups": [
+          "GU14 ECNL RL",
+          "GU11 Pre-ECNL",
+          "GU8 White"
+        ]
+      },
+      {
+        "name": "Akira Nandate",
+        "role": null,
+        "ageGroups": [
+          "BU14 West Red",
+          "BU9 West Red",
+          "BU9 West White"
+        ]
+      },
+      {
+        "name": "Orlando Neto",
+        "role": null,
+        "ageGroups": [
+          "BU15 West Maroon",
+          "BU10 West Maroon"
+        ]
+      },
+      {
+        "name": "Terrell Norris",
+        "role": null,
+        "ageGroups": [
+          "BU13 West Maroon",
+          "BU9 West Maroon",
+          "BU7 Red"
+        ]
+      },
+      {
+        "name": "Cary Pruitt",
+        "role": null,
+        "ageGroups": [
+          "BU17 Red"
+        ]
+      },
+      {
+        "name": "Sean Rash",
+        "role": null,
+        "ageGroups": [
+          "BU13 Red",
+          "GU12 Pre-ECNL II",
+          "GU16 ECNL",
+          "GU14 ECNL"
+        ]
+      },
+      {
+        "name": "Scott Song",
+        "role": null,
+        "ageGroups": [
+          "BU15 West Red",
+          "BU13 West Red"
+        ]
+      },
+      {
+        "name": "Shaun Spencer",
+        "role": null,
+        "ageGroups": [
+          "BU16 ECNL"
+        ]
+      },
+      {
+        "name": "Tsigab Tesfamariam",
+        "role": null,
+        "ageGroups": [
+          "BU12 West Maroon",
+          "BU11 West Maroon"
+        ]
+      },
+      {
+        "name": "Jodi Ulkekul",
+        "role": null,
+        "ageGroups": [
+          "GU17 Red",
+          "GU13 Red",
+          "GU10 White",
+          "GU12 West Maroon",
+          "GU11 West Maroon"
+        ]
+      },
+      {
+        "name": "Todd Veenhuizen",
+        "role": null,
+        "ageGroups": [
+          "GU15 ECNL RL"
+        ]
+      },
+      {
+        "name": "Tariq Walcott",
+        "role": null,
+        "ageGroups": [
+          "BU15 ECNL",
+          "BU11 Pre-ECNL I"
+        ]
+      },
+      {
+        "name": "David Wharton",
+        "role": null,
+        "ageGroups": [
+          "BU19 ECNL RL",
+          "BU13 ECNL RL"
+        ]
+      },
+      {
+        "name": "Jordan Zimmerman",
+        "role": null,
+        "ageGroups": [
+          "BU14 West Maroon"
+        ]
+      }
+    ],
+    "summary": "Eastside FC names teams by level and by training hub at once. At U13-U19 the top two are ECNL and ECNL RL, always based in Preston; at U8-U12 Red and White are the top two, then Blue, Grey and Navy. West teams train in Bellevue and on Mercer Island, and a West side may sit at the same competitive level as a Blue or Grey in a given year. Ages are single birth-year bands with a stated August-to-July birth-date range.",
+    "sources": [
+      "https://www.eastsidefc.org",
+      "https://www.eastsidefc.org/coaches",
+      "https://www.eastsidefc.org/teams-coaches",
+      "https://www.eastsidefc.org/teams-leagues",
+      "https://www.eastsidefc.org/teams-competiton-levels",
+      "https://www.eastsidefc.org/programs",
+      "https://www.eastsidefc.org/pathways",
+      "https://www.eastsidefc.org/boys-u8-u12-teams",
+      "https://www.eastsidefc.org/boys-u13-u19-teams",
+      "https://www.eastsidefc.org/girls-u8-u12-teams",
+      "https://www.eastsidefc.org/girls-u13-u19-teams",
+      "https://www.eastsidefc.org/leadership-academy",
+      "https://www.eastsidefc.org/tryout-faqs"
+    ],
+    "readAt": "2026-09-11T06:33:16.872Z",
+    "model": "claude-opus-5"
+  },
+  "harbor-soccer-club": {
+    "slug": "harbor-soccer-club",
+    "tiers": [
+      "Elite Academy (EA)",
+      "Girls Academy Aspire (G.A)",
+      "Premier Program"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Harbor Rising Academy"
+    ],
+    "coaches": [],
+    "summary": "Harbor Soccer Club runs an Elite Academy (EA) programme and Girls Academy Aspire (G.A) above its Premier Program, with Harbor Rising Academy at the youngest ages.",
+    "sources": [
+      "https://www.harborsoccerclub.com"
+    ],
+    "readAt": "2026-09-11T06:33:24.865Z",
+    "model": "claude-opus-5"
+  },
+  "highline-premier-fc": {
+    "slug": "highline-premier-fc",
+    "tiers": [
+      "Elite Academy",
+      "WPL",
+      "RCL"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Elite Academy"
+    ],
+    "coaches": [
+      {
+        "name": "James Conroy",
+        "role": "Executive Director",
+        "ageGroups": []
+      },
+      {
+        "name": "James Riley",
+        "role": "Director of Coaching & Technical Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Marissa Villegas",
+        "role": "Girls Director of Coaching",
+        "ageGroups": []
+      },
+      {
+        "name": "Kelvin Mizen",
+        "role": "Boys Director of Coaching",
+        "ageGroups": []
+      }
+    ],
+    "summary": "Highline Premier FC forms multiple teams within each age group and competes in the Washington Premier League (WPL) and the Regional Club League (RCL). It is adding the Elite Academy League (EA) as a national platform within its 11v11 boys pathway, so an Elite Academy side sits above the club's WPL and RCL teams rather than beside them. The club serves West Seattle.",
+    "sources": [
+      "https://www.highlinepremier.com",
+      "https://www.highlinepremier.com/staff",
+      "https://www.highlinepremier.com/teams",
+      "https://www.highlinepremier.com/teamtalk",
+      "https://www.highlinepremier.com/programs",
+      "https://www.highlinepremier.com/celebrating-30-years-of-highline-premier-fc",
+      "https://www.highlinepremier.com/elite-academy-expanding-the-player-pathway-at-hpfc",
+      "https://www.highlinepremier.com/why-we-need-you-volunteering-at-highline-premier-fc",
+      "https://www.highlinepremier.com/playing-it-safe-highline-premier-fc-cold-weather-guide"
+    ],
+    "readAt": "2026-09-11T06:33:40.985Z",
+    "model": "claude-opus-5"
+  },
+  "kitsap-alliance-fc": {
+    "slug": "kitsap-alliance-fc",
+    "tiers": [
+      "Pre-ECNL",
+      "Blue",
+      "White",
+      "Academy"
+    ],
+    "squadMarkers": [
+      "Blue",
+      "White",
+      "N1"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Junior Soccer Academy",
+      "Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Trevor Jensen",
+        "role": "Clinic Director",
+        "ageGroups": []
+      }
+    ],
+    "summary": "Kitsap Alliance names a team by age group and colour, and the colour is the level: Blue is the club's first team in an age group and White the second, with Pre-ECNL above them at U12. Teams in the top league division carry an N1 prefix, as in N1 BU13 Blue, so the same side may appear with or without it. Ages are single years on the August-to-July seasonal year, and the club also runs a Junior Soccer Academy.",
+    "sources": [
+      "https://www.kitsapalliancefc.com",
+      "https://www.kitsapalliancefc.com/team",
+      "https://www.kitsapalliancefc.com/camps-events/adidas-elite-skills-clinic",
+      "https://www.kitsapalliancefc.com/camps-events/adidas-elite-finishing-camp",
+      "https://www.kitsapalliancefc.com/content/tryouts",
+      "https://www.kitsapalliancefc.com/content/tryoutfaq",
+      "https://www.kitsapalliancefc.com/content/tryoutprocess"
+    ],
+    "readAt": "2026-09-11T06:34:01.622Z",
+    "model": "claude-opus-5"
+  },
+  "lake-washington-premier-fc": {
+    "slug": "lake-washington-premier-fc",
+    "tiers": [
+      "WPL",
+      "National Premier Leagues"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [],
+    "coaches": [],
+    "summary": "Lake Washington Premier FC plays in the WPL and the National Premier Leagues.",
+    "sources": [
+      "https://www.lwpfc.org"
+    ],
+    "readAt": "2026-09-11T06:34:03.806Z",
+    "model": "claude-opus-5"
+  },
+  "mt-rainier-fc": {
+    "slug": "mt-rainier-fc",
+    "tiers": [
+      "Premier",
+      "Academy",
+      "Junior Academy",
+      "Select",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Junior Academy",
+      "Futures",
+      "Recreational",
+      "Adult"
+    ],
+    "coaches": [
+      {
+        "name": "Luke Howells",
+        "role": "Director of Coaching",
+        "ageGroups": []
+      },
+      {
+        "name": "Peyton Chick",
+        "role": "Assistant Director of Coaching",
+        "ageGroups": []
+      },
+      {
+        "name": "Kelly Dott",
+        "role": "Competitive Admin",
+        "ageGroups": []
+      },
+      {
+        "name": "Sandra Tietz",
+        "role": "Grassroots Admin",
+        "ageGroups": []
+      },
+      {
+        "name": "Jason Gjertsen",
+        "role": "Camps, College & Grassroots Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Josiah Bowie",
+        "role": "GK Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Marc Russell",
+        "role": "Executive Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Emily Maks",
+        "role": "Registrar & Field Scheduler",
+        "ageGroups": []
+      },
+      {
+        "name": "Ashley Nall",
+        "role": "Apparel & Social Media",
+        "ageGroups": []
+      }
+    ],
+    "summary": "Mt. Rainier FC runs its competitive side as separate programmes rather than as one ladder: tryouts place a player into Academy or Premier, with a Junior Academy at U8-U10 below them, and Futures and Recreational beside them. So an Academy team and a Premier team of the same age are two different teams. Age groups are single years on the new August-to-July seasonal year. The club is based in Buckley.",
+    "sources": [
+      "https://www.playmrac.com/soccer/",
+      "https://www.playmrac.com/soccer/about-us/staff/",
+      "https://www.playmrac.com/soccer/rainier-valley-classic/",
+      "https://www.playmrac.com/soccer/tryouts/",
+      "https://www.playmrac.com/soccer/programs/recreational/"
+    ],
+    "readAt": "2026-09-11T06:34:15.900Z",
+    "model": "claude-opus-5"
+  },
+  "north-kitsap-soccer-club": {
+    "slug": "north-kitsap-soccer-club",
+    "tiers": [
+      "Select",
+      "Pre-Comp",
+      "Recreational"
+    ],
+    "squadMarkers": [
+      "Blue"
+    ],
+    "colours": "unknown",
+    "ageBands": "both",
+    "branches": [
+      "Pre-Comp",
+      "Mini-Ballers",
+      "Micro Program",
+      "MOD Program",
+      "Full Field Program"
+    ],
+    "coaches": [
+      {
+        "name": "Darcy Dormaier",
+        "role": "Competitive Program Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Ian McCallum",
+        "role": "Head Coach",
+        "ageGroups": [
+          "Girls U19 Select"
+        ]
+      }
+    ],
+    "summary": "North Kitsap gives each select side its own name rather than a colour or a number: Lady Berserkers, Norse Novas, Sound Vipers, Serpents, Shield Maidens, Valkyries, Tsunami, Avalanche, Thunder, Fury and Vortex all appear beside a birth year, so two NKSC teams of the same year are told apart by that name. Select runs U11-U18 with a Pre-Comp programme at U9-U10; some sides are single years and some two, as in Girls 2010/2011.",
+    "sources": [
+      "https://northkitsapsoccer.org",
+      "https://northkitsapsoccer.org/girls-u19-select-program/",
+      "https://northkitsapsoccer.org/playing-for-the-love-of-the-game/",
+      "https://northkitsapsoccer.org/nksc-2024-select-tryouts/",
+      "https://northkitsapsoccer.org/select-tryout-registration/",
+      "https://northkitsapsoccer.org/select-supplemental-tryouts/",
+      "https://northkitsapsoccer.org/select-open-practices-and-tryout-schedule/",
+      "https://northkitsapsoccer.org/2010-2011-girls-select-supplemental-tryouts/",
+      "https://northkitsapsoccer.org/nksc-select-boys-team-tryouts-dont-miss-your-chance/",
+      "https://northkitsapsoccer.org/select-program/",
+      "https://northkitsapsoccer.org/nksc-select-coaches/",
+      "https://northkitsapsoccer.org/about-select-at-nksc/",
+      "https://northkitsapsoccer.org/spring-soccer-academy/"
+    ],
+    "readAt": "2026-09-11T06:35:06.246Z",
+    "model": "claude-opus-5"
+  },
+  "northwest-united-fc": {
+    "slug": "northwest-united-fc",
+    "tiers": [
+      "ECNL-RL",
+      "RCL",
+      "NPSL",
+      "Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Kristian Powell",
+        "role": null,
+        "ageGroups": [
+          "2016 Girls"
+        ]
+      },
+      {
+        "name": "Josh Rocha",
+        "role": null,
+        "ageGroups": [
+          "2016 Boys"
+        ]
+      }
+    ],
+    "summary": "Northwest United FC in the Skagit Valley puts its ECNL-RL teams at the top — the club calls them the highest level of play within the club — with RCL and NPSL sides below, listed separately for boys and girls, and an Academy at the youngest ages. Age groups are single years on the August-to-July seasonal year.",
+    "sources": [
+      "https://www.nwunited.org",
+      "https://www.nwunited.org/staff",
+      "https://www.nwunited.org/academy",
+      "https://www.nwunited.org/tryouts"
+    ],
+    "readAt": "2026-09-11T06:35:39.955Z",
+    "model": "claude-opus-5"
+  },
+  "pacnw-sc": {
+    "slug": "pacnw-sc",
+    "tiers": [
+      "ECNL",
+      "ECNL-RL",
+      "Pre-ECNL",
+      "Maroon",
+      "Blue",
+      "White",
+      "Gold",
+      "Silver",
+      "Copper"
+    ],
+    "squadMarkers": [
+      "Maroon",
+      "Blue",
+      "White",
+      "Gold",
+      "Silver",
+      "Copper"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Southlake FC",
+      "Federal Way",
+      "PAC Micros",
+      "Junior Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Abby Carmel",
+        "role": null,
+        "ageGroups": [
+          "GU9 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Ali Babaei",
+        "role": null,
+        "ageGroups": [
+          "BU11 White (RCL)"
+        ]
+      },
+      {
+        "name": "Andre Van Es",
+        "role": null,
+        "ageGroups": [
+          "BU16 Blue (RCL)",
+          "BU14 Blue (RCL)",
+          "BU12 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Andres Lara",
+        "role": null,
+        "ageGroups": [
+          "BU15 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Anthony O'Neil",
+        "role": null,
+        "ageGroups": [
+          "GU11 Maroon (RCL)",
+          "BU12 Gold (NPSL)"
+        ]
+      },
+      {
+        "name": "Ariel Briceno",
+        "role": null,
+        "ageGroups": [
+          "BU11 Gold (NPSL)",
+          "BU10 Silver (NPSL)",
+          "BU8 White (RCL)"
+        ]
+      },
+      {
+        "name": "Axel Flaten",
+        "role": "Youth Director",
+        "ageGroups": [
+          "BU16 ECNL",
+          "BU12 Pre-ECNL",
+          "BU10 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Bella Reckling",
+        "role": null,
+        "ageGroups": [
+          "Goalkeeper Coach"
+        ]
+      },
+      {
+        "name": "Brandon Sprague",
+        "role": null,
+        "ageGroups": [
+          "BU12 White (RCL)"
+        ]
+      },
+      {
+        "name": "Cameron Gardner",
+        "role": null,
+        "ageGroups": [
+          "BU16 Maroon (RCL)",
+          "BU12 Pre-ECNL Assistant Coach",
+          "BU11 Blue (RCL)",
+          "BU10 Maroon (RCL) Assistant Coach"
+        ]
+      },
+      {
+        "name": "Cesar Sanchez",
+        "role": null,
+        "ageGroups": [
+          "Goal Keeper Assistant Coach"
+        ]
+      },
+      {
+        "name": "Chalise Baysa",
+        "role": null,
+        "ageGroups": [
+          "GU18/19 ECNL-RL",
+          "GU15 ECNL-RL",
+          "GU12 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Chris Templin",
+        "role": null,
+        "ageGroups": [
+          "BU10 White (RCL)",
+          "GU10 White (RCL)"
+        ]
+      },
+      {
+        "name": "David Griffiths",
+        "role": null,
+        "ageGroups": [
+          "GU17 ECNL-RL",
+          "GU14 ECNL-RL"
+        ]
+      },
+      {
+        "name": "David Nzuzi",
+        "role": null,
+        "ageGroups": [
+          "BU9 White (RCL)"
+        ]
+      },
+      {
+        "name": "David Smith",
+        "role": null,
+        "ageGroups": [
+          "BU19 Maroon (RCL)",
+          "BU15 Maroon (RCL)",
+          "GU16 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Dylan Morgan",
+        "role": null,
+        "ageGroups": [
+          "GU14 Maroon (RCL)",
+          "BU13 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Eduardo Millan",
+        "role": null,
+        "ageGroups": [
+          "GU9 Maroon (RCL) Assistant"
+        ]
+      },
+      {
+        "name": "Eli Peterson",
+        "role": null,
+        "ageGroups": [
+          "BU17 White (RCL)",
+          "BU14 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Eugene Poublon",
+        "role": "Youth Technical Assistant Director",
+        "ageGroups": [
+          "BU17 Maroon (RCL)",
+          "GU9 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Gordo Millan",
+        "role": null,
+        "ageGroups": [
+          "BU17 ECNL",
+          "GU11 PRE-ECNL",
+          "BU14 ECNL"
+        ]
+      },
+      {
+        "name": "Jeff Corrales",
+        "role": null,
+        "ageGroups": [
+          "BU17 Blue (RCL)",
+          "BU12 Maroon (RCL)",
+          "GU17 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Jeff Scott",
+        "role": null,
+        "ageGroups": [
+          "BU9 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Kori Butterfield",
+        "role": null,
+        "ageGroups": [
+          "GU11 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Leo Anaya",
+        "role": null,
+        "ageGroups": [
+          "BU10 Copper (NPSL)",
+          "BU8 Silver (NPSL)"
+        ]
+      },
+      {
+        "name": "Linden Fisher",
+        "role": null,
+        "ageGroups": [
+          "Goalkeeping Director"
+        ]
+      },
+      {
+        "name": "Liv Lagerquist",
+        "role": null,
+        "ageGroups": [
+          "GU8 Maroon (RCL)",
+          "GU8 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Liz Spencer",
+        "role": "Performance Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Lomeri Torujo",
+        "role": null,
+        "ageGroups": [
+          "BU10 Gold (RCL)",
+          "BU8 GOld (NPSL)"
+        ]
+      },
+      {
+        "name": "Lyndsey Patterson",
+        "role": "Assistant Girls Director",
+        "ageGroups": [
+          "GU18/19 ECNL",
+          "GU14 ECNL",
+          "GU13 ECNL"
+        ]
+      },
+      {
+        "name": "Malia Arrant",
+        "role": "Chief Executive Officer",
+        "ageGroups": [
+          "GU16 ECNL"
+        ]
+      },
+      {
+        "name": "Mariano Romulo",
+        "role": null,
+        "ageGroups": [
+          "BU9 Gold (NPSL)",
+          "BU14 White (RCL)"
+        ]
+      },
+      {
+        "name": "Matt Hodgson",
+        "role": "Assistant Boys Director",
+        "ageGroups": [
+          "BU19 ECNL-RL",
+          "BU15 ECNL-RL",
+          "BU11 PRE-ECNL"
+        ]
+      },
+      {
+        "name": "Melchor Meza",
+        "role": null,
+        "ageGroups": [
+          "BU9 Blue RCL"
+        ]
+      },
+      {
+        "name": "Micahel Bravick",
+        "role": null,
+        "ageGroups": [
+          "BU16 ECNL-RL",
+          "BU14 ECNL-RL",
+          "BU11 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Ndayishimiye Priame",
+        "role": null,
+        "ageGroups": [
+          "BU14 Gold (RCL)",
+          "BU12 Gold (RCL)"
+        ]
+      },
+      {
+        "name": "Nikki Williams",
+        "role": null,
+        "ageGroups": [
+          "GU12 Blue (RCL)",
+          "GU13 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Orlando Ramirez",
+        "role": null,
+        "ageGroups": [
+          "BU17 ECNL-RL",
+          "BU15 ECNL",
+          "BU13 ECNL-RL"
+        ]
+      },
+      {
+        "name": "Paige Patton",
+        "role": null,
+        "ageGroups": [
+          "BU8 Blue (RCL)",
+          "GU10 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Pedro Millan",
+        "role": null,
+        "ageGroups": [
+          "BU19 ECNL",
+          "BU13 ECNL"
+        ]
+      },
+      {
+        "name": "Samantha Corrales",
+        "role": null,
+        "ageGroups": [
+          "BU8 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Serwaah Fordjour",
+        "role": null,
+        "ageGroups": [
+          "GU16 ECNL-RL",
+          "GU13 ECNL-RL"
+        ]
+      },
+      {
+        "name": "Tai Po",
+        "role": null,
+        "ageGroups": [
+          "GU15 Maroon (RCL)",
+          "GU15 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Taylor Cecil",
+        "role": null,
+        "ageGroups": [
+          "GU8 Maroon (RCL) Assistant",
+          "GU8 Blue (RCL) Assistant"
+        ]
+      },
+      {
+        "name": "Teddy Acpal",
+        "role": null,
+        "ageGroups": [
+          "GU10 Maroon (RCL)"
+        ]
+      },
+      {
+        "name": "Victor Calderon",
+        "role": null,
+        "ageGroups": [
+          "BU10 Blue (RCL)"
+        ]
+      },
+      {
+        "name": "Vince Laporta",
+        "role": "Assistant Youth Director",
+        "ageGroups": [
+          "GU17 ECNL",
+          "GU15 ECNL",
+          "GU12 PRE-ECNL"
+        ]
+      },
+      {
+        "name": "Wobi Torujo",
+        "role": null,
+        "ageGroups": [
+          "BU15 White (RCL)",
+          "BU13 Blue (RCL)"
+        ]
+      }
+    ],
+    "summary": "PacNW runs ECNL and ECNL-RL at the top, then Pre-ECNL, then colour-named sides. The colour is the level, and which league it plays in is written beside it: Maroon, Blue and White teams play RCL, while Gold, Silver and Copper play NPSL — so Gold (RCL) and Gold (NPSL) are different teams. Age groups are single years with an August-to-July birth-date range. Southlake FC in Greater Renton/Tukwila and the Federal Way recreational programme are separate programmes run by the club.",
+    "sources": [
+      "https://www.pacificnorthwestsoccerclub.org",
+      "https://www.pacificnorthwestsoccerclub.org/meet-your-coaches",
+      "https://www.pacificnorthwestsoccerclub.org/coaching-directors",
+      "https://www.pacificnorthwestsoccerclub.org/girls-coaching-staff-2",
+      "https://www.pacificnorthwestsoccerclub.org/girls-coaching-staff-1-1",
+      "https://www.pacificnorthwestsoccerclub.org/2025-coaches-list-summer-college-id-camp",
+      "https://www.pacificnorthwestsoccerclub.org/winter-classic",
+      "https://www.pacificnorthwestsoccerclub.org/elite-clubs-national-league",
+      "https://www.pacificnorthwestsoccerclub.org/recreational-soccer-federal-way",
+      "https://www.pacificnorthwestsoccerclub.org/recreational-soccer-greater-renton-tukwila",
+      "https://www.pacificnorthwestsoccerclub.org/tryout-faqs",
+      "https://www.pacificnorthwestsoccerclub.org/tryoutscheduleboys",
+      "https://www.pacificnorthwestsoccerclub.org/tryoutschedulegirls"
+    ],
+    "readAt": "2026-09-11T06:36:01.617Z",
+    "model": "claude-opus-5"
+  },
+  "seattle-reign-academy": {
+    "slug": "seattle-reign-academy",
+    "tiers": [
+      "Girls Academy",
+      "Aspire",
+      "Pre-Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Pre-Academy",
+      "Reign Drops"
+    ],
+    "coaches": [
+      {
+        "name": "Amy Griffin",
+        "role": "Executive Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Nicci Wright",
+        "role": "Academy Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Aubrey Buehler",
+        "role": "Pre-Academy Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Annie Sittauer",
+        "role": "Director of Operations",
+        "ageGroups": []
+      },
+      {
+        "name": "Dagmawi Abera",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Chelsea Buckland",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Allie Galoob",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Reilee Ireland",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Brian Hoovler",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Omar Juarez",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Elliott Miller",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Nick Oyen",
+        "role": "Head Coach",
+        "ageGroups": []
+      }
+    ],
+    "summary": "Seattle Reign Academy runs Girls Academy (GA) at U13-U19, Aspire at U11-U12 and a Pre-Academy at U8-U12, so the programme a team belongs to is set by its age as much as by its level. Several Seattle Reign FC first-team players work as assistant coaches in the Academy.",
+    "sources": [
+      "https://www.reignacademy.com",
+      "https://www.reignacademy.com/coaches",
+      "https://www.reignacademy.com/academy-programs",
+      "https://www.reignacademy.com/tryouts",
+      "https://www.reignacademy.com/id-sessionstryouts-copy"
+    ],
+    "readAt": "2026-09-11T06:36:21.548Z",
+    "model": "claude-opus-5"
+  },
+  "seattle-united": {
+    "slug": "seattle-united",
+    "tiers": [
+      "ECNL",
+      "ECNL RL",
+      "Pre-ECNL",
+      "Copa",
+      "Tango",
+      "Samba",
+      "Nova",
+      "Blue",
+      "White",
+      "Black"
+    ],
+    "squadMarkers": [
+      "Copa",
+      "Tango",
+      "Samba",
+      "Nova",
+      "Blue",
+      "White",
+      "Black"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Shoreline",
+      "Northwest",
+      "South"
+    ],
+    "coaches": [
+      {
+        "name": "Nick Radosavljevic",
+        "role": null,
+        "ageGroups": [
+          "B18 Copa"
+        ]
+      },
+      {
+        "name": "Tyler Robbins",
+        "role": null,
+        "ageGroups": [
+          "B18 Tango"
+        ]
+      },
+      {
+        "name": "Cade Cook",
+        "role": null,
+        "ageGroups": [
+          "B18 Samba"
+        ]
+      },
+      {
+        "name": "Bill Wilkins",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B18 Blue",
+          "Shoreline B15 White"
+        ]
+      },
+      {
+        "name": "Andy Westmark",
+        "role": null,
+        "ageGroups": [
+          "Northwest B18 Blue",
+          "Northwest G13 Blue",
+          "Northwest G12 Blue"
+        ]
+      },
+      {
+        "name": "Dylan Butt",
+        "role": null,
+        "ageGroups": [
+          "Northwest B18 Blue",
+          "Northwest B16 Black"
+        ]
+      },
+      {
+        "name": "Josh Dodd",
+        "role": null,
+        "ageGroups": [
+          "South B18 Blue",
+          "South B12 Blue"
+        ]
+      },
+      {
+        "name": "Nick Radosalvjevic",
+        "role": null,
+        "ageGroups": [
+          "B17 Copa"
+        ]
+      },
+      {
+        "name": "Ashkanov Apollon",
+        "role": null,
+        "ageGroups": [
+          "B17 Tango",
+          "G10 ECNL RL",
+          "G09 ECNL RL"
+        ]
+      },
+      {
+        "name": "Conner Pichette",
+        "role": null,
+        "ageGroups": [
+          "B17 Samba"
+        ]
+      },
+      {
+        "name": "Justin Richardson",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B17 Blue",
+          "Shoreline B12 Blue"
+        ]
+      },
+      {
+        "name": "Jacob Anson",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B17 White",
+          "Shoreline B13 Blue"
+        ]
+      },
+      {
+        "name": "Tyler Costa",
+        "role": null,
+        "ageGroups": [
+          "Northwest B17 Blue",
+          "Northwest B10 Blue"
+        ]
+      },
+      {
+        "name": "Dan Renn",
+        "role": null,
+        "ageGroups": [
+          "Northwest B17 White",
+          "Northwest B14 White"
+        ]
+      },
+      {
+        "name": "Carlos Enriquez",
+        "role": null,
+        "ageGroups": [
+          "South B17 Blue",
+          "South B16 Blue"
+        ]
+      },
+      {
+        "name": "Dwada Dibba",
+        "role": null,
+        "ageGroups": [
+          "B16 Copa"
+        ]
+      },
+      {
+        "name": "Sean Kettle",
+        "role": null,
+        "ageGroups": [
+          "B16 Tango",
+          "B09 Copa",
+          "B08 Copa"
+        ]
+      },
+      {
+        "name": "Connor Barton",
+        "role": null,
+        "ageGroups": [
+          "B16 Samba",
+          "B15 Samba"
+        ]
+      },
+      {
+        "name": "Drew Williams",
+        "role": null,
+        "ageGroups": [
+          "B16 Nova",
+          "B15 Tango"
+        ]
+      },
+      {
+        "name": "Kim Huntamer",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B16 Blue",
+          "Shoreline B15 Blue"
+        ]
+      },
+      {
+        "name": "Bryce Garceau",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B16 White",
+          "Shoreline B14 Blue"
+        ]
+      },
+      {
+        "name": "Jim Whitlock",
+        "role": null,
+        "ageGroups": [
+          "Northwest B16 Blue",
+          "Northwest B15 Blue"
+        ]
+      },
+      {
+        "name": "Brandon Foster",
+        "role": null,
+        "ageGroups": [
+          "Northwest B16 White",
+          "Northwest B14 Blue"
+        ]
+      },
+      {
+        "name": "Tolossa Hassan",
+        "role": null,
+        "ageGroups": [
+          "South B16 White"
+        ]
+      },
+      {
+        "name": "Jon Erickson",
+        "role": null,
+        "ageGroups": [
+          "B15 Copa",
+          "B13 Tango",
+          "Shoreline G14 Blue"
+        ]
+      },
+      {
+        "name": "Aryeh Cohen",
+        "role": null,
+        "ageGroups": [
+          "Northwest B15 White",
+          "Northwest B12 Blue"
+        ]
+      },
+      {
+        "name": "Danny Calles",
+        "role": null,
+        "ageGroups": [
+          "Northwest B15 Black",
+          "Northwest B13 Blue"
+        ]
+      },
+      {
+        "name": "Tolossa Hasan",
+        "role": null,
+        "ageGroups": [
+          "South B15 Blue"
+        ]
+      },
+      {
+        "name": "Idi Diallo",
+        "role": null,
+        "ageGroups": [
+          "South B15 White",
+          "South B14 White",
+          "South B09 Blue"
+        ]
+      },
+      {
+        "name": "Randy Johnson",
+        "role": null,
+        "ageGroups": [
+          "B14 Copa",
+          "B13 Copa"
+        ]
+      },
+      {
+        "name": "Brandon Eaton",
+        "role": null,
+        "ageGroups": [
+          "B14 Tango"
+        ]
+      },
+      {
+        "name": "Cade Cooke",
+        "role": null,
+        "ageGroups": [
+          "B14 Samba"
+        ]
+      },
+      {
+        "name": "Zubair Amjad",
+        "role": null,
+        "ageGroups": [
+          "Northwest B14 Black"
+        ]
+      },
+      {
+        "name": "Mark Szabo",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B14 White",
+          "Shoreline B11 Blue",
+          "Shoreline G13 Blue"
+        ]
+      },
+      {
+        "name": "Sena Alkadir",
+        "role": null,
+        "ageGroups": [
+          "South B14 Blue",
+          "South B13 Blue",
+          "Northwest G11 Blue"
+        ]
+      },
+      {
+        "name": "Dan Strom",
+        "role": null,
+        "ageGroups": [
+          "B13 ENCL RL",
+          "B11 ECNL RL"
+        ]
+      },
+      {
+        "name": "Justin Rosgen",
+        "role": null,
+        "ageGroups": [
+          "Northwest B13 White"
+        ]
+      },
+      {
+        "name": "Alex Santiago Cortez",
+        "role": null,
+        "ageGroups": [
+          "South B13 White",
+          "South B11 Blue"
+        ]
+      },
+      {
+        "name": "Jason McGlothern",
+        "role": null,
+        "ageGroups": [
+          "B12 ECNL"
+        ]
+      },
+      {
+        "name": "Eli Ricord",
+        "role": null,
+        "ageGroups": [
+          "B12 ECNL RL",
+          "G12 ECNL RL",
+          "G11 ECNL RL"
+        ]
+      },
+      {
+        "name": "Alec Duxbury",
+        "role": null,
+        "ageGroups": [
+          "B12 Copa",
+          "G13 Copa"
+        ]
+      },
+      {
+        "name": "Lucas Isaacson",
+        "role": null,
+        "ageGroups": [
+          "B12 Tango"
+        ]
+      },
+      {
+        "name": "Sam Adelman",
+        "role": null,
+        "ageGroups": [
+          "B11 ECNL",
+          "G13 ECNL RL",
+          "G09 ECNL"
+        ]
+      },
+      {
+        "name": "Daniel Swayne",
+        "role": null,
+        "ageGroups": [
+          "B11 Copa",
+          "Northwest G10 Blue"
+        ]
+      },
+      {
+        "name": "Lucas Issacson",
+        "role": null,
+        "ageGroups": [
+          "B11 Tango"
+        ]
+      },
+      {
+        "name": "Josh Bishop",
+        "role": null,
+        "ageGroups": [
+          "Northwest B11 Blue"
+        ]
+      },
+      {
+        "name": "Meelod Shaterian",
+        "role": null,
+        "ageGroups": [
+          "B10 ECNL",
+          "B09 ECNL RL",
+          "B08 ECNL"
+        ]
+      },
+      {
+        "name": "Enoch Gidudu",
+        "role": null,
+        "ageGroups": [
+          "B10 ECNL RL",
+          "B09 ECNL",
+          "B08 ECNL RL"
+        ]
+      },
+      {
+        "name": "Andrei Zahajko",
+        "role": null,
+        "ageGroups": [
+          "B10 Copa"
+        ]
+      },
+      {
+        "name": "Abdella Hussein",
+        "role": null,
+        "ageGroups": [
+          "B10 Tango"
+        ]
+      },
+      {
+        "name": "Ellis Miyaoka",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B10 Blue",
+          "Shoreline B09 Blue",
+          "B08 Samba"
+        ]
+      },
+      {
+        "name": "Zach Butters",
+        "role": null,
+        "ageGroups": [
+          "South B10 Blue"
+        ]
+      },
+      {
+        "name": "Paul Aur",
+        "role": null,
+        "ageGroups": [
+          "B09 Tango"
+        ]
+      },
+      {
+        "name": "Bastien Catrin",
+        "role": null,
+        "ageGroups": [
+          "B08 ECNL",
+          "G12 ECNL"
+        ]
+      },
+      {
+        "name": "Abdella Hussien",
+        "role": null,
+        "ageGroups": [
+          "B08 Tango"
+        ]
+      },
+      {
+        "name": "Jesse Winship-Freye",
+        "role": null,
+        "ageGroups": [
+          "Shoreline B08 Blue"
+        ]
+      },
+      {
+        "name": "Mario Sibaja Vargas",
+        "role": null,
+        "ageGroups": [
+          "South B08 Blue"
+        ]
+      },
+      {
+        "name": "Carson Pingrey",
+        "role": null,
+        "ageGroups": [
+          "GU10 Copa",
+          "G14 Copa"
+        ]
+      },
+      {
+        "name": "Alma Mana’o",
+        "role": null,
+        "ageGroups": [
+          "GU10 Tango",
+          "GU11 Copa"
+        ]
+      },
+      {
+        "name": "Jackie Harris",
+        "role": null,
+        "ageGroups": [
+          "GU10 Samba",
+          "GU11 Tango"
+        ]
+      },
+      {
+        "name": "Ryan Peterson",
+        "role": null,
+        "ageGroups": [
+          "Shoreline GU10 Blue",
+          "Shoreline G12 Blue"
+        ]
+      },
+      {
+        "name": "Liz White",
+        "role": null,
+        "ageGroups": [
+          "Northwest GU10"
+        ]
+      },
+      {
+        "name": "Lisa Blume",
+        "role": null,
+        "ageGroups": [
+          "South GU10",
+          "South G13 Blue",
+          "South G10 Blue"
+        ]
+      },
+      {
+        "name": "Mike Aelfikadu",
+        "role": null,
+        "ageGroups": [
+          "Shoreline GU11 Blue"
+        ]
+      },
+      {
+        "name": "Sergio Fajardo",
+        "role": null,
+        "ageGroups": [
+          "Northwest GU11 Blue",
+          "Northwest G14 Blue"
+        ]
+      },
+      {
+        "name": "Austin Rodgers",
+        "role": null,
+        "ageGroups": [
+          "South GU11 Blue"
+        ]
+      },
+      {
+        "name": "Alex Chursky",
+        "role": null,
+        "ageGroups": [
+          "G14 Tango"
+        ]
+      },
+      {
+        "name": "Eddy Reif",
+        "role": null,
+        "ageGroups": [
+          "Northwest G14 White"
+        ]
+      },
+      {
+        "name": "Nicole Tomita",
+        "role": null,
+        "ageGroups": [
+          "South G14 Blue",
+          "South G12 Blue"
+        ]
+      },
+      {
+        "name": "Amy James-Turner",
+        "role": null,
+        "ageGroups": [
+          "G13 ECNL",
+          "G10 ECNL"
+        ]
+      },
+      {
+        "name": "Josef Mayor",
+        "role": null,
+        "ageGroups": [
+          "G12 ECNL",
+          "G11 ECNL",
+          "G08 ECNL RL"
+        ]
+      },
+      {
+        "name": "Dawda Dibba",
+        "role": null,
+        "ageGroups": [
+          "G12 Copa"
+        ]
+      },
+      {
+        "name": "Owusu Fordjour",
+        "role": null,
+        "ageGroups": [
+          "G11 Copa"
+        ]
+      },
+      {
+        "name": "Austin Ochoa",
+        "role": null,
+        "ageGroups": [
+          "Shoreline G11 Blue"
+        ]
+      },
+      {
+        "name": "Jeremy Wentzel",
+        "role": null,
+        "ageGroups": [
+          "G10 Copa",
+          "G08 Copa"
+        ]
+      },
+      {
+        "name": "Chris Ruiz",
+        "role": null,
+        "ageGroups": [
+          "Shoreline G10 Blue"
+        ]
+      },
+      {
+        "name": "Nick Radosalvjec",
+        "role": null,
+        "ageGroups": [
+          "G09 Copa"
+        ]
+      },
+      {
+        "name": "Cam Iftiger",
+        "role": null,
+        "ageGroups": [
+          "Shoreline G09 Blue"
+        ]
+      },
+      {
+        "name": "Lu Barnes",
+        "role": null,
+        "ageGroups": [
+          "G08 ECNL"
+        ]
+      },
+      {
+        "name": "Britt Blomso",
+        "role": null,
+        "ageGroups": [
+          "Northwest G08 Blue"
+        ]
+      },
+      {
+        "name": "Jesse Winship-Freyer",
+        "role": null,
+        "ageGroups": [
+          "Shoreline G08 Blue"
+        ]
+      }
+    ],
+    "summary": "Seattle United names a team by birth year, then by level, then by region. The top sides are ECNL and ECNL RL, then Pre-ECNL, then Copa, Tango, Samba and Nova. Below those sit the regional teams — Shoreline, Northwest and South — each fielding Blue, then White, then Black. So Northwest and South are different teams, not one team written twice, and Copa is not Tango. A name like B13 means born 2013, not under-13.",
+    "sources": [
+      "https://www.seattleunited.com",
+      "https://www.seattleunited.com/coaches",
+      "https://www.seattleunited.com/boys-team-staff",
+      "https://www.seattleunited.com/girls-team-staff",
+      "https://www.seattleunited.com/tryouts"
+    ],
+    "readAt": "2026-09-11T06:36:29.848Z",
+    "model": "claude-opus-5"
+  },
+  "sound-football-club": {
+    "slug": "sound-football-club",
+    "tiers": [
+      "MLS NEXT",
+      "Girls Academy Aspire",
+      "Premier",
+      "RCL",
+      "Juniors"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Juniors",
+      "Goalkeeping Academy",
+      "MLS NEXT",
+      "Girls Academy Aspire"
+    ],
+    "coaches": [],
+    "summary": "Sound FC runs MLS NEXT for boys and Girls Academy Aspire for girls above its Premier teams, which play the Regional Club League; below those sit the Juniors programme at U8-U10 and a Goalkeeping Academy. Tryouts are advertised by league pair for each age — MLS Next/RCL, GA Aspire/RCL — so a club side may be named for either. Ages are single years, U8 for 2018 births through U19 for 2007. The club is in Woodinville.",
+    "sources": [
+      "https://soundfc.org",
+      "https://soundfc.org/staff/",
+      "https://soundfc.org/programs/",
+      "https://soundfc.org/mls-next-academy-division-faq/",
+      "https://soundfc.org/sound-fc-joins-girls-academy-aspire/",
+      "https://soundfc.org/sound-fc-joins-mls-next-2-a-new-chapter-in-elite-youth-soccer/",
+      "https://soundfc.org/tryouts/",
+      "https://soundfc.org/tryouts-now-open/",
+      "https://soundfc.org/programs/premier-soccer/",
+      "https://soundfc.org/programs/goalkeeping-academy/"
+    ],
+    "readAt": "2026-09-11T06:36:51.627Z",
+    "model": "claude-opus-5"
+  },
+  "sozo-fc": {
+    "slug": "sozo-fc",
+    "tiers": [
+      "Premier",
+      "Academy"
+    ],
+    "squadMarkers": [
+      "Gold",
+      "Royal"
+    ],
+    "colours": "unknown",
+    "ageBands": "both",
+    "branches": [
+      "Sozo Academy"
+    ],
+    "coaches": [],
+    "summary": "Sozo FC names a premier team by birth year and colour — Boys 2013 Gold and Boys 2013 Royal are two different sides of the same birth year, and Gold appears in almost every year while Royal appears only in some. Some teams carry a two-year band instead, as in Boys 2007/08 Gold. The club plays the Regional Club League (RCL) and runs Sozo Academy below its premier teams.",
+    "sources": [
+      "https://www.sozofc.com/"
+    ],
+    "readAt": "2026-09-11T06:36:58.583Z",
+    "model": "claude-opus-5"
+  },
+  "valor-soccer": {
+    "slug": "valor-soccer",
+    "tiers": [
+      "ECNL-RL",
+      "MLS Next",
+      "GA Aspire",
+      "Premier",
+      "Select",
+      "Recreational"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Elite Boys",
+      "Elite Girls",
+      "Academy",
+      "Recreational"
+    ],
+    "coaches": [],
+    "summary": "Valor Soccer places players by tryout into three competitive programmes — Elite, Premier and Select — with Recreational beside them. Elite is the club's top level and covers its ECNL-RL, MLS Next and GA Aspire teams; Premier plays RCL, and Select plays NPSL with the flexibility to keep other activities a priority. So a Valor Premier side and a Valor Select side of the same age are two different teams. The club is in Maple Valley and was founded in 2019.",
+    "sources": [
+      "https://www.valorsoccer.com",
+      "https://www.valorsoccer.com/staff",
+      "https://www.valorsoccer.com/select",
+      "https://www.valorsoccer.com/premier",
+      "https://www.valorsoccer.com/elite-boys",
+      "https://www.valorsoccer.com/elite-girls",
+      "https://www.valorsoccer.com/recreational",
+      "https://www.valorsoccer.com/select-coaches",
+      "https://www.valorsoccer.com/premier-coaches",
+      "https://www.valorsoccer.com/tryouts",
+      "https://www.valorsoccer.com/tryouts-faq",
+      "https://www.valorsoccer.com/tryout-dates"
+    ],
+    "readAt": "2026-09-11T06:37:52.745Z",
+    "model": "claude-opus-5"
+  },
+  "washington-east-surf-soccer-club": {
+    "slug": "washington-east-surf-soccer-club",
+    "tiers": [
+      "Elite Academy",
+      "Girls Academy",
+      "Surf Select"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Spokane",
+      "Columbia Basin"
+    ],
+    "coaches": [],
+    "summary": "Washington East Surf runs Elite Academy and Girls Academy programmes alongside Surf Select, with academy sessions held separately in Spokane and in the Columbia Basin — so a side named for one location is not the same team as one named for the other.",
+    "sources": [
+      "https://www.wesurfsc.com"
+    ],
+    "readAt": "2026-09-11T06:38:40.061Z",
+    "model": "claude-opus-5"
+  },
+  "washington-premier-fc": {
+    "slug": "washington-premier-fc",
+    "tiers": [
+      "ECNL",
+      "ECNL RL",
+      "Pre-ECNL",
+      "Black",
+      "White",
+      "Navy",
+      "Gold"
+    ],
+    "squadMarkers": [
+      "Black",
+      "White",
+      "Navy",
+      "Gold"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Washington United",
+      "Jr. RCL U8 Program",
+      "WPFC Legends Program",
+      "Friday Night Stars Program"
+    ],
+    "coaches": [
+      {
+        "name": "Drew Abdella",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Hannah Cecil",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jamael Cox",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jordy Delem",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Michael Donne",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Lily Dose",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Scott Ford",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Rob Fossett",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jay Hamon",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Dorian Hays",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Brandon Henry",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Russell Hippensteal",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Craig Johnson",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Dan Keene",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Willy Leiste",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "David Liukkonen",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Kristin Luikkonen",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Niki Milby",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Alejandro Peralta",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Shawn Percell",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Conner Pichette",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jason Prenovost",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Connor Price",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Nick Radosavljevic",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jeff Russ",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Nathan Salveson",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Brandon Scott",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Seyti Sidibay",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Kevin Skinner",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Seth Spidahl",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Zach Taylor",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Alex Torres",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Richard Unsworth",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Peter Voiles",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Bryce Waddington",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Glenn Walrond",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "John Yorke",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Keegan Yorke",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jaisen Zurfluh",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Swansea City Academy",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Best Coaching Memory",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Favorite Motivational Quote",
+        "role": null,
+        "ageGroups": []
+      }
+    ],
+    "summary": "Washington Premier FC names a team by birth year and level, and the level is a colour once past ECNL: ECNL, then ECNL RL, then Pre-ECNL, then Black, White, Navy and Gold. A B15 Black and a B15 Navy are two different teams in the same age group, not one written twice. The tryout results write the two halves in either order, B10 Black or Black B10. Everything trains at the club's Puyallup complex; Washington United is its separate recreational programme in Pierce County.",
+    "sources": [
+      "https://www.washingtonpremierfc.com",
+      "https://www.washingtonpremierfc.com/tacoma-stars-usl2-coaching-staff/",
+      "https://www.washingtonpremierfc.com/coaches/staff-coaches/",
+      "https://www.washingtonpremierfc.com/about-us/staff-leadership/",
+      "https://www.washingtonpremierfc.com/resources/coaches-curriculum/",
+      "https://www.washingtonpremierfc.com/becoming-a-coach-at-washington-premier/",
+      "https://www.washingtonpremierfc.com/programs/recreational-soccer/",
+      "https://www.washingtonpremierfc.com/programs/friday-night-academy/",
+      "https://www.washingtonpremierfc.com/event_category/friday-night-academy/",
+      "https://www.washingtonpremierfc.com/tryouts/faqs/",
+      "https://www.washingtonpremierfc.com/tryouts/results/",
+      "https://www.washingtonpremierfc.com/tryouts/uniforms/",
+      "https://www.washingtonpremierfc.com/tryouts/fees-costs/"
+    ],
+    "readAt": "2026-09-11T06:39:07.063Z",
+    "model": "claude-opus-5"
+  },
+  "washington-rush": {
+    "slug": "washington-rush",
+    "tiers": [
+      "MLS NEXT",
+      "Girls Academy",
+      "Premier",
+      "Select",
+      "Junior RCL"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Mighty Mites",
+      "Junior Academy",
+      "Junior RCL"
+    ],
+    "coaches": [],
+    "summary": "Washington Rush separates Premier (ages 7-18, its top level), Select (9-18, a bridge between recreational and premier without the year-round commitment) and Junior RCL (7-8). Above Premier it fields Girls Academy and MLS NEXT teams, which the club prices separately. Mighty Mites and the Junior Academy are its youngest programmes. It is the regional club for the North County Youth Soccer Association and part of the international Rush network.",
+    "sources": [
+      "https://www.washingtonrush.com"
+    ],
+    "readAt": "2026-09-11T06:39:09.486Z",
+    "model": "claude-opus-5"
+  },
+  "west-sound-soccer-academy": {
+    "slug": "west-sound-soccer-academy",
+    "tiers": [
+      "Junior Academy",
+      "Academy",
+      "High School Academy"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "two-year",
+    "branches": [
+      "Junior Academy",
+      "High School Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Katie Drovdahl",
+        "role": "Director of Coaching",
+        "ageGroups": []
+      }
+    ],
+    "summary": "West Sound Soccer Academy is a women-led, girls-first club whose teams are grouped as Junior Academy (U9-U10), Academy (U11-U14) and High School Academy (U15-U19), and it plays WPL. How many teams form at an age depends on how many players register and how many coaches are available.",
+    "sources": [
+      "https://westsoundsoccer.org",
+      "https://westsoundsoccer.org/coaches/",
+      "https://westsoundsoccer.org/team-fees/",
+      "https://westsoundsoccer.org/programs/",
+      "https://westsoundsoccer.org/west-sound-soccer-academy-logo-email-header-2/",
+      "https://westsoundsoccer.org/west-sound-soccer-academy-logo-email-header-8bit/"
+    ],
+    "readAt": "2026-09-11T06:39:48.986Z",
+    "model": "claude-opus-5"
+  },
+  "western-washington-surf": {
+    "slug": "western-washington-surf",
+    "tiers": [
+      "Elite",
+      "Premier"
+    ],
+    "squadMarkers": [
+      "A Team",
+      "B Team",
+      "A TEAMS",
+      "B&C TEAMS",
+      "Flight 1",
+      "Flight 3"
+    ],
+    "colours": "none",
+    "ageBands": "both",
+    "branches": [
+      "Elite North",
+      "Elite South",
+      "Tacoma",
+      "Medina",
+      "Redmond",
+      "Puyallup",
+      "Bellevue",
+      "Yelm",
+      "Tukwila"
+    ],
+    "coaches": [],
+    "summary": "Western Washington Surf fields boys' and girls' teams at Elite and Premier levels. Elite is split into Elite North and Elite South, each with an A Team and a B Team. Premier is run town by town — Tacoma, Medina, Redmond, Puyallup and others each publish their own season outline with A Teams and B&C Teams — so two Surf sides of the same age in different towns are different teams. Season outlines group ages in pairs (U9 & U10, U11 & U12) while teams are named by single birth year.",
+    "sources": [
+      "https://westernwasurf.com",
+      "https://westernwasurf.com/teams/",
+      "https://westernwasurf.com/staff/",
+      "https://westernwasurf.com/coaches/",
+      "https://westernwasurf.com/elite-tryouts/elite-b-team-season-outlines/",
+      "https://westernwasurf.com/elite-tryouts/elite-a-team-season-outlines/",
+      "https://westernwasurf.com/elite-tryouts/elite-south-boys-a-team-season-outlines/",
+      "https://westernwasurf.com/elite-tryouts/elite-south-girls-a-team-season-outlines/",
+      "https://westernwasurf.com/premier-outline-tacoma-2025/",
+      "https://westernwasurf.com/premier-outline-medina-2025/",
+      "https://westernwasurf.com/premier-outline-redmond-2025/",
+      "https://westernwasurf.com/premier-outline-medina-2025-2/",
+      "https://westernwasurf.com/premier-outline-puyallup-2025/"
+    ],
+    "readAt": "2026-09-11T06:40:20.716Z",
+    "model": "claude-opus-5"
+  },
+  "whatcom-fc-rangers": {
+    "slug": "whatcom-fc-rangers",
+    "tiers": [
+      "ECNL RL"
+    ],
+    "squadMarkers": [
+      "Gold",
+      "Blue"
+    ],
+    "colours": "unknown",
+    "ageBands": "single-year",
+    "branches": [
+      "Jr Rangers",
+      "Rangers Development Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Noah Braun",
+        "role": "Youth Director",
+        "ageGroups": [
+          "U9-U11",
+          "Boys U15 ECNL RL"
+        ]
+      },
+      {
+        "name": "Josh Braun",
+        "role": "Boys Director",
+        "ageGroups": [
+          "Boys U17 ECNL RL"
+        ]
+      },
+      {
+        "name": "Jamie Arthurs",
+        "role": "Girls Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Ian Cairns",
+        "role": null,
+        "ageGroups": [
+          "Boys U13 ECNL RL"
+        ]
+      },
+      {
+        "name": "Jason Conway",
+        "role": null,
+        "ageGroups": [
+          "Boys U14 ECNL RL",
+          "Girls U15 ECNL RL"
+        ]
+      },
+      {
+        "name": "Sebastian Kent",
+        "role": null,
+        "ageGroups": [
+          "Boys U16 ECNL RL"
+        ]
+      },
+      {
+        "name": "Konner VanRijswick",
+        "role": null,
+        "ageGroups": [
+          "Girls U13 ECNL RL"
+        ]
+      },
+      {
+        "name": "Thomas Sikkema",
+        "role": null,
+        "ageGroups": [
+          "Girls U14 ECNL RL"
+        ]
+      },
+      {
+        "name": "Joe Spencer",
+        "role": null,
+        "ageGroups": [
+          "Girls U16 ECNL RL"
+        ]
+      },
+      {
+        "name": "Caylie Etherington",
+        "role": null,
+        "ageGroups": [
+          "U16/U17 Blue"
+        ]
+      },
+      {
+        "name": "Richard Henderson",
+        "role": null,
+        "ageGroups": [
+          "Girls U17 ECNL RL"
+        ]
+      },
+      {
+        "name": "Travis Connell",
+        "role": null,
+        "ageGroups": [
+          "Girls U19 ECNL RL"
+        ]
+      }
+    ],
+    "summary": "Whatcom FC Rangers put their ECNL RL side at the top of each age group from U13 up, with colour-named teams below it — Gold and Blue — and the club writes a team either by birth year (2009 Gold) or by age group (U16/U17 Blue). Age groups run on the August-to-July seasonal year. Jr Rangers is the programme for players not ready for premier soccer.",
+    "sources": [
+      "https://whatcomfcrangers.org",
+      "https://whatcomfcrangers.org/staff/",
+      "https://whatcomfcrangers.org/teams/",
+      "https://whatcomfcrangers.org/teams/team-pic/",
+      "https://whatcomfcrangers.org/tryouts/",
+      "https://whatcomfcrangers.org/category/rangers-development-academy/",
+      "https://whatcomfcrangers.org/tryouts/tryout/",
+      "https://whatcomfcrangers.org/category/wfc-tryouts/",
+      "https://whatcomfcrangers.org/tryouts/2019-tryout-promo/",
+      "https://whatcomfcrangers.org/tryouts/teamconnect_logo_blue_250x32/",
+      "https://whatcomfcrangers.org/tryouts/teamconnect_logo_blue_325x42/",
+      "https://whatcomfcrangers.org/tryouts/wfc_tryouts_slider_boys_0066_1920x1080/"
+    ],
+    "readAt": "2026-09-11T06:40:54.126Z",
+    "model": "claude-opus-5"
+  }
+}
