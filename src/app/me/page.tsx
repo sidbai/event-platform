@@ -13,7 +13,7 @@ import { waitingOn, written, type Written } from "@/features/me/queries";
 import { CalendarLink } from "@/features/me/calendar-link";
 import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { whatsNext } from "@/features/me/whats-next";
-import { myWeek, organizesAnything } from "@/features/events/my-week";
+import { myWeek } from "@/features/events/my-week";
 import { MyWeekGrid } from "@/features/events/my-week-grid";
 import { weekStart } from "@/features/events/week";
 import { followedEvents } from "@/features/events/follow-queries";
@@ -67,7 +67,10 @@ function when(at: Date) {
   if (days === 0) return "today";
   if (days === 1) return "yesterday";
   if (days < 30) return `${days}d ago`;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(at);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(at);
 }
 
 export default async function MePage({
@@ -80,9 +83,10 @@ export default async function MePage({
 
   const now = new Date();
   const { week: weekParam } = await searchParams;
-  const monday = /^\d{4}-\d{2}-\d{2}$/.test(weekParam ?? "") ? weekParam! : weekStart(now);
-  const organizer = await organizesAnything(user.id);
-  const week = organizer ? await myWeek(user.id, monday) : [];
+  const monday = /^\d{4}-\d{2}-\d{2}$/.test(weekParam ?? "")
+    ? weekParam!
+    : weekStart(now);
+  const week = await myWeek(user.id, monday);
 
   const teams = await followedTeams(user.id);
   const ids = teams.map((t) => t.id);
@@ -110,8 +114,8 @@ export default async function MePage({
             <Link href="/teams" className="text-brand-text hover:underline">
               Follow a team
             </Link>{" "}
-            and its next game shows up here, with anything you say you are
-            going to.
+            and its next game shows up here, with anything you say you are going
+            to.
           </p>
         ) : (
           <ul className="mt-3 space-y-2.5 text-sm">
@@ -142,21 +146,25 @@ export default async function MePage({
       </section>
 
       {/*
-       * The week of somebody who runs events, as a grid.
+       * The week, as a grid: what you run, what you said you would go to,
+       * and the games of the teams you follow — the same things "What is
+       * next" lists, laid out by day.
        *
-       * Written for a coach with three Sunday slots, and it is the reason the
-       * training kind exists: "these coaches are not time-management
-       * masters", so the whole week is one view, with how many are coming
-       * against how many fit, and a mark on any two that overlap. Only shown
-       * to people who organize anything — for everybody else this page is
-       * about what they follow.
+       * Written for a coach with three Sunday slots ("these coaches are not
+       * time-management masters"), and then found to be everybody's: a parent
+       * who RSVPs to a session and opens their own page expects Friday to
+       * have it. Organizer detail stays where it applies.
        */}
-      {organizer && (
+      {(week.length > 0 || weekParam) && (
         <section id="week" className="mt-8">
           <h2 className="text-lg font-semibold">Your week</h2>
           <p className="mt-1 text-sm text-muted">
-            Everything you run, by day.{" "}
-            <Link href="/events/new" className="text-brand-text hover:underline">
+            What you run, what you are going to, and your teams&rsquo; games, by
+            day.{" "}
+            <Link
+              href="/events/new"
+              className="text-brand-text hover:underline"
+            >
               Add a session &rarr;
             </Link>
           </p>
@@ -175,7 +183,9 @@ export default async function MePage({
                 <Link href={item.href} className="font-medium hover:underline">
                   {item.what}
                 </Link>
-                {item.detail && <p className="text-xs text-muted">{item.detail}</p>}
+                {item.detail && (
+                  <p className="text-xs text-muted">{item.detail}</p>
+                )}
               </li>
             ))}
           </ul>
@@ -205,7 +215,8 @@ export default async function MePage({
                     {result ? (
                       <p className="text-xs text-muted">
                         <span className={OUTCOME[result.outcome]}>
-                          {WORD[result.outcome]} {result.for}&ndash;{result.against}
+                          {WORD[result.outcome]} {result.for}&ndash;
+                          {result.against}
                         </span>
                         {result.opponent && <> v {result.opponent.name}</>}
                       </p>
@@ -237,11 +248,20 @@ export default async function MePage({
                 */}
                 <EventLogo src={event.logoUrl} kind={event.kind} size={32} />
                 <div className="min-w-0">
-                  <Link href={`/events/${event.slug}`} className="font-medium hover:underline">
+                  <Link
+                    href={`/events/${event.slug}`}
+                    className="font-medium hover:underline"
+                  >
                     {event.title}
                   </Link>
                   <p className="text-xs text-muted">
-                    {formatEventWhen(event.startsAt, event.endsAt, TZ, "short", event.kind)}
+                    {formatEventWhen(
+                      event.startsAt,
+                      event.endsAt,
+                      TZ,
+                      "short",
+                      event.kind,
+                    )}
                     {event.venueName && <> &middot; {event.venueName}</>}
                   </p>
                 </div>

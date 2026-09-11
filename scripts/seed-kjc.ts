@@ -22,7 +22,8 @@ import {
 config({ path: ".env.local" });
 
 const DIR = join(process.cwd(), "data", "king-juan-cup-2026");
-const read = <T>(f: string): T => JSON.parse(readFileSync(join(DIR, f), "utf8")) as T;
+const read = <T>(f: string): T =>
+  JSON.parse(readFileSync(join(DIR, f), "utf8")) as T;
 
 type TeamRow = { name: string; division: string; group: string; logo: string };
 type Game = {
@@ -58,7 +59,8 @@ type Meta = {
     postalCode: string;
     lat: number;
     lng: number;
-    notes: string;
+    /** Genuinely about the ground: parking, gates. Not "check in at our tent". */
+    notes: string | null;
     mapUrl: string;
   };
   divisions: {
@@ -75,28 +77,88 @@ type Meta = {
 
 // Chinese team names don't slugify; map them explicitly (matches logo basenames).
 const SLUG_OVERRIDES: Record<string, string> = {
-  "吃饼FC": "chibing-fc",
-  "喂饼FC": "weibing-fc",
-  "烙饼FC": "laobing-fc",
+  吃饼FC: "chibing-fc",
+  喂饼FC: "weibing-fc",
+  烙饼FC: "laobing-fc",
 };
 
 const slugify = (name: string) => SLUG_OVERRIDES[name] ?? baseSlugify(name);
 
 const EVENT_KINDS = [
-  { slug: "game", label: "Game", defaultModules: ["fixture", "result"], sort: 10 },
-  { slug: "scrimmage", label: "Scrimmage", defaultModules: ["fixture", "needs-opponent", "result"], sort: 20 },
+  {
+    slug: "game",
+    label: "Game",
+    defaultModules: ["fixture", "result"],
+    sort: 10,
+  },
+  {
+    slug: "scrimmage",
+    label: "Scrimmage",
+    defaultModules: ["fixture", "needs-opponent", "result"],
+    sort: 20,
+  },
   { slug: "pickup", label: "Pickup", defaultModules: ["attendance"], sort: 30 },
-  { slug: "tournament", label: "Tournament", defaultModules: ["competition", "registration", "roster"], sort: 40 },
-  { slug: "league", label: "League", defaultModules: ["competition", "registration", "roster"], sort: 50 },
-  { slug: "jamboree", label: "Jamboree", defaultModules: ["competition"], sort: 60 },
-  { slug: "showcase", label: "Showcase", defaultModules: ["competition", "registration"], sort: 70 },
-  { slug: "camp", label: "Camp / Clinic", defaultModules: ["registration", "sessions"], sort: 80 },
+  {
+    slug: "tournament",
+    label: "Tournament",
+    defaultModules: ["competition", "registration", "roster"],
+    sort: 40,
+  },
+  {
+    slug: "league",
+    label: "League",
+    defaultModules: ["competition", "registration", "roster"],
+    sort: 50,
+  },
+  {
+    slug: "jamboree",
+    label: "Jamboree",
+    defaultModules: ["competition"],
+    sort: 60,
+  },
+  {
+    slug: "showcase",
+    label: "Showcase",
+    defaultModules: ["competition", "registration"],
+    sort: 70,
+  },
+  {
+    slug: "camp",
+    label: "Camp / Clinic",
+    defaultModules: ["registration", "sessions"],
+    sort: 80,
+  },
   // A coach's slot: one RSVP per place. See migration 0066 for production.
-  { slug: "training", label: "Training session", defaultModules: ["attendance"], sort: 85 },
-  { slug: "tryout", label: "Tryout", defaultModules: ["registration"], sort: 90 },
-  { slug: "watch-party", label: "Watch Party", defaultModules: ["attendance", "broadcast"], sort: 100 },
-  { slug: "meetup", label: "Meetup", defaultModules: ["attendance"], sort: 110 },
-  { slug: "custom", label: "Custom", defaultModules: ["attendance"], sort: 120 },
+  {
+    slug: "training",
+    label: "Training session",
+    defaultModules: ["attendance"],
+    sort: 85,
+  },
+  {
+    slug: "tryout",
+    label: "Tryout",
+    defaultModules: ["registration"],
+    sort: 90,
+  },
+  {
+    slug: "watch-party",
+    label: "Watch Party",
+    defaultModules: ["attendance", "broadcast"],
+    sort: 100,
+  },
+  {
+    slug: "meetup",
+    label: "Meetup",
+    defaultModules: ["attendance"],
+    sort: 110,
+  },
+  {
+    slug: "custom",
+    label: "Custom",
+    defaultModules: ["attendance"],
+    sort: 120,
+  },
 ];
 
 function kickoffAt(datePart: string, time: string): Date {
@@ -145,7 +207,7 @@ async function main() {
           postalCode: meta.venue.postalCode,
           lat: meta.venue.lat,
           lng: meta.venue.lng,
-          notes: meta.venue.notes,
+          notes: meta.venue.notes ?? null,
           mapUrl: meta.venue.mapUrl,
         })
         .returning({ id: s.venues.id })
@@ -161,7 +223,7 @@ async function main() {
       title: meta.event.title,
       titleZh: meta.event.titleZh,
       summary: meta.event.summary,
-      status: (meta.event.status as (typeof s.eventStatus.enumValues)[number]),
+      status: meta.event.status as (typeof s.eventStatus.enumValues)[number],
       visibility: "public",
       locationType: "in_person",
       venueId,
@@ -173,7 +235,11 @@ async function main() {
       format: meta.event.format,
       host: meta.event.host,
       result: { champions: meta.champions },
-      metadata: { rules: meta.rules, sponsors: meta.sponsors },
+      metadata: {
+        notes: meta.event.notes ?? null,
+        rules: meta.rules,
+        sponsors: meta.sponsors,
+      },
     })
     .onConflictDoUpdate({
       target: s.events.slug,
@@ -181,7 +247,7 @@ async function main() {
         title: meta.event.title,
         titleZh: meta.event.titleZh,
         summary: meta.event.summary,
-        status: (meta.event.status as (typeof s.eventStatus.enumValues)[number]),
+        status: meta.event.status as (typeof s.eventStatus.enumValues)[number],
         venueId,
         startsAt: new Date(meta.event.startsAt),
         endsAt: new Date(meta.event.endsAt),
@@ -195,7 +261,9 @@ async function main() {
   // wipe this event's children, then rebuild
   await db.delete(s.matches).where(eq(s.matches.eventId, event.id));
   await db.delete(s.eventTeams).where(eq(s.eventTeams.eventId, event.id));
-  await db.delete(s.eventDivisions).where(eq(s.eventDivisions.eventId, event.id));
+  await db
+    .delete(s.eventDivisions)
+    .where(eq(s.eventDivisions.eventId, event.id));
 
   // divisions
   const divisionIdByName = new Map<string, string>();
@@ -296,7 +364,9 @@ async function main() {
 
   // group-stage standings (shared logic) written back onto event_teams
   const cap = (meta.rules as { goalCapPerGame?: number }).goalCapPerGame ?? 6;
-  const standings = computeStandings(groupMatchesByName, undefined, { goalCap: cap });
+  const standings = computeStandings(groupMatchesByName, undefined, {
+    goalCap: cap,
+  });
   for (const [name, row] of standings) {
     const teamId = teamIdByName.get(name);
     if (!teamId) continue;
@@ -311,7 +381,12 @@ async function main() {
         ga: row.ga,
         points: row.points,
       })
-      .where(and(eq(s.eventTeams.eventId, event.id), eq(s.eventTeams.teamId, teamId)));
+      .where(
+        and(
+          eq(s.eventTeams.eventId, event.id),
+          eq(s.eventTeams.teamId, teamId),
+        ),
+      );
   }
 
   // mark champions with seed = 1 in their division
@@ -323,7 +398,12 @@ async function main() {
     await db
       .update(s.eventTeams)
       .set({ seed: 1 })
-      .where(and(eq(s.eventTeams.eventId, event.id), inArray(s.eventTeams.teamId, champIds)));
+      .where(
+        and(
+          eq(s.eventTeams.eventId, event.id),
+          inArray(s.eventTeams.teamId, champIds),
+        ),
+      );
   }
 
   console.log(
