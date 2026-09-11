@@ -29,6 +29,10 @@ export async function SiteHeader() {
     { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
     { href: "/clubs", label: "Reviews" },
+    // A filter on the events page, not a page of its own: training is an
+    // event kind, and this is the one link a parent looking for a Sunday
+    // slot should not have to discover through a dropdown.
+    { href: "/events?kind=training", label: "Training" },
     /*
      * Last of the sections and next to the avatar, because it is the only one
      * that is not a part of the site — it is the part that is yours. It was
