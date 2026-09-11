@@ -20,7 +20,6 @@
  */
 import { parse, type HTMLElement } from "node-html-parser";
 
-import { CANONICAL_HEADER } from "./paste";
 
 /** The stacked pieces of one cell: a browser's line breaks, from the markup. */
 function parts(cell: HTMLElement): string[] {
@@ -116,30 +115,4 @@ export function readAthleteOneFragment(html: string): FragmentRow[] {
     });
   }
   return out;
-}
-
-/**
- * The fragments as the paste box already takes them.
- *
- * Ending at the canonical TSV rather than at fixtures of its own: everything
- * downstream — the date guard, the team binder, the idempotent apply — is
- * already written against it, and a second way in would be a second set of
- * those to keep true.
- */
-export function fragmentsToTsv(htmls: string[]): string {
-  const rows = htmls.flatMap(readAthleteOneFragment);
-  const line = (r: FragmentRow) =>
-    [
-      r.date,
-      r.time,
-      "",
-      r.division,
-      r.home,
-      r.homeScore,
-      r.awayScore,
-      r.away,
-      r.field,
-      r.venue,
-    ].join("\t");
-  return [CANONICAL_HEADER.join("\t"), ...rows.map(line)].join("\n");
 }

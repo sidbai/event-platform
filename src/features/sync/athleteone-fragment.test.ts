@@ -3,7 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { fragmentsToTsv, readAthleteOneFragment } from "./athleteone-fragment";
+import { readAthleteOneFragment } from "./athleteone-fragment";
+import { fragmentsToTsv } from "./fragments";
 import { parsePastedSchedule } from "./paste";
 
 /**

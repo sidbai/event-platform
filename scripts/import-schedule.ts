@@ -49,9 +49,7 @@ async function main() {
   const { events } = await import("../src/db/schema");
   const { eq } = await import("drizzle-orm");
   const { htmlIn } = await import("../src/features/sync/har");
-  const { fragmentsToTsv, readAthleteOneFragment } = await import(
-    "../src/features/sync/athleteone-fragment"
-  );
+  const { fragmentsToTsv, readFragment } = await import("../src/features/sync/fragments");
   const { applyPastedText } = await import("../src/features/sync/import-text");
 
   const event = await db.query.events.findFirst({
@@ -88,7 +86,7 @@ async function main() {
       process.exit(1);
     }
     for (const f of found) {
-      console.log(`  ${f.label}  ${readAthleteOneFragment(f.html).length} fixture(s)`);
+      console.log(`  ${f.label}  ${readFragment(f.html).length} fixture(s)`);
     }
     tsv = fragmentsToTsv(found.map((f) => f.html));
     source = `${found.length} fragment(s)`;

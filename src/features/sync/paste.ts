@@ -27,6 +27,12 @@ export type PastedMatch = {
   /** The bracket, where the row names one: "A1 vs A4" is bracket A. */
   group: string | null;
   field: string | null;
+  /**
+   * The ground, when the paste names it apart from the pitch. Only a paste
+   * with the copier's own header does; a table copied by hand has one cell
+   * for both and it stays in `field`.
+   */
+  venue: string | null;
   home: string;
   away: string;
   homeScore: number | null;
@@ -304,6 +310,8 @@ function readRow(
     time,
     group,
     field,
+    // One cell for both, copied by hand; nothing here can tell them apart.
+    venue: null,
     home,
     away,
     homeScore,
@@ -399,7 +407,7 @@ export function toSyncedEvent(matches: PastedMatch[]): SyncedEvent {
       homeScore: m.homeScore,
       awayScore: m.awayScore,
       field: m.field,
-      venue: null,
+      venue: m.venue,
     });
   }
 
@@ -430,14 +438,13 @@ function readCanonicalRow(
     return m ? Number(m[1]) : null;
   };
 
-  const field = [at("field"), at("venue")].filter(Boolean).join(" · ") || null;
-
   return {
     division: at("division") || options.division,
     date: at("date") ? parsePastedDate(at("date"), options.year) : null,
     time: parsePastedTime(at("time")),
     group: bracketOf(at("slot")),
-    field,
+    field: at("field") || null,
+    venue: at("venue") || null,
     home,
     away,
     homeScore: score("home_score"),

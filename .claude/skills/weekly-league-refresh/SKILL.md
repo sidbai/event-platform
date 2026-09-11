@@ -1,10 +1,13 @@
 # Refreshing a league's results each week
 
-The ECNL leagues publish a whole season at once and fill in the scores as
-they are played. So this is not an import that happens once — it is a thing
-to do every week, and the cost of doing it badly is that it stops happening.
+The ECNL leagues, the WPL and the Girls Academy publish a whole season at
+once and fill in the scores as they are played. So this is not an import that
+happens once — it is a thing to do every week, and the cost of doing it badly
+is that it stops happening.
 
-Collecting the fixtures needs a person. Everything after that does not.
+Collecting the fixtures needs a person. Everything after that does not. And
+it is **one habit for all nine leagues** — the owner's rule when GotSport was
+added: one bookmark, one click, one file, one command. Not a second flow.
 
 ## Why a person is still in the loop
 
@@ -22,6 +25,12 @@ browser fetched. Nothing here ever speaks to the platform.
 `SYNC_OVERRIDE_PLATFORMS` does not help. It governs whether *we* hold back,
 not whether *they* answer.
 
+GotSport (WPL, GA) is the same line drawn harder: `robots.txt` is a bare
+`Disallow: /`, and a request without their cookie is sent to a captcha. The
+person has passed that captcha in their own browser; the bookmark, clicked on
+a `system.gotsport.com` page, reads the pages that browser is shown. Nothing
+here ever speaks to them.
+
 ## The ids, so the snippet needs no clicking
 
 All six are the Northwest conference of the 2026-27 season. The API takes ids
@@ -36,8 +45,27 @@ and does not care which page asks, so **one page can fetch all six**.
 | Pre-ECNL Boys | 22 | 87 | 4385 |
 | Pre-ECNL Girls | 21 | 86 | 4384 |
 
-These change when the season does. To find next season's, open any of the
-schedule pages and read them off the DOM:
+**GotSport, one id each** — the number in
+`system.gotsport.com/org_event/events/<id>`, read off the league's own site
+(wpl-soccer.com and girlsacademyleague.com link every season's events by
+name; `.claude/…/wpl-ga-on-gotsport` in memory lists the ones not yet taken).
+
+| League | event | groups taken |
+|---|---|---|
+| WPL U11-U14 Fall | 55357 | all 56 |
+| GA League | 56497 | names matching `Northwest` |
+| GA ASPIRE | 56498 | names matching `Northwest` |
+
+The GA events are national and list every conference; `only` on the league
+row keeps it to ours. If the bookmark says *none of N groups match*, it prints
+the first few names — fix the pattern in `league-bookmark.ts` to what they
+actually call it.
+
+All of these live in **`src/features/sync/league-bookmark.ts`**, which is the
+one place to change them.
+
+These change when the season does. To find next season's AthleteOne ids,
+open any of the schedule pages and read them off the DOM:
 
 ```js
 const b = document.getElementById('conference-schedules-container');
@@ -46,35 +74,26 @@ const ev = [...document.getElementById('event-select').options]
 ({ org: b.dataset.orgId, season: b.dataset.orgSeasonId, event: ev.value });
 ```
 
-## Step 1 — collect (about two minutes, in a browser)
+## Step 1 — collect (about five minutes, in a browser)
 
-On **any** theecnl.com schedule page, in the console:
+Print the bookmark's code — it is generated from `league-bookmark.ts`, so the
+skill and the browser never hold two copies:
 
-```js
-const api = 'https://api.athleteone.com/api/Script';
-const leagues = [
-  ['ECNL Boys',      12, 81, 4284], ['ECNL Girls',      9, 80, 4268],
-  ['ECNL RL Boys',   16, 83, 4353], ['ECNL RL Girls',  13, 82, 4311],
-  ['Pre-ECNL Boys',  22, 87, 4385], ['Pre-ECNL Girls', 21, 86, 4384],
-];
-const opts = (h) => [...new DOMParser().parseFromString(h,'text/html')
-  .querySelectorAll('option')].filter(o => o.value !== '0').map(o => [o.textContent.trim(), o.value]);
-const out = {};
-for (const [league, org, season, event] of leagues) {
-  const divs = opts(await (await fetch(`${api}/get-division-list-by-event-id/${org}/${event}/0/0`)).text());
-  out[league] = {};
-  for (const [name, id] of divs) {
-    const r = await fetch(`${api}/get-conference-schedules/${org}/${season}/${event}/${id}/0`);
-    out[league][name] = await r.text();
-    console.log(league, name, r.status, out[league][name].length);
-    await new Promise(res => setTimeout(res, 2500));
-  }
-}
-const a = document.createElement('a');
-a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], {type:'application/json'}));
-a.download = 'ecnl-northwest-all.json';
-a.click();
 ```
+pnpm leagues:snippet              # paste into the console
+pnpm leagues:snippet --bookmark   # or make a bookmark of it, once
+```
+
+Open **any `system.gotsport.com` page** (the WPL event's front page will do)
+and run it there. GotSport pages can only be read from their own origin;
+AthleteOne's API answers any origin — so one click on GotSport collects all
+nine leagues into one `leagues-northwest-all.json`. Clicked elsewhere it still
+collects the six ECNL ones and says which it could not.
+
+For each GotSport league it reads the event's front page for the groups, then
+each group's "View All Matches" page (`schedules?date=All&group=<id>`), which
+is the whole season on one page — the day view paginates, that one does not.
+Fifty-six groups for WPL at 2.5 seconds apart is a little over two minutes.
 
 Spaced at 2.5 seconds on purpose. Nobody asked for that, and it costs nothing.
 
@@ -86,13 +105,14 @@ ids (single read-only calls pass), which is why the table above exists.
 ## Step 2 — look before writing
 
 ```
-pnpm har ~/Downloads/ecnl-northwest-all.json
+pnpm har ~/Downloads/leagues-northwest-all.json
 ```
 
 Reports every fragment and its size. Two things worth a glance:
 
-- **Fragment count.** Six leagues is 26–30 fragments. Far fewer means a
-  league's division list came back empty.
+- **Fragment count.** Six ECNL leagues is 26–30 fragments; WPL adds 56, one
+  per group; each GA league adds however many Northwest groups it has. Far
+  fewer means a league's division list came back empty.
 - **Sizes that are identical to the byte.** Rounded to K they often look
   equal and are not; if two are the same exact number, the same division was
   fetched twice.
@@ -100,9 +120,13 @@ Reports every fragment and its size. Two things worth a glance:
 ## Step 3 — import
 
 ```
-pnpm db:import:schedule --event=<slug> --file=~/Downloads/ecnl-northwest-all.json --league="ECNL RL Boys"
+pnpm db:import:schedule --event=<slug> --file=~/Downloads/leagues-northwest-all.json --league="ECNL RL Boys"
 pnpm db:import:schedule --event=<slug> --file=… --league="ECNL RL Boys" --apply
 ```
+
+Which reader applies is decided by the markup, not the label: a GotSport page
+(`gotsport-fragment.ts`) and an AthleteOne fragment (`athleteone-fragment.ts`)
+both end at the same TSV and go through the same `applyPastedText`.
 
 `--league` matches the **first path segment, from its start**. Anywhere-in-the-
 label is wrong in the one way that matters: "pre-ecnl boys" contains "ecnl
@@ -115,6 +139,14 @@ The events, as they stand:
 | ECNL Boys, ECNL Girls | `ecnl-league-northwest-conference` |
 | ECNL RL Boys, ECNL RL Girls | `ecnl-rl-league-northwest-conference` |
 | Pre-ECNL Boys, Pre-ECNL Girls | `pre-ecnl-league-northwest-conference` |
+| WPL U11-U14 Fall | `wpl-fall-2026-u11-u14` |
+| GA League | `ga-league-2026-27-northwest` |
+| GA ASPIRE | `ga-aspire-2026-27-northwest` |
+
+The three GotSport events are created by hand on `/events/new` (league,
+external hosted, source link to the GotSport event) before the first import;
+run `pnpm db:sync:preflight` before that first `--apply`, because a synced
+team's name is written once.
 
 Boys and girls share an event and are told apart by division, which is how the
 first one was built and what the schedule page's own filters expect.
@@ -149,7 +181,15 @@ pnpm db:backfill:clubs          # dry run
 
 - **A fragment parses to nothing.** AthleteOne changed how it stacks a row.
   `athleteone-fragment.ts` and the bookmarklet's `a1Fixture` in `copier.ts`
-  read the same markup and **both** need the change.
+  read the same markup and **both** need the change. For GotSport the header
+  moved — `gotsport-fragment.ts` reads `Match # | Time | Home Team | Results |
+  Away Team | Location | Division` by name, and the saved pages under
+  `tests/fixtures/gotsport/` are what it was written against.
+- **The bookmark says GotSport wants a captcha.** Pass it in that tab (open
+  any event page) and click again.
+- **A GotSport score comes out empty for a played game.** Only `-` and
+  `N - N` have been seen in the Results cell (nothing had been played when
+  this was written). Save the page and add the shape to the reader's test.
 - **The console snippet returns 403.** The ids are from last season, or they
   changed the endpoint. Re-read the ids with the snippet at the top.
 - **"That holds both a schedule and a standings table."** A standings
