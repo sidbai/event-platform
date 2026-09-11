@@ -253,44 +253,60 @@ describe("pairOf", () => {
 
 describe("what the club says about its own names", () => {
   /*
-   * Real rows, against the real knowledge base. These three pairs are the
-   * ones the queue kept offering and nothing general could rule out.
+   * Real rows against the real knowledge base, and the point of each case is
+   * that the pair is still *returned*. A rule built from a file somebody
+   * wrote by reading a website must not be able to empty a queue on its own.
+   *
+   * Every case here turns on a word `distinctiveWords` throws away as
+   * generic — Premier, Select, Academy. That is not a coincidence and it is
+   * where this rule earns its keep: a pair separated by a distinctive word
+   * (Red beside Grey) never reaches here, because two names that each carry a
+   * word the other lacks are already refused. A pair separated only by
+   * "Premier" against "Select" looks, to every general rule, like one name
+   * with more said — and only the club knows those are two programmes.
    */
   const pair = (clubSlug: string, clubName: string, a: string, b: string) =>
-    whyNot(
-      team({ name: a, clubSlug, clubId: "c" }),
-      team({ name: b, clubSlug, clubId: "c" }),
-      clubName,
+    proposeMatches(
+      [team({ name: a, clubSlug, clubId: "c" }), team({ name: b, clubSlug, clubId: "c" })],
+      new Map([["c", clubName]]),
     );
 
-  it("knows Eastside's colours are tiers", () => {
-    expect(pair("eastside-fc", "Eastside FC", "Eastside FC BU14 Red", "Eastside FC BU14 Grey"))
-      .toMatch(/level/);
+  it("marks Valor's Premier apart from its Select, and still returns it", () => {
+    // One of the seven this actually caught in production.
+    const [p] = pair(
+      "valor-soccer",
+      "Valor Soccer",
+      "Valor Soccer Premier G16/17 Gold",
+      "Valor Soccer Select G16/17",
+    );
+    expect(p).toBeDefined();
+    expect(p.separatedBy).toMatch(/level/);
   });
 
-  it("knows Seattle United's regions are different teams", () => {
-    expect(
-      pair(
-        "seattle-united",
-        "Seattle United",
-        "Seattle United Northwest B13 Blue",
-        "Seattle United South B13 Blue",
-      ),
-    ).toMatch(/programme/);
+  it("marks Rush's MLS Next apart from its Select", () => {
+    const [p] = pair(
+      "washington-rush",
+      "Washington Rush",
+      "Washington Rush B12/13 MLS Next",
+      "Washington Rush Select B12/13",
+    );
+    expect(p.separatedBy).toMatch(/level/);
   });
 
-  it("knows Mt. Rainier's Academy is not its Premier", () => {
-    expect(
-      pair("mt-rainier-fc", "Mt. Rainier FC", "Mt. Rainier FC Academy B12", "Mt. Rainier FC Premier B12"),
-    ).toMatch(/level/);
+  it("leaves a pair unmarked where one name simply says more", () => {
+    const [p] = pair("valor-soccer", "Valor Soccer", "Valor Soccer B12", "Valor Soccer Premier B12");
+    expect(p).toBeDefined();
+    expect(p.separatedBy).toBeUndefined();
   });
 
-  it("still offers a pair where one name simply says more", () => {
-    expect(pair("eastside-fc", "Eastside FC", "Eastside FC BU14", "Eastside FC BU14 Red")).toBeNull();
-  });
-
-  it("says nothing about a club nothing has been read about", () => {
-    expect(pair("some-club-we-never-read", "Some Club", "Some Club B14 Red", "Some Club B14 Grey"))
-      .toBeNull();
+  it("marks nothing for a club nothing has been read about", () => {
+    const [p] = pair(
+      "some-club-we-never-read",
+      "Some Club",
+      "Some Club Premier B12",
+      "Some Club Select B12",
+    );
+    expect(p).toBeDefined();
+    expect(p.separatedBy).toBeUndefined();
   });
 });

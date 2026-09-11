@@ -114,6 +114,11 @@ export function shortlist(
    * club itself separates is not a hard question — it is a question with a
    * published answer, and paying a model to re-derive it is both slower and
    * less reliable than reading it.
+   *
+   * Not the last word on the pair. Nothing is deleted and nothing is hidden:
+   * the same two rows still meet in `proposedTeamMatches`, which marks them
+   * `separatedBy` and shows them on the admin page under their reason. This
+   * only decides what is worth a model's time.
    */
   vocabulary?: ClubVocabulary | null,
 ): SuggestTeam[] {

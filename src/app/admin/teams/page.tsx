@@ -34,10 +34,17 @@ export default async function AdminTeamsPage() {
   for (const g of groups) {
     for (const member of [g.survivor, ...g.losers]) grouped.set(member.id, g.survivor.id);
   }
-  const [proposals, suggestions] = await Promise.all([
+  const [allProposals, suggestions] = await Promise.all([
     proposedTeamMatches(grouped),
     openSuggestions(),
   ]);
+  /*
+   * The pairs a club's own website separates are held back from the queue but
+   * not from the page. A rule built by reading a website can be wrong, and a
+   * pair nobody is ever shown again is a rule nobody can correct.
+   */
+  const proposals = allProposals.filter((p) => !p.separatedBy);
+  const separated = allProposals.filter((p) => p.separatedBy);
   const rows = groups.reduce((n, g) => n + g.losers.length, 0);
 
   return (
@@ -258,6 +265,56 @@ export default async function AdminTeamsPage() {
           </p>
         )}
       </section>
+
+      {/*
+       * What a rule set aside, and why.
+       *
+       * These pairs look alike by every general test and are held back only
+       * because the club's own website separates them — Valor places players
+       * into Premier or Select by tryout, Washington Rush's MLS Next is two
+       * levels above its Select. That reasoning comes from a file somebody
+       * wrote by reading a page, and a file can be wrong.
+       *
+       * So they are shown rather than dropped, folded away because they are
+       * usually right, with the same buttons as everything else. A rule that
+       * removes a pair nobody ever sees again is a rule nobody can correct.
+       */}
+      {separated.length > 0 && (
+        <section className="mt-12">
+          <details>
+            <summary className="cursor-pointer text-lg font-semibold">
+              Held back by the club&rsquo;s own naming{" "}
+              <span className="font-normal text-muted">({separated.length})</span>
+            </summary>
+            <p className="mt-2 text-sm text-muted">
+              These look alike, and the club&rsquo;s own website says they are two
+              teams. Read from{" "}
+              <Link
+                href="/admin/clubs/knowledge"
+                className="text-brand-text hover:underline"
+              >
+                what the club websites say
+              </Link>
+              , so if one is wrong the profile is what to fix. Merge one here if
+              you know better.
+            </p>
+            <ul className="mt-4 divide-y divide-line">
+              {separated.slice(0, 40).map((p) => (
+                <li key={`${p.a.id}-${p.b.id}`}>
+                  <ProposalRow
+                    a={p.a}
+                    b={p.b}
+                    because={p.separatedBy ?? p.because}
+                    mergeAB={confirmMerge.bind(null, p.a.id, [p.b.id])}
+                    mergeBA={confirmMerge.bind(null, p.b.id, [p.a.id])}
+                    dismiss={dismissProposal.bind(null, p.a.id, p.b.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
     </div>
   );
 }

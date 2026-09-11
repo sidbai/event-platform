@@ -47,6 +47,15 @@ export type MatchProposal = {
   /** 0–1, how much of the two names is shared once the club is discounted. */
   score: number;
   because: string;
+  /**
+   * Set when the club's own published naming says these are two teams.
+   *
+   * Kept on the proposal rather than used to drop it, because this reason —
+   * unlike the others — comes from a file somebody wrote by reading a
+   * website, and a file can be wrong. A pair silently removed can never be
+   * caught; a pair shown with its reason can.
+   */
+  separatedBy?: string;
 };
 
 const GENERIC = new Set([
@@ -126,12 +135,7 @@ export function pairOf(a: string, b: string): string {
  * Exported because the reasons are the interesting part: each one was a false
  * positive in the directory before it became a rule.
  */
-export function whyNot(
-  a: MatchCandidate,
-  b: MatchCandidate,
-  /** Removed before the club's own words are looked for; see `namedApart`. */
-  clubName?: string | null,
-): string | null {
+export function whyNot(a: MatchCandidate, b: MatchCandidate): string | null {
   if (a.clubId === null || a.clubId !== b.clubId) return "different clubs";
   if (a.gender && b.gender && a.gender !== b.gender) return "different genders";
 
@@ -145,25 +149,6 @@ export function whyNot(
     if (!sameCohort(a.birthYears, b.birthYears)) return "different birth years";
   }
   if (a.tier && b.tier && a.tier !== b.tier) return "different tiers";
-
-  /*
-   * What the club itself says about its own names.
-   *
-   * The rules above are general — a lone A or B, a Roman numeral, a trailing
-   * digit — and general rules cannot know that at Eastside FC a colour is a
-   * tier, that Seattle United's Northwest and South are different regions, or
-   * that Mt. Rainier's Academy and Premier are separate programmes a player
-   * is placed into by tryout. All three are published by the club, and all
-   * three were pairs this queue kept offering.
-   *
-   * Silent for a club nothing has been read about, which is most of the small
-   * ones: it can only ever rule a pair out.
-   */
-  const vocabulary = vocabularyFor(a.clubSlug);
-  if (vocabulary) {
-    const apart = namedApart(vocabulary, a.name, b.name, clubName);
-    if (apart) return apart;
-  }
 
   const [ma, mb] = [squadMarks(a.name), squadMarks(b.name)];
   if (ma.size > 0 || mb.size > 0) {
@@ -205,7 +190,7 @@ export function proposeMatches(
       for (let j = i + 1; j < group.length; j++) {
         const [a, b] = [group[i], group[j]];
         if (apart.has(pairOf(a.id, b.id))) continue;
-        if (whyNot(a, b, clubName)) continue;
+        if (whyNot(a, b)) continue;
 
         const wa = distinctiveWords(a.name, clubName);
         const wb = distinctiveWords(b.name, clubName);
@@ -232,6 +217,23 @@ export function proposeMatches(
         const score = shared / new Set([...wa, ...wb]).size;
         if (score < threshold) continue;
 
+        /*
+         * What the club itself says about its own names, applied last and
+         * recorded rather than acted on.
+         *
+         * General rules cannot know that at Eastside FC a colour is a tier,
+         * that Seattle United's Northwest and South are different regions, or
+         * that Valor's Premier and Select are programmes a player is placed
+         * into by tryout. The club publishes all three. But this reason comes
+         * from a file somebody wrote by reading a website, so the pair is
+         * marked and still returned: the caller decides where to show it, and
+         * a wrong profile stays findable instead of quietly emptying a queue.
+         */
+        const vocabulary = vocabularyFor(a.clubSlug);
+        const separatedBy = vocabulary
+          ? (namedApart(vocabulary, a.name, b.name, clubName) ?? undefined)
+          : undefined;
+
         out.push({
           a,
           b,
@@ -240,6 +242,7 @@ export function proposeMatches(
             normaliseTeamName(a.name) === normaliseTeamName(b.name)
               ? "the same name"
               : `${Math.round(score * 100)}% of the name, same club and age group`,
+          separatedBy,
         });
       }
     }
