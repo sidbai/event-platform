@@ -789,6 +789,133 @@
     "readAt": "2026-09-11T06:33:16.872Z",
     "model": "claude-opus-5"
   },
+  "emerald-city-fc": {
+    "slug": "emerald-city-fc",
+    "tiers": [
+      "EA",
+      "Green",
+      "White",
+      "Blue",
+      "Black"
+    ],
+    "squadMarkers": [
+      "Green",
+      "White",
+      "Blue",
+      "Black"
+    ],
+    "colours": "tier",
+    "ageBands": "single-year",
+    "branches": [
+      "Development Program",
+      "Elite Academy (EA) Program"
+    ],
+    "coaches": [
+      {
+        "name": "Scott Smith",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Kerry Hamel",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Richard Garcia",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "James Ritchie",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Derrek Falor",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "CJ Hamel",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Alex Jessup",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Henry Jones",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Drew Kennedy",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Christine Bush",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Jose Mariscal",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Clyde Wight",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Lucas Isler",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Brandon Tuccori",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Amanda Huppert",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Devon Kollmyer",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "John Hamel",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Xeindria Chandran",
+        "role": null,
+        "ageGroups": []
+      },
+      {
+        "name": "Aaron Crosby",
+        "role": null,
+        "ageGroups": []
+      }
+    ],
+    "summary": "Emerald City FC publishes its teams as a grid of age group against level, and the level is the column: EA, then Green, then White, then Blue, then Black for boys; Green, White and Blue for girls. So a BU12 Green and a BU12 White are two different teams. The Development Program covers U8-U10 with no cuts, and the selective teams from U11 to U19 are formed by tryout. Seattle's premier soccer club since 1979.",
+    "sources": [
+      "https://emeraldcityfc.org/boys-teams/",
+      "https://emeraldcityfc.org/girls-teams/",
+      "https://emeraldcityfc.org/"
+    ],
+    "readAt": "2026-09-11T01:00:00.000Z",
+    "model": "claude-opus-5"
+  },
   "harbor-soccer-club": {
     "slug": "harbor-soccer-club",
     "tiers": [
@@ -1086,6 +1213,29 @@
       "https://northkitsapsoccer.org/spring-soccer-academy/"
     ],
     "readAt": "2026-09-11T06:35:06.246Z",
+    "model": "claude-opus-5"
+  },
+  "northshore-select-club": {
+    "slug": "northshore-select-club",
+    "tiers": [
+      "Select",
+      "NPSL"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "unknown",
+    "branches": [
+      "Northshore Youth Soccer Association",
+      "Sound Football Club",
+      "Street Soccer"
+    ],
+    "coaches": [],
+    "summary": "Northshore Select Club (NSC) is the Select programme of the Northshore Youth Soccer Association, in its own words a middle ground between Premier and Recreational, for boys and girls U9-U19, playing the North Puget Sound League (NPSL). The association's Premier arm is Sound Football Club, listed beside it on the same programmes page — so an NSC side and a Sound FC side are two different teams run by one association.",
+    "sources": [
+      "https://www.northshoresoccer.org/league-info/northshore-select-club",
+      "https://www.northshoresoccer.org/programs"
+    ],
+    "readAt": "2026-09-11T01:00:00.000Z",
     "model": "claude-opus-5"
   },
   "northwest-united-fc": {
@@ -3102,6 +3252,211 @@
       "https://www.washingtonrush.com"
     ],
     "readAt": "2026-09-11T06:39:09.486Z",
+    "model": "claude-opus-5"
+  },
+  "wenatchee-fa": {
+    "slug": "wenatchee-fa",
+    "tiers": [
+      "ECNL-RL",
+      "RCL",
+      "RCL/N1",
+      "WPL",
+      "WPL CLASSIC/COPA",
+      "PAL",
+      "Black",
+      "Red",
+      "White",
+      "Grey"
+    ],
+    "squadMarkers": [
+      "Black",
+      "Red",
+      "White",
+      "Grey"
+    ],
+    "colours": "tier",
+    "ageBands": "two-year",
+    "branches": [
+      "WFC YOUTH",
+      "WENATCHEE UNITED",
+      "Wenatchee Futbol Academy"
+    ],
+    "coaches": [
+      {
+        "name": "Gary Heale",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B08/09 ECNL-RL Black"
+        ]
+      },
+      {
+        "name": "Adrian Espinoza",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B09/10 ECNL-RL Black"
+        ]
+      },
+      {
+        "name": "Alvaro Rodriguez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B09/10 Red",
+          "B10/11 Red"
+        ]
+      },
+      {
+        "name": "Toby Tarzwell",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B09/10 White"
+        ]
+      },
+      {
+        "name": "Jared McInnes",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B10/11 ECNL-RL Black"
+        ]
+      },
+      {
+        "name": "Brandon Felipe",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B10/11 White",
+          "B11/12 Red",
+          "B12/13 Red"
+        ]
+      },
+      {
+        "name": "Johnny Rodriguez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B11/12 ECNL-RL Black"
+        ]
+      },
+      {
+        "name": "Luke Tiffany",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B11/12 White"
+        ]
+      },
+      {
+        "name": "Eddie Silva",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B12/13 ECNL-RL Black",
+          "B15/16 Black"
+        ]
+      },
+      {
+        "name": "Victor Chavez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B12/13 White"
+        ]
+      },
+      {
+        "name": "Luis Amante",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B12/13 Grey"
+        ]
+      },
+      {
+        "name": "Jason Gonzalez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B13/14 ECNL-RL Black"
+        ]
+      },
+      {
+        "name": "Jesus Herrera",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B13/14 Red"
+        ]
+      },
+      {
+        "name": "John Devlin",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B13/14 White"
+        ]
+      },
+      {
+        "name": "Jorge Canchola",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B14/15 Black"
+        ]
+      },
+      {
+        "name": "John Reeves",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B14/15 Red"
+        ]
+      },
+      {
+        "name": "Aaron Fahey",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B14/15 White"
+        ]
+      },
+      {
+        "name": "Manuel DeRobles",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B15/16 Red",
+          "B17/18 Red"
+        ]
+      },
+      {
+        "name": "Santos Rodriguez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B16/17 Black",
+          "B16/17 Red"
+        ]
+      },
+      {
+        "name": "Zeke Vara",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B17/18 Black"
+        ]
+      },
+      {
+        "name": "Franky Navarro",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B18/19 Black"
+        ]
+      },
+      {
+        "name": "Nick Padron",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B18/19 Red"
+        ]
+      },
+      {
+        "name": "Omar Sanchez",
+        "role": "Head Coach",
+        "ageGroups": [
+          "B18/21 Black"
+        ]
+      }
+    ],
+    "summary": "Wenatchee FA is the club formed by WFC Youth and Wenatchee United together, and it publishes every team as a two-year band plus a colour: B12/13 ECNL-RL Black, B12/13 Red, B12/13 White, B12/13 Grey. The colour is the level — Black is the top side in an age group and carries the ECNL-RL label where the club fields one, then Red, then White, then Grey. Its competition pathway runs ECNL-RL, then RCL and RCL/N1, then WPL Classic/Copa, with PAL at U10-U12 and a development WPL at U9-U10.",
+    "sources": [
+      "https://wenatcheefa.org/",
+      "https://wenatcheefa.org/programs",
+      "https://wenatcheefa.org/boys-teams"
+    ],
+    "readAt": "2026-09-11T01:00:00.000Z",
     "model": "claude-opus-5"
   },
   "west-sound-soccer-academy": {
