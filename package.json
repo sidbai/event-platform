@@ -48,7 +48,10 @@
     "smoke": "scripts/smoke.sh",
     "db:seed:listings": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-listings.ts",
     "db:check": "tsx scripts/db-check.ts",
-    "sync:event": "NODE_OPTIONS=--conditions=react-server tsx scripts/sync-event.ts"
+    "sync:event": "NODE_OPTIONS=--conditions=react-server tsx scripts/sync-event.ts",
+    "clubs:crawl": "NODE_OPTIONS=--conditions=react-server tsx scripts/crawl-clubs.ts",
+    "clubs:profile": "tsx scripts/profile-clubs.ts",
+    "ai:review-merges": "NODE_OPTIONS=--conditions=react-server tsx scripts/review-merges.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

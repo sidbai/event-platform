@@ -110,6 +110,10 @@ export default async function AdminPage({
         <Link href="/admin/teams" className="text-brand-text hover:underline">
           Duplicate teams →
         </Link>
+        {" · "}
+        <Link href="/admin/clubs/knowledge" className="text-brand-text hover:underline">
+          What the club websites say →
+        </Link>
       </p>
 
       <section className="mt-8">

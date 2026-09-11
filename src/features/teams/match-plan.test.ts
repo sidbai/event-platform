@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { proposeMatches, squadMarks, type MatchCandidate, whyNot } from "./match-plan";
+import { pairOf, proposeMatches, squadMarks, type MatchCandidate, whyNot } from "./match-plan";
 
 const CLUBS = new Map([
   ["xf", "Crossfire Premier"],
@@ -219,5 +219,34 @@ describe("two names that disagree", () => {
 
   it("does not read a cohort's digits as a squad", () => {
     expect([...squadMarks("Eastside FC B14/15")]).toEqual([]);
+  });
+});
+
+describe("pairs the fixture list rules out", () => {
+  it("drops a pair that has played itself", () => {
+    const a = team({ name: "Crossfire Premier B13/14" });
+    const b = team({ name: "Crossfire Premier B13/14 Red" });
+    // Without the fixture fact, this is exactly the pair we want offered.
+    expect(proposeMatches([a, b], CLUBS)).toHaveLength(1);
+    expect(proposeMatches([a, b], CLUBS, new Set([pairOf(a.id, b.id)]))).toEqual([]);
+  });
+
+  it("does not care which way round the ids were keyed", () => {
+    const a = team({ name: "Crossfire Premier G11" });
+    const b = team({ name: "Crossfire Premier G11 Blue" });
+    expect(proposeMatches([a, b], CLUBS, new Set([pairOf(b.id, a.id)]))).toEqual([]);
+  });
+
+  it("leaves every other pair alone", () => {
+    const a = team({ name: "Crossfire Premier B16" });
+    const b = team({ name: "Crossfire Premier B16 White" });
+    const c = team({ name: "Crossfire Premier B15" , birthYears: [2015] });
+    expect(proposeMatches([a, b, c], CLUBS, new Set(["someone:else"]))).toHaveLength(1);
+  });
+});
+
+describe("pairOf", () => {
+  it("is the same key from either side", () => {
+    expect(pairOf("b", "a")).toBe(pairOf("a", "b"));
   });
 });

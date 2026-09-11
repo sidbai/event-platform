@@ -99,6 +99,17 @@ const sameSet = (a: Set<string>, b: Set<string>) =>
   a.size === b.size && [...a].every((v) => b.has(v));
 
 /**
+ * A stable key for two ids, in either order.
+ *
+ * Its own function because the same pair is keyed in three places — here, the
+ * SQL that finds pairs the fixtures rule out, and the dismissal list — and a
+ * key that disagrees with itself silently stops ruling anything out.
+ */
+export function pairOf(a: string, b: string): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
+}
+
+/**
  * Why these two cannot be one team, or null if nothing rules it out.
  *
  * Exported because the reasons are the interesting part: each one was a false
@@ -137,6 +148,13 @@ export function whyNot(a: MatchCandidate, b: MatchCandidate): string | null {
 export function proposeMatches(
   candidates: MatchCandidate[],
   clubNameById: Map<string, string>,
+  /**
+   * Pairs the fixture list already proves are two teams.
+   *
+   * Keyed by `pairOf`. Empty is a valid answer and simply means nothing was
+   * looked up — the rule can only ever remove pairs, never add one.
+   */
+  apart: ReadonlySet<string> = new Set(),
   threshold = 0.5,
 ): MatchProposal[] {
   const byClub = new Map<string, MatchCandidate[]>();
@@ -151,6 +169,7 @@ export function proposeMatches(
     for (let i = 0; i < group.length; i++) {
       for (let j = i + 1; j < group.length; j++) {
         const [a, b] = [group[i], group[j]];
+        if (apart.has(pairOf(a.id, b.id))) continue;
         if (whyNot(a, b)) continue;
 
         const wa = distinctiveWords(a.name, clubName);
