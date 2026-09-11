@@ -4,6 +4,7 @@ import { TeamCrest } from "@/components/team-crest";
 import type { EventDetail } from "@/features/events/queries";
 import { safeSourceUrl } from "@/features/events/listing";
 import { syncNote } from "@/features/sync/freshness";
+import { SubscribeLink } from "@/features/calendar/subscribe-link";
 import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 
@@ -277,6 +278,12 @@ export function ScheduleSection({
   return (
     <section id="schedule" className="mt-10 scroll-mt-4">
       <h2 className="text-lg font-semibold">Schedule and standings</h2>
+      {/*
+        Beside the freshness note rather than at the foot of a schedule that
+        can run to four thousand fixtures — somebody who wants this wants it
+        before they start scrolling, not after.
+      */}
+      <SubscribeLink path={`/events/${event.slug}/fixtures.ics`} what="this schedule" />
 
       {note && (
         <p className={`mt-1 text-xs ${note.stale ? "text-amber-700" : "text-muted"}`}>
