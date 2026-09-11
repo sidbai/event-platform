@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Exported for editing by hand; never part of the repo.
 team-facts*.csv
+
+# What the club websites said, re-readable at any time.
+/.cache
