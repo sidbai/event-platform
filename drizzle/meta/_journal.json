@@ -449,6 +449,13 @@
       "when": 1789055540054,
       "tag": "0063_legal_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1789099367482,
+      "tag": "0064_luxuriant_thunderbird",
+      "breakpoints": true
     }
   ]
 }
