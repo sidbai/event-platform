@@ -1,8 +1,20 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, lt, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  or,
+} from "drizzle-orm";
 
 import { db } from "@/db";
+
+import { crestOf } from "./crest";
 import { matches, teamFollows, teams } from "@/db/schema";
 
 import { resultFor } from "./record";
@@ -16,7 +28,10 @@ import { resultFor } from "./record";
  * is the first step towards a page that shows it.
  */
 
-export async function isFollowing(userId: string, teamId: string): Promise<boolean> {
+export async function isFollowing(
+  userId: string,
+  teamId: string,
+): Promise<boolean> {
   const row = await db.query.teamFollows.findFirst({
     where: and(eq(teamFollows.userId, userId), eq(teamFollows.teamId, teamId)),
     columns: { teamId: true },
@@ -67,13 +82,17 @@ export async function followedTeams(userId: string): Promise<FollowedTeam[]> {
   return rows.flatMap((r) => {
     const team = byId.get(r.teamId);
     return team
-      ? [{
-          id: team.id,
-          slug: team.slug,
-          name: team.name,
-          crestUrl: team.crestUrl ?? null,
-          club: team.club ? { name: team.club.name, crestUrl: team.club.crestUrl } : null,
-        }]
+      ? [
+          {
+            id: team.id,
+            slug: team.slug,
+            name: team.name,
+            crestUrl: team.crestUrl ?? null,
+            club: team.club
+              ? { name: team.club.name, crestUrl: team.club.crestUrl }
+              : null,
+          },
+        ]
       : [];
   });
 }
@@ -84,6 +103,15 @@ export type NextGame = {
   eventSlug: string;
   eventTitle: string;
   opponent: { name: string; slug: string } | null;
+  /**
+   * Both sides as the fixture has them, with a crest each.
+   *
+   * Beside `opponent` rather than instead of it: the sentence a page builds
+   * ("Us v Them") wants home and away in order, and the crests want the
+   * club's when the team has none — which is what `crestOf` decides.
+   */
+  home: { name: string; slug: string; crest: string | null } | null;
+  away: { name: string; slug: string; crest: string | null } | null;
 };
 
 /**
@@ -99,23 +127,44 @@ export type NextGame = {
  * ordered against one that has it — it appears on the team's own page, where
  * the whole list is in date order and a missing time reads as what it is.
  */
-export async function nextGames(teamIds: string[], now = new Date()): Promise<NextGame[]> {
+export async function nextGames(
+  teamIds: string[],
+  now = new Date(),
+): Promise<NextGame[]> {
   if (teamIds.length === 0) return [];
 
   const upcoming = await db.query.matches.findMany({
     where: and(
       isNotNull(matches.kickoffAt),
       gte(matches.kickoffAt, now),
-      or(inArray(matches.homeTeamId, teamIds), inArray(matches.awayTeamId, teamIds)),
+      or(
+        inArray(matches.homeTeamId, teamIds),
+        inArray(matches.awayTeamId, teamIds),
+      ),
     ),
     orderBy: asc(matches.kickoffAt),
     columns: { kickoffAt: true, homeTeamId: true, awayTeamId: true },
     with: {
       event: { columns: { slug: true, title: true } },
-      homeTeam: { columns: { name: true, slug: true } },
-      awayTeam: { columns: { name: true, slug: true } },
+      homeTeam: {
+        columns: { name: true, slug: true, crestUrl: true },
+        with: { club: { columns: { crestUrl: true } } },
+      },
+      awayTeam: {
+        columns: { name: true, slug: true, crestUrl: true },
+        with: { club: { columns: { crestUrl: true } } },
+      },
     },
   });
+
+  const side = (
+    t: {
+      name: string;
+      slug: string;
+      crestUrl: string | null;
+      club: { crestUrl: string | null } | null;
+    } | null,
+  ) => (t ? { name: t.name, slug: t.slug, crest: crestOf(t) } : null);
 
   // In kickoff order already, so the first one seen for a team is its next.
   const wanted = new Set(teamIds);
@@ -131,7 +180,11 @@ export async function nextGames(teamIds: string[], now = new Date()): Promise<Ne
         kickoffAt: m.kickoffAt,
         eventSlug: m.event.slug,
         eventTitle: m.event.title,
-        opponent: opponent ? { name: opponent.name, slug: opponent.slug } : null,
+        opponent: opponent
+          ? { name: opponent.name, slug: opponent.slug }
+          : null,
+        home: side(m.homeTeam),
+        away: side(m.awayTeam),
       });
     }
     if (found.size === wanted.size) break;
@@ -159,7 +212,10 @@ export type LastResult = {
  * nil-nil, it is a game nobody has entered yet — resultFor already refuses to
  * read it as anything else, and this only has to not ask about it.
  */
-export async function lastResults(teamIds: string[], now = new Date()): Promise<LastResult[]> {
+export async function lastResults(
+  teamIds: string[],
+  now = new Date(),
+): Promise<LastResult[]> {
   if (teamIds.length === 0) return [];
 
   const played = await db.query.matches.findMany({
@@ -168,7 +224,10 @@ export async function lastResults(teamIds: string[], now = new Date()): Promise<
       isNotNull(matches.awayScore),
       isNotNull(matches.kickoffAt),
       lt(matches.kickoffAt, now),
-      or(inArray(matches.homeTeamId, teamIds), inArray(matches.awayTeamId, teamIds)),
+      or(
+        inArray(matches.homeTeamId, teamIds),
+        inArray(matches.awayTeamId, teamIds),
+      ),
     ),
     orderBy: desc(matches.kickoffAt),
     columns: {
@@ -205,7 +264,9 @@ export async function lastResults(teamIds: string[], now = new Date()): Promise<
         outcome: result.outcome,
         for: result.for,
         against: result.against,
-        opponent: opponent ? { name: opponent.name, slug: opponent.slug } : null,
+        opponent: opponent
+          ? { name: opponent.name, slug: opponent.slug }
+          : null,
       });
     }
     if (found.size === wanted.size) break;
