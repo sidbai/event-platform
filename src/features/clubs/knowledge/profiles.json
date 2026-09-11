@@ -1605,6 +1605,258 @@
     "readAt": "2026-09-11T06:36:11.315Z",
     "model": "claude-opus-5"
   },
+  "seattle-celtic": {
+    "slug": "seattle-celtic",
+    "tiers": [
+      "MLS Next League",
+      "Girls Academy League",
+      "Elite Academy League",
+      "WPL"
+    ],
+    "squadMarkers": [],
+    "colours": "unknown",
+    "ageBands": "two-year",
+    "branches": [
+      "Celtic Óg Micro Academy",
+      "Pre-Dev",
+      "Development Teams"
+    ],
+    "coaches": [
+      {
+        "name": "Kevin Walshe",
+        "role": "General Manager",
+        "ageGroups": []
+      },
+      {
+        "name": "Oisin",
+        "role": "Martin Director of Operations",
+        "ageGroups": []
+      },
+      {
+        "name": "Conor Walshe",
+        "role": "Technical Director / MLS Next Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Philip Duncan",
+        "role": "7v7 Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Ryan Eldred",
+        "role": "9v9 Boys Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Sean Doyle",
+        "role": "11v11 Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Shane Moran",
+        "role": "Goalkeeping / Girls Academy Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Luke Flynn",
+        "role": "Celtic in the Community Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Jack Cousin",
+        "role": "College Recruitment Director",
+        "ageGroups": []
+      },
+      {
+        "name": "Ya Davis",
+        "role": "Head Athletic Trainier",
+        "ageGroups": []
+      },
+      {
+        "name": "Katia Babko",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Ava Behrens",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Forest Berg",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Blake Borsecnik",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Kate Brewer",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Jeremiah Briere",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Evgenii Burdov",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Brandon Bye",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Emmett Conway",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Nicolas Cortes",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Paul Currier",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Josimar Evangelista",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Ben Foster",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Randi Geffrey",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Asa Goldsmith",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Yahya Hassan",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Seth Hawksford",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Finn Keenan",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Daeh Lindquist",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Alex Lopansri",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Jason Mayorga",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Matt McCann",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Alex Mejia",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Jake Milanski",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Zeke Miller",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Ryota Nishino",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Adam O'Grady",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Pontus Oberg",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Rowan Rathbun",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Danny Sekits",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Akaash Shah",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Anokhi Shah",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Nathan Songco",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Ari Uphoff",
+        "role": "Head Coach",
+        "ageGroups": []
+      },
+      {
+        "name": "Ed Walugembe",
+        "role": "Head Coach",
+        "ageGroups": []
+      }
+    ],
+    "summary": "Seattle Celtic states its ladder outright: its top boys teams from the 2013 to 2008 age groups play the MLS Next League and its top girls teams the Girls Academy League, its second top boys teams play the Elite Academy League, and all other Celtic league teams play the WPL. So an MLS Next side, an Elite Academy side and a WPL side of the same age are three different teams. Age-bands run August 1 to July 31 and are written as two-year bands — a player born September 2013 is in the 2013/14 band and one born March 2013 is in the 2012/13 band. Below the league teams sit Development Teams at U8-U10, Pre-Dev at U7-U10 and the Celtic Óg Micro Academy at 4-6.",
+    "sources": [
+      "https://seattleceltic.com/club/coreprogramming",
+      "https://seattleceltic.com/club/tryouts",
+      "https://seattleceltic.com/club/staff"
+    ],
+    "readAt": "2026-09-11T00:50:00.000Z",
+    "model": "claude-opus-5"
+  },
   "seattle-reign-academy": {
     "slug": "seattle-reign-academy",
     "tiers": [
@@ -2889,7 +3141,12 @@
     "slug": "western-washington-surf",
     "tiers": [
       "Elite",
-      "Premier"
+      "Premier",
+      "EA League",
+      "NPL",
+      "DPL",
+      "WPL",
+      "JDL"
     ],
     "squadMarkers": [
       "A Team",
@@ -2904,6 +3161,8 @@
     "branches": [
       "Elite North",
       "Elite South",
+      "North",
+      "South",
       "Tacoma",
       "Medina",
       "Redmond",
@@ -2913,7 +3172,7 @@
       "Tukwila"
     ],
     "coaches": [],
-    "summary": "Western Washington Surf fields boys' and girls' teams at Elite and Premier levels. Elite is split into Elite North and Elite South, each with an A Team and a B Team. Premier is run town by town — Tacoma, Medina, Redmond, Puyallup and others each publish their own season outline with A Teams and B&C Teams — so two Surf sides of the same age in different towns are different teams. Season outlines group ages in pairs (U9 & U10, U11 & U12) while teams are named by single birth year.",
+    "summary": "Western Washington Surf fields boys' and girls' teams at Elite and Premier levels. Elite is split into Elite North and Elite South, each with an A Team and a B Team. Premier is run town by town — Tacoma, Medina, Redmond, Puyallup and others each publish their own season outline with A Teams and B&C Teams — so two Surf sides of the same age in different towns are different teams. Season outlines group ages in pairs (U9 & U10, U11 & U12) while teams are named by single birth year. Their pages name the leagues each level plays: EA League and DPL for the Elite A teams, NPL and WPL below, and JDL at U6-U7.",
     "sources": [
       "https://westernwasurf.com",
       "https://westernwasurf.com/teams/",
