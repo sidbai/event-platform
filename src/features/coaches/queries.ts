@@ -1,10 +1,10 @@
 import "server-only";
 
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { publicReview } from "@/features/reviews/anonymise";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import {
   clubs,
   coachClaims,
@@ -80,11 +80,11 @@ export async function listCoaches(
     ? and(
         ...terms.map((term) =>
           or(
-            ilike(coaches.name, term),
+            startsWord(coaches.name, term),
             // Club comes through a relation, which cannot filter the parent.
             inArray(
               coaches.clubId,
-              db.select({ id: clubs.id }).from(clubs).where(ilike(clubs.name, term)),
+              db.select({ id: clubs.id }).from(clubs).where(startsWord(clubs.name, term)),
             ),
           ),
         ),

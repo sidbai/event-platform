@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import { comments, discussions, forumPosts } from "@/db/schema";
 import { publicName } from "@/features/auth";
 
@@ -122,7 +122,7 @@ export async function searchForumPosts(q: string, limit = 20) {
       isNull(forumPosts.hiddenAt),
       // Every word, each of which may be in the title or in the body.
       ...terms.map((term) =>
-        or(ilike(forumPosts.title, term), ilike(forumPosts.body, term)),
+        or(startsWord(forumPosts.title, term), startsWord(forumPosts.body, term)),
       ),
     ),
     orderBy: [desc(forumPosts.lastActivityAt)],
