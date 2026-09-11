@@ -7,6 +7,8 @@ import { EventTags } from "@/features/events/event-tags";
 import { listEvents } from "@/features/events/queries";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { searchForumPosts } from "@/features/forum/queries";
+import { listClubs } from "@/features/clubs/queries";
+import { listTeams } from "@/features/teams/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Search" };
@@ -28,12 +30,25 @@ export default async function SearchPage({
 }) {
   const q = ((await searchParams).q ?? "").trim();
 
-  // Both halves reuse the section queries, so search inherits their visibility
-  // rules rather than re-deriving who may see what.
-  const [events, posts] = q
-    ? await Promise.all([listEvents({ q }), searchForumPosts(q)])
-    : [[], []];
-  const total = events.length + posts.length;
+  /*
+   * Every part reuses the section queries, so search inherits their
+   * visibility rules rather than re-deriving who may see what.
+   *
+   * Teams and clubs were missing, and the suggestion list under the box was
+   * not: typing "cross" offered Crossfire Select and pressing Enter lost it,
+   * because the dropdown searched four things and this page searched two. A
+   * box that finds something and then cannot show it is worse than one that
+   * never found it.
+   */
+  const [events, posts, teams, clubs] = q
+    ? await Promise.all([
+        listEvents({ q }),
+        searchForumPosts(q),
+        listTeams({ q, window: { limit: 5, offset: 0 } }),
+        listClubs(q, { limit: 5, offset: 0 }),
+      ])
+    : [[], [], { rows: [], total: 0 }, { rows: [], total: 0 }];
+  const total = events.length + posts.length + teams.rows.length + clubs.rows.length;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -44,13 +59,13 @@ export default async function SearchPage({
         className="mt-4"
         action="/search"
         defaultValue={q}
-        label="Search events and community posts"
-        placeholder="Search events and community posts"
+        label="Search events, teams, clubs and community posts"
+        placeholder="Search"
       />
 
       {!q ? (
         <p className="mt-8 text-muted">
-          Search across events and community posts.
+          Search across events, teams, clubs and community posts.
         </p>
       ) : total === 0 ? (
         <p className="mt-8 text-muted">
@@ -95,6 +110,68 @@ export default async function SearchPage({
                         </div>
                       )}
                       <EventTags event={event} className="mt-2" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {teams.rows.length > 0 && (
+            <section className="mt-8">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Teams
+                </h2>
+                <Link
+                  href={`/teams?q=${encodeURIComponent(q)}`}
+                  className="text-xs text-brand-text hover:underline"
+                >
+                  All matching teams
+                </Link>
+              </div>
+              <ul className="mt-1 divide-y divide-line">
+                {teams.rows.map((team) => (
+                  <li key={team.id}>
+                    <Link
+                      href={`/teams/${team.slug}`}
+                      className="block py-3 transition-colors hover:bg-elevated"
+                    >
+                      <span className="font-medium">{team.name}</span>
+                      {team.club?.name && (
+                        <div className="mt-0.5 text-sm text-muted">{team.club.name}</div>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {clubs.rows.length > 0 && (
+            <section className="mt-8">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Clubs
+                </h2>
+                <Link
+                  href={`/clubs?q=${encodeURIComponent(q)}`}
+                  className="text-xs text-brand-text hover:underline"
+                >
+                  All matching clubs
+                </Link>
+              </div>
+              <ul className="mt-1 divide-y divide-line">
+                {clubs.rows.map((club) => (
+                  <li key={club.id}>
+                    <Link
+                      href={`/clubs/${club.slug}`}
+                      className="block py-3 transition-colors hover:bg-elevated"
+                    >
+                      <span className="font-medium">{club.name}</span>
+                      {club.city && (
+                        <div className="mt-0.5 text-sm text-muted">{club.city}</div>
+                      )}
                     </Link>
                   </li>
                 ))}

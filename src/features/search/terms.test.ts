@@ -6,7 +6,7 @@ describe("searchTerms", () => {
   it("asks for every word separately, so they need not be adjacent", () => {
     // The team is "Crossfire Premier B13/14 ECNL 2"; those two words are four
     // words apart, and as one phrase they matched nothing.
-    expect(searchTerms("crossfire ecnl")).toEqual(["%crossfire%", "%ecnl%"]);
+    expect(searchTerms("crossfire ecnl")).toEqual(["\\mcrossfire", "\\mecnl"]);
   });
 
   it("is no filter at all when there is nothing to search for", () => {
@@ -16,8 +16,26 @@ describe("searchTerms", () => {
     expect(searchTerms(undefined)).toEqual([]);
   });
 
-  it("keeps a search for a wildcard from matching everything", () => {
-    expect(searchTerms("50%")).toEqual(["%50\\%%"]);
+  it("matches the start of a word and not the middle of one", () => {
+    /*
+     * Searching "cross" returned two tournaments whose summaries say
+     * "across" — matched in a field the page does not show, so the result
+     * could not be explained by looking at it.
+     *
+     * \m is Postgres for the start of a word. A hyphen is a boundary, so
+     * "ecnl" still finds "Pre-ECNL", which is how every one of those is
+     * spelled since the canonical rename.
+     */
+    const [term] = searchTerms("cross");
+    expect(term).toBe("\\mcross");
+    expect(new RegExp(term.replace("\\m", "\\b"), "i").test("Crossfire Premier")).toBe(true);
+    expect(new RegExp(term.replace("\\m", "\\b"), "i").test("three games across Saturday")).toBe(false);
+  });
+
+  it("keeps what a person typed from being read as a pattern", () => {
+    // "St. Mary's (North)" is typed as it is written, and every one of those
+    // characters means something to a regex engine.
+    expect(searchTerms("(north)")).toEqual(["\\m\\(north\\)"]);
     expect(escapeLike("a_b")).toBe("a\\_b");
   });
 

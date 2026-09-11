@@ -97,7 +97,7 @@ export async function SiteHeader() {
           className="ml-2 min-w-0 flex-1 sm:ml-3 lg:ml-0 lg:mr-6"
           action="/search"
           compact
-          label="Search events and community posts"
+          label="Search events, teams, clubs and community posts"
           placeholder="Search"
         />
 

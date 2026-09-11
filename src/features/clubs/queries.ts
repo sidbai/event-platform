@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import { clubEdits, clubs, reviewVotes, reviews } from "@/db/schema";
 
 import { publicName } from "@/features/auth";
@@ -52,7 +52,7 @@ export async function listClubs(
   // Every word has to land, though not all in the same column.
   const terms = searchTerms(q);
   const where = terms.length
-    ? and(...terms.map((term) => or(ilike(clubs.name, term), ilike(clubs.city, term))))
+    ? and(...terms.map((term) => or(startsWord(clubs.name, term), startsWord(clubs.city, term))))
     : undefined;
 
   // Counted before slicing, so the pager sizes the whole result.

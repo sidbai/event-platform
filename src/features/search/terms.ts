@@ -1,3 +1,5 @@
+import { sql, type AnyColumn, type SQL } from "drizzle-orm";
+
 /**
  * Turning what somebody typed into something a query can match.
  *
@@ -10,15 +12,29 @@
  * So: every word has to match, each on its own, and where they sit relative to
  * each other does not matter.
  *
- * Each word matches anywhere rather than only at the start of one. A strict
- * word-prefix would be tidier, and it would stop "ecnl" finding the four teams
- * whose tier is written "PreECNL" with no space — the data is not tidy, and
- * this is the half of the trade that costs nothing.
+ * Each word matches at the start of a word, not anywhere inside one.
+ *
+ * It used to match anywhere, on the grounds that "ecnl" should still find the
+ * four teams whose tier was written "PreECNL" with no space. That reason is
+ * gone — the canonical rename spells them "Pre-ECNL", and a hyphen is a word
+ * boundary — and the cost was not free after all: searching "cross" returned
+ * two tournaments whose summaries say "across", matched in a field the page
+ * does not show. A result nobody can explain is worse than a result missing.
  */
 
 /** % and _ are LIKE wildcards; a search for "50%" must not match everything. */
 export function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/**
+ * The same for a regular expression, where far more characters mean something.
+ *
+ * A club called "St. Mary's (North)" is typed as it is written, and every one
+ * of those characters is an operator to a regex engine.
+ */
+export function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -36,7 +52,9 @@ const MAX_WORDS = 6;
  */
 export function searchTerms(q: string | null | undefined): string[] {
   const words = (q ?? "").trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, MAX_WORDS).map((w) => `%${escapeLike(w)}%`);
+  // \m is Postgres for "start of a word", which is what a search box means by
+  // typing the beginning of something.
+  return words.slice(0, MAX_WORDS).map((w) => `\\m${escapeRegex(w)}`);
 }
 
 /**
@@ -66,4 +84,18 @@ export function byRelevance<T extends { label: string }>(rows: T[], q: string): 
     .map((row, i) => ({ row, i, rank: prefixRank(row.label, q) }))
     .sort((a, b) => a.rank - b.rank || a.i - b.i)
     .map((x) => x.row);
+}
+
+/**
+ * One column against one term, as the condition the callers need.
+ *
+ * `~*` rather than ILIKE, because only a regular expression can say "at the
+ * start of a word" — which is what somebody typing the first few letters of a
+ * club means, and what ILIKE cannot express at all.
+ *
+ * Here rather than in each query file so the seven places that search cannot
+ * drift into asking seven slightly different questions.
+ */
+export function startsWord(column: AnyColumn | SQL, term: string): SQL {
+  return sql`${column} ~* ${term}`;
 }

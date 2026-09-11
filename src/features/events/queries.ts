@@ -6,7 +6,6 @@ import {
   desc,
   eq,
   gte,
-  ilike,
   inArray,
   isNull,
   lte,
@@ -16,7 +15,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/db";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import { eventKinds, events, venues } from "@/db/schema";
 import { weekendRange } from "@/lib/dates";
 
@@ -58,8 +57,8 @@ function visibleEventsWhere(filters: EventFilters): SQL[] {
   for (const term of searchTerms(filters.q)) {
     where.push(
       or(
-        ilike(events.title, term),
-        ilike(events.summary, term),
+        startsWord(events.title, term),
+        startsWord(events.summary, term),
         // Venue comes through a relation, which cannot filter the parent, so
         // matching where it is played needs a subquery on the id.
         inArray(
@@ -67,7 +66,7 @@ function visibleEventsWhere(filters: EventFilters): SQL[] {
           db
             .select({ id: venues.id })
             .from(venues)
-            .where(or(ilike(venues.name, term), ilike(venues.city, term))),
+            .where(or(startsWord(venues.name, term), startsWord(venues.city, term))),
         ),
       )!,
     );

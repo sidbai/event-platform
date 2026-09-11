@@ -1,12 +1,12 @@
 import "server-only";
 
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
 
 import { endOf } from "@/features/events/completion";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 
 import { ageGroupOf, parseAgeGroupFilter, seasonYearOf } from "./age";
 import { nextFixture, previewOf, worthShowing, type Preview } from "./preview";
@@ -71,7 +71,7 @@ function teamWhere(filter: TeamFilter) {
     // Every word has to land, but each may land in a different column —
     // "crossfire b14" is the club in one and the age group in another.
     ...terms.map((term) =>
-      or(ilike(teams.name, term), ilike(teams.city, term), ilike(clubs.name, term)),
+      or(startsWord(teams.name, term), startsWord(teams.city, term), startsWord(clubs.name, term)),
     ),
     affiliation ? eq(teams.affiliation, affiliation) : undefined,
     filter.club ? eq(clubs.slug, filter.club) : undefined,

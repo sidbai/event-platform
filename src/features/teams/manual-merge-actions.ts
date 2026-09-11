@@ -1,9 +1,9 @@
 "use server";
 
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import { clubs, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -44,7 +44,7 @@ export async function searchTeamsToMerge(query: string): Promise<TeamHit[]> {
     })
     .from(teams)
     .leftJoin(clubs, eq(clubs.id, teams.clubId))
-    .where(and(...terms.map((term) => or(ilike(teams.name, term), ilike(teams.slug, term)))))
+    .where(and(...terms.map((term) => or(startsWord(teams.name, term), startsWord(teams.slug, term)))))
     .limit(12);
 
   return rows.map((r) => ({

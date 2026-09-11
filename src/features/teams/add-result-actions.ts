@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, ilike, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { db } from "@/db";
-import { searchTerms } from "@/features/search/terms";
+import { searchTerms, startsWord } from "@/features/search/terms";
 import { events, matchProposals, matches, eventTeams, teams } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
@@ -56,7 +56,7 @@ export async function searchOpponents(
     where: and(
       // Every word, not the phrase: a parent typing their opponent's club and
       // then its age group was getting an empty list for the extra detail.
-      ...terms.map((term) => ilike(teams.name, term)),
+      ...terms.map((term) => startsWord(teams.name, term)),
       eq(teams.visibility, "public"),
       // Not itself, and not a placeholder standing in for a competition.
       ne(teams.id, teamId),
