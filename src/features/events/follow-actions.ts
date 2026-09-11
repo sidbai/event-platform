@@ -46,5 +46,5 @@ export async function toggleEventFollow(slug: string): Promise<void> {
   }
 
   revalidatePath(`/events/${slug}`);
-  revalidatePath("/me");
+  revalidatePath("/");
 }

@@ -82,7 +82,7 @@ export function MyWeekGrid({
     <div>
       <div className="flex items-center justify-between text-sm">
         <Link
-          href={`/me?week=${addDays(monday, -7)}#week`}
+          href={`/?week=${addDays(monday, -7)}#week`}
           className="text-brand-text hover:underline"
         >
           &larr; Earlier
@@ -91,7 +91,7 @@ export function MyWeekGrid({
           {dayLabel(monday)} &ndash; {dayLabel(addDays(monday, 6))}
         </span>
         <Link
-          href={`/me?week=${addDays(monday, 7)}#week`}
+          href={`/?week=${addDays(monday, 7)}#week`}
           className="text-brand-text hover:underline"
         >
           Later &rarr;

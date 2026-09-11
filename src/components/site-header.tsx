@@ -29,16 +29,9 @@ export async function SiteHeader() {
     { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
     { href: "/clubs", label: "Reviews" },
-    /*
-     * Last of the sections and next to the avatar, because it is the only one
-     * that is not a part of the site — it is the part that is yours. It was
-     * reachable only from inside the account menu, which is two presses and a
-     * guess for the page somebody has the most reason to open.
-     *
-     * Signed out there is nothing behind it but the sign-in page, so it is
-     * not offered.
-     */
-    ...(user ? [{ href: "/me", label: "Me" }] : []),
+    // No "Me": signed in, the front page is yours, and the logo is the way to
+    // it. A link beside the logo that goes where the logo goes is a second
+    // door in the same wall.
     ...(admin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
@@ -120,7 +113,7 @@ export async function SiteHeader() {
               }
               items={[
                 // First, because it is the one that gathers the rest.
-                { href: "/me", label: "Your page" },
+                { href: "/", label: "Your page" },
                 {
                   href: "/messages",
                   label: unread > 0 ? `Messages (${unread})` : "Messages",

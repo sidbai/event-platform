@@ -7,10 +7,13 @@ import { getCurrentUser } from "@/features/auth";
 import { EventTags } from "@/features/events/event-tags";
 import { formatEventWhen } from "@/features/events/when";
 import type { FeaturedMode } from "@/features/feed/featured";
-import { homeFeed, type FeaturedEvent, type FeedItem } from "@/features/feed/queries";
+import { KindChip } from "@/features/feed/kind-chip";
+import { homeFeed, type FeaturedEvent } from "@/features/feed/queries";
+import { timeAgo } from "@/features/feed/time-ago";
 import { CATEGORY_LABELS } from "@/features/forum/constants";
 import { CommentIcon, LikeButton } from "@/features/likes/like-button";
 import { likeStates } from "@/features/likes/queries";
+import { MeHome } from "@/features/me/home";
 import { categoryEmoji, categoryLabel } from "@/features/news/constants";
 
 // A feed of live content, so this cannot be a static landing page.
@@ -21,39 +24,6 @@ export const dynamic = "force-dynamic";
  * Each kind has its own page for going further back.
  */
 const FEED_SIZE = 24;
-
-function timeAgo(d: Date, now: number) {
-  const s = Math.round((now - d.getTime()) / 1000);
-  if (s < 60) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h`;
-  const days = Math.round(h / 24);
-  if (days < 7) return `${days}d`;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
-}
-
-/**
- * What kind of thing this is, said once per card.
- *
- * The feed mixes three sources, so without this the only clue would be the
- * shape of the card underneath — which is exactly the sort of thing that reads
- * fine to whoever built it and to nobody else.
- */
-const KIND: Record<FeedItem["kind"], { label: string; className: string }> = {
-  news: { label: "News", className: "bg-brand-soft text-brand-soft-text" },
-  post: { label: "Community", className: "bg-elevated text-muted" },
-};
-
-function KindChip({ kind }: { kind: FeedItem["kind"] }) {
-  const k = KIND[kind];
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${k.className}`}>
-      {k.label}
-    </span>
-  );
-}
 
 /**
  * The events band: what is on, above everything anyone has written.
@@ -129,15 +99,25 @@ function EventBand({
   );
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>;
+}) {
   const user = await getCurrentUser();
+  // Signed in, the front page is yours. See features/me/home.tsx.
+  if (user) {
+    const { week } = await searchParams;
+    return <MeHome user={user} weekParam={week} />;
+  }
   const { featured, featuredMode, recent, items, now } = await homeFeed(FEED_SIZE);
 
-  // Only forum posts can be liked today, so only they need the state fetched.
+  // Only forum posts can be liked today, so only they need the state fetched
+  // — and from here on nobody is signed in, so only the counts.
   const likes = await likeStates(
     "forum_post",
     items.filter((i) => i.kind === "post").map((i) => i.id),
-    user?.id ?? null,
+    null,
   );
 
   return (
@@ -242,7 +222,7 @@ export default async function Home() {
                         subjectId={item.id}
                         state={likes.get(item.id) ?? { count: 0, mine: false }}
                         revalidate="/"
-                        signedIn={Boolean(user)}
+                        signedIn={false}
                       />
                       <Link
                         href={item.href}
