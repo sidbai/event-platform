@@ -585,7 +585,9 @@ export default async function EventPage({
         </p>
       )}
 
-      {mayImport && (
+      {mayImport &&
+        /* A schedule is fixtures; a training slot or a meetup has none to bring in. */
+        event.modules.some((m) => m === "competition" || m === "fixture") && (
         <section className="mt-8 rounded-lg border border-line p-3">
           <h2 className="text-sm font-semibold">Bring in the schedule</h2>
           <p className="mt-1 text-xs text-muted">

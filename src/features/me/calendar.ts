@@ -2,9 +2,11 @@ import "server-only";
 
 import { and, asc, eq, gte, inArray, isNotNull, or } from "drizzle-orm";
 
+import { localDate } from "@/features/events/week";
+
 import { db } from "@/db";
 import { eventAttendees, eventDivisions, events, matches, teams, venues } from "@/db/schema";
-import type { CalendarFixture } from "@/features/calendar/ics";
+import type { CalendarEntry, CalendarFixture } from "@/features/calendar/ics";
 import { timeAnnounced } from "@/features/events/kickoff";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams } from "@/features/teams/follow-queries";
@@ -22,7 +24,10 @@ const LOOK_BACK_DAYS = 14;
  * phone can subscribe to. After that they never have to open the page at all,
  * which is the right ambition for it.
  */
-export async function myCalendar(userId: string, now = new Date()): Promise<CalendarFixture[]> {
+export async function myCalendar(
+  userId: string,
+  now = new Date(),
+): Promise<(CalendarFixture | CalendarEntry)[]> {
   const since = new Date(now.getTime() - LOOK_BACK_DAYS * 24 * 3_600_000);
   const origin = siteUrl().replace(/\/$/, "");
 
@@ -66,6 +71,7 @@ export async function myCalendar(userId: string, now = new Date()): Promise<Cale
         title: events.title,
         slug: events.slug,
         startsAt: events.startsAt,
+            endsAt: events.endsAt,
         venueName: venues.name,
       })
       .from(eventAttendees)
@@ -96,7 +102,7 @@ export async function myCalendar(userId: string, now = new Date()): Promise<Cale
     : [];
   const nameOf = new Map(named.map((t) => [t.id, t.name]));
 
-  const out: CalendarFixture[] = fixtures.map((f) => ({
+  const out: (CalendarFixture | CalendarEntry)[] = fixtures.map((f) => ({
     id: f.id,
     kickoffAt: f.kickoffAt,
     timed: timeAnnounced(f.kickoffAt, TZ),
@@ -113,38 +119,93 @@ export async function myCalendar(userId: string, now = new Date()): Promise<Cale
    * is four thousand of them and almost none are this person's — the ones
    * that are come from following the teams.
    */
-  const said = new Set(attending.map((e) => e.id));
-  for (const e of await followedEvents(userId)) {
-    if (!e.startsAt || said.has(e.id) || e.startsAt < since) continue;
-    out.push({
+  /*
+   * An event with a real end on the same day is a slot, and its end is the
+   * end.
+   *
+   * Everything else here is drawn an hour long, or across the day when the
+   * hour is unknown, because a fixture publishes a kick-off and nothing
+   * more. A coach's 2:30–3:30 publishes both, and a phone drawing it until
+   * 3:30 rather than 3:30 is the difference between a calendar and a hint.
+   * A multi-day end (a tournament's last day at 23:59) is not a slot and
+   * keeps the fixture treatment.
+   */
+  const entryOf = (
+    e: { id: string; slug: string; title: string; startsAt: Date | null; endsAt: Date | null; venueName: string | null },
+    why: string,
+  ): CalendarFixture | CalendarEntry => {
+    const slot =
+      e.startsAt &&
+      e.endsAt &&
+      e.endsAt.getTime() > e.startsAt.getTime() &&
+      localDate(e.startsAt, TZ) === localDate(e.endsAt, TZ) &&
+      timeAnnounced(e.startsAt, TZ);
+    if (slot) {
+      return {
+        id: e.id,
+        startsAt: e.startsAt!,
+        endsAt: e.endsAt!,
+        summary: e.title,
+        description: [why, `${origin}/events/${e.slug}`],
+        location: e.venueName,
+        url: `${origin}/events/${e.slug}`,
+      };
+    }
+    return {
       id: e.id,
       kickoffAt: e.startsAt,
-      timed: timeAnnounced(e.startsAt, TZ),
-      home: e.title,
-      away: "",
-      where: e.venueName,
-      event: "You follow this",
-      division: null,
-      url: `${origin}/events/${e.slug}`,
-    });
-  }
-
-  for (const e of attending) {
-    out.push({
-      id: e.id,
-      kickoffAt: e.startsAt,
-      timed: timeAnnounced(e.startsAt, TZ),
+      timed: e.startsAt ? timeAnnounced(e.startsAt, TZ) : false,
       // Not a fixture: one line, the way it reads on the event page.
       home: e.title,
       away: "",
       where: e.venueName,
-      event: "You said you would be there",
+      event: why,
       division: null,
       url: `${origin}/events/${e.slug}`,
-    });
+    };
+  };
+
+  const said = new Set(attending.map((e) => e.id));
+  for (const e of await followedEvents(userId)) {
+    if (!e.startsAt || said.has(e.id) || e.startsAt < since) continue;
+    out.push(entryOf(e, "You follow this"));
   }
 
-  return out.sort(
-    (a, b) => (a.kickoffAt?.getTime() ?? 0) - (b.kickoffAt?.getTime() ?? 0),
-  );
+  for (const e of attending) {
+    out.push(entryOf(e, "You said you would be there"));
+  }
+
+  /*
+   * The events this person runs, which are theirs to have on their calendar
+   * before anybody RSVPs. A coach who cannot see their own open two o'clock
+   * is the problem the training kind exists to fix.
+   */
+  const seen = new Set(out.map((x) => x.id));
+  const organizing = await db
+    .select({
+      id: events.id,
+      slug: events.slug,
+      title: events.title,
+      startsAt: events.startsAt,
+      endsAt: events.endsAt,
+      venueName: venues.name,
+    })
+    .from(events)
+    .leftJoin(venues, eq(venues.id, events.venueId))
+    .where(
+      and(
+        eq(events.organizerId, userId),
+        inArray(events.status, ["published", "pending"]),
+        isNotNull(events.startsAt),
+        or(gte(events.endsAt, since), gte(events.startsAt, since)),
+      ),
+    );
+  for (const e of organizing) {
+    if (seen.has(e.id)) continue;
+    out.push(entryOf(e, "You run this"));
+  }
+
+  const when = (x: CalendarFixture | CalendarEntry) =>
+    "kickoffAt" in x ? (x.kickoffAt?.getTime() ?? 0) : x.startsAt.getTime();
+  return out.sort((a, b) => when(a) - when(b));
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calendar, fold, type CalendarFixture } from "./ics";
+import { calendar, fold, type CalendarEntry, type CalendarFixture } from "./ics";
 
 const PT = "America/Los_Angeles";
 const NOW = new Date("2026-09-10T12:00:00Z");
@@ -76,6 +76,33 @@ describe("calendar", () => {
     expect(out.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(out.split("\r\n").length).toBeGreaterThan(10);
     expect(out).not.toMatch(/[^\r]\n/);
+  });
+});
+
+describe("an entry that is not a fixture", () => {
+  const session: CalendarEntry = {
+    id: "session-1",
+    startsAt: new Date("2026-09-13T21:30:00Z"),
+    endsAt: new Date("2026-09-13T22:30:00Z"),
+    summary: "Training with EJ — Joshua",
+    description: ["1-on-1", "https://kingjuansoccer.com/training/session-1"],
+    location: "Evergreen Playfield",
+    url: "https://kingjuansoccer.com/training/session-1",
+  };
+
+  it("writes the end the coach chose, not an assumed hour", () => {
+    const out = calendar([session], { name: "Me", timeZone: PT, now: NOW });
+    expect(out).toContain("DTSTART:20260913T213000Z");
+    expect(out).toContain("DTEND:20260913T223000Z");
+    expect(out).toContain("SUMMARY:Training with EJ — Joshua");
+    expect(out).toContain("LOCATION:Evergreen Playfield");
+  });
+
+  it("sits beside a fixture in the same feed", () => {
+    const out = calendar([fixture(), session], { name: "Me", timeZone: PT, now: NOW });
+    expect(out.match(/BEGIN:VEVENT/g)).toHaveLength(2);
+    expect(out).toContain("UID:719444@kingjuansoccer.com");
+    expect(out).toContain("UID:session-1@kingjuansoccer.com");
   });
 });
 

@@ -24,6 +24,8 @@ export type EventDefaults = {
   summary: string;
   date: string;
   time: string;
+  endTime: string;
+  capacity: string;
   endDate: string;
   locationType: string;
   onlineUrl: string;
@@ -275,6 +277,22 @@ export function EventForm({
             className={`mt-1 ${field}`}
           />
         </div>
+        <div>
+          <label className={label} htmlFor="endTime">
+            End time <span className="text-muted">(optional)</span>
+          </label>
+          <input
+            id="endTime"
+            name="endTime"
+            type="time"
+            defaultValue={kept("endTime")}
+            className={`mt-1 ${field}`}
+          />
+          <p className="mt-1 text-xs text-muted">
+            For something with a finish — a training slot, a scrimmage.
+          </p>
+          {err.endTime && <p className="mt-1 text-xs text-red-600">{err.endTime}</p>}
+        </div>
       </div>
 
       <div>
@@ -431,6 +449,24 @@ export function EventForm({
             placeholder="U11"
             className={`mt-1 ${field}`}
           />
+        </div>
+        <div>
+          <label className={label} htmlFor="capacity">
+            Places <span className="text-muted">(optional)</span>
+          </label>
+          <input
+            id="capacity"
+            name="capacity"
+            type="number"
+            min={1}
+            max={500}
+            defaultValue={kept("capacity")}
+            className={`mt-1 ${field}`}
+          />
+          <p className="mt-1 text-xs text-muted">
+            How many can say going. One for a private session.
+          </p>
+          {err.capacity && <p className="mt-1 text-xs text-red-600">{err.capacity}</p>}
         </div>
         <div>
           <label className={label} htmlFor="gender">

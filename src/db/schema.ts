@@ -1936,6 +1936,15 @@ export const eventAttendees = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     status: attendanceStatus("status").notNull().default("going"),
     guests: integer("guests").notNull().default(0),
+    /**
+     * Who is actually coming, in the attendee's words.
+     *
+     * An RSVP is a person; the person turning up is often their child. A
+     * coach opening a training session needs "Joshua, 2015 — he's a keeper",
+     * not a handle, and a pickup run is glad of "bringing two". Optional,
+     * short, and shown beside the name, because the attendee chose to say it.
+     */
+    note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

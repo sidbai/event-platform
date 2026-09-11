@@ -9,6 +9,34 @@
  * the rules are the whole of the risk.
  */
 
+/**
+ * Anything with a start and an end that a phone should draw.
+ *
+ * Fixtures were the first thing this feed carried and have their own shape
+ * below, because "home v away" is a sentence with structure. A training
+ * session is not a fixture — it has one side, a coach, and an end time the
+ * coach chose rather than an hour assumed — so it arrives as one of these,
+ * and a fixture is turned into one before it is written.
+ */
+export type CalendarEntry = {
+  /** Stable for the life of the thing: a reader matches on it. */
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  summary: string;
+  /** Lines, joined for the reader. */
+  description: string[];
+  location: string | null;
+  url: string | null;
+  /**
+   * Draw it across the day rather than at an hour.
+   *
+   * Only a fixture ever sets this, for a game whose kick-off nobody has
+   * published; a session always has the hour, because the coach chose it.
+   */
+  allDay?: boolean;
+};
+
 export type CalendarFixture = {
   /** Stable for the life of the fixture: a reader matches on it. */
   id: string;
@@ -101,8 +129,39 @@ export type CalendarOptions = {
   now?: Date;
 };
 
+/**
+ * A fixture as an entry, or null for one with no date.
+ *
+ * The hour-less fixture keeps its whole-day treatment — that is a fact about
+ * fixtures, not about entries, so it is decided here where the fixture is.
+ */
+export function fixtureEntry(fixture: CalendarFixture): CalendarEntry | null {
+  if (!fixture.kickoffAt) return null;
+  return {
+    id: fixture.id,
+    startsAt: fixture.kickoffAt,
+    // Youth games run an hour or less, and an event with no end is drawn as
+    // a sliver by some readers and as the rest of the day by others.
+    endsAt: new Date(fixture.kickoffAt.getTime() + 3_600_000),
+    summary: `${fixture.home} v ${fixture.away}`,
+    description: [
+      fixture.event,
+      fixture.division,
+      fixture.timed ? null : "Kick-off time not published yet",
+      fixture.url,
+    ].filter((line): line is string => typeof line === "string" && line !== ""),
+    location: fixture.where,
+    url: fixture.url,
+    allDay: !fixture.timed,
+  };
+}
+
+function isFixture(item: CalendarFixture | CalendarEntry): item is CalendarFixture {
+  return "kickoffAt" in item;
+}
+
 export function calendar(
-  fixtures: CalendarFixture[],
+  items: (CalendarFixture | CalendarEntry)[],
   { name, timeZone, now = new Date() }: CalendarOptions,
 ): string {
   const lines: string[] = [
@@ -117,46 +176,38 @@ export function calendar(
     `X-WR-TIMEZONE:${timeZone}`,
   ];
 
-  for (const fixture of fixtures) {
-    if (!fixture.kickoffAt) continue;
+  for (const item of items) {
+    const entry = isFixture(item) ? fixtureEntry(item) : item;
+    if (!entry) continue;
 
     lines.push("BEGIN:VEVENT");
     /*
-     * Stable for the life of the fixture. A reader matches on this to decide
-     * whether a game moved or is a new one, so a UID built from the kick-off
-     * would leave the old entry behind every time one was rescheduled.
+     * Stable for the life of the thing. A reader matches on this to decide
+     * whether it moved or is new, so a UID built from the start would leave
+     * the old entry behind every time one was rescheduled.
      */
-    lines.push(`UID:${fixture.id}@kingjuansoccer.com`);
+    lines.push(`UID:${entry.id}@kingjuansoccer.com`);
     lines.push(`DTSTAMP:${stamp(now)}`);
 
-    if (fixture.timed) {
-      lines.push(`DTSTART:${stamp(fixture.kickoffAt)}`);
-      // Youth games run an hour or less, and an event with no end is drawn as
-      // a sliver by some readers and as the rest of the day by others.
-      lines.push(`DTEND:${stamp(new Date(fixture.kickoffAt.getTime() + 3_600_000))}`);
+    if (!entry.allDay) {
+      lines.push(`DTSTART:${stamp(entry.startsAt)}`);
+      lines.push(`DTEND:${stamp(entry.endsAt)}`);
     } else {
       /*
        * The day is known and the hour is not, which this format says with a
        * whole-day event rather than with midnight. A phone drawing it at
        * 12:00 AM would be stating a kick-off nobody published.
        */
-      const start = day(fixture.kickoffAt, timeZone);
+      const start = day(entry.startsAt, timeZone);
       lines.push(`DTSTART;VALUE=DATE:${start}`);
       lines.push(`DTEND;VALUE=DATE:${nextDay(start)}`);
     }
 
-    lines.push(`SUMMARY:${escape(`${fixture.home} v ${fixture.away}`)}`);
-    if (fixture.where) lines.push(`LOCATION:${escape(fixture.where)}`);
-    if (fixture.url) lines.push(`URL:${fixture.url}`);
-
-    const description = [
-      fixture.event,
-      fixture.division,
-      fixture.timed ? null : "Kick-off time not published yet",
-      fixture.url,
-    ].filter((line): line is string => typeof line === "string" && line !== "");
-    if (description.length > 0) {
-      lines.push(`DESCRIPTION:${escape(description.join("\n"))}`);
+    lines.push(`SUMMARY:${escape(entry.summary)}`);
+    if (entry.location) lines.push(`LOCATION:${escape(entry.location)}`);
+    if (entry.url) lines.push(`URL:${entry.url}`);
+    if (entry.description.length > 0) {
+      lines.push(`DESCRIPTION:${escape(entry.description.join("\n"))}`);
     }
 
     lines.push("END:VEVENT");

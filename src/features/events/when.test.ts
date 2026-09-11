@@ -41,7 +41,8 @@ describe("formatEventWhen", () => {
     // one day there and two in UTC.
     const start = at("2026-08-29T16:00:00Z");
     const end = at("2026-08-30T03:00:00Z");
-    expect(formatEventWhen(start, end, SEATTLE)).toBe("Saturday, August 29, 2026");
+    // Same day in Seattle, and both hours were chosen, so both are said.
+    expect(formatEventWhen(start, end, SEATTLE)).toBe("Saturday, August 29, 2026 · 9:00 am–8:00 pm");
     expect(formatEventWhen(start, end, "UTC")).toBe("August 29–30, 2026");
   });
 
@@ -75,6 +76,26 @@ describe("formatEventWhen", () => {
     );
     expect(s).toContain("–");
     expect(s).not.toContain("-");
+  });
+});
+
+describe("a same-day slot", () => {
+  it("shows its hours when both were chosen", () => {
+    // Sunday 2:30–3:30 pm Pacific.
+    expect(
+      formatEventWhen(at("2026-09-13T21:30:00Z"), at("2026-09-13T22:30:00Z"), SEATTLE),
+    ).toBe("Sunday, September 13, 2026 · 2:30–3:30 pm");
+  });
+
+  it("does not invent hours from a stored end-of-day", () => {
+    // endDate typed as the same day: stored as 23:59, which nobody chose.
+    expect(
+      formatEventWhen(at("2026-09-13T16:00:00Z"), at("2026-09-14T06:59:00Z"), SEATTLE),
+    ).toBe("Sunday, September 13, 2026");
+    // No start time given: stored as midnight.
+    expect(
+      formatEventWhen(at("2026-09-13T07:00:00Z"), at("2026-09-13T22:30:00Z"), SEATTLE),
+    ).toBe("Sunday, September 13, 2026");
   });
 });
 
