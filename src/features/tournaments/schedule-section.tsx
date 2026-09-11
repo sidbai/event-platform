@@ -10,6 +10,7 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 
 import { NavSelect } from "@/components/nav-select";
 import { timeAnnounced, whereAnnounced } from "@/features/events/kickoff";
+import { scoreLabel } from "@/features/events/score-label";
 
 import {
   byCluster,
@@ -466,9 +467,7 @@ export function ScheduleSection({
                         <TeamCrest src={crestOf(m.homeTeam)} size={18} />
                       </span>
                       <span className="min-w-14 text-center tabular-nums text-muted">
-                        {m.homeScore !== null && m.awayScore !== null
-                          ? `${m.homeScore} – ${m.awayScore}`
-                          : "v"}
+                        {scoreLabel(m) ?? "v"}
                       </span>
                       <span className="flex items-center gap-2">
                         <TeamCrest src={crestOf(m.awayTeam)} size={18} />
@@ -670,9 +669,7 @@ function DivisionStandings({
                 {m.homeTeam?.name ?? m.homePlaceholder}
                 <TeamCrest src={crestOf(m.homeTeam)} size={18} />
               </span>
-              <span className="font-semibold tabular-nums">
-                {m.homeScore}–{m.awayScore}
-              </span>
+              <span className="font-semibold tabular-nums">{scoreLabel(m, "–")}</span>
               <span className="flex flex-1 items-center gap-1.5">
                 <TeamCrest src={crestOf(m.awayTeam)} size={18} />
                 {m.awayTeam?.name ?? m.awayPlaceholder}

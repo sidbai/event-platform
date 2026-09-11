@@ -38,6 +38,7 @@ import { requestTeamClaim } from "@/features/teams/claim-actions";
 import { ClaimTeamForm } from "@/features/teams/claim-form";
 import { myTeamClaim } from "@/features/teams/claim-queries";
 import { canRequestClaim } from "@/features/teams/claim";
+import { shootout } from "@/features/events/score-label";
 import { honoursByEvent, PLACE_LABEL } from "@/features/teams/honours";
 import { crestOf } from "@/features/teams/crest";
 
@@ -568,6 +569,14 @@ function MatchRow({
         <span className={`w-4 font-semibold ${resultColor}`}>{result}</span>
         <span className="tabular-nums">
           {us}–{them}
+          {/* A level knockout was decided somewhere; say where. */}
+          {shootout(match) && (
+            <span className="text-muted">
+              {" "}
+              ({isHome ? shootout(match)!.home : shootout(match)!.away}–
+              {isHome ? shootout(match)!.away : shootout(match)!.home} pens)
+            </span>
+          )}
         </span>
         <span className="text-muted">vs</span>
         <span className="flex min-w-0 items-center gap-1.5">

@@ -581,6 +581,22 @@ export default async function EventPage({
         </div>
       )}
 
+      {/* An imported schedule's scores are the platform's, except where the
+          platform never got one — the final, typically, which both teams
+          walked off knowing. An admin can enter it here, and the next import
+          leaves a hand-set score alone. */}
+      {!runHere && isAdmin(user) && event.matches.length > 0 && (
+        <p className="mt-8 text-sm text-muted">
+          Admin:{" "}
+          <Link
+            href={`/events/${event.slug}/scores`}
+            className="font-medium text-brand-text hover:underline"
+          >
+            enter or correct scores
+          </Link>
+        </p>
+      )}
+
       {runHere && event.divisions.length > 0 && (
         <p className="mt-8 text-sm text-muted">
           Organizer tools:{" "}

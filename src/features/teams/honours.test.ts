@@ -58,6 +58,12 @@ describe("placeIn", () => {
     expect(placeIn(m({ homeScore: null, awayScore: null }), "us")).toBeNull();
   });
 
+  it("reads the shootout when the final ended level", () => {
+    expect(placeIn(m({ homeScore: 2, awayScore: 2, homePens: 4, awayPens: 3 }), "us")).toBe("champion");
+    expect(placeIn(m({ homeScore: 2, awayScore: 2, homePens: 4, awayPens: 3 }), "them")).toBe("runner-up");
+    expect(placeIn(m({ homeScore: 2, awayScore: 2, homePens: 3, awayPens: 5 }), "us")).toBe("runner-up");
+  });
+
   it("says nothing about a final that ended level", () => {
     // Decided on penalties, which this does not hold — and a page naming the
     // wrong champion is worse than one that says nothing.

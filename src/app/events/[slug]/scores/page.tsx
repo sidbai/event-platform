@@ -148,6 +148,8 @@ export default async function ScoresPage({
                     awayPlaceholder={m.awayPlaceholder}
                     homeScore={m.homeScore}
                     awayScore={m.awayScore}
+                    homePens={m.homePens}
+                    awayPens={m.awayPens}
                     status={m.status}
                     heldSince={m.scoreSetAt}
                     releaseAction={releaseMatchScore.bind(null, slug, m.id)}

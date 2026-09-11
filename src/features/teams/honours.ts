@@ -16,10 +16,12 @@
  * with a trophy the results no longer support. The final is the record.
  *
  * Deliberately silent when it cannot tell. A final with no score is a game
- * not played yet, and one that ended level was decided by penalties this
- * does not hold — a page claiming the wrong champion is worse than a page
- * saying nothing.
+ * not played yet, and one that ended level was decided by penalties — held
+ * only when somebody entered the shootout by hand, and unsaid otherwise. A
+ * page claiming the wrong champion is worse than a page saying nothing.
  */
+
+import { winner } from "@/features/events/score-label";
 
 export type FinalLike = {
   /** 'group' | 'ko', for events this platform runs. */
@@ -35,6 +37,9 @@ export type FinalLike = {
   awayTeamId: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  /** The shootout, where a final ended level and somebody wrote it down. */
+  homePens?: number | null;
+  awayPens?: number | null;
 };
 
 export type Place = "champion" | "runner-up";
@@ -69,11 +74,12 @@ export function isKnockoutDivision(name: string | null | undefined): boolean {
 /** Where this team finished in that final, or null if it cannot be said. */
 export function placeIn(match: FinalLike, teamId: string): Place | null {
   if (!isFinal(match)) return null;
-  if (match.homeScore === null || match.awayScore === null) return null;
-  // A draw was settled by penalties, which this does not hold.
-  if (match.homeScore === match.awayScore) return null;
+  // A level final was settled by penalties; without the shootout written
+  // down there is no saying by whom.
+  const won = winner(match);
+  if (!won) return null;
 
-  const homeWon = match.homeScore > match.awayScore;
+  const homeWon = won === "home";
   if (match.homeTeamId === teamId) return homeWon ? "champion" : "runner-up";
   if (match.awayTeamId === teamId) return homeWon ? "runner-up" : "champion";
   return null;

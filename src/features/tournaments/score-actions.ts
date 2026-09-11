@@ -58,6 +58,20 @@ export async function saveMatch(
   if (home === "bad" || away === "bad") return { error: "Scores are whole numbers 0–99." };
   if ((home === null) !== (away === null)) return { error: "Enter both scores or neither." };
 
+  /*
+   * A shootout only decides a level game, and only one way. Both numbers or
+   * neither, the same as the score; entered against a game that was not
+   * level, or level itself, it is a typo rather than a result.
+   */
+  const homePens = parseScore(formData.get("homePens"));
+  const awayPens = parseScore(formData.get("awayPens"));
+  if (homePens === "bad" || awayPens === "bad") return { error: "Penalties are whole numbers 0–99." };
+  if ((homePens === null) !== (awayPens === null)) return { error: "Enter both shootout scores or neither." };
+  if (homePens !== null) {
+    if (home === null || home !== away) return { error: "A shootout only decides a level game." };
+    if (homePens === awayPens) return { error: "A shootout has a winner." };
+  }
+
   const status = String(formData.get("status") ?? "scheduled");
   const homeTeamId = (formData.get("homeTeamId") as string) || null;
   const awayTeamId = (formData.get("awayTeamId") as string) || null;
@@ -84,6 +98,8 @@ export async function saveMatch(
     .set({
       homeScore: home,
       awayScore: away,
+      homePens,
+      awayPens,
       status: STATUSES.has(status)
         ? (status as (typeof matchStatus.enumValues)[number])
         : "scheduled",

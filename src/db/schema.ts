@@ -830,6 +830,16 @@ export const matches = pgTable(
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
     /**
+     * A shootout, when a knockout game ended level: 2–2, then 4–3 on
+     * penalties. The score stays the score — the record and the table read
+     * it as a draw, which it was — and the shootout says who went through.
+     * Set by hand only; no platform read here publishes one, and the sync
+     * never writes these columns, so a hand-entered shootout survives the
+     * next import the way a hand-entered score does.
+     */
+    homePens: integer("home_pens"),
+    awayPens: integer("away_pens"),
+    /**
      * Which round of a league this is — "Week 5" as the league counts it.
      *
      * Null for a tournament, which has no such thing: a weekend is read by
