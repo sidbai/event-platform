@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { TeamCrest } from "@/components/team-crest";
+import { SubscribeLink } from "@/features/calendar/subscribe-link";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
 import {
@@ -487,6 +488,11 @@ export default async function TeamPage({
               <MatchRow key={m.id} match={m} teamId={team.id} />
             ))}
           </ul>
+          {/*
+            Under the list rather than at the top: somebody reads the fixtures
+            first and wants them somewhere else second.
+          */}
+          <SubscribeLink path={`/teams/${team.slug}/fixtures.ics`} what="these fixtures" />
         </section>
       )}
     </div>
