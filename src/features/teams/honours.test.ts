@@ -5,6 +5,7 @@ import {
   isFinal,
   isKnockoutDivision,
   placeIn,
+  tableChampion,
   type FinalLike,
 } from "./honours";
 
@@ -155,5 +156,51 @@ describe("a knockout division", () => {
       "us",
     );
     expect(out.get("spring-classic")).toBe("champion");
+  });
+});
+
+describe("a round robin with no final", () => {
+  /** A weekend flight of four: everyone plays everyone, nobody plays a final. */
+  const game = (home: string, away: string, hs: number, as: number, over: Partial<FinalLike> = {}) => ({
+    ...m({ groupLabel: null, divisionId: "gold", division: { name: "GU11 - A-Gold" }, homeTeamId: home, awayTeamId: away, homeScore: hs, awayScore: as, ...over }),
+    eventId: "rainier",
+  });
+  const flight = [
+    game("us", "a", 5, 0),
+    game("b", "us", 0, 1),
+    game("us", "c", 7, 0),
+    game("a", "b", 2, 1),
+    game("c", "a", 1, 3),
+    game("b", "c", 3, 0),
+  ];
+
+  it("crowns the team clear at the top of the table", () => {
+    expect(tableChampion(flight)).toEqual({ champion: "us", runnerUp: "a" });
+    const out = honoursByEvent(flight.filter((g) => g.homeTeamId === "us" || g.awayTeamId === "us"), "us", flight);
+    expect(out.get("rainier")).toBe("champion");
+    expect(honoursByEvent([], "a", flight).get("rainier")).toBe("runner-up");
+    expect(honoursByEvent([], "b", flight).has("rainier")).toBe(false);
+  });
+
+  it("declines a table where the top is tied on points", () => {
+    // us and a draw: both on seven.
+    const tied = flight.map((g) => (g.homeTeamId === "us" && g.awayTeamId === "a" ? { ...g, homeScore: 1, awayScore: 1 } : g));
+    expect(tableChampion(tied)).toBeNull();
+  });
+
+  it("says nothing while a game is still to be played", () => {
+    const open = [...flight.slice(0, -1), { ...flight[5], homeScore: null, awayScore: null }];
+    expect(tableChampion(open)).toBeNull();
+  });
+
+  it("leaves a division with a final to the final", () => {
+    const withFinal = [...flight, game("us", "a", 2, 3, { groupLabel: "Final" })];
+    expect(tableChampion(withFinal)).toBeNull();
+    // The final says a was champion, and the table does not get a second vote.
+    expect(honoursByEvent(withFinal, "us", withFinal).get("rainier")).toBe("runner-up");
+  });
+
+  it("names nobody where a side is a placeholder", () => {
+    expect(tableChampion([...flight, game("us", "", 1, 0, { awayTeamId: null })])).toBeNull();
   });
 });
