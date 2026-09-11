@@ -109,6 +109,12 @@ describe("applying a sync", () => {
     expect(divisions.length).toBe(2); // Boys-U19 Gold, Boys-U17 Gold
     expect(entries.length).toBe(data.teams.length);
     expect(games.length).toBe(data.matches.length);
+    // The ground beside the pitch: a field number alone says nothing about
+    // where to drive, which is what a league across many grounds needs.
+    expect(games.every((g) => g.field !== null)).toBe(true);
+    expect(new Set(games.map((g) => g.venue))).toEqual(
+      new Set(["60 Acres Soccer Park, 15200 NE 116th St, Washington, 98052"]),
+    );
   });
 
   it("stores kick-off as an instant in the event's own timezone", async () => {

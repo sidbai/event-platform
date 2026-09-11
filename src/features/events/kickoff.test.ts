@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fieldAnnounced, kickoffLabel, timeAnnounced } from "./kickoff";
+import { fieldAnnounced, kickoffLabel, timeAnnounced, whereAnnounced } from "./kickoff";
 
 const PT = "America/Los_Angeles";
 /** Midnight Pacific on 26 September 2026, which is 07:00 UTC. */
@@ -47,6 +47,21 @@ describe("fieldAnnounced", () => {
   it("keeps a real one, trimmed", () => {
     expect(fieldAnnounced(" Field 3 ")).toBe("Field 3");
     expect(fieldAnnounced("Marymoor Park")).toBe("Marymoor Park");
+  });
+});
+
+describe("whereAnnounced", () => {
+  it("puts the ground before the pitch", () => {
+    expect(whereAnnounced("Silas High School", "Field 1")).toBe(
+      "Silas High School · Field 1",
+    );
+  });
+
+  it("says only the half it knows", () => {
+    expect(whereAnnounced("Lincoln Field", null)).toBe("Lincoln Field");
+    expect(whereAnnounced(null, "60A #09")).toBe("60A #09");
+    expect(whereAnnounced("TBD", "TBD")).toBeNull();
+    expect(whereAnnounced(null, "-")).toBeNull();
   });
 });
 

@@ -7,7 +7,7 @@ import { localDate } from "@/features/events/week";
 import { db } from "@/db";
 import { eventAttendees, eventDivisions, events, matches, teams, venues } from "@/db/schema";
 import type { CalendarEntry, CalendarFixture } from "@/features/calendar/ics";
-import { timeAnnounced } from "@/features/events/kickoff";
+import { timeAnnounced, whereAnnounced } from "@/features/events/kickoff";
 import { followedEvents } from "@/features/events/follow-queries";
 import { followedTeams } from "@/features/teams/follow-queries";
 import { siteUrl } from "@/lib/site-url";
@@ -41,6 +41,7 @@ export async function myCalendar(
             id: matches.id,
             kickoffAt: matches.kickoffAt,
             field: matches.field,
+            venue: matches.venue,
             homeName: teams.name,
             homePlaceholder: matches.homePlaceholder,
             awayPlaceholder: matches.awayPlaceholder,
@@ -108,7 +109,7 @@ export async function myCalendar(
     timed: timeAnnounced(f.kickoffAt, TZ),
     home: (f.homeId && nameOf.get(f.homeId)) || f.homePlaceholder || "TBD",
     away: (f.awayId && nameOf.get(f.awayId)) || f.awayPlaceholder || "TBD",
-    where: f.field,
+    where: whereAnnounced(f.venue, f.field),
     event: f.eventTitle,
     division: f.division,
     url: `${origin}/events/${f.eventSlug}`,

@@ -812,6 +812,16 @@ export const matches = pgTable(
     round: text("round"),
     groupLabel: text("group_label"),
     field: text("field"),
+    /**
+     * Where the field is, as the platform names it — "Silas High School"
+     * beside field "Field 1". Text rather than a venues row because it is
+     * kept as published, like the placeholders: a league writes the same
+     * ground three ways across a season and none of them is ours to choose
+     * between. The event's own venue stays on the event; this is for a league
+     * played at forty grounds, where a field number alone tells a parent
+     * nothing about where to drive.
+     */
+    venue: text("venue"),
     kickoffAt: timestamp("kickoff_at", { withTimezone: true }),
     homeTeamId: uuid("home_team_id").references(() => teams.id),
     awayTeamId: uuid("away_team_id").references(() => teams.id),

@@ -22,7 +22,7 @@ import type { Upcoming } from "./whats-next";
  */
 export function NextCard({ item, now }: { item: Upcoming; now: Date }) {
   const when = whenLabel(item.at, item.timed, now);
-  const where = [item.detail, item.field].filter(Boolean).join(" · ");
+  const where = [item.detail, item.where].filter(Boolean).join(" · ");
 
   return (
     <li>

@@ -53,8 +53,9 @@ import type { SyncedEvent } from "./provider";
  * this, and the next poll of every event writes once and settles.
  *
  * 2 — a date with no time keeps its date (2026-09-10)
+ * 3 — the venue a platform names beside the field is kept (2026-09-11)
  */
-const WRITE_VERSION = 2;
+const WRITE_VERSION = 3;
 
 /** A digest of what a platform published, so an unchanged fetch writes nothing. */
 export function contentHash(data: SyncedEvent): string {
@@ -439,6 +440,7 @@ export async function applySync(
       stage: "group" as const,
       groupLabel: m.group,
       field: m.field,
+      venue: m.venue,
       kickoffAt,
       homeTeamId: m.homeTeamId ? (teamIdBySource.get(m.homeTeamId) ?? null) : null,
       awayTeamId: m.awayTeamId ? (teamIdBySource.get(m.awayTeamId) ?? null) : null,
@@ -479,6 +481,7 @@ export async function applySync(
                 stage: values.stage,
                 groupLabel: values.groupLabel,
                 field: values.field,
+                venue: values.venue,
                 kickoffAt: values.kickoffAt,
                 homeTeamId: values.homeTeamId,
                 awayTeamId: values.awayTeamId,

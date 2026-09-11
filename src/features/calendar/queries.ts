@@ -4,7 +4,7 @@ import { aliasedTable, and, asc, eq, gte, isNotNull, or, type SQL } from "drizzl
 
 import { db } from "@/db";
 import { eventDivisions, events, matches, teams } from "@/db/schema";
-import { timeAnnounced } from "@/features/events/kickoff";
+import { timeAnnounced, whereAnnounced } from "@/features/events/kickoff";
 import { siteUrl } from "@/lib/site-url";
 
 import type { CalendarFixture } from "./ics";
@@ -38,6 +38,7 @@ async function fixturesWhere(clause: SQL | undefined): Promise<CalendarFixture[]
       id: matches.id,
       kickoffAt: matches.kickoffAt,
       field: matches.field,
+      venue: matches.venue,
       homePlaceholder: matches.homePlaceholder,
       awayPlaceholder: matches.awayPlaceholder,
       eventSlug: events.slug,
@@ -66,7 +67,7 @@ async function fixturesWhere(clause: SQL | undefined): Promise<CalendarFixture[]
       // a calendar as much as a team is.
       home: row.homeName ?? row.homePlaceholder ?? "TBD",
       away: row.awayName ?? row.awayPlaceholder ?? "TBD",
-      where: row.field,
+      where: whereAnnounced(row.venue, row.field),
       event: row.eventTitle,
       division: row.division,
       url: `${origin}/events/${row.eventSlug}`,

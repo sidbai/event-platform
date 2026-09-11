@@ -44,6 +44,22 @@ export function fieldAnnounced(field: string | null | undefined): string | null 
 }
 
 /**
+ * Where a game is, as one line: "Silas High School · Field 1".
+ *
+ * The ground first, because that is the order a parent uses it in — drive
+ * to the school, then walk to the pitch. Either half may be missing or a
+ * placeholder, and the line says only what is known; a league that has
+ * booked the ground but not the field still reads as somewhere.
+ */
+export function whereAnnounced(
+  venue: string | null | undefined,
+  field: string | null | undefined,
+): string | null {
+  const parts = [fieldAnnounced(venue), fieldAnnounced(field)].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/**
  * A kick-off as a person reads it, or null when there is no date at all.
  *
  * "Sat, Sep 12, 9:00 AM", and "Sat, Sep 12, time TBD" where the league has
