@@ -4,8 +4,11 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
+import { siteUrl } from "@/lib/site-url";
 import { kickoffLabel } from "@/features/events/kickoff";
 import { waitingOn, written, type Written } from "@/features/me/queries";
+import { CalendarLink } from "@/features/me/calendar-link";
+import { myFeedToken, rotateFeedToken } from "@/features/me/feed-token";
 import { whatsNext } from "@/features/me/whats-next";
 import { followedTeams, lastResults } from "@/features/teams/follow-queries";
 
@@ -109,6 +112,15 @@ export default async function MePage() {
             ))}
           </ul>
         )}
+        {/*
+          Under the list, because the best outcome of this section is that
+          somebody subscribes and stops opening the page at all.
+        */}
+        <CalendarLink
+          origin={siteUrl().replace(/\/$/, "")}
+          reveal={myFeedToken}
+          rotate={rotateFeedToken}
+        />
       </section>
 
       {waiting.length > 0 && (

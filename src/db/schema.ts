@@ -81,6 +81,19 @@ export const users = pgTable("users", {
    */
   image: text("image"),
   // profile
+  /*
+   * The secret in a personal calendar's address.
+   *
+   * A calendar reader fetches on its own schedule with nothing to sign in
+   * with, so the URL is the whole of the authentication and a guessable one
+   * would publish somebody's fixtures and the sessions they said they would
+   * be at. Random, and rotatable from settings for when a link is shared by
+   * accident.
+   *
+   * Null until somebody asks for their link. Most people never will, and a
+   * secret that exists for everybody is a secret nobody chose to have.
+   */
+  feedToken: text("feed_token").unique(),
   username: text("username").unique(),
   displayName: text("display_name"),
   /** The only avatar ever shown. A deliberate upload, and no fallback. */
