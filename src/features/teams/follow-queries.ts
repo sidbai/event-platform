@@ -112,6 +112,8 @@ export type NextGame = {
    */
   home: { name: string; slug: string; crest: string | null } | null;
   away: { name: string; slug: string; crest: string | null } | null;
+  /** "60A #09" — the one thing a parent needs once they are at the ground. */
+  field: string | null;
 };
 
 /**
@@ -143,7 +145,7 @@ export async function nextGames(
       ),
     ),
     orderBy: asc(matches.kickoffAt),
-    columns: { kickoffAt: true, homeTeamId: true, awayTeamId: true },
+    columns: { kickoffAt: true, homeTeamId: true, awayTeamId: true, field: true },
     with: {
       event: { columns: { slug: true, title: true } },
       homeTeam: {
@@ -185,6 +187,7 @@ export async function nextGames(
           : null,
         home: side(m.homeTeam),
         away: side(m.awayTeam),
+        field: m.field,
       });
     }
     if (found.size === wanted.size) break;
