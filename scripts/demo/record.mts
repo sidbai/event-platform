@@ -27,9 +27,18 @@ import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 const BASE = process.env.DEMO_BASE ?? "http://localhost:3000";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OUT = "tmp/demo-frames";
-// 1440×810 at 1.333× is 1080p with text a viewer can read; the page is
-// max-w-6xl and at 1920×1 it sits small in the middle of the frame.
-const W = 1440, H = 810, DSF = 4 / 3, FPS = 12;
+/**
+ * Landscape for a news post, portrait for Instagram.
+ *
+ * 1440×810 at 1.333× is 1080p with text a viewer can read — the page is
+ * max-w-6xl and at 1920×1 it sits small in the middle of the frame. The
+ * phone take is a real phone: 432×768 at 2.5× is 1080×1920, and the site
+ * renders its phone layout (drawer, single column) because the viewport
+ * is one.
+ */
+const PHONE = process.env.DEMO_FORMAT === "phone";
+const W = PHONE ? 432 : 1440, H = PHONE ? 768 : 810, DSF = PHONE ? 2.5 : 4 / 3, FPS = 12;
+const OUTPUT = PHONE ? "tmp/demo-phone.mp4" : "tmp/demo.mp4";
 const EMAIL = process.env.DEMO_EMAIL ?? `demo-${Date.now()}@kjs.test`;
 /**
  * The most natural voice this Mac has. Apple's Premium and Enhanced voices
@@ -82,7 +91,7 @@ type Step =
 
 const STORY: Step[] = [
   { go: "/", caption: "King Juan Soccer — youth soccer in the Seattle area, in one place", hold: 3 },
-  { scroll: 500, hold: 2.5 },
+  { scroll: PHONE ? 900 : 500, hold: 2.5 },
   // The live site, signed out: the dev server has no Google button.
   { go: "https://kingjuansoccer.com/signin", caption: "Sign in with Google. No form to fill.", hold: 2.5 },
   { move: "button:has-text(Continue with Google)", hold: 1.2 },
@@ -93,7 +102,7 @@ const STORY: Step[] = [
   { click: '[role="option"] button', hold: 2.5 },
   { click: "button:has-text(Follow)", caption: "…and follow it", hold: 2.5 },
   { go: "/", caption: "Its next game is on your page — and in your calendar", hold: 3 },
-  { scroll: 700, hold: 3 },
+  { scroll: PHONE ? 1100 : 700, hold: 3 },
   { go: "/events/new", caption: "Have a field and a few kids? Post a pickup game.", hold: 2 },
   { type: 'input[name="title"]', text: "Saturday pickup at Marymoor", hold: 0.6 },
   { select: 'select[name="kind"]', value: "pickup", hold: 0.6 },
@@ -167,7 +176,8 @@ const targetId = (await send("Target.createTarget", { url: "about:blank" })).res
 const sessionId = (await send("Target.attachToTarget", { targetId, flatten: true })).result!.sessionId!;
 const s = (m: string, p: object = {}) => send(m, p, sessionId);
 await s("Page.enable"); await s("Runtime.enable"); await s("Network.enable");
-await s("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: DSF, mobile: false });
+await s("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: DSF, mobile: PHONE });
+if (PHONE) await s("Emulation.setTouchEmulationEnabled", { enabled: true });
 const evaluate = async (expression: string) => (await s("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
 
 // The cursor, the caption bar, and the hands that work them — on every page.
@@ -183,7 +193,7 @@ const OVERLAY = String.raw`
       + '#kjs-cursor .ring{position:absolute;left:-10px;top:-10px;width:44px;height:44px;border-radius:50%;background:rgba(197,138,36,.35);transform:scale(0);opacity:0}'
       + '#kjs-cursor.click .ring{animation:kjs-ring .5s ease-out}'
       + '@keyframes kjs-ring{0%{transform:scale(0);opacity:1}100%{transform:scale(1.4);opacity:0}}'
-      + '#kjs-caption{position:fixed;z-index:2147483645;left:50%;bottom:44px;transform:translateX(-50%) translateY(12px);opacity:0;transition:opacity .35s,transform .35s;background:rgba(34,28,20,.94);color:#fff;font:600 24px/1.3 -apple-system,Inter,system-ui,sans-serif;padding:14px 24px;border-radius:14px;max-width:1100px;text-align:center;letter-spacing:.01em;box-shadow:0 8px 30px rgba(0,0,0,.35)}'
+      + '#kjs-caption{position:fixed;z-index:2147483645;left:50%;bottom:44px;transform:translateX(-50%) translateY(12px);opacity:0;transition:opacity .35s,transform .35s;background:rgba(34,28,20,.94);color:#fff;font:600 __CAPTION_PX__px/1.3 -apple-system,Inter,system-ui,sans-serif;padding:14px 24px;border-radius:14px;max-width:__CAPTION_MAX__;text-align:center;letter-spacing:.01em;box-shadow:0 8px 30px rgba(0,0,0,.35)}'
       + '#kjs-caption.on{opacity:1;transform:translateX(-50%) translateY(0)}';
     document.head.appendChild(css);
     c = document.createElement('div'); c.id = 'kjs-cursor';
@@ -229,7 +239,9 @@ const OVERLAY = String.raw`
     scroll(y) { window.scrollTo({ top: y, behavior: 'smooth' }); },
   };
 })();`;
-await s("Page.addScriptToEvaluateOnNewDocument", { source: OVERLAY });
+await s("Page.addScriptToEvaluateOnNewDocument", {
+  source: OVERLAY.replace("__CAPTION_PX__", PHONE ? "17" : "24").replace("__CAPTION_MAX__", PHONE ? "92vw" : "1100px"),
+});
 
 // --- frames ---------------------------------------------------------------
 
@@ -322,7 +334,7 @@ ws.close(); chrome.kill();
 if (has("ffmpeg")) {
   const args = ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", `${OUT}/f%05d.jpg`];
   for (const c of cues) args.push("-i", c.file);
-  const video = "scale=1920:1080:flags=lanczos,format=yuv420p";
+  const video = `scale=${PHONE ? "1080:1920" : "1920:1080"}:flags=lanczos,format=yuv420p`;
   if (cues.length > 0) {
     // Each clip delayed to where its caption appeared, then mixed; a
     // little headroom so two lines that touch do not clip.
@@ -332,9 +344,9 @@ if (has("ffmpeg")) {
   } else {
     args.push("-vf", video);
   }
-  args.push("-c:v", "libx264", "-preset", "slow", "-crf", "20", "-r", "30", "-movflags", "+faststart", "tmp/demo.mp4");
+  args.push("-c:v", "libx264", "-preset", "slow", "-crf", "20", "-r", "30", "-movflags", "+faststart", OUTPUT);
   execFileSync("ffmpeg", args, { stdio: "inherit" });
-  console.log(`tmp/demo.mp4 — ${cues.length} spoken line(s)`);
+  console.log(`${OUTPUT} — ${cues.length} spoken line(s)`);
 } else {
   console.log("no ffmpeg: frames are in", OUT);
 }
