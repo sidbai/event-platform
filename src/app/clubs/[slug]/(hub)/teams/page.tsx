@@ -20,7 +20,7 @@ export async function generateMetadata({
 
 /**
  * The club's teams as the schedules name them, grouped the way a club lists
- * its own: boys then girls, oldest cohort first, and within a cohort the
+ * its own: boys then girls, youngest cohort first, and within a cohort the
  * tier word beside each side so two same-age teams read as two.
  */
 export default async function ClubTeamsPage({ params }: { params: Promise<{ slug: string }> }) {

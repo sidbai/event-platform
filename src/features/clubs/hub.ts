@@ -85,7 +85,8 @@ export type ClubTeam = {
 /**
  * A club's teams with what the site knows about each: the cohort, the tier,
  * the head coach a league last listed, and how many events they have been
- * seen in. Youngest cohort last, as a club's own list reads.
+ * seen in. Boys before girls and youngest cohort first, as a club's own
+ * site lists them — U8 at the top, U19 at the bottom.
  */
 export async function clubTeamsDetailed(clubId: string): Promise<ClubTeam[]> {
   const rows = await db
