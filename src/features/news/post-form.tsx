@@ -51,10 +51,9 @@ export function NewsPostForm({
   const [body, setBody] = useState(existing?.body ?? "");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  /** Drops an uploaded image into the article at the cursor. */
-  function insertImage(url: string) {
+  /** Drops a snippet into the article at the cursor. */
+  function insert(snippet: string) {
     const el = bodyRef.current;
-    const snippet = `\n![](${url})\n`;
     if (!el) {
       setBody((b) => b + snippet);
       return;
@@ -201,14 +200,26 @@ export function NewsPostForm({
           <p className="text-xs text-muted">
             Formatting: <code>**bold**</code>, <code>*italic*</code>,{" "}
             <code>[text](https://link)</code>, <code>## heading</code>,{" "}
-            <code>- list</code>. A blank line starts a new paragraph.
+            <code>- list</code>. A blank line starts a new paragraph. A YouTube
+            or Vimeo link on its own line becomes the video.
           </p>
-          <ImageUpload
-            target={{ kind: "news" }}
-            hasImage={false}
-            onUploaded={async (url) => insertImage(url)}
-            label="Insert an image"
-          />
+          <span className="flex flex-wrap items-center gap-3">
+            <ImageUpload
+              target={{ kind: "news" }}
+              hasImage={false}
+              onUploaded={async (url) => insert(`\n![](${url})\n`)}
+              label="Insert an image"
+            />
+            {/* A video is its address on a line of its own; the body turns
+                that into a player, as it does a YouTube link. */}
+            <ImageUpload
+              target={{ kind: "news-video" }}
+              media="video"
+              hasImage={false}
+              onUploaded={async (url) => insert(`\n${url}\n`)}
+              label="Insert a video"
+            />
+          </span>
         </div>
       </div>
 

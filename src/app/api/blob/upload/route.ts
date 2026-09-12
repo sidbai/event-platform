@@ -11,6 +11,8 @@ import { canManageEvent } from "@/features/events/can-manage";
 import { canManageTeam } from "@/features/teams/access";
 import {
   IMAGE_TYPES,
+  MAX_VIDEO_BYTES,
+  VIDEO_TYPES,
   MAX_UPLOAD_BYTES,
   parseUploadTarget,
   pathnameMatchesTarget,
@@ -81,9 +83,12 @@ export async function POST(request: Request): Promise<NextResponse> {
             throw new Error("You don't manage that team.");
         }
 
+        // A video is the one upload that is not an image, and the one with a
+        // bigger bill: its own types and its own ceiling.
+        const video = target.kind === "news-video";
         return {
-          allowedContentTypes: [...IMAGE_TYPES],
-          maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          allowedContentTypes: video ? [...VIDEO_TYPES] : [...IMAGE_TYPES],
+          maximumSizeInBytes: video ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES,
           addRandomSuffix: true,
         };
       },

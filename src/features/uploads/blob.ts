@@ -16,6 +16,17 @@ export const IMAGE_TYPES = [
  */
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
+/**
+ * A short video for a news post: a demo, a goal, a minute from a tournament.
+ *
+ * MP4 (H.264) plays everywhere; WebM and QuickTime are what a Mac or an
+ * Android phone hands over unasked. 80MB is a couple of minutes of 1080p
+ * from a phone; anything longer belongs on YouTube, which the body can
+ * embed by link.
+ */
+export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
+export const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
+
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
 /**
@@ -57,7 +68,9 @@ export type UploadTarget =
   /** A mark chosen while submitting an event, before the event exists. */
   | { kind: "new-event" }
   /** Cover image for a news article. Admin-only, checked at token time. */
-  | { kind: "news" };
+  | { kind: "news" }
+  /** A video attached to a news article's body. Same gate as the cover. */
+  | { kind: "news-video" };
 
 /** Staging folders for images uploaded before their subject exists. */
 export const PENDING_CREST_PREFIX = "crests/_pending";
@@ -79,6 +92,7 @@ export function uploadPrefix(target: UploadTarget): string {
   if (target.kind === "club") return `clubs/${target.clubSlug}`;
   if (target.kind === "event") return `events/${target.eventSlug}`;
   if (target.kind === "news") return "news";
+  if (target.kind === "news-video") return "news/video";
   return `crests/${target.teamSlug}`;
 }
 
@@ -135,6 +149,7 @@ export function parseUploadTarget(raw: string | null): UploadTarget | null {
   if (v.kind === "new-club") return { kind: "new-club" };
   if (v.kind === "new-event") return { kind: "new-event" };
   if (v.kind === "news") return { kind: "news" };
+  if (v.kind === "news-video") return { kind: "news-video" };
   if (v.kind === "club" && typeof v.clubSlug === "string")
     return { kind: "club", clubSlug: v.clubSlug };
   if (v.kind === "event" && typeof v.eventSlug === "string")

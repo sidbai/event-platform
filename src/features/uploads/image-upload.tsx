@@ -6,9 +6,17 @@ import { useRef, useState, useTransition } from "react";
 import {
   IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
+  MAX_VIDEO_BYTES,
+  VIDEO_TYPES,
   uploadPrefix,
   type UploadTarget,
 } from "./blob";
+
+/** What a button accepts, and what it says about it. */
+const MEDIA = {
+  image: { types: IMAGE_TYPES, max: MAX_UPLOAD_BYTES, wrong: "Use a JPG, PNG, WEBP or GIF.", hint: "JPG, PNG, WEBP or GIF" },
+  video: { types: VIDEO_TYPES, max: MAX_VIDEO_BYTES, wrong: "Use an MP4, WebM or MOV.", hint: "MP4, WebM or MOV" },
+} as const;
 
 const MB = (n: number) => `${Math.round(n / (1024 * 1024))}MB`;
 
@@ -39,8 +47,11 @@ export function ImageUpload({
   onCleared,
   hasImage,
   label = "Upload a photo",
+  media = "image",
 }: {
   target: UploadTarget;
+  /** Images by default; a video for the one place that takes them. */
+  media?: keyof typeof MEDIA;
   onUploaded: (url: string) => Promise<void>;
   /** Its pixel size, when the browser could read it. */
   onMeasured?: (size: { width: number; height: number } | null) => void;
@@ -58,18 +69,19 @@ export function ImageUpload({
 
     // Checked again server-side when the token is minted; this is just so the
     // user finds out before waiting for an upload to fail.
-    if (!(IMAGE_TYPES as readonly string[]).includes(file.type)) {
-      setError("Use a JPG, PNG, WEBP or GIF.");
+    const rules = MEDIA[media];
+    if (!(rules.types as readonly string[]).includes(file.type)) {
+      setError(rules.wrong);
       return;
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setError(`That image is over ${MB(MAX_UPLOAD_BYTES)}.`);
+    if (file.size > rules.max) {
+      setError(`That file is over ${MB(rules.max)}.`);
       return;
     }
 
     setBusy(true);
     try {
-      const size = onMeasured ? await measure(file) : null;
+      const size = onMeasured && media === "image" ? await measure(file) : null;
       // addRandomSuffix keeps this unique; the server validates the prefix.
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-60);
       const blob = await upload(`${uploadPrefix(target)}/${safeName}`, file, {
@@ -94,7 +106,7 @@ export function ImageUpload({
         <input
           ref={input}
           type="file"
-          accept={IMAGE_TYPES.join(",")}
+          accept={MEDIA[media].types.join(",")}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -127,7 +139,7 @@ export function ImageUpload({
         <p className="mt-2 text-xs text-red-600">{error}</p>
       ) : (
         <p className="mt-2 text-xs text-muted">
-          JPG, PNG, WEBP or GIF, up to {MB(MAX_UPLOAD_BYTES)}.
+          {MEDIA[media].hint}, up to {MB(MEDIA[media].max)}.
         </p>
       )}
     </div>

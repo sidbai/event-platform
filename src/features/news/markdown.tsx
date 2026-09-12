@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
-import { canRenderImage, linkKind } from "./links";
+import { canRenderImage, embedOf, linkKind } from "./links";
 
 /**
  * A news article's body, written in Markdown.
@@ -97,6 +97,13 @@ function Anchor({ href, children }: { href?: string; children: React.ReactNode }
   const kind = linkKind(href);
 
   if (kind === "unsafe" || !href) return <span>{children}</span>;
+  /*
+   * A video URL pasted on its own becomes the video. Only when the link's
+   * text IS the address — "watch the demo" pointing at YouTube stays a
+   * link, because the author chose words, and words are not a player.
+   */
+  const embed = embedOf(href);
+  if (embed && bareUrl(children, href)) return <Player embed={embed} />;
   if (kind === "internal") {
     return (
       <Link href={href} className={link}>
@@ -108,6 +115,45 @@ function Anchor({ href, children }: { href?: string; children: React.ReactNode }
     <a href={href} className={link} target="_blank" rel="noopener noreferrer nofollow">
       {children}
     </a>
+  );
+}
+
+/** Whether a link's text is just its own address, as an autolink's is. */
+function bareUrl(children: React.ReactNode, href: string): boolean {
+  const text = Array.isArray(children) ? children.join("") : String(children ?? "");
+  return text.trim() === href || text.trim() === href.replace(/^https?:\/\//, "");
+}
+
+/**
+ * A video in the body: a frame for YouTube or Vimeo, a player for a file
+ * uploaded here. Phrasing content, so it is allowed inside the paragraph
+ * the autolink sat in; the block styling is the span's.
+ */
+function Player({ embed }: { embed: NonNullable<ReturnType<typeof embedOf>> }) {
+  const box = "my-4 block aspect-video w-full overflow-hidden rounded-xl border border-line bg-black";
+  if (embed.kind === "video") {
+    return (
+      <span className={box}>
+        <video controls preload="metadata" playsInline src={embed.src} className="h-full w-full" />
+      </span>
+    );
+  }
+  const src =
+    embed.kind === "youtube"
+      ? `https://www.youtube-nocookie.com/embed/${embed.id}`
+      : `https://player.vimeo.com/video/${embed.id}`;
+  return (
+    <span className={box}>
+      <iframe
+        src={src}
+        title={embed.kind === "youtube" ? "YouTube video" : "Vimeo video"}
+        loading="lazy"
+        allow="accelerometer; encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        className="h-full w-full"
+      />
+    </span>
   );
 }
 

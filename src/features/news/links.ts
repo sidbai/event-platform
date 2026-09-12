@@ -45,6 +45,52 @@ export function linkKind(href: string | undefined): LinkKind {
 }
 
 /**
+ * A link that is really a video, and how to play it.
+ *
+ * Two hosts we are willing to put in a frame — YouTube and Vimeo, by their
+ * video id and nothing else from the URL — and our own Blob store for a
+ * file uploaded here. Anything else stays a link: a frame is a page inside
+ * the page, and the list of who gets one is short on purpose.
+ */
+export type Embed =
+  | { kind: "youtube"; id: string }
+  | { kind: "vimeo"; id: string }
+  | { kind: "video"; src: string };
+
+export function embedOf(href: string | undefined): Embed | null {
+  if (!href) return null;
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:") return null;
+  const host = url.hostname.replace(/^www\.|^m\./, "");
+  const yt = /^[A-Za-z0-9_-]{6,20}$/;
+
+  if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    const id =
+      url.pathname === "/watch"
+        ? url.searchParams.get("v")
+        : url.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1];
+    return id && yt.test(id) ? { kind: "youtube", id } : null;
+  }
+  if (host === "youtu.be") {
+    const id = url.pathname.slice(1);
+    return yt.test(id) ? { kind: "youtube", id } : null;
+  }
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const id = url.pathname.match(/(\d{6,12})/)?.[1];
+    return id ? { kind: "vimeo", id } : null;
+  }
+  if (isOurBlobUrl(href) && /\.(mp4|webm|mov)$/i.test(url.pathname)) {
+    return { kind: "video", src: href };
+  }
+  return null;
+}
+
+/**
  * Whether an image in a body may be rendered at all.
  *
  * Only our own Blob store. Anything else would be hotlinked: it leaks every

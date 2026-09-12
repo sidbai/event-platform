@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canRenderImage, linkKind } from "./links";
+import { canRenderImage, embedOf, linkKind } from "./links";
 
 const BLOB = "https://abc123.public.blob.vercel-storage.com";
 
@@ -55,5 +55,35 @@ describe("canRenderImage", () => {
   it("refuses a non-string src", () => {
     expect(canRenderImage(undefined)).toBe(false);
     expect(canRenderImage(null)).toBe(false);
+  });
+});
+
+describe("embedOf", () => {
+  it("reads a YouTube video id out of every way people paste one", () => {
+    for (const href of [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://youtube.com/watch?v=dQw4w9WgXcQ&t=42s",
+      "https://youtu.be/dQw4w9WgXcQ",
+      "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+      "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+    ]) {
+      expect(embedOf(href)).toEqual({ kind: "youtube", id: "dQw4w9WgXcQ" });
+    }
+  });
+
+  it("reads a Vimeo id, and a video uploaded here", () => {
+    expect(embedOf("https://vimeo.com/123456789")).toEqual({ kind: "vimeo", id: "123456789" });
+    const ours = "https://abc.public.blob.vercel-storage.com/news/video/demo-x1.mp4";
+    expect(embedOf(ours)).toEqual({ kind: "video", src: ours });
+  });
+
+  it("frames nothing else", () => {
+    expect(embedOf("https://www.youtube.com/user/somebody")).toBeNull();
+    expect(embedOf("https://example.com/watch?v=dQw4w9WgXcQ")).toBeNull();
+    expect(embedOf("http://youtu.be/dQw4w9WgXcQ")).toBeNull();
+    expect(embedOf("https://evil.example/news/video/demo.mp4")).toBeNull();
+    expect(embedOf("https://abc.public.blob.vercel-storage.com/news/cover.png")).toBeNull();
+    expect(embedOf("javascript:alert(1)")).toBeNull();
+    expect(embedOf(undefined)).toBeNull();
   });
 });
