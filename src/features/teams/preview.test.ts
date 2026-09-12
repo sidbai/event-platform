@@ -50,6 +50,15 @@ describe("nextFixture", () => {
     expect(nextFixture([], NOW)).toBeNull();
   });
 
+  it("stays on a game that has kicked off until three hours after, unless a score retires it", () => {
+    const hour = 60 * 60 * 1000;
+    const kickedOff = { ...fixture(20, "kicked-off"), kickoffAt: new Date(NOW.getTime() - 2 * hour) };
+    const overFor = { ...fixture(20, "long-over"), kickoffAt: new Date(NOW.getTime() - 4 * hour) };
+    expect(nextFixture([overFor, kickedOff, fixture(20, "saturday")], NOW)?.id).toBe("kicked-off");
+    const scored = { ...kickedOff, homeScore: 1, awayScore: 0 };
+    expect(nextFixture([overFor, scored, fixture(20, "saturday")], NOW)?.id).toBe("saturday");
+  });
+
   it("ignores a fixture with no kick-off time, having no way to order it", () => {
     const undated = { ...fixture(12, "undated"), kickoffAt: null };
     expect(nextFixture([undated], NOW)).toBeNull();
