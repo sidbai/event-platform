@@ -7,6 +7,7 @@ import { canEditClub } from "@/features/clubs/access";
 import { revertClub } from "@/features/clubs/actions";
 import { clubTeamsDetailed, leaguesByClub } from "@/features/clubs/hub";
 import { profileFor } from "@/features/clubs/knowledge/store";
+import type { ClubProfile } from "@/features/clubs/knowledge/profile";
 import { clubHistory, clubSummary, getClub, listReviews } from "@/features/clubs/queries";
 import { overallOf } from "@/features/clubs/constants";
 import { Stars } from "@/features/clubs/stars";
@@ -138,7 +139,9 @@ export default async function ClubOverviewPage({
       </section>
 
       {/* From the club's own website, read by us. Labelled as such because
-          it is a reading, and the sources are listed so it can be checked. */}
+          it is a reading, and the sources are listed so it can be checked.
+          Facts as a list, the reading as bullets: a paragraph of prose is
+          the one thing nobody scans on a phone at a pitch. */}
       {profile && (profile.tiers.length > 0 || profile.summary) && (
         <section>
           <h2 className="font-semibold">How the club organises its teams</h2>
@@ -155,14 +158,28 @@ export default async function ClubOverviewPage({
               </ol>
             </div>
           )}
-          {profile.branches.length > 1 && (
-            <p className="mt-2 text-sm text-muted">
-              Programmes and places whose teams are separate sides:{" "}
-              <span className="text-ink">{profile.branches.join(", ")}</span>
-            </p>
+
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {facts(profile).map((f) => (
+              <li key={f.label} className="flex gap-2">
+                <span className="w-32 shrink-0 text-muted">{f.label}</span>
+                <span className="min-w-0">{f.value}</span>
+              </li>
+            ))}
+          </ul>
+
+          {sentences(profile.summary).length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs uppercase tracking-wide text-muted">In their own words, as we read them</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-relaxed">
+                {sentences(profile.summary).map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </div>
           )}
-          {profile.summary && <p className="mt-3 text-sm leading-relaxed">{profile.summary}</p>}
-          <p className="mt-2 text-xs text-muted">
+
+          <p className="mt-3 text-xs text-muted">
             Read from the club&rsquo;s website on {profile.readAt.slice(0, 10)}
             {profile.sources.length > 0 && (
               <>
@@ -238,4 +255,66 @@ export default async function ClubOverviewPage({
       </details>
     </div>
   );
+}
+
+/**
+ * The profile's fields, said plainly, one line each. Only the ones with
+ * something to say: a club whose site names no colour gets no colour line.
+ */
+function facts(profile: ClubProfile): { label: string; value: React.ReactNode }[] {
+  const out: { label: string; value: React.ReactNode }[] = [];
+  const colours: Record<ClubProfile["colours"], string | null> = {
+    tier: "rank the teams — Red is a level above White, not a different squad",
+    squad: "name a squad, not a level — two colours are two equal sides",
+    mixed: "sometimes rank the teams and sometimes only name them",
+    none: null,
+    unknown: null,
+  };
+  if (colours[profile.colours]) out.push({ label: "Colours", value: colours[profile.colours] });
+  const ages: Record<ClubProfile["ageBands"], string | null> = {
+    "single-year": "one birth year per team (B2014, U11)",
+    "two-year": "two-year bands (B13/14)",
+    both: "one year on their site, two-year bands in league listings — the same team",
+    unknown: null,
+  };
+  if (ages[profile.ageBands]) out.push({ label: "Age groups", value: ages[profile.ageBands] });
+  if (profile.squadMarkers.length > 0) {
+    out.push({ label: "Squad words", value: profile.squadMarkers.join(", ") });
+  }
+  if (profile.branches.length > 1) {
+    out.push({ label: "Programmes & hubs", value: profile.branches.join(" · ") });
+  }
+  const directors = profile.coaches.filter((c) => c.role && /director|technical|manager|executive|head of/i.test(c.role));
+  if (directors.length > 0) {
+    out.push({
+      label: "Leadership",
+      value: directors
+        .slice(0, 6)
+        .map((c) => `${c.name} (${c.role})`)
+        .join(", ") + (directors.length > 6 ? ` and ${directors.length - 6} more` : ""),
+    });
+  }
+  if (profile.coaches.length > 0) {
+    const withTeams = profile.coaches.filter((c) => c.ageGroups.length > 0).length;
+    out.push({
+      label: "Coaching staff",
+      value: `${profile.coaches.length} named on their site${withTeams > 0 ? `, ${withTeams} with the teams they coach` : ""}`,
+    });
+  }
+  return out;
+}
+
+/**
+ * A paragraph as bullets, one sentence each.
+ *
+ * Splits on a full stop followed by a capital, and leaves abbreviations
+ * alone by asking for the space: "F.C." and "e.g." are not followed by one
+ * inside a name. Good enough for two to four sentences of ours.
+ */
+function sentences(text: string): string[] {
+  const parts = text
+    .split(/(?<=[.!?])\s+(?=[A-Z"'(])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts : text.trim() ? [text.trim()] : [];
 }
