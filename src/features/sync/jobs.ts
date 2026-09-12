@@ -38,17 +38,12 @@ export type JobOutcome = {
   detail: string;
 };
 
-/**
- * A unique violation, wherever the driver put the code.
- *
- * Drizzle wraps the driver's error in a "Failed query" of its own and keeps
- * the original as `cause`; the SQLSTATE is on the original.
- */
 function isUniqueViolation(error: unknown): boolean {
-  for (let e = error; typeof e === "object" && e !== null; e = (e as { cause?: unknown }).cause) {
-    if ((e as { code?: unknown }).code === "23505") return true;
-  }
-  return false;
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    ("code" in error ? (error as { code?: string }).code === "23505" : false)
+  );
 }
 
 /** The one live job for an event, made if there is none. */
