@@ -122,24 +122,22 @@ export default async function TeamPage({
   // Two queries, and only when there is a game to preview.
   const nextUp = await nextUpFor(team.id, team.matches);
   /*
-   * A forecast for that game, where the model has enough on both sides.
-   * Us on the left, as the panel's header reads "us vs them" — the model
-   * forecasts home and away, and when this team is away the two are
-   * swapped, or the bar on the away side's page read backwards against
-   * the names above it.
+   * Which side of the next fixture this team is, and a forecast for it
+   * where the model has enough on both sides. Home first throughout the
+   * panel, as a fixture is written, so the two teams' pages show the same
+   * panel for the same game.
    */
+  const nextFixture = nextUp ? team.matches.find((m) => m.id === nextUp.fixture.id) : null;
+  const weAreHome = nextFixture ? nextFixture.homeTeamId === team.id : true;
   const odds = await (async () => {
-    if (!nextUp) return null;
-    const fixture = team.matches.find((m) => m.id === nextUp.fixture.id);
-    if (!fixture?.homeTeamId || !fixture.awayTeamId) return null;
-    const ratings = await ratingsFor([fixture.homeTeamId, fixture.awayTeamId]);
-    const probs = forecast(ratings.get(fixture.homeTeamId), ratings.get(fixture.awayTeamId));
+    if (!nextUp || !nextFixture?.homeTeamId || !nextFixture.awayTeamId) return null;
+    const ratings = await ratingsFor([nextFixture.homeTeamId, nextFixture.awayTeamId]);
+    const probs = forecast(ratings.get(nextFixture.homeTeamId), ratings.get(nextFixture.awayTeamId));
     if (!probs) return null;
-    const weAreHome = fixture.homeTeamId === team.id;
     return {
-      probs: weAreHome ? probs : { home: probs.away, draw: probs.draw, away: probs.home },
-      home: team.name,
-      away: nextUp.opponent.name,
+      probs,
+      home: weAreHome ? team.name : nextUp.opponent.name,
+      away: weAreHome ? nextUp.opponent.name : team.name,
     };
   })();
 
@@ -330,6 +328,7 @@ export default async function TeamPage({
         <NextUpPanel
           nextUp={nextUp}
           odds={odds}
+          weAreHome={weAreHome}
           teamName={team.name}
           timezone={
             team.matches.find((m) => m.id === nextUp.fixture.id)?.event?.timezone ?? null

@@ -70,15 +70,35 @@ export function NextUpPanel({
   odds,
   teamName,
   timezone,
+  weAreHome = true,
 }: {
   nextUp: NextUp;
-  /** The model's forecast for the fixture, this team first, where it has one. */
+  /** The model's forecast for the fixture, home side first, where it has one. */
   odds?: { probs: Probs; home: string; away: string } | null;
   teamName: string;
   timezone: string | null;
+  /**
+   * Which side of the fixture this team is. Everything in the panel reads
+   * home on the left and away on the right, as a fixture is written, so a
+   * reader comparing two team pages for the same game sees the same panel.
+   */
+  weAreHome?: boolean;
 }) {
   const { opponent, preview, fixture, opponentNames } = nextUp;
   const { ours, theirs } = preview;
+  const [left, right] = weAreHome ? [ours, theirs] : [theirs, ours];
+  // A head-to-head score is kept from this team's side; the panel shows it
+  // home first, so it is turned around when this team is away.
+  const homeFirst = (h: { for: number; against: number }) => (weAreHome ? `${h.for}–${h.against}` : `${h.against}–${h.for}`);
+  const us = <span className="font-medium">{teamName}</span>;
+  const them = (
+    <span className="flex items-center gap-2">
+      <TeamCrest src={opponent.crestUrl} size={20} />
+      <Link href={`/teams/${opponent.slug}`} className="font-medium hover:underline">
+        {opponent.name}
+      </Link>
+    </span>
+  );
   const tz = timezone ?? "America/Los_Angeles";
   /*
    * The day, and the time only where the organizer has given one. A league
@@ -93,16 +113,13 @@ export function NextUpPanel({
 
       <div className="mt-3 rounded-lg border border-line p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium">{teamName}</span>
+          {weAreHome ? us : them}
           <span className="text-muted">vs</span>
-          <TeamCrest src={opponent.crestUrl} size={20} />
-          <Link href={`/teams/${opponent.slug}`} className="font-medium hover:underline">
-            {opponent.name}
-          </Link>
+          {weAreHome ? them : us}
           {when && <span className="ml-auto text-sm tabular-nums text-muted">{when}</span>}
         </div>
-        {/* This team on the left of the bar, as the header above reads; the
-            names are already there, so the bar carries only the numbers. */}
+        {/* Home on the left of the bar, as the header above reads; the names
+            are already there, so the bar carries only the numbers. */}
         {odds && (
           <div className="mt-2 flex items-center gap-3 text-xs text-muted">
             <span>Forecast</span>
@@ -116,33 +133,34 @@ export function NextUpPanel({
         {played(ours) + played(theirs) > 0 && (
           <dl className="mt-4 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-line pt-4 text-sm">
             {/* The games behind each column, first — the rest of the table
-                means nothing without it, and one side is often new here. */}
+                means nothing without it, and one side is often new here.
+                Home on the left, like the header. */}
             <Row
               label="played"
-              ours={played(ours)}
-              theirs={played(theirs)}
+              ours={played(left)}
+              theirs={played(right)}
             />
             <Row
               label="W–D–L"
-              ours={`${ours.performance.won}–${ours.performance.drawn}–${ours.performance.lost}`}
-              theirs={`${theirs.performance.won}–${theirs.performance.drawn}–${theirs.performance.lost}`}
+              ours={`${left.performance.won}–${left.performance.drawn}–${left.performance.lost}`}
+              theirs={`${right.performance.won}–${right.performance.drawn}–${right.performance.lost}`}
             />
             <Row
               label="goals a game"
-              ours={ours.perGame ? ours.perGame.gf : "—"}
-              theirs={theirs.perGame ? theirs.perGame.gf : "—"}
+              ours={left.perGame ? left.perGame.gf : "—"}
+              theirs={right.perGame ? right.perGame.gf : "—"}
             />
             <Row
               label="conceded a game"
-              ours={ours.perGame ? ours.perGame.ga : "—"}
-              theirs={theirs.perGame ? theirs.perGame.ga : "—"}
+              ours={left.perGame ? left.perGame.ga : "—"}
+              theirs={right.perGame ? right.perGame.ga : "—"}
             />
             <Row
               label="clean sheets"
-              ours={played(ours) ? `${ours.performance.cleanSheets} of ${played(ours)}` : "—"}
-              theirs={played(theirs) ? `${theirs.performance.cleanSheets} of ${played(theirs)}` : "—"}
+              ours={played(left) ? `${left.performance.cleanSheets} of ${played(left)}` : "—"}
+              theirs={played(right) ? `${right.performance.cleanSheets} of ${played(right)}` : "—"}
             />
-            <Row label="form" ours={<Form form={ours.form} />} theirs={<Form form={theirs.form} />} />
+            <Row label="form" ours={<Form form={left.form} />} theirs={<Form form={right.form} />} />
           </dl>
         )}
 
@@ -150,9 +168,7 @@ export function NextUpPanel({
           <div className="mt-4 border-t border-line pt-4 text-sm">
             <p className="text-xs uppercase tracking-wide text-muted">Met before</p>
             <p className="mt-1 tabular-nums">
-              {preview.headToHead
-                .map((h) => `${h.for}–${h.against}`)
-                .join(" · ")}
+              {preview.headToHead.map(homeFirst).join(" · ")}
             </p>
           </div>
         )}
@@ -163,7 +179,7 @@ export function NextUpPanel({
               Both have played
             </p>
             <p className="mt-0.5 text-xs text-muted">
-              Each side&rsquo;s own score first.
+              Each side&rsquo;s own score first; home side&rsquo;s games first.
             </p>
             <ul className="mt-2 space-y-1">
               {preview.shared.map((s) => {
