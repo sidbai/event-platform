@@ -71,8 +71,11 @@ export function NextUpPanel({
   teamName,
   timezone,
   weAreHome = true,
+  now,
 }: {
   nextUp: NextUp;
+  /** The clock, from the page: a render is not a place to read one. */
+  now: Date;
   /** The model's forecast for the fixture, home side first, where it has one. */
   odds?: { probs: Probs; home: string; away: string } | null;
   teamName: string;
@@ -114,7 +117,7 @@ export function NextUpPanel({
    */
   const underWay =
     fixture.kickoffAt !== null &&
-    new Date(fixture.kickoffAt).getTime() <= Date.now() &&
+    new Date(fixture.kickoffAt).getTime() <= now.getTime() &&
     timeAnnounced(fixture.kickoffAt, tz);
 
   return (
