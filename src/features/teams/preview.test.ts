@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextFixture, playedAndNext, previewOf, worthShowing } from "./preview";
+import { laterFixtures, nextFixture, playedAndNext, previewOf, worthShowing } from "./preview";
 
 const US = "us";
 const THEM = "them";
@@ -186,6 +186,31 @@ describe("playedAndNext", () => {
   it("keeps an undated fixture, having no way to call it ahead", () => {
     const list = [{ id: "tbd", kickoffAt: null, homeScore: null }];
     expect(playedAndNext(list, NOW).map((m) => m.id)).toEqual(["tbd"]);
+  });
+});
+
+describe("laterFixtures", () => {
+  const g = (id: string, iso: string | null, score: number | null) => ({
+    id,
+    kickoffAt: iso ? new Date(iso) : null,
+    homeScore: score,
+  });
+
+  it("is everything the list leaves out, latest first, undated last", () => {
+    const season = [
+      g("may", "2027-05-01T17:00:00Z", null),
+      g("played", "2026-09-05T17:00:00Z", 2),
+      g("tbd1", null, null),
+      g("next", "2026-09-12T17:00:00Z", null),
+      g("tbd2", null, null),
+      g("october", "2026-10-03T17:00:00Z", null),
+    ];
+    expect(playedAndNext(season, NOW).map((m) => m.id)).toEqual(["played", "tbd1", "next"]);
+    expect(laterFixtures(season, NOW).map((m) => m.id)).toEqual(["may", "october", "tbd2"]);
+  });
+
+  it("has nothing to add to a finished season", () => {
+    expect(laterFixtures([g("a", "2026-09-05T17:00:00Z", 1)], NOW)).toEqual([]);
   });
 });
 

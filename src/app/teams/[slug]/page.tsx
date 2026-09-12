@@ -22,7 +22,7 @@ import { myPendingTeamInvite } from "@/features/teams/invite-queries";
 import { addTeamResult, searchOpponents } from "@/features/teams/add-result-actions";
 import { AddResultForm } from "@/features/teams/add-result-form";
 import { NextUpPanel } from "@/features/teams/next-up";
-import { playedAndNext } from "@/features/teams/preview";
+import { laterFixtures, playedAndNext } from "@/features/teams/preview";
 import { hostedEvents, nextUpFor } from "@/features/teams/queries";
 import { pendingEntriesForTeam } from "@/features/registration/queries";
 import { getTeamBySlug, type TeamDetail } from "@/features/teams/queries";
@@ -587,6 +587,34 @@ export default async function TeamPage({
             panel above says more about it, but only renders when the opponent
             resolves to a team here.
           */}
+          {(() => {
+            const later = laterFixtures(team.matches);
+            if (later.length === 0) return null;
+            const last = later.find((m) => m.kickoffAt)?.kickoffAt ?? null;
+            const until = last
+              ? ` to ${formatEventWhen(last, null, later.find((m) => m.kickoffAt)?.event?.timezone ?? null, "short")}`
+              : "";
+            /*
+             * Above the list, not below it: the list reads latest first, so
+             * the rest of the season belongs over this weekend's games, and
+             * opening it puts May at the top and the week after next just
+             * above what is already showing. Closed by default for the
+             * reason in the comment above.
+             */
+            return (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer text-xs text-muted hover:text-ink">
+                  {later.length} more upcoming fixture{later.length === 1 ? "" : "s"}
+                  {until}
+                </summary>
+                <ul className="mt-1 space-y-1 border-b border-line pb-1">
+                  {later.map((m) => (
+                    <MatchRow key={m.id} match={m} teamId={team.id} />
+                  ))}
+                </ul>
+              </details>
+            );
+          })()}
           <ul className="mt-3 space-y-1 text-sm">
             {playedAndNext(team.matches).map((m) => (
               <MatchRow key={m.id} match={m} teamId={team.id} />
