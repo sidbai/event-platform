@@ -72,7 +72,7 @@ export function NextUpPanel({
   timezone,
 }: {
   nextUp: NextUp;
-  /** The model's forecast for the fixture, home side first, where it has one. */
+  /** The model's forecast for the fixture, this team first, where it has one. */
   odds?: { probs: Probs; home: string; away: string } | null;
   teamName: string;
   timezone: string | null;
@@ -101,7 +101,7 @@ export function NextUpPanel({
           </Link>
           {when && <span className="ml-auto text-sm tabular-nums text-muted">{when}</span>}
         </div>
-        {/* Home side on the left of the bar, as in the header above it; the
+        {/* This team on the left of the bar, as the header above reads; the
             names are already there, so the bar carries only the numbers. */}
         {odds && (
           <div className="mt-2 flex items-center gap-3 text-xs text-muted">

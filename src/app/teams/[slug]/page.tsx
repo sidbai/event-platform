@@ -120,8 +120,10 @@ export default async function TeamPage({
   const nextUp = await nextUpFor(team.id, team.matches);
   /*
    * A forecast for that game, where the model has enough on both sides.
-   * Home first, as the fixture has it: the panel says "us vs them", the
-   * bar says who the results so far favour.
+   * Us on the left, as the panel's header reads "us vs them" — the model
+   * forecasts home and away, and when this team is away the two are
+   * swapped, or the bar on the away side's page read backwards against
+   * the names above it.
    */
   const odds = await (async () => {
     if (!nextUp) return null;
@@ -132,9 +134,9 @@ export default async function TeamPage({
     if (!probs) return null;
     const weAreHome = fixture.homeTeamId === team.id;
     return {
-      probs,
-      home: weAreHome ? team.name : nextUp.opponent.name,
-      away: weAreHome ? nextUp.opponent.name : team.name,
+      probs: weAreHome ? probs : { home: probs.away, draw: probs.draw, away: probs.home },
+      home: team.name,
+      away: nextUp.opponent.name,
     };
   })();
 
