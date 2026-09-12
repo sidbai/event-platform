@@ -97,20 +97,28 @@ async function main() {
 
   let merged = 0;
   let matches = 0;
-  let dropped = 0;
+  const refused: string[] = [];
   for (const g of groups) {
-    const out = await mergeTeams(
-      g.survivor.id,
-      g.losers.map((l) => l.id),
-    );
-    merged += out.merged;
-    matches += out.matchesMoved;
-    dropped += out.entriesDropped;
+    try {
+      const out = await mergeTeams(
+        g.survivor.id,
+        g.losers.map((l) => l.id),
+      );
+      merged += out.merged;
+      matches += out.matchesMoved;
+    } catch (e) {
+      // Two entries in one flight: the merge refuses rather than deleting
+      // one, and says so. The rest of the run is not the poorer for it.
+      refused.push(e instanceof Error ? e.message : String(e));
+    }
   }
   console.log(
-    `\nFolded ${merged} row(s) into ${groups.length} team(s); ` +
-      `${matches} match(es) moved, ${dropped} duplicate entr(y/ies) dropped.`,
+    `\nFolded ${merged} row(s) into ${groups.length - refused.length} team(s); ${matches} match(es) moved.`,
   );
+  if (refused.length > 0) {
+    console.log(`\n${refused.length} group(s) refused — look at these by hand:`);
+    for (const r of refused) console.log(`  ${r}`);
+  }
   process.exit(0);
 }
 

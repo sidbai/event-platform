@@ -254,15 +254,18 @@ async function syncParticipation(
   });
 
   if (change.action === "enter") {
-    await db
-      .insert(eventTeams)
-      .values({ eventId, teamId, divisionId: change.divisionId })
-      // Only the division moves. The standings columns are left alone, so
-      // re-filing a team mid-season does not wipe what it has played.
-      .onConflictDoUpdate({
-        target: [eventTeams.eventId, eventTeams.teamId],
-        set: { divisionId: change.divisionId },
-      });
+    // Only the division moves on an entry that exists. The standings
+    // columns are left alone, so re-filing a team mid-season does not wipe
+    // what it has played. (An entry is per flight now, so this is an update
+    // by id rather than an upsert on the event and team.)
+    if (existing) {
+      await db
+        .update(eventTeams)
+        .set({ divisionId: change.divisionId })
+        .where(eq(eventTeams.id, existing.id));
+    } else {
+      await db.insert(eventTeams).values({ eventId, teamId, divisionId: change.divisionId });
+    }
   } else if (change.action === "remove") {
     await db.delete(eventTeams).where(eq(eventTeams.id, existing!.id));
   }
