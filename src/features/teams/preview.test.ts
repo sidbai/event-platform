@@ -150,6 +150,17 @@ describe("playedAndNext", () => {
     expect(playedAndNext(season, NOW).map((m) => m.id)).toEqual(["played", "next"]);
   });
 
+  it("keeps the whole weekend, not just Saturday — even seen from Wednesday", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const at = (ms: number) => new Date(NOW.getTime() + ms);
+    const weekend = [
+      { id: "sat", kickoffAt: at(9 * day), homeScore: null },
+      { id: "sun", kickoffAt: at(10 * day), homeScore: null },
+      { id: "far", kickoffAt: at(20 * day), homeScore: null },
+    ];
+    expect(playedAndNext(weekend, NOW).map((m) => m.id)).toEqual(["sat", "sun"]);
+  });
+
   it("keeps a game that has been played but not filled in", () => {
     // By the clock, not by the score: last Saturday happened, and hiding it
     // would hide the thing somebody most wants to correct.

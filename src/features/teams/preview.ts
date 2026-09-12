@@ -130,6 +130,9 @@ export function worthShowing(preview: Preview): boolean {
  * in a row, each saying nothing but who it was against. One says the same
  * thing; seventeen says it seventeen times.
  */
+/** How far ahead the list looks: a weekend's games, not a season's. */
+export const SOON_MS = 3 * 24 * 60 * 60 * 1000;
+
 export function playedAndNext<T extends { kickoffAt: Date | null; homeScore: number | null }>(
   matches: T[],
   now: Date = new Date(),
@@ -139,10 +142,19 @@ export function playedAndNext<T extends { kickoffAt: Date | null; homeScore: num
     waiting(m) && m.kickoffAt !== null && m.kickoffAt.getTime() > now.getTime();
   const undated = (m: T) => waiting(m) && m.kickoffAt === null;
 
-  const next = matches
+  /*
+   * The next game, and everything within three days of it: a tournament
+   * weekend is three games, and a page that showed one of them sent a
+   * parent to the event page for the other two. Measured from the next
+   * game rather than from today, so the weekend reads whole on Wednesday
+   * as well as on Friday.
+   */
+  const coming = matches
     .filter(ahead)
-    .sort((a, b) => a.kickoffAt!.getTime() - b.kickoffAt!.getTime())[0];
+    .sort((a, b) => a.kickoffAt!.getTime() - b.kickoffAt!.getTime());
+  const first = coming[0]?.kickoffAt?.getTime() ?? 0;
+  const soon = new Set(coming.filter((m) => m.kickoffAt!.getTime() - first <= SOON_MS));
   const someday = matches.find(undated);
 
-  return matches.filter((m) => (!ahead(m) && !undated(m)) || m === next || m === someday);
+  return matches.filter((m) => (!ahead(m) && !undated(m)) || soon.has(m) || m === someday);
 }
