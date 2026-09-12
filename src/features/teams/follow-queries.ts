@@ -113,6 +113,9 @@ export type NextGame = {
    */
   home: { name: string; slug: string; crest: string | null } | null;
   away: { name: string; slug: string; crest: string | null } | null;
+  /** Both ids, for whoever wants to look the sides up — the forecast does. */
+  homeTeamId: string | null;
+  awayTeamId: string | null;
   /**
    * "Silas High School · Field 1" — where to drive, then where to walk. A
    * tournament on one ground names only the pitch; a league across forty
@@ -198,6 +201,8 @@ export async function nextGames(
           : null,
         home: side(m.homeTeam),
         away: side(m.awayTeam),
+        homeTeamId: m.homeTeamId,
+        awayTeamId: m.awayTeamId,
         where: whereAnnounced(m.venue, m.field),
       });
     }

@@ -5,6 +5,8 @@ import { and, asc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendees, events, teams, venues } from "@/db/schema";
 import { timeAnnounced } from "@/features/events/kickoff";
+import { forecast, type Probs } from "@/features/predict/elo";
+import { ratingsFor } from "@/features/predict/queries";
 import { nextGames } from "@/features/teams/follow-queries";
 
 /**
@@ -31,6 +33,8 @@ export type Upcoming = {
   };
   /** A fixture: the ground and the pitch, whichever the schedule names. */
   where?: string | null;
+  /** A fixture: the model's forecast, where both sides have enough history. */
+  odds?: Probs | null;
   /** An event: its logo, or the kind's icon when it has none. */
   logo?: { src: string | null; kind: string };
 };
@@ -87,6 +91,9 @@ export async function whatsNext(
       : [];
   const teamById = new Map(named.map((t) => [t.id, t]));
   const followedSlugs = new Set(named.map((t) => t.slug));
+  const ratings = await ratingsFor(
+    fixtures.flatMap((g) => [g.homeTeamId, g.awayTeamId]).filter((id): id is string => !!id),
+  );
 
   const out: Upcoming[] = [];
 
@@ -118,6 +125,10 @@ export async function whatsNext(
         },
       },
       where: game.where,
+      odds:
+        game.homeTeamId && game.awayTeamId
+          ? forecast(ratings.get(game.homeTeamId), ratings.get(game.awayTeamId))
+          : null,
     });
   }
 

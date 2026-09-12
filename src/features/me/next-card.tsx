@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { EventLogo } from "@/components/event-logo";
 import { TeamCrest } from "@/components/team-crest";
+import { Odds } from "@/features/predict/odds";
 
 import { whenLabel } from "./when-label";
 import type { Upcoming } from "./whats-next";
@@ -71,6 +72,21 @@ export function NextCard({ item, now }: { item: Upcoming; now: Date }) {
               <div className="max-w-[9rem] self-end text-right text-xs text-muted sm:max-w-[14rem]">
                 {item.where}
               </div>
+            </>
+          )}
+          {/* A fourth row when the model has an opinion: home on the left,
+              as the sides above are. */}
+          {item.odds && (
+            <>
+              <div className="min-w-0">
+                <Odds
+                  probs={item.odds}
+                  home={item.sides.home?.name}
+                  away={item.sides.away?.name}
+                  compact
+                />
+              </div>
+              <div className="text-right text-[11px] text-muted">forecast</div>
             </>
           )}
         </Link>
