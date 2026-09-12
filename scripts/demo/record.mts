@@ -14,8 +14,14 @@
  *
  * Signed in with the dev login as a fresh account, so what the viewer sees
  * is what a new parent sees. Local data only.
+ *
+ * Each caption is also spoken, by the Mac's own voice (`say`), and a
+ * caption holds at least as long as its line takes to say. The clips are
+ * laid on the timeline where their captions appeared and ffmpeg muxes them
+ * with the frames, so the run ends with tmp/demo.mp4 rather than a folder.
+ * DEMO_VOICE picks the voice; no `say` or `ffmpeg` and it is a silent film.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 
 const BASE = process.env.DEMO_BASE ?? "http://localhost:3000";
@@ -25,23 +31,27 @@ const OUT = "tmp/demo-frames";
 // max-w-6xl and at 1920×1 it sits small in the middle of the frame.
 const W = 1440, H = 810, DSF = 4 / 3, FPS = 12;
 const EMAIL = process.env.DEMO_EMAIL ?? `demo-${Date.now()}@kjs.test`;
+const VOICE = process.env.DEMO_VOICE ?? "Samantha";
+const VOICES = "tmp/demo-voice";
 
 // --- the story ------------------------------------------------------------
 
 type Step =
-  | { go: string; caption?: string; hold?: number }
-  | { caption: string; hold?: number }
+  | { go: string; caption?: string; say?: string; hold?: number }
+  | { caption: string; say?: string; hold?: number }
   | { hold: number }
+  /** Spoken instead of the caption, where the caption is not how it is said. */
+  | { say: string }
   | { move: string; hold?: number }
-  | { click: string; hold?: number; caption?: string }
+  | { click: string; hold?: number; caption?: string; say?: string }
   | { type: string; text: string; hold?: number }
   | { select: string; value: string; hold?: number }
-  | { submit: string; hold?: number; caption?: string }
+  | { submit: string; hold?: number; caption?: string; say?: string }
   | { scroll: number; hold?: number }
   | { signin: true };
 
 const STORY: Step[] = [
-  { go: "/", caption: "King Juan Soccer — youth soccer in the Northwest, in one place", hold: 3 },
+  { go: "/", caption: "King Juan Soccer — youth soccer in the Seattle area, in one place", hold: 3 },
   { scroll: 500, hold: 2.5 },
   // The live site, signed out: the dev server has no Google button.
   { go: "https://kingjuansoccer.com/signin", caption: "Sign in with Google. No form to fill.", hold: 2.5 },
@@ -67,8 +77,32 @@ const STORY: Step[] = [
   { select: 'select[name="category"]', value: "coaching", hold: 0.5 },
   { type: 'textarea[name="body"]', text: "My daughter wants keeper-specific sessions this winter. Who have you used and liked?", hold: 1 },
   { submit: 'input[name="title"]', caption: "Posted — coaches and parents answer in the feed", hold: 3.5 },
-  { go: "/", caption: "kingjuansoccer.com", hold: 4 },
+  { go: "/", caption: "kingjuansoccer.com", say: "King Juan Soccer dot com. See you on the pitch.", hold: 4 },
 ];
+
+// --- the voice ------------------------------------------------------------
+
+const has = (bin: string) => { try { execFileSync("which", [bin], { stdio: "ignore" }); return true; } catch { return false; } };
+const SPEAK = has("say") && has("ffmpeg");
+rmSync(VOICES, { recursive: true, force: true }); mkdirSync(VOICES, { recursive: true });
+const clips = new Map<Step, { file: string; seconds: number }>();
+if (SPEAK) {
+  let n = 0;
+  for (const step of STORY) {
+    const line = "say" in step && step.say ? step.say : "caption" in step ? step.caption : null;
+    if (!line) continue;
+    const file = `${VOICES}/${String(n++).padStart(2, "0")}.aiff`;
+    execFileSync("say", ["-v", VOICE, "-o", file, line]);
+    const seconds = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString().trim());
+    clips.set(step, { file, seconds });
+    // A caption stays up at least as long as it takes to say.
+    if ("hold" in step && step.hold !== undefined) step.hold = Math.max(step.hold, seconds + 0.5);
+    else (step as { hold?: number }).hold = seconds + 0.5;
+  }
+  console.log(`${clips.size} lines spoken by ${VOICE}`);
+}
+/** Where on the timeline each clip starts, in seconds. */
+const cues: { file: string; at: number }[] = [];
 
 // --- CDP plumbing ---------------------------------------------------------
 
@@ -181,6 +215,10 @@ async function capture(seconds: number) {
   }
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function say(step: Step) {
+  const clip = clips.get(step);
+  if (clip) cues.push({ file: clip.file, at: frame / FPS });
+}
 
 async function go(path: string) {
   const loaded = new Promise<void>((r) => { const f = (m: Msg) => { if (m.method === "Page.loadEventFired") { events.splice(events.indexOf(f), 1); r(); } }; events.push(f); });
@@ -217,14 +255,14 @@ async function signin() {
 console.log(`recording ${STORY.length} steps at ${W}x${H} ${FPS}fps → ${OUT}`);
 for (const step of STORY) {
   if ("signin" in step) { await signin(); continue; }
-  if ("go" in step) { console.log("go", step.go); await go(step.go); if (step.caption !== undefined) await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await capture(step.hold ?? 2); continue; }
-  if ("caption" in step && !("click" in step) && !("submit" in step)) { await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await capture(step.hold ?? 2); continue; }
+  if ("go" in step) { console.log("go", step.go); await go(step.go); if (step.caption !== undefined) { await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await say(step); } await capture(step.hold ?? 2); continue; }
+  if ("caption" in step && !("click" in step) && !("submit" in step)) { await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await say(step); await capture(step.hold ?? 2); continue; }
   if ("scroll" in step) { await evaluate(`window.kjs.scroll(${step.scroll})`); await capture(step.hold ?? 2); continue; }
   if ("move" in step) { await moveTo(step.move); await capture(step.hold ?? 1); continue; }
   if ("click" in step) {
     console.log("click", step.click);
     if (await moveTo(step.click)) await evaluate(`window.kjs.click(${JSON.stringify(step.click)})`);
-    if (step.caption !== undefined) await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`);
+    if (step.caption !== undefined) { await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await say(step); }
     await capture(step.hold ?? 2); continue;
   }
   if ("type" in step) {
@@ -241,10 +279,32 @@ for (const step of STORY) {
     await moveTo(`submit-of:${step.submit}`);
     await evaluate(`(() => { const b = window.kjs.find(${JSON.stringify("submit-of:" + step.submit)}); if (!b) return false; window.kjs.click(${JSON.stringify("submit-of:" + step.submit)}); b.closest('form').requestSubmit(b); return true; })()`);
     await sleep(2500);
-    if (step.caption !== undefined) await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`);
+    if (step.caption !== undefined) { await evaluate(`window.kjs.caption(${JSON.stringify(step.caption)})`); await say(step); }
     await capture(step.hold ?? 2); continue;
   }
   if ("hold" in step) await capture(step.hold);
 }
 console.log(`done: ${frame} frames (${(frame / FPS).toFixed(1)}s)`);
-ws.close(); chrome.kill(); process.exit(0);
+ws.close(); chrome.kill();
+
+// --- the film -------------------------------------------------------------
+if (has("ffmpeg")) {
+  const args = ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", `${OUT}/f%05d.jpg`];
+  for (const c of cues) args.push("-i", c.file);
+  const video = "scale=1920:1080:flags=lanczos,format=yuv420p";
+  if (cues.length > 0) {
+    // Each clip delayed to where its caption appeared, then mixed; a
+    // little headroom so two lines that touch do not clip.
+    const delayed = cues.map((c, i) => `[${i + 1}:a]adelay=${Math.round(c.at * 1000)}|${Math.round(c.at * 1000)}[a${i}]`).join(";");
+    const mix = cues.map((_, i) => `[a${i}]`).join("") + `amix=inputs=${cues.length}:normalize=0,volume=0.9[aout]`;
+    args.push("-filter_complex", `[0:v]${video}[v];${delayed};${mix}`, "-map", "[v]", "-map", "[aout]", "-c:a", "aac", "-b:a", "128k", "-shortest");
+  } else {
+    args.push("-vf", video);
+  }
+  args.push("-c:v", "libx264", "-preset", "slow", "-crf", "20", "-r", "30", "-movflags", "+faststart", "tmp/demo.mp4");
+  execFileSync("ffmpeg", args, { stdio: "inherit" });
+  console.log(`tmp/demo.mp4 — ${cues.length} spoken line(s)`);
+} else {
+  console.log("no ffmpeg: frames are in", OUT);
+}
+process.exit(0);
