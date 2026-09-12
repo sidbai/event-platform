@@ -60,7 +60,8 @@
     "db:teams:audit": "NODE_OPTIONS=--conditions=react-server tsx scripts/audit-teams.ts",
     "db:teams:suggest": "NODE_OPTIONS=--conditions=react-server tsx scripts/queue-team-suggestions.ts",
     "db:teams:suggest-tiers": "NODE_OPTIONS=--conditions=react-server tsx scripts/suggest-tiers-from-coaches.ts",
-    "db:seed:club-knowledge": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-club-knowledge.ts"
+    "db:seed:club-knowledge": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-club-knowledge.ts",
+    "db:groups:infer": "NODE_OPTIONS=--conditions=react-server tsx scripts/infer-groups.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

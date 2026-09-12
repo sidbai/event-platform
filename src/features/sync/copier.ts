@@ -58,6 +58,30 @@ const SOURCE = `(function(){
     ];
   }
 
+  /*
+   * The heading over a standings table, which is the group it belongs to.
+   *
+   * AthleteOne's standings page is one table per group with the group's
+   * name above it, and the fixture rows never say which group a game was
+   * in — so this heading is the only place the groups are written down.
+   * Read from the nearest text above the table, walking up a few levels;
+   * kept only when it is short, since a paragraph is not a heading.
+   */
+  function headingOf(table){
+    var el=table;
+    for(var hops=0;hops<5&&el;hops++){
+      var p=el.previousElementSibling;
+      while(p){
+        var t=(p.innerText||p.textContent||'').replace(/\s+/g,' ').trim();
+        if(t){return t.length<=60?t:'';}
+        p=p.previousElementSibling;
+      }
+      el=el.parentElement;
+    }
+    var cap=table.querySelector&&table.querySelector('caption');
+    return cap?text(cap):'';
+  }
+
   /** A standings table, read by column name — every platform orders them differently. */
   function tableRows(table){
     var rows=[].slice.call(table.querySelectorAll('tr'));
@@ -73,6 +97,7 @@ const SOURCE = `(function(){
         gf=indexOfName(head,['gf','f','for','goals for','gs','scored']),
         ga=indexOfName(head,['ga','a','against','goals against','gc','conceded']);
 
+    var group=headingOf(table);
     var out=[];
     rows.slice(1).forEach(function(tr){
       var c=cellsOf(tr).map(text);
@@ -83,7 +108,7 @@ const SOURCE = `(function(){
       }
       var name=(c[team]||'').replace(/\\s+/g,' ').trim();
       if(!name)return;
-      out.push([name,at(gp),at(w),at(d),at(l),at(gf),at(ga),at(pts)].join('\\t'));
+      out.push([name,at(gp),at(w),at(d),at(l),at(gf),at(ga),at(pts),group].join('\\t'));
     });
     return out;
   }
@@ -355,7 +380,7 @@ const SOURCE = `(function(){
  * drift: it looks these up by name, and a column it does not recognise is a
  * column silently dropped.
  */
-export const STANDINGS_HEADER = ["team", "gp", "w", "d", "l", "gf", "ga", "pts"] as const;
+export const STANDINGS_HEADER = ["team", "gp", "w", "d", "l", "gf", "ga", "pts", "group"] as const;
 
 /**
  * The copier's code, as a browser will run it.

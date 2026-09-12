@@ -49,6 +49,7 @@ describe("parsePastedStandings", () => {
     expect(skipped).toEqual([]);
     expect(rows[0]).toEqual({
       team: "Crossfire Select B-U10 A Matisz",
+      group: null,
       played: 3,
       won: 2,
       drawn: 1,
@@ -113,6 +114,7 @@ describe("a table AthleteOne printed", () => {
     expect(rows).toEqual([
       {
         team: "Eastside FC - GU8 Red",
+        group: null,
         played: 3,
         won: 3,
         drawn: 0,
@@ -123,6 +125,7 @@ describe("a table AthleteOne printed", () => {
       },
       {
         team: "Eastside FC (WA) - GU8 White",
+        group: null,
         played: 3,
         won: 0,
         drawn: 1,
