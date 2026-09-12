@@ -5,7 +5,6 @@ import { and, asc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendees, events, teams, venues } from "@/db/schema";
 import { timeAnnounced } from "@/features/events/kickoff";
-import { followedEvents } from "@/features/events/follow-queries";
 import { nextGames } from "@/features/teams/follow-queries";
 
 /**
@@ -49,7 +48,7 @@ export async function whatsNext(
   teamIds: string[],
   now = new Date(),
 ): Promise<Upcoming[]> {
-  const [fixtures, attending, followed] = await Promise.all([
+  const [fixtures, attending] = await Promise.all([
     nextGames(teamIds, now),
     /*
      * Events this person said they would be at. "Maybe" counts: somebody who
@@ -77,7 +76,6 @@ export async function whatsNext(
         ),
       )
       .orderBy(asc(events.startsAt)),
-    followedEvents(userId),
   ]);
 
   const named =
@@ -124,26 +122,11 @@ export async function whatsNext(
   }
 
   /*
-   * An event that has not started yet, whether somebody said they would be
-   * there or only that they want to hear about it. A season already under way
-   * is not "next" — nothing about it is — and it sits in the following list
-   * instead.
+   * Events this person is going to. Not the ones they merely follow: those
+   * used to be here too, and a followed league's opening day sat at the top
+   * of the list for a fortnight saying nothing a parent could act on. The
+   * sidebar lists what you follow; this lists what you will be at.
    */
-  const said = new Set(attending.map((e) => e.slug));
-  for (const event of followed) {
-    if (!event.startsAt || event.startsAt < now || said.has(event.slug))
-      continue;
-    out.push({
-      kind: "event",
-      at: event.startsAt,
-      timed: timeAnnounced(event.startsAt, TZ),
-      title: event.title,
-      detail: event.venueName,
-      href: `/events/${event.slug}`,
-      logo: { src: event.logoUrl, kind: event.kind },
-    });
-  }
-
   for (const event of attending) {
     if (!event.startsAt) continue;
     out.push({
