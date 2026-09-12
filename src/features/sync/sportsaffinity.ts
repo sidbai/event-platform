@@ -575,22 +575,19 @@ export const sportsaffinity: ExternalEventProvider = {
          * flight, at the same pace — a full read is a hundred requests now
          * rather than fifty, which is still a Monday morning's worth.
          *
-         * Tolerated when it fails, unlike the schedule: the fixtures are
-         * what a parent came for, and a week without coaches costs less
-         * than a week without games. What it leaves behind is an entry
-         * with no coach, which the next read fills in.
+         * Loud when it fails, like the schedule. The first version swallowed
+         * this, on the thought that a week without coaches costs less than
+         * a week without games — and the first production read came back
+         * with 446 entries and no coach on any of them, and nothing to say
+         * whether the page was refused, unrecognised, or never asked for.
+         * A quiet failure is the one this connector has already paid for.
          */
-        let entries: RclEntry[] = [];
-        try {
-          entries = readAcceptedFlight(
-            await session.patiently(
-              acceptedFlightUrl(ref.eventId, flight.agecode, flight.flightguid),
-              "entries",
-            ),
-          );
-        } catch {
-          entries = [];
-        }
+        const entries = readAcceptedFlight(
+          await session.patiently(
+            acceptedFlightUrl(ref.eventId, flight.agecode, flight.flightguid),
+            "entries",
+          ),
+        );
         /*
          * The flight is the division — "BU08 Div 3 North" — read off the
          * accepted-teams page, since the schedule page's own heading only
