@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubs, events, matches, teamMembers, teams } from "@/db/schema";
+import { clubs, coaches, events, matches, teamMembers, teams } from "@/db/schema";
 
 import { endOf } from "@/features/events/completion";
 import { searchTerms, startsWord } from "@/features/search/terms";
@@ -237,6 +237,19 @@ export async function getTeamBySlug(slug: string) {
   if (!team) return null;
 
   /*
+   * The club's coach pages, so a head coach a league listed can be a link
+   * where the same name already has a page under the same club — and plain
+   * text where it does not. A listing never makes a page for a named
+   * person; that stays a decision somebody takes on the coaches screen.
+   */
+  const clubCoaches = team.clubId
+    ? await db.query.coaches.findMany({
+        where: eq(coaches.clubId, team.clubId),
+        columns: { slug: true, name: true },
+      })
+    : [];
+
+  /*
    * Latest to finish first, the way a history reads. This was ordered by
    * points, which is zero for every team a connector created — so the order
    * was whatever the database felt like returning. Sorted here rather than in
@@ -311,7 +324,7 @@ export async function getTeamBySlug(slug: string) {
           with: { division: { columns: { name: true } } },
         });
 
-  return { ...team, matches: playedMatches, divisionMatches };
+  return { ...team, clubCoaches, matches: playedMatches, divisionMatches };
 }
 
 export type TeamDetail = NonNullable<Awaited<ReturnType<typeof getTeamBySlug>>>;

@@ -11,6 +11,7 @@ import {
   matchesOf,
   parseSportsAffinityUrl,
   played,
+  readAcceptedFlight,
   readFlightList,
   readRclFlight,
   teamsOf,
@@ -155,6 +156,84 @@ describe("teams", () => {
   });
 });
 
+/** One flight's accepted-teams page, the BU10 Div 1 of the 2026/27 RCL. */
+const entries = readFileSync(
+  join(__dirname, "__fixtures__/sportsaffinity-entries.html"),
+  "utf8",
+);
+
+describe("readAcceptedFlight", () => {
+  it("reads the club, the name, the id and the coach out of a row", () => {
+    expect(readAcceptedFlight(entries)[0]).toEqual({
+      slot: "A1",
+      club: "Seattle United",
+      name: "Seattle United B16 Copa",
+      platformTeamId: "104162174",
+      coach: "Dawda Dibba",
+    });
+  });
+
+  it("keeps the club apart from the name, which shares its cell", () => {
+    // Read as text the cell says "Eastside F.C. Eastside F.C. - BU10 Red",
+    // and the schedule page prints only the second line.
+    const eastside = readAcceptedFlight(entries).find((e) => e.slot === "A2");
+    expect(eastside?.club).toBe("Eastside F.C.");
+    expect(eastside?.name).toBe("Eastside F.C. - BU10 Red");
+  });
+
+  it("reads n/a as no id, not as an id", () => {
+    const eastside = readAcceptedFlight(entries).find((e) => e.slot === "A2");
+    expect(eastside?.platformTeamId).toBeNull();
+  });
+
+  it("finds every submitted team and nothing else", () => {
+    expect(readAcceptedFlight(entries)).toHaveLength(11);
+  });
+
+  it("has nothing to say about a challenge page", () => {
+    expect(readAcceptedFlight("<html><body>Incapsula</body></html>")).toEqual([]);
+  });
+});
+
+describe("a team with its entry", () => {
+  const rows = readRclFlight(flight);
+  const list = readAcceptedFlight(entries);
+
+  it("carries the coach and the club the league listed", () => {
+    const team = teamsOf(
+      [{ ...rows[0], home: "Seattle United B16 Copa", group: "A1 vs A4" }],
+      "BU10",
+      "BU10 Div 1",
+      list,
+    ).find((t) => t.name === "Seattle United B16 Copa");
+    expect(team).toMatchObject({
+      club: "Seattle United",
+      coach: "Dawda Dibba",
+      platformTeamId: "104162174",
+    });
+  });
+
+  it("finds the entry by slot when the schedule spells the name its own way", () => {
+    const team = teamsOf(
+      [{ ...rows[0], home: "Seattle Utd B16 Copa", group: "A1 vs A4" }],
+      "BU10",
+      "BU10 Div 1",
+      list,
+    ).find((t) => t.name === "Seattle Utd B16 Copa");
+    expect(team?.coach).toBe("Dawda Dibba");
+  });
+
+  it("says nothing about a side no entry matches", () => {
+    const team = teamsOf(
+      [{ ...rows[0], home: "Somebody Else B16", group: null }],
+      "BU10",
+      "BU10 Div 1",
+      list,
+    ).find((t) => t.name === "Somebody Else B16");
+    expect(team).not.toHaveProperty("coach");
+  });
+});
+
 describe("parseSportsAffinityUrl", () => {
   it("reads the tournament id however their own pages spell the parameter", () => {
     /*
@@ -257,6 +336,8 @@ describe("a page that did not arrive", () => {
 
   it("knows a schedule when it sees one", () => {
     expect(arrived(flight, "schedule")).toBe(true);
+    expect(arrived(entries, "entries")).toBe(true);
+    expect(arrived(flight, "entries")).toBe(false);
     expect(arrived("<html><body>Bracket - Saturday, September 12, 2026</body></html>", "schedule")).toBe(false);
   });
 

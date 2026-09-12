@@ -48,6 +48,16 @@ export type SyncedTeam = {
    * teams all called "Harbor SC".
    */
   gender?: Gender | null;
+  /**
+   * What the platform says about the entry beyond its name, where it says
+   * anything. The Regional Club League's accepted-teams page registers each
+   * side under a club, names its head coach, and sometimes gives it an id;
+   * a tournament platform gives none of these. Left out, not null, by a
+   * connector that has no such page — null means the page had a blank.
+   */
+  club?: string | null;
+  coach?: string | null;
+  platformTeamId?: string | null;
 };
 
 export type SyncedMatch = {
