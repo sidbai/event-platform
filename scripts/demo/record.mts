@@ -31,7 +31,24 @@ const OUT = "tmp/demo-frames";
 // max-w-6xl and at 1920×1 it sits small in the middle of the frame.
 const W = 1440, H = 810, DSF = 4 / 3, FPS = 12;
 const EMAIL = process.env.DEMO_EMAIL ?? `demo-${Date.now()}@kjs.test`;
-const VOICE = process.env.DEMO_VOICE ?? "Samantha";
+/**
+ * The most natural voice this Mac has. Apple's Premium and Enhanced voices
+ * are neural and sound like a person; they are free downloads in System
+ * Settings → Accessibility → Spoken Content → System Voice → Manage Voices,
+ * and are used the moment they exist. The stock Samantha is the fallback,
+ * and it sounds like what it is.
+ */
+const PREFERRED = ["Ava (Premium)", "Zoe (Premium)", "Allison (Premium)", "Samantha (Enhanced)", "Ava (Enhanced)", "Evan (Enhanced)", "Samantha"];
+function bestVoice(): string {
+  if (process.env.DEMO_VOICE) return process.env.DEMO_VOICE;
+  try {
+    const installed = execFileSync("say", ["-v", "?"]).toString();
+    return PREFERRED.find((v) => installed.includes(v)) ?? "Samantha";
+  } catch {
+    return "Samantha";
+  }
+}
+const VOICE = bestVoice();
 const VOICES = "tmp/demo-voice";
 
 // --- the story ------------------------------------------------------------
