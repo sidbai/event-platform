@@ -12,12 +12,8 @@ import { siteUrl } from "@/lib/site-url";
 import { formatAgo } from "@/features/sync/freshness";
 import { PROVIDER_POLICIES, mayPoll } from "@/features/sync/policy";
 import { listedEvents } from "@/features/sync/queries";
-import { liveJobsByEvent } from "@/features/sync/jobs";
-import { AutoRefresh } from "@/features/sync/auto-refresh";
 
 export const dynamic = "force-dynamic";
-// Refresh reads pages after its response, for as long as this allows.
-export const maxDuration = 300;
 export const metadata: Metadata = { title: "Connected schedules" };
 
 export default async function AdminSyncPage() {
@@ -25,14 +21,13 @@ export default async function AdminSyncPage() {
   const user = await getCurrentUser();
   if (!user || !isAdmin(user)) notFound();
 
-  const [rows, jobs] = await Promise.all([listedEvents(), liveJobsByEvent()]);
+  const rows = await listedEvents();
   const now = new Date();
   const connected = rows.filter((r) => r.sourcePlatform);
   const rest = rows.filter((r) => !r.sourcePlatform);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
-      {jobs.size > 0 && <AutoRefresh />}
       <Link href="/admin" className="text-sm text-brand-text hover:underline">
         ← Admin
       </Link>
@@ -139,24 +134,7 @@ export default async function AdminSyncPage() {
                 <p className="mt-1 text-xs text-red-600">{row.lastSyncError}</p>
               )}
 
-              {/* A read too long for one invocation, in progress: the count
-                  is what the job runner has filed so far, and the page asks
-                  for itself again every few seconds while it climbs. */}
-              {(() => {
-                const job = jobs.get(row.id);
-                if (!job) return null;
-                const held = job.leasedUntil && job.leasedUntil > now;
-                return (
-                  <p className="mt-1 text-xs text-brand-text">
-                    Reading in the background
-                    {job.stepsTotal ? ` — ${job.stepsDone} of ${job.stepsTotal} pages` : ""}
-                    {job.stepLabel ? ` (${job.stepLabel})` : ""}
-                    {held ? "" : " · waiting for the next tick"}
-                  </p>
-                );
-              })()}
-
-              <RefreshButton action={refreshNow} eventId={row.id} busy={jobs.has(row.id)} />
+              <RefreshButton action={refreshNow} eventId={row.id} />
               <PasteForm action={importPastedSchedule} eventId={row.id} />
             </li>
           ))}

@@ -21,7 +21,6 @@ import { parse } from "node-html-parser";
 import type {
   ExternalEventProvider,
   SourceRef,
-  StepResult,
   SyncedMatch,
   SyncedTeam,
 } from "./provider";
@@ -520,84 +519,6 @@ const BACKOFF_MS = 20_000;
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * One flight: its fixtures, and its accepted-teams page for the head coach
- * and the club the league registered each side under. Two requests at the
- * usual pace.
- *
- * The second is loud when it fails, like the first. The first version
- * swallowed it, on the thought that a week without coaches costs less than
- * a week without games — and the first production read came back with 446
- * entries and no coach on any of them, and nothing to say whether the page
- * was refused, unrecognised, or never asked for. A quiet failure is the one
- * this connector has already paid for.
- */
-async function readFlight(
-  session: Session,
-  tournamentguid: string,
-  flight: RclFlight,
-): Promise<{ teams: SyncedTeam[]; matches: SyncedMatch[] }> {
-  const rows = played(
-    readRclFlight(
-      await session.patiently(flightScheduleUrl(tournamentguid, flight.flightguid), "schedule"),
-    ),
-  );
-  await pause(PAUSE_MS);
-  const entries = readAcceptedFlight(
-    await session.patiently(
-      acceptedFlightUrl(tournamentguid, flight.agecode, flight.flightguid),
-      "entries",
-    ),
-  );
-  await pause(PAUSE_MS);
-  /*
-   * The flight is the division — "BU08 Div 3 North" — read off the
-   * accepted-teams page, since the schedule page's own heading only says
-   * "Boys Under 8" and the standings grid says "Group A". The age code
-   * stays the key teams are remembered by; see teamsOf.
-   */
-  return {
-    teams: teamsOf(rows, flight.agecode, flight.division, entries),
-    matches: matchesOf(rows, flight.agecode, flight.division),
-  };
-}
-
-/**
- * Both accepted-teams pages, which every read needs first.
- *
- * Each half has to answer, and answer with flights. Both genders always
- * have some. A list that comes back empty is a page that did not arrive —
- * the shape this connector has already been caught by — and carrying on
- * with the other half publishes half a league as the whole of it.
- */
-async function readFlightLists(session: Session, tournamentguid: string): Promise<RclFlight[]> {
-  const flights: RclFlight[] = [];
-  for (const show of ["boys", "girls"] as const) {
-    const found = readFlightList(
-      await session.patiently(flightListUrl(tournamentguid, show), "flights"),
-    );
-    if (found.length === 0) {
-      throw new Unrecognised(
-        `no flights on the ${show} accepted-teams page — it did not arrive, or their markup changed`,
-      );
-    }
-    flights.push(...found);
-    await pause(PAUSE_MS);
-  }
-  return flights;
-}
-
-/** A page that arrived and said nothing we understand, as against one that did not arrive. */
-class Unrecognised extends Error {}
-
-function failure(e: unknown): { kind: "unreachable" | "unrecognised"; detail: string } {
-  const detail = e instanceof Error ? e.message : String(e);
-  return { kind: e instanceof Unrecognised ? "unrecognised" : "unreachable", detail };
-}
-
-/** Where a paged read of this league is: the flights, and the next one to read. */
-type RclCursor = { flights: RclFlight[]; index: number };
-
 export const sportsaffinity: ExternalEventProvider = {
   platform: "sportsaffinity",
 
@@ -614,15 +535,74 @@ export const sportsaffinity: ExternalEventProvider = {
     const matches: SyncedMatch[] = [];
 
     try {
+      /*
+       * Each half has to answer, and answer with flights.
+       *
+       * Both genders always have some. A list that comes back empty is a page
+       * that did not arrive — the shape this connector has already been
+       * caught by — and carrying on with the other half publishes half a
+       * league as the whole of it.
+       */
       const session = new Session();
-      const flights = await readFlightLists(session, ref.eventId);
+      const flights: RclFlight[] = [];
+      for (const show of ["boys", "girls"] as const) {
+        const found = readFlightList(
+          await session.patiently(flightListUrl(ref.eventId, show), "flights"),
+        );
+        if (found.length === 0) {
+          return {
+            ok: false,
+            error: {
+              kind: "unrecognised",
+              detail: `no flights on the ${show} accepted-teams page — it did not arrive, or their markup changed`,
+            },
+          };
+        }
+        flights.push(...found);
+        await pause(PAUSE_MS);
+      }
+
       for (const flight of flights) {
-        const read = await readFlight(session, ref.eventId, flight);
-        teams.push(...read.teams);
-        matches.push(...read.matches);
+        const rows = played(
+          readRclFlight(
+            await session.patiently(flightScheduleUrl(ref.eventId, flight.flightguid), "schedule"),
+          ),
+        );
+        await pause(PAUSE_MS);
+        /*
+         * The flight's own accepted-teams page, for the head coach and the
+         * club the league registered each side under. A second request per
+         * flight, at the same pace — a full read is a hundred requests now
+         * rather than fifty, which is still a Monday morning's worth.
+         *
+         * Loud when it fails, like the schedule. The first version swallowed
+         * this, on the thought that a week without coaches costs less than
+         * a week without games — and the first production read came back
+         * with 446 entries and no coach on any of them, and nothing to say
+         * whether the page was refused, unrecognised, or never asked for.
+         * A quiet failure is the one this connector has already paid for.
+         */
+        const entries = readAcceptedFlight(
+          await session.patiently(
+            acceptedFlightUrl(ref.eventId, flight.agecode, flight.flightguid),
+            "entries",
+          ),
+        );
+        /*
+         * The flight is the division — "BU08 Div 3 North" — read off the
+         * accepted-teams page, since the schedule page's own heading only
+         * says "Boys Under 8" and the standings grid says "Group A". The
+         * age code stays the key teams are remembered by; see teamsOf.
+         */
+        teams.push(...teamsOf(rows, flight.agecode, flight.division, entries));
+        matches.push(...matchesOf(rows, flight.agecode, flight.division));
+        await pause(PAUSE_MS);
       }
     } catch (e) {
-      return { ok: false, error: failure(e) };
+      return {
+        ok: false,
+        error: { kind: "unreachable", detail: e instanceof Error ? e.message : String(e) },
+      };
     }
 
     if (matches.length === 0) {
@@ -633,68 +613,6 @@ export const sportsaffinity: ExternalEventProvider = {
     }
 
     return { ok: true, data: { source: ref, teams, matches } };
-  },
-
-  /*
-   * The same read, one flight per step, for the job runner.
-   *
-   * The first step reads the two flight lists and nothing else, so the
-   * total is known before any fixture is; each step after reads one
-   * flight's two pages. The cursor is the flight list and an index, which
-   * is plain data and survives being stored between invocations. A fresh
-   * Session each time: the cookies the site sets come with the first page
-   * of any step, and a session is not something a cursor can hold.
-   */
-  async step(ref, cursor): Promise<StepResult> {
-    const session = new Session();
-    try {
-      if (!cursor) {
-        const flights = await readFlightLists(session, ref.eventId);
-        const at: RclCursor = { flights, index: 0 };
-        return {
-          ok: true,
-          step: {
-            cursor: at,
-            part: { teams: [], matches: [] },
-            done: flights.length === 0,
-            index: 0,
-            total: flights.length,
-            label: `${flights.length} flights listed`,
-          },
-        };
-      }
-      const at = cursor as RclCursor;
-      const flight = at.flights[at.index];
-      if (!flight) {
-        return {
-          ok: true,
-          step: {
-            cursor: at,
-            part: { teams: [], matches: [] },
-            done: true,
-            index: at.index,
-            total: at.flights.length,
-            label: null,
-          },
-        };
-      }
-      const read = await readFlight(session, ref.eventId, flight);
-      const index = at.index + 1;
-      const next: RclCursor = { flights: at.flights, index };
-      return {
-        ok: true,
-        step: {
-          cursor: next,
-          part: read,
-          done: index >= at.flights.length,
-          index,
-          total: at.flights.length,
-          label: flight.division,
-        },
-      };
-    } catch (e) {
-      return { ok: false, error: failure(e) };
-    }
   },
 };
 

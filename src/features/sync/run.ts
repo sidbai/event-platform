@@ -6,27 +6,42 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 
 import { applySync, recordSyncFailure } from "./apply";
-import { advanceJob, advanceOpenJobs, enqueueSync } from "./jobs";
+import { athletes2events } from "./athletes2events";
+import { modular11 } from "./modular11";
+import { sportsaffinity } from "./sportsaffinity";
 import { mayPoll } from "./policy";
-import { providerFor, sourceRefFor } from "./providers";
+import type { ExternalEventProvider, SourceRef } from "./provider";
 
-export { detect, providerFor } from "./providers";
+/**
+ * Every platform this application can read.
+ *
+ * One entry per platform, not per organizer — tournament hosting is
+ * concentrated, so this list grows slowly and stops. EventConnect is absent
+ * on purpose: their app host answers robots.txt with `Disallow: /` and they
+ * sell an API, so that connector waits on an answer from them rather than on
+ * an engineering decision.
+ */
+const PROVIDERS: ExternalEventProvider[] = [athletes2events, modular11, sportsaffinity];
+
+export function providerFor(platform: string): ExternalEventProvider | null {
+  return PROVIDERS.find((p) => p.platform === platform) ?? null;
+}
+
+/** The provider that recognises a URL somebody pasted, and what it read from it. */
+export function detect(url: string): SourceRef | null {
+  for (const p of PROVIDERS) {
+    if (!p.matches(url)) continue;
+    const ref = p.parseUrl(url);
+    if (ref) return ref;
+  }
+  return null;
+}
 
 export type SyncReport = {
   slug: string;
   ok: boolean;
   detail: string;
-  /** Set when the read continues in the background — see jobs.ts. */
-  jobId?: string;
 };
-
-/**
- * How much of an invocation a read may use before putting its job down.
- *
- * Under the five minutes a route declares, with room for the write at the
- * end: assembling a season and applying it is a minute of its own.
- */
-export const READ_BUDGET_MS = 200_000;
 
 /**
  * Refresh one event from the platform that hosts it.
@@ -35,11 +50,7 @@ export const READ_BUDGET_MS = 200_000;
  * alternative — treating "we could not read it" as "there is nothing" —
  * would empty a schedule on a Saturday morning because of one timeout.
  */
-export async function syncEvent(
-  eventId: string,
-  now = new Date(),
-  options: { budgetMs?: number; requestedBy?: string | null } = {},
-): Promise<SyncReport> {
+export async function syncEvent(eventId: string, now = new Date()): Promise<SyncReport> {
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     columns: {
@@ -74,28 +85,18 @@ export async function syncEvent(
     return { slug: event.slug, ok: false, detail: `no provider for ${event.sourcePlatform}` };
   }
 
-  const ref = sourceRefFor({ ...event, sourceEventId: event.sourceEventId }, provider);
-
   /*
-   * A read that does not fit one invocation is a job: as many pages as the
-   * budget allows now, the rest on the next tick or the next Refresh. The
-   * report says how far it got; the schedule is written only when the last
-   * page is in, so nothing below sees half a season.
+   * The subdomain is part of the identity on platforms that give each club
+   * one, and it is recoverable from the URL that was pasted to connect this
+   * event. scheduleUrl first, because that is the platform's own page;
+   * sourceUrl is usually the organizer's website, which is a different system
+   * and parses to nothing.
    */
-  if (provider.step) {
-    const job = await enqueueSync(event.id, options.requestedBy ?? null, now);
-    const budget = options.budgetMs ?? READ_BUDGET_MS;
-    if (budget <= 0) {
-      return { slug: event.slug, ok: true, detail: "queued", jobId: job.id };
-    }
-    const outcome = await advanceJob(job.id, budget, now);
-    return {
-      slug: event.slug,
-      ok: outcome.ok,
-      detail: outcome.detail,
-      ...(outcome.finished ? {} : { jobId: job.id }),
+  const ref = (event.scheduleUrl && provider.parseUrl(event.scheduleUrl)) ||
+    (event.sourceUrl && provider.parseUrl(event.sourceUrl)) || {
+      platform: provider.platform,
+      eventId: event.sourceEventId,
     };
-  }
 
   const result = await provider.fetch({ ...ref, eventId: event.sourceEventId });
   if (!result.ok) {
@@ -149,11 +150,7 @@ const LEASE_MS = 5 * 60_000;
  * `nextSyncAt` out by the lease before doing any work; the sync then sets it
  * properly, and a failure sets it from the cadence.
  */
-export async function syncIfDue(
-  eventId: string,
-  now = new Date(),
-  budgetMs = READ_BUDGET_MS,
-): Promise<SyncReport | null> {
+export async function syncIfDue(eventId: string, now = new Date()): Promise<SyncReport | null> {
   const claimed = await db
     .update(events)
     .set({ nextSyncAt: new Date(now.getTime() + LEASE_MS) })
@@ -161,7 +158,7 @@ export async function syncIfDue(
     .returning({ id: events.id });
 
   if (claimed.length === 0) return null;
-  return syncEvent(eventId, now, { budgetMs });
+  return syncEvent(eventId, now);
 }
 
 /**
@@ -199,33 +196,18 @@ export function due(now: Date) {
  * that cannot finish is a queue whose tail never syncs. Anything left over is
  * still due on the next tick.
  */
-export async function syncDueEvents(
-  limit = 5,
-  now = new Date(),
-  budgetMs = READ_BUDGET_MS,
-): Promise<SyncReport[]> {
-  const started = Date.now();
-  const left = () => budgetMs - (Date.now() - started);
-
-  /*
-   * Reads already under way come first: a job put down by the last tick, or
-   * by an admin's Refresh that ran out of time, is closer to done than
-   * anything due, and a queue that keeps starting reads and never finishes
-   * one is the failure this exists to end.
-   */
-  const reports: SyncReport[] = await advanceOpenJobs(left(), now);
-
+export async function syncDueEvents(limit = 5, now = new Date()): Promise<SyncReport[]> {
   const candidates = await db.query.events.findMany({
     where: and(isNotNull(events.sourcePlatform), due(now)),
     columns: { id: true },
     limit,
   });
 
+  const reports: SyncReport[] = [];
   for (const e of candidates) {
-    if (left() <= 0) break;
     // Through the same claim as a page-triggered refresh, so a cron tick and a
     // reader arriving at the same moment cannot both fetch the same event.
-    const report = await syncIfDue(e.id, now, left());
+    const report = await syncIfDue(e.id, now);
     if (report) reports.push(report);
   }
   return reports;

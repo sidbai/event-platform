@@ -14,7 +14,6 @@ import {
   text,
   timestamp,
   unique,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -2374,76 +2373,3 @@ export const pageViews = pgTable(
   },
   (t) => [primaryKey({ columns: [t.subjectType, t.subjectId] })],
 );
-
-// --- sync jobs: a read too long for one invocation ------------------------
-
-export const syncJobStatus = pgEnum("sync_job_status", ["queued", "running", "done", "failed"]);
-
-/**
- * A read of a connected schedule, done a page at a time across invocations.
- *
- * A serverless function gets five minutes. The Regional Club League is a
- * hundred pages at a polite pace, which is longer than that, and a read that
- * is killed at the limit leaves nothing behind but a stale timestamp. So a
- * long read is a job: whoever picks it up — the admin's Refresh, a cron
- * tick — reads as many pages as their budget allows, files each page as a
- * part, and puts the job down; the next caller picks it up where it was
- * left. When the last page is in, the parts are assembled and written as
- * one schedule, so pruning and the shrink guard see the whole of it.
- *
- * One live job per event, enforced by the partial unique index below: two
- * callers arriving together get one job, and the lease says who holds it.
- */
-export const syncJobs = pgTable(
-  "sync_jobs",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    eventId: uuid("event_id")
-      .notNull()
-      .references(() => events.id, { onDelete: "cascade" }),
-    status: syncJobStatus("status").notNull().default("queued"),
-    /** Who pressed Refresh, or null for the cron. */
-    requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    startedAt: timestamp("started_at", { withTimezone: true }),
-    finishedAt: timestamp("finished_at", { withTimezone: true }),
-    /** Held by whoever is reading now; expired means they were killed mid-read. */
-    leasedUntil: timestamp("leased_until", { withTimezone: true }),
-    /** Where the connector is in its read — its own shape, opaque here. */
-    cursor: jsonb("cursor"),
-    stepsDone: integer("steps_done").notNull().default(0),
-    stepsTotal: integer("steps_total"),
-    /** "BU10 Div 1" — what the last step read, for the admin screen. */
-    stepLabel: text("step_label"),
-    /** What the finished sync said, or why it failed. */
-    detail: text("detail"),
-  },
-  (t) => [
-    index("sync_jobs_event_idx").on(t.eventId, t.createdAt),
-    uniqueIndex("sync_jobs_one_live_per_event_uq")
-      .on(t.eventId)
-      .where(sql`${t.status} in ('queued', 'running')`),
-  ],
-);
-
-/** One page of a job's read, as the connector returned it. Deleted when the job is assembled. */
-export const syncJobParts = pgTable(
-  "sync_job_parts",
-  {
-    jobId: uuid("job_id")
-      .notNull()
-      .references(() => syncJobs.id, { onDelete: "cascade" }),
-    step: integer("step").notNull(),
-    payload: jsonb("payload").notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.jobId, t.step] })],
-);
-
-export const syncJobsRelations = relations(syncJobs, ({ one, many }) => ({
-  event: one(events, { fields: [syncJobs.eventId], references: [events.id] }),
-  parts: many(syncJobParts),
-}));
-
-export const syncJobPartsRelations = relations(syncJobParts, ({ one }) => ({
-  job: one(syncJobs, { fields: [syncJobParts.jobId], references: [syncJobs.id] }),
-}));

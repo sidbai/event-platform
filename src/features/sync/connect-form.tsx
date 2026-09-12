@@ -51,26 +51,17 @@ export function ConnectForm({
 }
 
 /** Read a connected event now, whatever its cadence says. */
-export function RefreshButton({
-  action,
-  eventId,
-  busy = false,
-}: {
-  action: Action;
-  eventId: string;
-  /** A read is already under way in the background; pressing again would only queue behind it. */
-  busy?: boolean;
-}) {
+export function RefreshButton({ action, eventId }: { action: Action; eventId: string }) {
   const [state, formAction, pending] = useActionState<ConnectResult, FormData>(action, {});
 
   return (
     <form action={formAction} className="mt-2">
       <input type="hidden" name="eventId" value={eventId} />
       <button
-        disabled={pending || busy}
+        disabled={pending}
         className="rounded-md border border-line px-2.5 py-1 text-xs hover:bg-elevated disabled:opacity-50"
       >
-        {pending || busy ? "Reading…" : "Refresh now"}
+        {pending ? "Reading…" : "Refresh now"}
       </button>
       {state.error && <p className="mt-1 text-xs text-red-600">{state.error}</p>}
       {state.detail && <p className="mt-1 text-xs text-muted">{state.detail}</p>}

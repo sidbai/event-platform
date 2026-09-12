@@ -43,8 +43,6 @@ const TABLES = [
   "rosters",
   "event_teams",
   "event_divisions",
-  "sync_job_parts",
-  "sync_jobs",
   "team_slugs",
   "team_members",
   "events",
