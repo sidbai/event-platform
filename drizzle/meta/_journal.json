@@ -505,6 +505,13 @@
       "when": 1789227817919,
       "tag": "0071_chubby_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1789237584041,
+      "tag": "0072_milky_spitfire",
+      "breakpoints": true
     }
   ]
 }
