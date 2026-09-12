@@ -6,6 +6,7 @@ import { isImported } from "@/features/discovery/sitemap-entries";
 import { TeamCrest } from "@/components/team-crest";
 import { getCurrentUser } from "@/features/auth";
 import { isAdmin } from "@/features/auth/admin";
+import { ratingsFor } from "@/features/predict/queries";
 import {
   setEventCompleted,
   setEventHidden,
@@ -111,6 +112,8 @@ export default async function EventPage({
   if (!event) notFound();
 
   const canManage = !!user && (event.organizerId === user.id || isAdmin(user));
+  // The model's ratings for everyone entered here, for the fixtures still to play.
+  const ratings = await ratingsFor(event.eventTeams.map((et) => et.teamId));
   /*
    * Wider than canManage, and only for the import box: the person who listed
    * somebody else's tournament holds its fixtures, and a listing has no
@@ -668,6 +671,7 @@ export default async function EventPage({
       <ScheduleSection
         event={event}
         sp={sp}
+        ratings={ratings}
         config={{
           system: rules?.pointsSystem,
           goalCap: rules?.goalCapPerGame,

@@ -11,6 +11,8 @@ import { PROVIDER_POLICIES } from "@/features/sync/policy";
 import { NavSelect } from "@/components/nav-select";
 import { timeAnnounced, whereAnnounced } from "@/features/events/kickoff";
 import { scoreLabel } from "@/features/events/score-label";
+import { forecast, type Rating } from "@/features/predict/elo";
+import { Odds } from "@/features/predict/odds";
 
 import {
   byCluster,
@@ -148,10 +150,13 @@ export function ScheduleSection({
   event,
   sp,
   config,
+  ratings = new Map(),
 }: {
   event: EventDetail;
   sp: ScheduleParams;
   config: StandingsConfig;
+  /** The model's ratings for the teams here, for a forecast on each fixture still to be played. */
+  ratings?: Map<string, Rating>;
 }) {
   const divisions = event.divisions;
   // Nothing to show for a kickabout with no divisions and no fixtures.
@@ -474,6 +479,16 @@ export function ScheduleSection({
                         <TeamLink team={m.awayTeam} fallback={m.awayPlaceholder} />
                       </span>
                     </div>
+                    {/* A forecast, only for a game still to be played between
+                        two sides the model has enough history on. */}
+                    {m.homeScore === null && m.homeTeamId && m.awayTeamId && (() => {
+                      const p = forecast(ratings.get(m.homeTeamId), ratings.get(m.awayTeamId));
+                      return p ? (
+                        <div className="mt-1 flex justify-center">
+                          <Odds probs={p} home={m.homeTeam?.name} away={m.awayTeam?.name} compact />
+                        </div>
+                      ) : null;
+                    })()}
                   </li>
                 ))}
               </ul>
