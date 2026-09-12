@@ -107,6 +107,29 @@ export type SyncResult =
   | { ok: true; data: SyncedEvent }
   | { ok: false; error: SyncFailure };
 
+/**
+ * One page of a read that is too long for one invocation.
+ *
+ * A connector that offers `step` reads its source a page at a time: given
+ * the cursor it returned last time (null to begin), it fetches the next
+ * page and hands back what it found, where it now is, and how far along
+ * that is. The runner files each part and assembles them when `done`. The
+ * cursor is the connector's own shape and is stored as JSON, so it has to
+ * be plain data — no sessions, no dates.
+ */
+export type SyncStep = {
+  cursor: unknown;
+  part: { teams: SyncedTeam[]; matches: SyncedMatch[] };
+  done: boolean;
+  /** Steps taken so far, and how many there will be once known. */
+  index: number;
+  total: number | null;
+  /** What this step read, for a person watching: "BU10 Div 1". */
+  label: string | null;
+};
+
+export type StepResult = { ok: true; step: SyncStep } | { ok: false; error: SyncFailure };
+
 export interface ExternalEventProvider {
   readonly platform: SourceRef["platform"];
   /** True when this provider recognises the URL an organizer pasted. */
@@ -115,4 +138,10 @@ export interface ExternalEventProvider {
   parseUrl(url: string): SourceRef | null;
   /** Everything currently published for that event. */
   fetch(ref: SourceRef): Promise<SyncResult>;
+  /**
+   * The same read, a page at a time — see SyncStep. Offered by a connector
+   * whose full read does not fit one invocation; the runner prefers it
+   * where it exists and falls back to `fetch` where it does not.
+   */
+  step?(ref: SourceRef, cursor: unknown): Promise<StepResult>;
 }
