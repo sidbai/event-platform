@@ -85,6 +85,20 @@ where, how it finished — rather than laying it out in columns. Read genericall
 both teams land in one field and the date and score are lost. `copier.ts`
 recognises it by the header (`Game Info` / `Teams & Venues`), never by URL.
 
+**The groups.** AthleteOne's fixture rows never say which group a game is in;
+the groups exist only on its standings page, one table per group with the
+group's name above it. Six tournaments landed as one table per flight
+because of this. Two things now cover it: the paste importer reads groups off
+the shape of the games where the shape is unambiguous (complete round-robin
+groups, then placement games) and labels the last cross-group game the
+Final; and the copier keeps the heading over each standings table as a
+`group` column, so pasting a division's standings page writes the groups
+onto the entries and the games. A paste result names the divisions whose
+groups the schedule cannot show — copy those standings pages. A pool where
+every team plays three of five others may be a single table on the platform
+too, and then nothing is missing. `pnpm db:groups:infer` is the same reading
+by hand, for events that landed before it existed.
+
 **Pagination.** AthleteOne's tables show ten rows and print
 `Lines per page 1-10 of 34`. A paste holding ten of thirty-four looks
 complete, which makes it the worst failure available. The bookmarklet counts
