@@ -19,6 +19,7 @@ import { matches, teamFollows, teams } from "@/db/schema";
 import { whereAnnounced } from "@/features/events/kickoff";
 
 import { resultFor } from "./record";
+import { NEXT_GRACE_MS } from "@/features/teams/preview";
 
 /**
  * Reading who follows what — always in one direction.
@@ -146,7 +147,9 @@ export async function nextGames(
   const upcoming = await db.query.matches.findMany({
     where: and(
       isNotNull(matches.kickoffAt),
-      gte(matches.kickoffAt, now),
+      // Kicked off within the last three hours is still "next", as on the
+      // team page: the game being played is the one a parent is looking for.
+      gte(matches.kickoffAt, new Date(now.getTime() - NEXT_GRACE_MS)),
       or(
         inArray(matches.homeTeamId, teamIds),
         inArray(matches.awayTeamId, teamIds),

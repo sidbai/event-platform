@@ -365,6 +365,7 @@ export default async function TeamPage({
           timezone={
             team.matches.find((m) => m.id === nextUp.fixture.id)?.event?.timezone ?? null
           }
+          now={new Date()}
         />
       )}
 

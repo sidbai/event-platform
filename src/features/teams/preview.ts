@@ -37,13 +37,26 @@ export type Fixture = Dated & { id: string };
  * postponed game can sit between two that have been played. Anything already
  * scored is behind us whatever its date says.
  */
+/**
+ * How long after kick-off a game is still "next".
+ *
+ * A game is being played for the ninety minutes after its kick-off and is
+ * being talked about for a while after that, and nobody has typed the score
+ * in yet. The panel used to vanish at kick-off, which is the moment a parent
+ * on the touchline opens the page — and the game that then took its place
+ * was next Saturday's. Three hours covers the longest youth game and the
+ * drive home; a score entered sooner retires it sooner.
+ */
+export const NEXT_GRACE_MS = 3 * 60 * 60 * 1000;
+
 export function nextFixture<T extends Fixture>(
   matches: T[],
   now: Date = new Date(),
 ): T | null {
+  const since = now.getTime() - NEXT_GRACE_MS;
   const upcoming = matches
     .filter((m) => m.homeScore === null && m.awayScore === null)
-    .filter((m) => m.kickoffAt !== null && new Date(m.kickoffAt) >= now)
+    .filter((m) => m.kickoffAt !== null && new Date(m.kickoffAt).getTime() >= since)
     .sort((a, b) => new Date(a.kickoffAt!).getTime() - new Date(b.kickoffAt!).getTime());
   return upcoming[0] ?? null;
 }

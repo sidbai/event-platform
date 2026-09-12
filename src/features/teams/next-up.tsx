@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { TeamCrest } from "@/components/team-crest";
-import { kickoffLabel } from "@/features/events/kickoff";
+import { kickoffLabel, timeAnnounced } from "@/features/events/kickoff";
 
 import type { Probs } from "@/features/predict/elo";
 import { Odds } from "@/features/predict/odds";
@@ -71,8 +71,11 @@ export function NextUpPanel({
   teamName,
   timezone,
   weAreHome = true,
+  now,
 }: {
   nextUp: NextUp;
+  /** The clock, from the page: a render is not a place to read one. */
+  now: Date;
   /** The model's forecast for the fixture, home side first, where it has one. */
   odds?: { probs: Probs; home: string; away: string } | null;
   teamName: string;
@@ -106,6 +109,16 @@ export function NextUpPanel({
    * midnight, and "12:00 AM" reads as a fact rather than as the gap it is.
    */
   const when = kickoffLabel(fixture.kickoffAt, tz);
+  /*
+   * Still "next" for a while after kick-off — see NEXT_GRACE_MS — and said
+   * so, because a parent on the touchline reading "Sat, 1:00 PM" at 1:40
+   * would take the panel for one that has not noticed. Only when a time was
+   * announced: a day-only fixture at midnight is not under way at 00:01.
+   */
+  const underWay =
+    fixture.kickoffAt !== null &&
+    new Date(fixture.kickoffAt).getTime() <= now.getTime() &&
+    timeAnnounced(fixture.kickoffAt, tz);
 
   return (
     <section className="mt-8">
@@ -116,7 +129,12 @@ export function NextUpPanel({
           {weAreHome ? us : them}
           <span className="text-muted">vs</span>
           {weAreHome ? them : us}
-          {when && <span className="ml-auto text-sm tabular-nums text-muted">{when}</span>}
+          {when && (
+            <span className="ml-auto text-sm tabular-nums text-muted">
+              {when}
+              {underWay && " · under way"}
+            </span>
+          )}
         </div>
         {/* Home on the left of the bar, as the header above reads; the names
             are already there, so the bar carries only the numbers. */}
