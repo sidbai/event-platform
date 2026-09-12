@@ -12,8 +12,20 @@ export function Odds({ probs, home, away, compact = false }: { probs: Probs; hom
   const pct = (x: number) => Math.round(x * 100);
   const h = pct(probs.home), d = pct(probs.draw), a = 100 - h - d;
   const title = `Forecast from results so far: ${home ?? "home"} ${h}%, draw ${d}%, ${away ?? "away"} ${a}%`;
+  /*
+   * "H" and "A" at the ends, because a bar between two names does not say
+   * which end is which — and on the team page the names sit a line above,
+   * turned around when this team is away. Letters, not words: the bar is
+   * eighty pixels and the numbers are the point.
+   */
+  const tag = (t: string) => (
+    <span className="text-[10px] font-medium uppercase tracking-wide text-muted/80" aria-hidden>
+      {t}
+    </span>
+  );
   return (
     <span className={`inline-flex items-center gap-2 ${compact ? "text-[11px]" : "text-xs"} text-muted`} title={title}>
+      {tag("H")}
       <span className="tabular-nums">{h}</span>
       <span className="flex h-1.5 w-20 overflow-hidden rounded-full bg-elevated" aria-hidden>
         <span className="bg-brand" style={{ width: `${h}%` }} />
@@ -21,6 +33,7 @@ export function Odds({ probs, home, away, compact = false }: { probs: Probs; hom
         <span className="bg-ink/40" style={{ width: `${a}%` }} />
       </span>
       <span className="tabular-nums">{a}</span>
+      {tag("A")}
       {!compact && <span className="sr-only">{title}</span>}
     </span>
   );
