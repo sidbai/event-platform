@@ -71,18 +71,36 @@ export async function mergeTeams(
     );
   }
 
-  const survivorEvents = new Set(
-    (
-      await db.query.eventTeams.findMany({
-        where: eq(eventTeams.teamId, survivorId),
-        columns: { eventId: true },
-      })
-    ).map((e) => e.eventId),
-  );
+  /*
+   * Nothing a merge does deletes an entry. Two flights of one tournament
+   * are two entries and both move to the survivor; two entries in the SAME
+   * flight would need one to go, and that is not a merge's to decide — it
+   * is two teams, or a duplicate entry to clean up first — so the merge is
+   * refused before it has touched anything, naming the flight.
+   */
+  const survivorEntries = await db.query.eventTeams.findMany({
+    where: eq(eventTeams.teamId, survivorId),
+    columns: { eventId: true, divisionId: true },
+    with: { event: { columns: { title: true } }, division: { columns: { name: true } } },
+  });
+  const flightKey = (e: { eventId: string; divisionId: string | null }) => `${e.eventId}:${e.divisionId ?? ""}`;
+  const survivorFlights = new Map(survivorEntries.map((e) => [flightKey(e), e]));
+  for (const loser of losers) {
+    const theirs = await db.query.eventTeams.findMany({
+      where: eq(eventTeams.teamId, loser.id),
+      columns: { eventId: true, divisionId: true },
+    });
+    const clash = theirs.map((e) => survivorFlights.get(flightKey(e))).find(Boolean);
+    if (clash) {
+      throw new Error(
+        `refusing to merge ${loser.slug}: both are entered in ${clash.event.title}${clash.division ? ` (${clash.division.name})` : ""} — two entries in one flight is two teams, or a duplicate entry to fix first`,
+      );
+    }
+  }
 
   let matchesMoved = 0;
   let entriesMoved = 0;
-  let entriesDropped = 0;
+  const entriesDropped = 0;
 
   for (const loser of losers) {
     /*
@@ -126,22 +144,15 @@ export async function mergeTeams(
       where: eq(eventTeams.teamId, loser.id),
     });
     for (const entry of entries) {
-      if (survivorEvents.has(entry.eventId)) {
-        // Both rows were in this event. The survivor's entry already carries
-        // the division and the standing; a second one cannot exist. Kept
-        // whole in the journal, since deleting it is the one thing here that
-        // nothing else records.
-        journal.dropped.eventTeams.push(entry);
-        await db.delete(eventTeams).where(eq(eventTeams.id, entry.id));
-        entriesDropped++;
-        continue;
-      }
+      // Every entry moves; the flight check above already ruled out the one
+      // case that could not. `dropped.eventTeams` stays empty from here on
+      // and is read only for the merges made before this rule.
       await db
         .update(eventTeams)
         .set({ teamId: survivorId })
         .where(eq(eventTeams.id, entry.id));
       journal.moved.eventTeams.push(entry.id);
-      survivorEvents.add(entry.eventId);
+      survivorFlights.set(flightKey(entry), { ...entry, event: { title: "" }, division: null });
       entriesMoved++;
     }
 

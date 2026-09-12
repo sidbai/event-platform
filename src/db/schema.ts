@@ -693,7 +693,22 @@ export const eventTeams = pgTable(
     ga: integer("ga").notNull().default(0),
     points: integer("points").notNull().default(0),
   },
-  (t) => [unique("event_teams_event_team_uq").on(t.eventId, t.teamId)],
+  /*
+   * One entry per team per flight, not per event.
+   *
+   * It was per event, and a merge of two sides entered in the same event
+   * had to drop one entry — the one thing a merge deleted, and the thing
+   * that let a B side's games sit under the A side with no entry of their
+   * own. Two flights of one tournament are two entries now. Two entries in
+   * one flight are still refused: that is two teams, or a duplicate to
+   * clean up, and either way not a merge's to decide. NULLS NOT DISTINCT so
+   * an event with no flights is still one entry per team.
+   */
+  (t) => [
+    unique("event_teams_event_team_division_uq")
+      .on(t.eventId, t.teamId, t.divisionId)
+      .nullsNotDistinct(),
+  ],
 );
 
 // --- rosters: players for an event_teams row ------------------------

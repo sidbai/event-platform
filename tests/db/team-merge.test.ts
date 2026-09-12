@@ -25,7 +25,7 @@ const { eventKinds, eventTeams, events, matches, teamMerges, teamSlugs, teams, u
 const { mergeTeams, teamBySoleOldSlug } = await import("@/features/teams/merge");
 const { planUnmerge, unmergeTeam } = await import("@/features/teams/unmerge");
 const { duplicateTeamGroups } = await import("@/features/teams/merge-queries");
-const { teamAliases } = await import("@/db/schema");
+const { teamAliases, eventDivisions } = await import("@/db/schema");
 const { eq, sql } = await import("drizzle-orm");
 
 async function makeEvent(slug: string) {
@@ -132,8 +132,9 @@ describe("mergeTeams", () => {
     expect(await teamBySoleOldSlug("xf-u12")).toBe("xf-u12");
   });
 
-  it("drops a duplicate entry rather than breaking the one-per-event rule", async () => {
-    // Both rows entered the same tournament. event_teams allows one.
+  it("refuses two entries in the same flight rather than deleting one", async () => {
+    // Both rows entered the same flight of the same tournament. That is two
+    // teams, or a duplicate entry to fix first; a merge deletes nothing.
     const cup = await makeEvent("cup");
     const keep = await makeTeam("keep");
     const dupe = await makeTeam("dupe");
@@ -142,13 +143,31 @@ describe("mergeTeams", () => {
       { eventId: cup, teamId: dupe, groupLabel: "A" },
     ]);
 
+    await expect(mergeTeams(keep, [dupe])).rejects.toThrow(/both are entered in cup/);
+
+    const left = await db.select().from(eventTeams).where(eq(eventTeams.eventId, cup));
+    expect(left).toHaveLength(2);
+    expect(await db.query.teams.findFirst({ where: eq(teams.id, dupe) })).toBeTruthy();
+  });
+
+  it("keeps both entries when the two are in different flights of one event", async () => {
+    const cup = await makeEvent("cup");
+    const [red] = await db.insert(eventDivisions).values({ eventId: cup, name: "Red" }).returning({ id: eventDivisions.id });
+    const [blue] = await db.insert(eventDivisions).values({ eventId: cup, name: "Blue" }).returning({ id: eventDivisions.id });
+    const keep = await makeTeam("keep");
+    const dupe = await makeTeam("dupe");
+    await db.insert(eventTeams).values([
+      { eventId: cup, teamId: keep, divisionId: red.id },
+      { eventId: cup, teamId: dupe, divisionId: blue.id },
+    ]);
+
     const out = await mergeTeams(keep, [dupe]);
 
-    expect(out.entriesDropped).toBe(1);
-    expect(out.entriesMoved).toBe(0);
+    expect(out.entriesMoved).toBe(1);
+    expect(out.entriesDropped).toBe(0);
     const left = await db.select().from(eventTeams).where(eq(eventTeams.eventId, cup));
-    expect(left).toHaveLength(1);
-    expect(left[0].teamId).toBe(keep);
+    expect(left.map((e) => e.teamId)).toEqual([keep, keep]);
+    expect(new Set(left.map((e) => e.divisionId))).toEqual(new Set([red.id, blue.id]));
   });
 
   it("refuses to absorb a team somebody owns", async () => {
@@ -195,14 +214,17 @@ describe("a team that played two brackets of one event", () => {
     const rival = await makeTeam("nsc-bu10d", { name: "NSC BU10D", originEventId: cup });
 
     // As the old importer wrote them: one team, two divisions, two ids.
+    const [group] = await db.insert(eventDivisions).values({ eventId: cup, name: "Boys U10" }).returning({ id: eventDivisions.id });
+    const [champs] = await db.insert(eventDivisions).values({ eventId: cup, name: "Boys U10 Championships" }).returning({ id: eventDivisions.id });
     await db.insert(eventTeams).values([
-      { eventId: cup, teamId: first, sourceTeamId: "boys u10|lwpfc bu10 white bichirs" },
+      { eventId: cup, teamId: first, divisionId: group.id, sourceTeamId: "boys u10|lwpfc bu10 white bichirs" },
       {
         eventId: cup,
         teamId: second,
+        divisionId: champs.id,
         sourceTeamId: "boys u10 championships|lwpfc bu10 white bichirs",
       },
-      { eventId: cup, teamId: rival, sourceTeamId: "boys u10|nsc bu10d" },
+      { eventId: cup, teamId: rival, divisionId: group.id, sourceTeamId: "boys u10|nsc bu10d" },
     ]);
     await db.insert(matches).values([
       { eventId: cup, stage: "group", homeTeamId: first, awayTeamId: rival, homeScore: 3, awayScore: 1, status: "final" },
@@ -224,9 +246,9 @@ describe("a team that played two brackets of one event", () => {
       groups[0].survivor.id,
       groups[0].losers.map((l) => l.id),
     );
-    // Both games follow the surviving row; the second entry cannot come with
-    // it, since event_teams is unique on (event, team).
-    expect(out).toMatchObject({ merged: 1, matchesMoved: 1, entriesDropped: 1 });
+    // Both games follow the surviving row, and so does the second entry —
+    // it is the championship flight's, and an entry is per flight.
+    expect(out).toMatchObject({ merged: 1, matchesMoved: 1, entriesMoved: 1, entriesDropped: 0 });
 
     const left = await db.query.teams.findMany({
       where: eq(teams.name, "LWPFC BU10 White Bichirs"),
@@ -337,8 +359,8 @@ describe("which address the surviving team keeps", () => {
  * Undoing one.
  *
  * A merge is the one cleanup here with no way back on its own: fixtures move
- * to the survivor with nothing saying which moved, and an entry the survivor
- * already had is deleted outright. team_merges is what makes it reversible,
+ * to the survivor with nothing saying which moved. team_merges is what makes
+ * it reversible,
  * so what is worth testing is a real merge undone from the record alone.
  */
 describe("the record a merge leaves", () => {
@@ -367,24 +389,25 @@ describe("the record a merge leaves", () => {
     expect(record.moved).toMatchObject({ eventTeams: [expect.any(String)] });
   });
 
-  it("keeps an entry it dropped, since nothing else does", async () => {
-    // Both rows were in the same event, so the loser's entry was deleted
-    // rather than moved. This is the one thing an archive flag could not
-    // bring back.
+  it("drops nothing any more, and says so in the record", async () => {
+    // Two flights of one event: both entries move. The dropped list is kept
+    // in the record for the merges made before this rule, and is empty now.
     const cup = await makeEvent("cup");
+    const [red] = await db.insert(eventDivisions).values({ eventId: cup, name: "Red" }).returning({ id: eventDivisions.id });
+    const [blue] = await db.insert(eventDivisions).values({ eventId: cup, name: "Blue" }).returning({ id: eventDivisions.id });
     const keep = await makeTeam("keep");
     const dupe = await makeTeam("dupe");
     await db.insert(eventTeams).values([
-      { eventId: cup, teamId: keep, groupLabel: "A" },
-      { eventId: cup, teamId: dupe, groupLabel: "B" },
+      { eventId: cup, teamId: keep, divisionId: red.id },
+      { eventId: cup, teamId: dupe, divisionId: blue.id },
     ]);
 
     await mergeTeams(keep, [dupe]);
 
     const [record] = await db.select().from(teamMerges);
-    const dropped = record.dropped as { eventTeams: { groupLabel: string }[] };
-    expect(dropped.eventTeams).toHaveLength(1);
-    expect(dropped.eventTeams[0].groupLabel).toBe("B");
+    const dropped = record.dropped as { eventTeams: unknown[] };
+    expect(dropped.eventTeams).toHaveLength(0);
+    expect((record.moved as { eventTeams: string[] }).eventTeams).toHaveLength(1);
   });
 
   it("says which side of a fixture the team was on", async () => {
@@ -414,11 +437,13 @@ describe("the record a merge leaves", () => {
     const keep = await makeTeam("keep");
     const dupe = await makeTeam("dupe", { name: "Little Warriors B15 B" });
     const rival = await makeTeam("rival");
+    // Both in the shared cup, in different flights: both entries move.
+    const [red] = await db.insert(eventDivisions).values({ eventId: cup, name: "Red" }).returning({ id: eventDivisions.id });
+    const [blue] = await db.insert(eventDivisions).values({ eventId: cup, name: "Blue" }).returning({ id: eventDivisions.id });
     await db.insert(eventTeams).values([
       { eventId: june, teamId: dupe },
-      // Both in this one, so the loser's entry is deleted rather than moved.
-      { eventId: cup, teamId: keep, groupLabel: "A" },
-      { eventId: cup, teamId: dupe, groupLabel: "B" },
+      { eventId: cup, teamId: keep, groupLabel: "A", divisionId: red.id },
+      { eventId: cup, teamId: dupe, groupLabel: "B", divisionId: blue.id },
     ]);
     await db.insert(matches).values({
       eventId: june,
@@ -437,8 +462,8 @@ describe("the record a merge leaves", () => {
     expect(plan).toMatchObject({
       team: { name: "Little Warriors B15 B" },
       matches: 1,
-      entriesMoved: 1,
-      entriesRestored: 1,
+      entriesMoved: 2,
+      entriesRestored: 0,
     });
     await unmergeTeam(record.id);
 
@@ -450,7 +475,7 @@ describe("the record a merge leaves", () => {
     expect(fixtures).toHaveLength(1);
     expect(fixtures[0].homeScore).toBe(2);
 
-    // Both entries in the shared event, including the one that was deleted.
+    // Both entries in the shared event, each back with its own team.
     const entries = await db.select().from(eventTeams).where(eq(eventTeams.eventId, cup));
     expect(entries.map((e) => e.groupLabel).sort()).toEqual(["A", "B"]);
 
