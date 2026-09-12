@@ -4157,8 +4157,11 @@
  "washington-rush": {
   "slug": "washington-rush",
   "tiers": [
+   "MLS NEXT",
    "MLSN",
+   "Girls Academy",
    "GA",
+   "National League",
    "NL",
    "Pre MLSN",
    "Pre-GA",
@@ -4166,8 +4169,9 @@
    "Nero",
    "Azul",
    "Cinza",
+   "Premier",
    "Select",
-   "Jr RCL"
+   "Junior RCL"
   ],
   "squadMarkers": [
    "Rush",
