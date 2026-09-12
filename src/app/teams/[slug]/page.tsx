@@ -499,13 +499,41 @@ export default async function TeamPage({
           <SplitPanel
             teamSlug={team.slug}
             teamName={team.name}
-            entries={team.eventTeams.map((et) => ({
-              eventId: et.eventId,
-              title: et.event.title,
-              as: et.sourceName && et.sourceName !== team.name ? et.sourceName : null,
-              division: et.division?.label ?? et.division?.name ?? null,
-              games: team.matches.filter((m) => m.eventId === et.eventId).length,
-            }))}
+            entries={(() => {
+              /*
+               * One row per event and flight: the entries, plus any flight
+               * the team has games in without an entry — which is what a
+               * merge of two sides entered in the same event leaves behind.
+               */
+              const key = (eventId: string, divisionId: string | null) => `${eventId}:${divisionId ?? ""}`;
+              const rows = new Map<string, Parameters<typeof SplitPanel>[0]["entries"][number]>();
+              for (const et of team.eventTeams) {
+                rows.set(key(et.eventId, et.divisionId), {
+                  eventId: et.eventId,
+                  divisionId: et.divisionId,
+                  title: et.event.title,
+                  as: et.sourceName && et.sourceName !== team.name ? et.sourceName : null,
+                  division: et.division?.label ?? et.division?.name ?? null,
+                  games: 0,
+                  entered: true,
+                });
+              }
+              for (const m of team.matches) {
+                const k = key(m.eventId, m.divisionId);
+                const row = rows.get(k) ?? {
+                  eventId: m.eventId,
+                  divisionId: m.divisionId,
+                  title: m.event?.title ?? "Event",
+                  as: null,
+                  division: m.division?.name ?? null,
+                  games: 0,
+                  entered: false,
+                };
+                row.games++;
+                rows.set(k, row);
+              }
+              return [...rows.values()];
+            })()}
             action={splitTeamAction.bind(null, team.slug)}
             search={searchTeamsToMerge}
           />

@@ -8,11 +8,14 @@ import type { SplitActionResult } from "./split-actions";
 
 type Entry = {
   eventId: string;
+  divisionId: string | null;
   title: string;
   /** What that event called the side, when it differs from the team's name. */
   as: string | null;
   division: string | null;
   games: number;
+  /** False for games a merge left here without an entry of their own. */
+  entered: boolean;
 };
 
 /**
@@ -57,8 +60,9 @@ export function SplitPanel({
     <details className="mt-6 rounded-lg border border-dashed border-line p-3 text-sm">
       <summary className="cursor-pointer font-medium">Split this team (admin)</summary>
       <p className="mt-2 text-xs text-muted">
-        Move some of these events — with their games and results — to another team, or to a
-        new one. Nothing is deleted; merging them back is one click on the queue.
+        Move some of these — an event, or one flight of it, with the games and results — to
+        another team, or to a new one. Nothing is deleted; merging them back is one click on
+        the queue.
       </p>
       <form action={formAction} className="mt-3 space-y-3">
         {entries.length === 0 && (
@@ -66,13 +70,18 @@ export function SplitPanel({
         )}
         <ul className="space-y-1">
           {entries.map((e) => (
-            <li key={e.eventId}>
+            <li key={`${e.eventId}:${e.divisionId ?? ""}`}>
               <label className="flex items-start gap-2">
-                <input type="checkbox" name="eventId" value={e.eventId} className="mt-1" />
+                <input type="checkbox" name="pick" value={`${e.eventId}:${e.divisionId ?? ""}`} className="mt-1" />
                 <span>
                   <span className="font-medium">{e.title}</span>
                   <span className="block text-xs text-muted">
-                    {[e.as && `entered as ${e.as}`, e.division, `${e.games} game${e.games === 1 ? "" : "s"}`]
+                    {[
+                      e.division,
+                      e.as && `entered as ${e.as}`,
+                      `${e.games} game${e.games === 1 ? "" : "s"}`,
+                      !e.entered && "games only — no entry of its own, a merge left them here",
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
