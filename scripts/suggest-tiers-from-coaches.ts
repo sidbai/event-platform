@@ -30,7 +30,31 @@ import path from "node:path";
 const APPLY = process.argv.includes("--apply");
 
 type Coach = { name: string; role: string | null; ageGroups: string[] };
-type Profile = { slug: string; coaches: Coach[] };
+type Profile = { slug: string; tiers: string[]; squadMarkers: string[]; coaches: Coach[] };
+
+/**
+ * The tier a roster line states, in the club's own vocabulary.
+ *
+ * parseTier knows the words most clubs use — ECNL, Red, Gold — and not the
+ * ones one club uses: Rush's Cinza, Mt. Rainier's Academy-1, PacNW's
+ * "Maroon (RCL)". The profile lists those, so a line is read against the
+ * club's own tier and squad words first and the general reading second.
+ */
+function tierOf(
+  line: string,
+  profile: Profile,
+  parseTier: (s: string) => string | null,
+  /** Words that are the club's own name — "Rush" in "Washington Rush" is not a tier. */
+  notThese: Set<string> = new Set(),
+): string | null {
+  const key = (s: string) => ` ${s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const words = [...profile.tiers, ...profile.squadMarkers]
+    .filter((w) => w.length > 1 && !/^[A-Z]$/.test(w) && !notThese.has(key(w).trim()))
+    .sort((a, b) => b.length - a.length);
+  const flat = key(line);
+  for (const w of words) if (flat.includes(key(w))) return w;
+  return parseTier(line);
+}
 
 /** What a roster line says about who it is for: "BU10 Red", "Girls 2013". */
 function readsAs(line: string, seasonYear: number): { gender: string | null; age: number | null } {
@@ -39,7 +63,8 @@ function readsAs(line: string, seasonYear: number): { gender: string | null; age
     : /\b(b|boys|bu)\b|\bb\d|\bbu\d/i.test(line)
       ? "boys"
       : null;
-  const u = /\bU-?(\d{1,2})\b/i.exec(line);
+  // "U12", "BU12", "GU14" — the letter before U is part of the word.
+  const u = /\b[BG]?U-?(\d{1,2})\b/i.exec(line);
   const year = /\b(20[01]\d)\b/.exec(line) ?? /\b[BG](\d{2})\b/i.exec(line);
   const age = u
     ? Number(u[1])
@@ -68,6 +93,7 @@ async function main() {
       gender: teams.gender,
       birthYears: teams.birthYears,
       clubSlug: clubs.slug,
+      clubName: clubs.name,
       coach: eventTeams.coach,
       startsAt: events.startsAt,
       event: events.title,
@@ -84,6 +110,19 @@ async function main() {
   for (const r of rows) {
     const profile = profiles[r.clubSlug];
     if (!profile || !r.coach || !r.startsAt) continue;
+    /*
+     * A name that states a tier in the club's own words is its own answer,
+     * and the coach is not consulted: Justin Ell coaches Rush's BU16 Rush
+     * and BU12 Nero and BU14 Nero, and "Washington Rush B10/11 Nero" is the
+     * Nero side whatever else he coaches. The column is null only because
+     * the general parser does not know the word.
+     */
+    const ownWords = new Set(r.clubName.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" "));
+    const named = tierOf(r.name, profile, parseTier, ownWords);
+    if (named) {
+      proposals.push({ teamId: r.teamId, name: r.name, tier: named, because: "the name says so" });
+      continue;
+    }
     const season = seasonYearOf(r.startsAt);
     const age = r.birthYears.length ? season - Math.min(...r.birthYears) : null;
     const lines = profile.coaches
@@ -97,7 +136,7 @@ async function main() {
     });
     const tiers = new Map<string, string>();
     for (const { coach, line } of fitting) {
-      const tier = parseTier(line);
+      const tier = tierOf(line, profile, parseTier);
       if (tier) tiers.set(tier, `${coach} coaches ${line}`);
     }
     if (tiers.size === 1) {
