@@ -39,7 +39,16 @@ export async function splitTeamAction(
   });
   if (!team) return { error: "That team is gone." };
 
-  const eventIds = formData.getAll("eventId").map(String).filter(Boolean);
+  // "eventId:divisionId", the division part empty for games that have none.
+  const picks = formData
+    .getAll("pick")
+    .map(String)
+    .filter(Boolean)
+    .map((v) => {
+      const at = v.indexOf(":");
+      return { eventId: v.slice(0, at), divisionId: v.slice(at + 1) || null };
+    });
+  const eventIds = [...new Set(picks.map((p) => p.eventId))];
   const mode = String(formData.get("mode") ?? "new");
   const target =
     mode === "existing"
@@ -48,7 +57,7 @@ export async function splitTeamAction(
   if ("teamId" in target && !target.teamId) return { error: "Pick the team to move them to." };
 
   try {
-    const out = await splitTeam(team.id, eventIds, target);
+    const out = await splitTeam(team.id, picks, target);
     // Both team pages, and every event whose schedule now names the other side.
     revalidatePath(`/teams/${team.slug}`);
     revalidatePath(`/teams/${out.target.slug}`);

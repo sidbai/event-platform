@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { eventOffers, eventRegistrations, eventTeams, matches, teamAliases, teams } from "@/db/schema";
@@ -9,6 +9,17 @@ import { slugify } from "@/lib/slug";
 import { normaliseTeamName } from "./merge-plan";
 
 export type SplitTarget = { teamId: string } | { name: string };
+
+/**
+ * What to move: an event, and within it a division.
+ *
+ * By division and not by event alone, because a merge that folded two
+ * sides entered in the same event kept one entry and dropped the other —
+ * the A side's Red-flight games and the B side's Blue-flight games then
+ * sit under one team, and "move the event" would take both. A null
+ * division is the games that have none.
+ */
+export type SplitPick = { eventId: string; divisionId: string | null };
 
 export type SplitResult = {
   target: { id: string; slug: string; name: string; created: boolean };
@@ -34,20 +45,30 @@ export type SplitResult = {
  */
 export async function splitTeam(
   sourceId: string,
-  eventIds: string[],
+  picks: SplitPick[],
   target: SplitTarget,
 ): Promise<SplitResult> {
-  const ids = [...new Set(eventIds)];
-  if (ids.length === 0) throw new Error("Pick at least one event to move.");
+  const keyOf = (p: SplitPick) => `${p.eventId}:${p.divisionId ?? ""}`;
+  const chosen = new Map(picks.map((p) => [keyOf(p), p]));
+  if (chosen.size === 0) throw new Error("Pick at least one event to move.");
+  const ids = [...new Set(picks.map((p) => p.eventId))];
 
   const source = await db.query.teams.findFirst({ where: eq(teams.id, sourceId) });
   if (!source) throw new Error("That team is gone.");
 
+  // The team's own entries in those events, and the games it has there —
+  // which may be in a division the entry is not, after a merge.
   const entries = await db.query.eventTeams.findMany({
     where: and(eq(eventTeams.teamId, sourceId), inArray(eventTeams.eventId, ids)),
   });
-  if (entries.length !== ids.length) {
-    throw new Error("One of those events is not this team's.");
+  const games = await db
+    .select({ id: matches.id, eventId: matches.eventId, divisionId: matches.divisionId, homeTeamId: matches.homeTeamId })
+    .from(matches)
+    .where(and(inArray(matches.eventId, ids), or(eq(matches.homeTeamId, sourceId), eq(matches.awayTeamId, sourceId))));
+  for (const p of picks) {
+    const hasEntry = entries.some((e) => e.eventId === p.eventId && (e.divisionId ?? null) === p.divisionId);
+    const hasGames = games.some((g) => g.eventId === p.eventId && (g.divisionId ?? null) === p.divisionId);
+    if (!hasEntry && !hasGames) throw new Error("One of those is not this team's.");
   }
 
   return db.transaction(async (tx) => {
@@ -59,10 +80,17 @@ export async function splitTeam(
       // One entry per team per event: a target already in one of these
       // events would need two, and which of the two rosters and records to
       // keep is not a question a move can answer.
-      const clash = await tx.query.eventTeams.findFirst({
-        where: and(eq(eventTeams.teamId, existing.id), inArray(eventTeams.eventId, ids)),
-        with: { event: { columns: { title: true } } },
-      });
+      // …unless the pick carries no entry of its own (a merge dropped it),
+      // in which case the games simply join the target's existing entry.
+      const entryEvents = entries
+        .filter((e) => chosen.has(keyOf({ eventId: e.eventId, divisionId: e.divisionId ?? null })))
+        .map((e) => e.eventId);
+      const clash = entryEvents.length
+        ? await tx.query.eventTeams.findFirst({
+            where: and(eq(eventTeams.teamId, existing.id), inArray(eventTeams.eventId, entryEvents)),
+            with: { event: { columns: { title: true } } },
+          })
+        : null;
       if (clash) throw new Error(`${existing.name} is already entered in ${clash.event.title}.`);
       to = { id: existing.id, slug: existing.slug, name: existing.name, created: false };
     } else {
@@ -92,37 +120,54 @@ export async function splitTeam(
     }
 
     const moved = { entries: 0, matches: 0, registrations: 0, offers: 0, aliases: 0 };
-    for (const entry of entries) {
-      await tx.update(eventTeams).set({ teamId: to.id }).where(eq(eventTeams.id, entry.id));
-      moved.entries++;
+    for (const p of picks) {
+      const key = keyOf(p);
+      const entry = entries.find((e) => e.eventId === p.eventId && (e.divisionId ?? null) === p.divisionId);
+      const picked = games.filter((g) => keyOf({ eventId: g.eventId, divisionId: g.divisionId ?? null }) === key);
+      const pickedIds = picked.map((g) => g.id);
 
-      const home = await tx
-        .update(matches)
-        .set({ homeTeamId: to.id })
-        .where(and(eq(matches.eventId, entry.eventId), eq(matches.homeTeamId, sourceId)))
-        .returning({ id: matches.id });
-      const away = await tx
-        .update(matches)
-        .set({ awayTeamId: to.id })
-        .where(and(eq(matches.eventId, entry.eventId), eq(matches.awayTeamId, sourceId)))
-        .returning({ id: matches.id });
-      moved.matches += home.length + away.length;
+      if (entry) {
+        await tx.update(eventTeams).set({ teamId: to.id }).where(eq(eventTeams.id, entry.id));
+        moved.entries++;
+      } else if (!("teamId" in target) || !(await tx.query.eventTeams.findFirst({ where: and(eq(eventTeams.eventId, p.eventId), eq(eventTeams.teamId, to.id)) }))) {
+        // Games with no entry of their own — a merge dropped it. The target
+        // gets one so the event's table has the side in it.
+        await tx.insert(eventTeams).values({ eventId: p.eventId, teamId: to.id, divisionId: p.divisionId }).onConflictDoNothing();
+        moved.entries++;
+      }
 
-      const regs = await tx
-        .update(eventRegistrations)
-        .set({ teamId: to.id })
-        .where(and(eq(eventRegistrations.eventId, entry.eventId), eq(eventRegistrations.teamId, sourceId)))
-        .returning({ id: eventRegistrations.id });
-      moved.registrations += regs.length;
+      if (pickedIds.length > 0) {
+        const home = await tx
+          .update(matches)
+          .set({ homeTeamId: to.id })
+          .where(and(inArray(matches.id, pickedIds), eq(matches.homeTeamId, sourceId)))
+          .returning({ id: matches.id });
+        const away = await tx
+          .update(matches)
+          .set({ awayTeamId: to.id })
+          .where(and(inArray(matches.id, pickedIds), eq(matches.awayTeamId, sourceId)))
+          .returning({ id: matches.id });
+        moved.matches += home.length + away.length;
+      }
 
-      const offers = await tx
-        .update(eventOffers)
-        .set({ fromTeamId: to.id })
-        .where(and(eq(eventOffers.eventId, entry.eventId), eq(eventOffers.fromTeamId, sourceId)))
-        .returning({ id: eventOffers.id });
-      moved.offers += offers.length;
+      // Registrations and offers are per event, not per division; they go
+      // with the entry, which is to say with the pick that carries it.
+      if (entry) {
+        const regs = await tx
+          .update(eventRegistrations)
+          .set({ teamId: to.id })
+          .where(and(eq(eventRegistrations.eventId, p.eventId), eq(eventRegistrations.teamId, sourceId)))
+          .returning({ id: eventRegistrations.id });
+        moved.registrations += regs.length;
+        const offers = await tx
+          .update(eventOffers)
+          .set({ fromTeamId: to.id })
+          .where(and(eq(eventOffers.eventId, p.eventId), eq(eventOffers.fromTeamId, sourceId)))
+          .returning({ id: eventOffers.id });
+        moved.offers += offers.length;
+      }
 
-      if (entry.sourceName) {
+      if (entry?.sourceName) {
         const alias = normaliseTeamName(entry.sourceName);
         if (alias) {
           await tx
