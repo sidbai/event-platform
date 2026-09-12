@@ -512,6 +512,13 @@
       "when": 1789237584041,
       "tag": "0072_milky_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1789242014681,
+      "tag": "0073_harsh_lady_vermin",
+      "breakpoints": true
     }
   ]
 }

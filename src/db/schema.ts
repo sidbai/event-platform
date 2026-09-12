@@ -1308,6 +1308,31 @@ export const clubs = pgTable("clubs", {
    * a club, and it is what the seeder can state from a source it checked.
    * Null means neither directory listed it.
    */
+  /**
+   * What the club is, as the community keeps it — the Wikipedia part.
+   *
+   * These began as a machine's reading of each club's website (the knowledge
+   * base in features/clubs/knowledge), seeded here as the first revision so
+   * the history says where the words came from. From then on anyone signed
+   * in may correct them, every version is kept in club_edits, and the merge
+   * rules read what is here rather than the file.
+   */
+  /** Tiers and squads, strongest first, in the club's own words. */
+  tiers: text("tiers").array().notNull().default([]),
+  /** Words that tell two same-age sides apart without ranking them. */
+  squadMarkers: text("squad_markers").array().notNull().default([]),
+  /** What a colour in a team name means here: tier | squad | mixed | none. */
+  colours: text("colours"),
+  /** How the club writes an age: single-year | two-year | both. */
+  ageBands: text("age_bands"),
+  /** Programmes or places whose teams are genuinely separate sides. */
+  branches: text("branches").array().notNull().default([]),
+  /** The prose, in Markdown. */
+  about: text("about"),
+  /** Pages the above was read from, so it can be checked. */
+  sources: text("sources").array().notNull().default([]),
+  /** When a machine last read the club's website into this; null once a person has edited. */
+  knowledgeReadAt: timestamp("knowledge_read_at", { withTimezone: true }),
   league: clubLeague("league"),
   city: text("city"),
   website: text("website"),
@@ -1350,6 +1375,15 @@ export const clubEdits = pgTable(
     city: text("city"),
     website: text("website"),
     crestUrl: text("crest_url"),
+    // The knowledge fields, snapshotted with the rest so a revert restores
+    // the whole club and not just its name.
+    tiers: text("tiers").array().notNull().default([]),
+    squadMarkers: text("squad_markers").array().notNull().default([]),
+    colours: text("colours"),
+    ageBands: text("age_bands"),
+    branches: text("branches").array().notNull().default([]),
+    about: text("about"),
+    sources: text("sources").array().notNull().default([]),
     /** What the editor did, for a readable history line. */
     summary: text("summary"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -4,7 +4,7 @@ import { generateText } from "ai";
 
 import { db } from "@/db";
 import { clubs, teamMatchSuggestions } from "@/db/schema";
-import { clubContext } from "@/features/clubs/knowledge/store";
+import { clubContextFromDb } from "@/features/clubs/knowledge/db";
 
 import { duplicateTeamGroups, proposedTeamMatches } from "../merge-queries";
 import { pairOf } from "../match-plan";
@@ -155,7 +155,7 @@ export async function reviewProposals(
           model: MODEL,
           system: REVIEW_SYSTEM,
           prompt: buildReviewPrompt(
-            { name: club.name, context: clubContext(club.slug) },
+            { name: club.name, context: await clubContextFromDb(club.slug) },
             pairs,
           ),
           // Same pairs, same answer, so a nightly run does not churn the queue.

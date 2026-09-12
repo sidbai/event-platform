@@ -271,23 +271,71 @@ export async function updateClub(
   const name = get("name");
   if (name.length < 2) return { fieldErrors: { name: "Give the club a name." } };
 
-  const current = await db.query.clubs.findFirst({
-    where: eq(clubs.slug, slug),
-    columns: { crestUrl: true },
-  });
+  const current = await currentSnapshot(slug);
+  if (!current) return { error: "That club is gone." };
+
+  const colours = get("colours");
+  const ageBands = get("ageBands");
+  const next: ClubSnapshot = {
+    ...current,
+    name,
+    city: get("city") || null,
+    website: get("website") || null,
+    tiers: lines(get("tiers")),
+    squadMarkers: lines(get("squadMarkers"), true),
+    colours: COLOURS.has(colours) ? colours : null,
+    ageBands: AGE_BANDS.has(ageBands) ? ageBands : null,
+    branches: lines(get("branches"), true),
+    about: get("about").slice(0, 20_000) || null,
+    sources: lines(get("sources")).filter((u) => /^https?:\/\//i.test(u)),
+  };
+  const knowledge = (c: ClubSnapshot) =>
+    JSON.stringify([c.tiers, c.squadMarkers, c.colours, c.ageBands, c.branches, c.about, c.sources]);
 
   await applyClubEdit(
     slug,
-    {
-      name,
-      city: get("city") || null,
-      website: get("website") || null,
-      crestUrl: current?.crestUrl ?? null,
-    },
+    next,
     user.id,
-    "Updated club details",
+    knowledge(next) !== knowledge(current)
+      ? "Edited how the club organises its teams"
+      : "Updated club details",
   );
   return { ok: true };
+}
+
+const COLOURS = new Set(["tier", "squad", "mixed", "none"]);
+const AGE_BANDS = new Set(["single-year", "two-year", "both"]);
+
+/** One entry per line (and per comma, where asked), trimmed, blanks and repeats dropped, capped. */
+function lines(raw: string, commasToo = false): string[] {
+  const out: string[] = [];
+  for (const part of raw.split(commasToo ? /[\n,]/ : /\n/)) {
+    const v = part.trim().slice(0, 80);
+    if (v && !out.includes(v)) out.push(v);
+    if (out.length >= 40) break;
+  }
+  return out;
+}
+
+/** Everything a snapshot holds, as the club has it now. */
+async function currentSnapshot(slug: string): Promise<ClubSnapshot | null> {
+  const c = await db.query.clubs.findFirst({
+    where: eq(clubs.slug, slug),
+    columns: {
+      name: true,
+      city: true,
+      website: true,
+      crestUrl: true,
+      tiers: true,
+      squadMarkers: true,
+      colours: true,
+      ageBands: true,
+      branches: true,
+      about: true,
+      sources: true,
+    },
+  });
+  return c ?? null;
 }
 
 /** Save a logo uploaded straight from the club page. */
@@ -296,10 +344,7 @@ export async function setClubLogo(slug: string, url: string): Promise<void> {
   if (!user || !(await canEditClub())) return;
   // The browser reports this URL, so it is checked rather than trusted.
   if (!isOurBlobUrl(url)) return;
-  const c = await db.query.clubs.findFirst({
-    where: eq(clubs.slug, slug),
-    columns: { name: true, city: true, website: true },
-  });
+  const c = await currentSnapshot(slug);
   if (!c) return;
   await applyClubEdit(slug, { ...c, crestUrl: url }, user.id, "Changed the logo");
   await carryToTeams(slug, url);
@@ -308,10 +353,7 @@ export async function setClubLogo(slug: string, url: string): Promise<void> {
 export async function clearClubLogo(slug: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user || !(await canEditClub())) return;
-  const c = await db.query.clubs.findFirst({
-    where: eq(clubs.slug, slug),
-    columns: { name: true, city: true, website: true },
-  });
+  const c = await currentSnapshot(slug);
   if (!c) return;
   await applyClubEdit(slug, { ...c, crestUrl: null }, user.id, "Removed the logo");
   await carryToTeams(slug, null);
@@ -322,6 +364,13 @@ type ClubSnapshot = {
   city: string | null;
   website: string | null;
   crestUrl: string | null;
+  tiers: string[];
+  squadMarkers: string[];
+  colours: string | null;
+  ageBands: string | null;
+  branches: string[];
+  about: string | null;
+  sources: string[];
 };
 
 /**
@@ -339,7 +388,8 @@ async function applyClubEdit(
 ) {
   const [club] = await db
     .update(clubs)
-    .set({ ...next, updatedBy: editedBy, updatedAt: new Date() })
+    // A person has now touched it: the "read by a machine on …" line comes off.
+    .set({ ...next, knowledgeReadAt: null, updatedBy: editedBy, updatedAt: new Date() })
     .where(eq(clubs.slug, slug))
     .returning({ id: clubs.id });
   if (!club) return;
@@ -375,9 +425,16 @@ export async function revertClub(slug: string, editId: string): Promise<void> {
       city: target.city,
       website: target.website,
       crestUrl: target.crestUrl,
+      tiers: target.tiers,
+      squadMarkers: target.squadMarkers,
+      colours: target.colours,
+      ageBands: target.ageBands,
+      branches: target.branches,
+      about: target.about,
+      sources: target.sources,
     },
     user.id,
-    "Reverted to an earlier version",
+    `Restored the version from ${target.createdAt.toISOString().slice(0, 10)}`,
   );
 }
 
