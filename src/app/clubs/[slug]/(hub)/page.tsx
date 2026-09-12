@@ -6,8 +6,7 @@ import { getCurrentUser, publicName } from "@/features/auth";
 import { canEditClub } from "@/features/clubs/access";
 import { revertClub } from "@/features/clubs/actions";
 import { clubTeamsDetailed, leaguesByClub } from "@/features/clubs/hub";
-import { profileFor } from "@/features/clubs/knowledge/store";
-import type { ClubProfile } from "@/features/clubs/knowledge/profile";
+import { Markdown } from "@/features/news/markdown";
 import { clubHistory, clubSummary, getClub, listReviews } from "@/features/clubs/queries";
 import { overallOf } from "@/features/clubs/constants";
 import { Stars } from "@/features/clubs/stars";
@@ -56,7 +55,17 @@ export default async function ClubOverviewPage({
     user ? canEditClub() : Promise.resolve(false),
   ]);
   const inLeagues = leagues.get(club.id) ?? [];
-  const profile = profileFor(club.slug);
+  const knowledge = {
+    tiers: club.tiers,
+    squadMarkers: club.squadMarkers,
+    colours: club.colours,
+    ageBands: club.ageBands,
+    branches: club.branches,
+    about: club.about,
+    sources: club.sources,
+    readAt: club.knowledgeReadAt,
+  };
+  const hasKnowledge = knowledge.tiers.length > 0 || Boolean(knowledge.about) || knowledge.branches.length > 0;
   const boys = clubTeams.filter((t) => t.gender === "boys").length;
   const girls = clubTeams.filter((t) => t.gender === "girls").length;
   const withCoach = clubTeams.filter((t) => t.coach).length;
@@ -138,66 +147,84 @@ export default async function ClubOverviewPage({
         </dl>
       </section>
 
-      {/* From the club's own website, read by us. Labelled as such because
-          it is a reading, and the sources are listed so it can be checked.
-          Facts as a list, the reading as bullets: a paragraph of prose is
-          the one thing nobody scans on a phone at a pitch. */}
-      {profile && (profile.tiers.length > 0 || profile.summary) && (
-        <section>
+      {/* The wiki part. It began as our reading of the club's website and
+          is the community's from then on: anyone signed in can edit it,
+          every version is kept, and the sources are listed so a claim can
+          be checked. Facts as a list, the prose as Markdown. */}
+      <section>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">How the club organises its teams</h2>
-          {profile.tiers.length > 0 && (
-            <div className="mt-2">
-              <p className="text-xs uppercase tracking-wide text-muted">Tiers and squads, strongest first</p>
-              <ol className="mt-1 flex flex-wrap items-center gap-1.5 text-sm">
-                {profile.tiers.map((t, i) => (
-                  <li key={t} className="flex items-center gap-1.5">
-                    {i > 0 && <span className="text-muted/60" aria-hidden>›</span>}
-                    <span className="rounded-md border border-line bg-card px-2 py-0.5">{t}</span>
+          {user ? (
+            <Link href={`/clubs/${slug}/edit`} className="text-sm text-brand-text hover:underline">
+              {hasKnowledge ? "Edit" : "Add what you know"}
+            </Link>
+          ) : (
+            <Link href={`/signin?next=/clubs/${slug}/edit`} className="text-sm text-muted hover:text-ink">
+              Sign in to edit
+            </Link>
+          )}
+        </div>
+        {!hasKnowledge ? (
+          <p className="mt-2 text-sm text-muted">
+            Nothing written yet. If you know how this club names and ranks its teams — which
+            colour is the first team, where the ECNL side sits, how tryouts work — add it.
+          </p>
+        ) : (
+          <>
+            {knowledge.tiers.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs uppercase tracking-wide text-muted">Tiers and squads, strongest first</p>
+                <ol className="mt-1 flex flex-wrap items-center gap-1.5 text-sm">
+                  {knowledge.tiers.map((t, i) => (
+                    <li key={t} className="flex items-center gap-1.5">
+                      {i > 0 && <span className="text-muted/60" aria-hidden>›</span>}
+                      <span className="rounded-md border border-line bg-card px-2 py-0.5">{t}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {facts(knowledge).length > 0 && (
+              <ul className="mt-3 space-y-1.5 text-sm">
+                {facts(knowledge).map((f) => (
+                  <li key={f.label} className="flex gap-2">
+                    <span className="w-32 shrink-0 text-muted">{f.label}</span>
+                    <span className="min-w-0">{f.value}</span>
                   </li>
                 ))}
-              </ol>
-            </div>
-          )}
-
-          <ul className="mt-3 space-y-1.5 text-sm">
-            {facts(profile).map((f) => (
-              <li key={f.label} className="flex gap-2">
-                <span className="w-32 shrink-0 text-muted">{f.label}</span>
-                <span className="min-w-0">{f.value}</span>
-              </li>
-            ))}
-          </ul>
-
-          {sentences(profile.summary).length > 0 && (
-            <div className="mt-3">
-              <p className="text-xs uppercase tracking-wide text-muted">In their own words, as we read them</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-relaxed">
-                {sentences(profile.summary).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
               </ul>
-            </div>
-          )}
-
-          <p className="mt-3 text-xs text-muted">
-            Read from the club&rsquo;s website on {profile.readAt.slice(0, 10)}
-            {profile.sources.length > 0 && (
-              <>
-                {" — "}
-                {profile.sources.slice(0, 3).map((s, i) => (
-                  <span key={s}>
-                    {i > 0 && ", "}
-                    <a href={s} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
-                      {s.replace(/^https?:\/\/(www\.)?/, "").split("/").slice(1).join("/") || "home"}
-                    </a>
-                  </span>
-                ))}
-              </>
             )}
-            . If the club has changed how it names things, tell us.
-          </p>
-        </section>
-      )}
+
+            {knowledge.about && (
+              <div className="mt-3 [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 text-sm">
+                <Markdown>{knowledge.about}</Markdown>
+              </div>
+            )}
+
+            <p className="mt-3 text-xs text-muted">
+              {knowledge.readAt
+                ? `Read from the club's website on ${knowledge.readAt.toISOString().slice(0, 10)} and not yet checked by a person`
+                : club.updatedByUser
+                  ? `Maintained by the community — last edited by ${publicName(club.updatedByUser)}`
+                  : "Maintained by the community"}
+              {knowledge.sources.length > 0 && (
+                <>
+                  {" · sources: "}
+                  {knowledge.sources.slice(0, 4).map((s, i) => (
+                    <span key={s}>
+                      {i > 0 && ", "}
+                      <a href={s} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
+                        {s.replace(/^https?:\/\/(www\.)?/, "").split("/").slice(1).join("/") || "home"}
+                      </a>
+                    </span>
+                  ))}
+                </>
+              )}
+            </p>
+          </>
+        )}
+      </section>
 
       {latest.length > 0 && (
         <section>
@@ -257,64 +284,32 @@ export default async function ClubOverviewPage({
   );
 }
 
+type Knowledge = {
+  colours: string | null;
+  ageBands: string | null;
+  squadMarkers: string[];
+  branches: string[];
+};
+
 /**
- * The profile's fields, said plainly, one line each. Only the ones with
- * something to say: a club whose site names no colour gets no colour line.
+ * The structured fields, said plainly, one line each. Only the ones with
+ * something to say: a club whose page names no colour gets no colour line.
  */
-function facts(profile: ClubProfile): { label: string; value: React.ReactNode }[] {
-  const out: { label: string; value: React.ReactNode }[] = [];
-  const colours: Record<ClubProfile["colours"], string | null> = {
+function facts(k: Knowledge): { label: string; value: string }[] {
+  const out: { label: string; value: string }[] = [];
+  const colours: Record<string, string> = {
     tier: "rank the teams — Red is a level above White, not a different squad",
     squad: "name a squad, not a level — two colours are two equal sides",
     mixed: "sometimes rank the teams and sometimes only name them",
-    none: null,
-    unknown: null,
   };
-  if (colours[profile.colours]) out.push({ label: "Colours", value: colours[profile.colours] });
-  const ages: Record<ClubProfile["ageBands"], string | null> = {
+  if (k.colours && colours[k.colours]) out.push({ label: "Colours", value: colours[k.colours] });
+  const ages: Record<string, string> = {
     "single-year": "one birth year per team (B2014, U11)",
     "two-year": "two-year bands (B13/14)",
     both: "one year on their site, two-year bands in league listings — the same team",
-    unknown: null,
   };
-  if (ages[profile.ageBands]) out.push({ label: "Age groups", value: ages[profile.ageBands] });
-  if (profile.squadMarkers.length > 0) {
-    out.push({ label: "Squad words", value: profile.squadMarkers.join(", ") });
-  }
-  if (profile.branches.length > 1) {
-    out.push({ label: "Programmes & hubs", value: profile.branches.join(" · ") });
-  }
-  const directors = profile.coaches.filter((c) => c.role && /director|technical|manager|executive|head of/i.test(c.role));
-  if (directors.length > 0) {
-    out.push({
-      label: "Leadership",
-      value: directors
-        .slice(0, 6)
-        .map((c) => `${c.name} (${c.role})`)
-        .join(", ") + (directors.length > 6 ? ` and ${directors.length - 6} more` : ""),
-    });
-  }
-  if (profile.coaches.length > 0) {
-    const withTeams = profile.coaches.filter((c) => c.ageGroups.length > 0).length;
-    out.push({
-      label: "Coaching staff",
-      value: `${profile.coaches.length} named on their site${withTeams > 0 ? `, ${withTeams} with the teams they coach` : ""}`,
-    });
-  }
+  if (k.ageBands && ages[k.ageBands]) out.push({ label: "Age groups", value: ages[k.ageBands] });
+  if (k.squadMarkers.length > 0) out.push({ label: "Squad words", value: k.squadMarkers.join(", ") });
+  if (k.branches.length > 1) out.push({ label: "Programmes & hubs", value: k.branches.join(" · ") });
   return out;
-}
-
-/**
- * A paragraph as bullets, one sentence each.
- *
- * Splits on a full stop followed by a capital, and leaves abbreviations
- * alone by asking for the space: "F.C." and "e.g." are not followed by one
- * inside a name. Good enough for two to four sentences of ours.
- */
-function sentences(text: string): string[] {
-  const parts = text
-    .split(/(?<=[.!?])\s+(?=[A-Z"'(])/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.length > 1 ? parts : text.trim() ? [text.trim()] : [];
 }

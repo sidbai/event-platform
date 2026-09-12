@@ -33,7 +33,8 @@ export default async function EditClubPage({
       </Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Edit club</h1>
       <p className="mt-1 text-sm text-muted">
-        Club details are shared — reviews from other families live on this page.
+        Club details are shared and kept like a wiki: anyone signed in can correct them,
+        every version is kept, and any version can be restored.
       </p>
 
       <ClubEditForm
@@ -43,6 +44,13 @@ export default async function EditClubPage({
           city: club.city,
           website: club.website,
           crestUrl: club.crestUrl,
+          tiers: club.tiers,
+          squadMarkers: club.squadMarkers,
+          colours: club.colours,
+          ageBands: club.ageBands,
+          branches: club.branches,
+          about: club.about,
+          sources: club.sources,
         }}
         slug={slug}
         onLogoUploaded={setClubLogo.bind(null, slug)}

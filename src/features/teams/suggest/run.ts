@@ -4,7 +4,8 @@ import { generateText } from "ai";
 import { and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubContext, vocabularyFor } from "@/features/clubs/knowledge/store";
+import { clubContextFromDb } from "@/features/clubs/knowledge/db";
+import { vocabularyFor } from "@/features/clubs/knowledge/store";
 import { clubs, teamAliases, teamMatchSuggestions, teams } from "@/db/schema";
 
 import { buildPrompt, shortlist, SYSTEM_PROMPT, type SuggestTeam } from "./prompt";
@@ -143,7 +144,7 @@ export async function suggestTeamMatches(
          * tiers or that Seattle United's regions are separate stops a wrong
          * suggestion before anybody sees it.
          */
-        prompt: buildPrompt([team], pool, clubContext(team.clubSlug)),
+        prompt: buildPrompt([team], pool, await clubContextFromDb(team.clubSlug)),
         // Same question, same answer, so a re-run does not churn the queue.
         temperature: 0,
       });
