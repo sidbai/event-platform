@@ -114,6 +114,10 @@ export default async function AdminPage({
         <Link href="/admin/clubs/knowledge" className="text-brand-text hover:underline">
           What the club websites say →
         </Link>
+        {" · "}
+        <Link href="/admin/users" className="text-brand-text hover:underline">
+          Registered users →
+        </Link>
       </p>
 
       <section className="mt-8">
