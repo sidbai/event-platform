@@ -24,6 +24,11 @@ export type BindCandidate = {
   gender: string | null;
   birthYears: number[];
   tier: string | null;
+  /**
+   * The head coach a platform listed, where one did. Optional because most
+   * callers have no such fact and should not have to say so.
+   */
+  coach?: string | null;
 };
 
 /** A fact that rules the two out, or null. Unknowns rule out nothing. */
@@ -43,7 +48,19 @@ export function agreement(a: BindCandidate, b: BindCandidate): boolean {
   if (a.birthYears.length && b.birthYears.length && sameCohort(a.birthYears, b.birthYears)) {
     return true;
   }
-  return Boolean(a.tier && a.tier === b.tier);
+  if (a.tier && a.tier === b.tier) return true;
+  /*
+   * The same head coach, as a league listed them. A name is a weak key on
+   * its own — clubs have two Rivera brothers coaching — so it is an
+   * agreement only, never a contradiction: coaches move between seasons
+   * and a different name says nothing about whether the side is the same.
+   */
+  return Boolean(a.coach && b.coach && sameCoach(a.coach, b.coach));
+}
+
+export function sameCoach(a: string, b: string): boolean {
+  const key = (name: string) => name.toLowerCase().normalize("NFKD").replace(/[^a-z ]/g, "").trim();
+  return key(a) !== "" && key(a) === key(b);
 }
 
 /**

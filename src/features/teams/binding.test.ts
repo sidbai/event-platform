@@ -99,6 +99,21 @@ describe("teamToBindTo", () => {
   });
 });
 
+describe("a coach as a fact", () => {
+  it("is enough for two otherwise bare rows to agree", () => {
+    const a = team({ name: "Warriors B13", clubId: null, birthYears: [], coach: "Dawda Dibba" });
+    const b = team({ name: "Warriors B13", clubId: null, birthYears: [], coach: "dawda dibba" });
+    expect(agreement(a, b)).toBe(true);
+    expect(canBind(a, b)).toBe(true);
+  });
+
+  it("never rules two sides out, because coaches move", () => {
+    const a = team({ name: "Warriors B13", coach: "Dawda Dibba" });
+    const b = team({ name: "Warriors B13", coach: "Sean Kettle" });
+    expect(contradiction(a, b)).toBeNull();
+  });
+});
+
 describe("contradiction", () => {
   it("treats an unknown as no obstacle, not as a difference", () => {
     // A team imported before the facts were read has none of them, and

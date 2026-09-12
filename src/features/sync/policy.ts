@@ -112,7 +112,7 @@ export const PROVIDER_POLICIES = {
      */
     termsUrl: "https://wys.sportsaffinity.com/tour/public/info/accepted_list.asp",
     reviewedAt: "2026-09-10",
-    note: "Washington Youth Soccer's Regional Club League. No robots.txt (404), and the pages are server-rendered and answered in full to a plain request. The site does sit behind Imperva, which is a thing to keep checking rather than to assume stays true: it serves some clients a challenge instead of a page, and ours has not been. Silence is a weaker signal than permission and is recorded as such. Fifty flights across two accepted-teams pages, one page each, so a full read is fifty-two requests spaced a second apart — the reason a season is polled on Mondays rather than hourly.",
+    note: "Washington Youth Soccer's Regional Club League. No robots.txt (404), and the pages are server-rendered and answered in full to a plain request. The site does sit behind Imperva, which is a thing to keep checking rather than to assume stays true: it serves some clients a challenge instead of a page, and ours has not been. Silence is a weaker signal than permission and is recorded as such. Fifty flights across two accepted-teams pages, two pages each since 2026-09-12 (the fixtures, and the flight's own accepted-teams page for the club, head coach and id of every entry), so a full read is a hundred-odd requests spaced two and a half seconds apart — the reason a season is polled on Mondays and Thursdays rather than hourly.",
   },
   gotsport: {
     label: "GotSport",

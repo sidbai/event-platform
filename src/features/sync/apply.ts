@@ -257,14 +257,45 @@ export async function applySync(
    * already bound — so a published name counts as much as the current one,
    * carrying that team's facts with it.
    */
-  const factsById = new Map(teamRows.map((t) => [t.id, t]));
+  /*
+   * The head coach a league last listed for each team, as one more fact
+   * the bind rule may agree on. Every entry that names one, latest write
+   * last, so a team read this season carries this season's coach.
+   */
+  const coachByTeam = new Map<string, string>();
+  for (const row of await db
+    .select({ teamId: eventTeams.teamId, coach: eventTeams.coach })
+    .from(eventTeams)
+    .where(isNotNull(eventTeams.coach))) {
+    if (row.coach) coachByTeam.set(row.teamId, row.coach);
+  }
+  const factsById = new Map(
+    teamRows.map((t) => [t.id, { ...t, coach: coachByTeam.get(t.id) ?? null }]),
+  );
   const published = await db
     .selectDistinct({ teamId: eventTeams.teamId, sourceName: eventTeams.sourceName })
     .from(eventTeams)
     .where(isNotNull(eventTeams.sourceName));
 
+  /*
+   * The league's own id for a side, from any season it has been read in.
+   *
+   * The Regional Club League numbers a team when its club registers one,
+   * and the number outlives the name: "Eastside F.C. - BU10 Red" becomes
+   * "Eastside F.C. - BU11 Red" next August and keeps 104162174. An entry
+   * that arrives carrying a number we have already filed under a team is
+   * that team, ahead of anything a name could argue.
+   */
+  const teamByPlatformId = new Map<string, string>();
+  for (const row of await db
+    .select({ teamId: eventTeams.teamId, platformTeamId: eventTeams.platformTeamId })
+    .from(eventTeams)
+    .where(isNotNull(eventTeams.platformTeamId))) {
+    if (row.platformTeamId) teamByPlatformId.set(row.platformTeamId, row.teamId);
+  }
+
   const existingTeams = [
-    ...teamRows,
+    ...factsById.values(),
     ...published.flatMap((p) => {
       const facts = factsById.get(p.teamId);
       return facts && p.sourceName ? [{ ...facts, name: p.sourceName }] : [];
@@ -314,6 +345,7 @@ export async function applySync(
           divisionId: divisionByName.get(t.division) ?? null,
           groupLabel: t.group,
           sourceName: t.name,
+          ...stated(t),
         })
         .where(eq(eventTeams.id, known.id));
       continue;
@@ -335,7 +367,15 @@ export async function applySync(
       // And where the flight does not either — Modular11 puts it in a column.
       gender: t.gender ?? null,
     });
-    const club = matchClub(t.name, aliasMap, clubIdx);
+    /*
+     * The club from the name, else the club the league registered the
+     * side under. The second is the better fact — "BU10 Red" says nothing
+     * and "Eastside F.C." beside it says everything — but it is tried
+     * second so that a name an alias already answers keeps its answer.
+     */
+    const club =
+      matchClub(t.name, aliasMap, clubIdx) ??
+      (t.club ? matchClub(t.club, aliasMap, clubIdx) : null);
 
     /*
      * An alias somebody wrote, or a team whose name and facts already match.
@@ -350,6 +390,7 @@ export async function applySync(
       // publishes the id of the team that was folded away, and it means
       // the survivor.
       mergedAway.get(t.sourceTeamId) ??
+      (t.platformTeamId ? teamByPlatformId.get(t.platformTeamId) : undefined) ??
       teamByAlias.get(normaliseTeamName(t.name)) ??
       teamToBindTo(
         {
@@ -359,6 +400,7 @@ export async function applySync(
           gender: facts.gender,
           birthYears: facts.birthYears,
           tier: facts.tier,
+          coach: t.coach ?? null,
         },
         existingTeams,
       )?.id;
@@ -377,6 +419,7 @@ export async function applySync(
           // What this event calls it, which may not be what the team is
           // called here — that is the whole reason to keep it.
           sourceName: t.name,
+          ...stated(t),
         })
         .onConflictDoNothing();
       continue;
@@ -400,6 +443,7 @@ export async function applySync(
       gender: facts.gender,
       birthYears: facts.birthYears,
       tier: facts.tier,
+      coach: t.coach ?? null,
     });
 
     await db
@@ -411,6 +455,7 @@ export async function applySync(
         groupLabel: t.group,
         sourceTeamId: t.sourceTeamId,
         sourceName: t.name,
+        ...stated(t),
       })
       .onConflictDoNothing();
 
@@ -534,6 +579,23 @@ export async function applySync(
     matches: matchesWritten,
     removed: gone.length,
     unchanged: false,
+  };
+}
+
+/**
+ * What the platform said about an entry beyond its name — only when it
+ * said anything.
+ *
+ * A connector with no accepted-teams page leaves these out of its teams,
+ * and an update that wrote null for them would erase what the last read
+ * found. Undefined means "not this source's to say"; null means the page
+ * had a blank, which is the source's to say and is written.
+ */
+function stated(t: SyncedEvent["teams"][number]) {
+  return {
+    ...(t.coach !== undefined ? { coach: t.coach } : {}),
+    ...(t.club !== undefined ? { sourceClub: t.club } : {}),
+    ...(t.platformTeamId !== undefined ? { platformTeamId: t.platformTeamId } : {}),
   };
 }
 

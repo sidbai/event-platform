@@ -244,6 +244,72 @@ export function flightScheduleUrl(tournamentguid: string, flightguid: string): s
   return `${BASE}/schedule_results2.asp?sessionguid=&flightguid=${flightguid}&tournamentguid=${tournamentguid}`;
 }
 
+export function acceptedFlightUrl(tournamentguid: string, agecode: string, flightguid: string): string {
+  return `${BASE}/accepted_flight.asp?sessionguid=&agecode=${agecode}&flightguid=${flightguid}&tournamentguid=${tournamentguid}`;
+}
+
+/**
+ * One team as the flight's accepted-teams page lists it.
+ *
+ * The page the schedule does not have: for every slot in the flight, the
+ * club the league registered the side under, the side's name, the league's
+ * own numeric id for it (blank for two teams in three), and the head coach.
+ * The schedule page names teams by the second line of that cell, exactly,
+ * and by the slot in its group column — so a fixture's side can be joined
+ * to its coach either way.
+ */
+export type RclEntry = {
+  /** "A1" — the slot the schedule's group column refers to. */
+  slot: string;
+  /** "Eastside F.C." — the club as the league has it, not as the name says. */
+  club: string | null;
+  /** "Eastside F.C. - BU10 Red" — the name the schedule uses. */
+  name: string;
+  /** Their id for the team, where the club registered one. */
+  platformTeamId: string | null;
+  coach: string | null;
+};
+
+/**
+ * The entries on a flight's accepted-teams page.
+ *
+ * One table, class "report", a header row of four labelled cells and then
+ * a row per team. The club and the team share a cell, split by a line
+ * break, which is the only thing that tells them apart — read as text they
+ * run together into "Seattle United Seattle United B16 Copa". "n/a" in the
+ * id column means the club registered no id, not an id of "n/a".
+ */
+export function readAcceptedFlight(html: string): RclEntry[] {
+  const out: RclEntry[] = [];
+  const root = parse(html);
+  for (const table of root.querySelectorAll("table.report")) {
+    const head = table.querySelector("td.reporthead");
+    if (!head || !/group/i.test(head.text)) continue;
+    for (const tr of table.querySelectorAll("tr")) {
+      const cells = tr.querySelectorAll("td");
+      if (cells.length < 4 || cells[0].classList.contains("reporthead")) continue;
+      const slot = cells[0].text.replace(/\s+/g, " ").trim();
+      if (!/^[A-Z]\d{1,2}$/.test(slot)) continue;
+      const lines = cells[1].innerHTML
+        .split(/<br\s*\/?>/i)
+        .map((l) => parse(l).text.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+      const name = lines[lines.length - 1];
+      if (!name) continue;
+      const id = cells[2].text.replace(/\s+/g, " ").trim();
+      const coach = cells[3].text.replace(/\s+/g, " ").trim();
+      out.push({
+        slot,
+        club: lines.length > 1 ? lines[0] : null,
+        name,
+        platformTeamId: /^\d+$/.test(id) ? id : null,
+        coach: coach && !/^(n\/a|tbd|-+)$/i.test(coach) ? coach : null,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * A team's identity, which the platform does not give us.
  *
@@ -256,12 +322,41 @@ export function flightScheduleUrl(tournamentguid: string, flightguid: string): s
  *
  * The division is the flight; the key is not. They are passed apart.
  */
-export function teamsOf(rows: RclRow[], agecode: string, division = agecode): SyncedTeam[] {
+export function teamsOf(
+  rows: RclRow[],
+  agecode: string,
+  division = agecode,
+  entries: RclEntry[] = [],
+): SyncedTeam[] {
+  /*
+   * The entries page, joined two ways: by the name the schedule prints,
+   * which is the entry's second line verbatim, and failing that by the slot
+   * the schedule's group column names ("A11 vs A7" puts the home side in
+   * A11). A side whose name the league has since respelled still finds its
+   * coach through the slot.
+   */
+  const byName = new Map(entries.map((e) => [e.name, e]));
+  const bySlot = new Map(entries.map((e) => [e.slot, e]));
   const seen = new Map<string, SyncedTeam>();
   for (const row of rows) {
-    for (const name of [row.home, row.away]) {
+    const slots = row.group?.match(/^([A-Z]\d{1,2})\s+vs\.?\s+([A-Z]\d{1,2})$/i);
+    const sides: [string, string | undefined][] = [
+      [row.home, slots?.[1]],
+      [row.away, slots?.[2]],
+    ];
+    for (const [name, slot] of sides) {
       const key = `${agecode}::${name}`;
-      if (!seen.has(key)) seen.set(key, { sourceTeamId: key, name, division, group: null });
+      if (seen.has(key)) continue;
+      const entry = byName.get(name) ?? (slot ? bySlot.get(slot.toUpperCase()) : undefined);
+      seen.set(key, {
+        sourceTeamId: key,
+        name,
+        division,
+        group: null,
+        ...(entry
+          ? { club: entry.club, coach: entry.coach, platformTeamId: entry.platformTeamId }
+          : {}),
+      });
     }
   }
   return [...seen.values()];
@@ -327,7 +422,7 @@ class Session {
     return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
   }
 
-  async get(url: string, want: "flights" | "schedule"): Promise<string> {
+  async get(url: string, want: "flights" | "schedule" | "entries"): Promise<string> {
     const cookie = this.header();
     const res = await fetch(url, {
       headers: { "user-agent": AGENT, accept: "text/html", ...(cookie ? { cookie } : {}) },
@@ -348,7 +443,7 @@ class Session {
    * the polite reading of that, and giving up after three is what stops it
    * becoming a way of hammering them until they relent.
    */
-  async patiently(url: string, want: "flights" | "schedule"): Promise<string> {
+  async patiently(url: string, want: "flights" | "schedule" | "entries"): Promise<string> {
     let last: unknown;
     for (const wait of [0, BACKOFF_MS, BACKOFF_MS * 4]) {
       if (wait > 0) await pause(wait);
@@ -381,8 +476,10 @@ class Session {
  * is the right way round: a loud failure costs a week of staleness, and the
  * quiet one cost most of a season.
  */
-export function arrived(html: string, want: "flights" | "schedule"): boolean {
-  return want === "flights" ? html.includes("accepted_flight.asp") : html.includes("theadb");
+export function arrived(html: string, want: "flights" | "schedule" | "entries"): boolean {
+  if (want === "flights") return html.includes("accepted_flight.asp");
+  if (want === "entries") return html.includes("reporthead");
+  return html.includes("theadb");
 }
 
 /** The tournament id out of any of their public pages. */
@@ -471,13 +568,36 @@ export const sportsaffinity: ExternalEventProvider = {
             await session.patiently(flightScheduleUrl(ref.eventId, flight.flightguid), "schedule"),
           ),
         );
+        await pause(PAUSE_MS);
+        /*
+         * The flight's own accepted-teams page, for the head coach and the
+         * club the league registered each side under. A second request per
+         * flight, at the same pace — a full read is a hundred requests now
+         * rather than fifty, which is still a Monday morning's worth.
+         *
+         * Tolerated when it fails, unlike the schedule: the fixtures are
+         * what a parent came for, and a week without coaches costs less
+         * than a week without games. What it leaves behind is an entry
+         * with no coach, which the next read fills in.
+         */
+        let entries: RclEntry[] = [];
+        try {
+          entries = readAcceptedFlight(
+            await session.patiently(
+              acceptedFlightUrl(ref.eventId, flight.agecode, flight.flightguid),
+              "entries",
+            ),
+          );
+        } catch {
+          entries = [];
+        }
         /*
          * The flight is the division — "BU08 Div 3 North" — read off the
          * accepted-teams page, since the schedule page's own heading only
          * says "Boys Under 8" and the standings grid says "Group A". The
          * age code stays the key teams are remembered by; see teamsOf.
          */
-        teams.push(...teamsOf(rows, flight.agecode, flight.division));
+        teams.push(...teamsOf(rows, flight.agecode, flight.division, entries));
         matches.push(...matchesOf(rows, flight.agecode, flight.division));
         await pause(PAUSE_MS);
       }

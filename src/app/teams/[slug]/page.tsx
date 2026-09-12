@@ -46,6 +46,7 @@ import { searchTeamsToMerge } from "@/features/teams/manual-merge-actions";
 import { splitTeamAction } from "@/features/teams/split-actions";
 import { SplitPanel } from "@/features/teams/split-panel";
 import { crestOf } from "@/features/teams/crest";
+import { sameCoach } from "@/features/teams/binding";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +164,20 @@ export default async function TeamPage({
    */
   const honours = honoursByEvent(team.matches, team.id, team.divisionMatches);
 
+  /*
+   * Entries are sorted latest first, so the first one naming a coach is the
+   * most recent listing. Nothing is inferred across clubs: the page link
+   * needs the same club and the same name.
+   */
+  const latestListed = team.eventTeams.find((et) => et.coach);
+  const headCoach = latestListed?.coach
+    ? {
+        name: latestListed.coach,
+        event: latestListed.event.title,
+        page: team.clubCoaches.find((c) => sameCoach(c.name, latestListed.coach!))?.slug ?? null,
+      }
+    : null;
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
       <Link href={back.href} className="text-sm text-brand-text hover:underline">
@@ -215,6 +230,23 @@ export default async function TeamPage({
               .filter(Boolean)
               .join(" · ") || "Youth soccer team"}
           </p>
+          {/* The head coach the latest league listing named. A fact about
+              that season's entry, read off the entries below (latest
+              first), and a link only where the club already has a page for
+              that exact name — a listing never makes one. */}
+          {headCoach && (
+            <p className="text-sm text-muted">
+              Head coach{" "}
+              {headCoach.page ? (
+                <Link href={`/coaches/${headCoach.page}`} className="text-brand-text hover:underline">
+                  {headCoach.name}
+                </Link>
+              ) : (
+                <span className="text-fg">{headCoach.name}</span>
+              )}
+              <span className="text-xs"> · {headCoach.event}</span>
+            </p>
+          )}
         </div>
 
         {/*
@@ -447,6 +479,9 @@ export default async function TeamPage({
                     <span className="block text-xs text-muted">
                       entered as {et.sourceName}
                     </span>
+                  )}
+                  {et.coach && (
+                    <span className="block text-xs text-muted">head coach {et.coach}</span>
                   )}
                   <span className="text-sm text-muted">
                     {" — "}

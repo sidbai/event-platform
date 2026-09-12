@@ -685,6 +685,20 @@ export const eventTeams = pgTable(
      * record a guess as a source.
      */
     sourceName: text("source_name"),
+    /**
+     * What the platform said about this entry beyond its name, read with it.
+     *
+     * A coach is a fact about a season's entry, not about the team forever:
+     * they change between seasons and sometimes within one, so the name
+     * lives here and the team page reads the latest. The club is the one
+     * the league registered the side under — "Eastside F.C." beside a name
+     * that only says "BU10 Red" — which is worth more than a guess from the
+     * name. The platform id is the league's own number for the side, where
+     * the club gave one, and is what next season's entry can be recognised by.
+     */
+    coach: text("coach"),
+    sourceClub: text("source_club"),
+    platformTeamId: text("platform_team_id"),
     played: integer("played").notNull().default(0),
     won: integer("won").notNull().default(0),
     drawn: integer("drawn").notNull().default(0),
