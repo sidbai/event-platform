@@ -49,6 +49,19 @@ function bestVoice(): string {
   }
 }
 const VOICE = bestVoice();
+
+/**
+ * How the voice should say what the caption spells.
+ *
+ * "Juan" read as English comes out "Jwon" — the first take said "King 卷" —
+ * so the spoken text respells it the way it is said, /wɑn/. Captions keep
+ * the real spelling; only what is sent to `say` changes.
+ */
+const SPOKEN: [RegExp, string][] = [
+  [/kingjuansoccer\.com/gi, "King Wahn Soccer dot com"],
+  [/\bJuan\b/g, "Wahn"],
+];
+const spoken = (line: string) => SPOKEN.reduce((t, [from, to]) => t.replace(from, to), line);
 const VOICES = "tmp/demo-voice";
 
 // --- the story ------------------------------------------------------------
@@ -95,6 +108,7 @@ const STORY: Step[] = [
   { type: 'textarea[name="body"]', text: "My daughter wants keeper-specific sessions this winter. Who have you used and liked?", hold: 1 },
   { submit: 'input[name="title"]', caption: "Posted — coaches and parents answer in the feed", hold: 3.5 },
   { go: "/", caption: "kingjuansoccer.com", say: "King Juan Soccer dot com. See you on the pitch.", hold: 4 },
+  // (the closing line is respelled for the voice by SPOKEN above)
 ];
 
 // --- the voice ------------------------------------------------------------
@@ -109,7 +123,7 @@ if (SPEAK) {
     const line = "say" in step && step.say ? step.say : "caption" in step ? step.caption : null;
     if (!line) continue;
     const file = `${VOICES}/${String(n++).padStart(2, "0")}.aiff`;
-    execFileSync("say", ["-v", VOICE, "-o", file, line]);
+    execFileSync("say", ["-v", VOICE, "-o", file, spoken(line)]);
     const seconds = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString().trim());
     clips.set(step, { file, seconds });
     // A caption stays up at least as long as it takes to say.
