@@ -19,6 +19,8 @@
 
 export type PastedStanding = {
   team: string;
+  /** The heading above the table it came from — "Group A" — where the copier saw one. */
+  group: string | null;
   played: number | null;
   won: number | null;
   drawn: number | null;
@@ -45,6 +47,9 @@ const COLUMNS: { key: keyof PastedStanding; names: RegExp }[] = [
   // "Teams", plural, is what AthleteOne heads the column with — and a table
   // whose team column is unrecognised is not read as a table at all.
   { key: "team", names: /^(teams?|club|name|team name)$/i },
+  // Written by the copier from the heading over each table; no platform
+  // prints it as a column of its own.
+  { key: "group", names: /^(group|bracket|pool|flight)$/i },
   { key: "played", names: /^(gp|pl|mp|played|games|gms|games played|w-l-d|matches)$/i },
   { key: "won", names: /^(w|win|wins|won)$/i },
   { key: "drawn", names: /^(d|t|tie|ties|draw|draws|drawn|tied)$/i },
@@ -125,6 +130,7 @@ export function parsePastedStandings(text: string): StandingsPaste {
 
     rows.push({
       team,
+      group: (at("group") ?? "").trim() || null,
       played: num(at("played")),
       won: num(at("won")),
       drawn: num(at("drawn")),

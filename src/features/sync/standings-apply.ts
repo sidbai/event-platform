@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { eventTeams } from "@/db/schema";
 
+import { labelMatchesByMembership } from "./groups-apply";
 import type { PastedStanding } from "./standings-paste";
 
 /**
@@ -20,6 +21,8 @@ export type StandingsOutcome = {
   updated: number;
   /** Names in the table that match no team on this event. */
   unmatched: string[];
+  /** Games given a group label from the table's grouping, where the paste carried one. */
+  labelled: number;
 };
 
 /**
@@ -73,10 +76,14 @@ export async function applyPastedStandings(
         ...(row.lost !== null ? { lost: row.lost } : {}),
         ...(row.gf !== null ? { gf: row.gf } : {}),
         ...(row.ga !== null ? { ga: row.ga } : {}),
+        // The heading over the table the row came from is the group the
+        // team is in — the one fact the fixture list never carries.
+        ...(row.group ? { groupLabel: row.group } : {}),
       })
       .where(eq(eventTeams.id, id));
     updated++;
   }
 
-  return { updated, unmatched };
+  const labelled = rows.some((r) => r.group) ? await labelMatchesByMembership(eventId) : 0;
+  return { updated, unmatched, labelled };
 }

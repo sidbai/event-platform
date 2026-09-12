@@ -87,6 +87,7 @@ export async function applyPastedText(
     return {
       detail:
         `${out.updated} teams updated with the organizer's own table` +
+        (out.labelled > 0 ? `, ${out.labelled} game(s) put in their groups` : "") +
         (missed.length > 0 ? ` — ${missed.length} row(s) matched nothing here` : ""),
     };
   }

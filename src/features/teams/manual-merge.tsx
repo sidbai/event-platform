@@ -131,7 +131,7 @@ export function ManualMerge() {
               if (!keep || !fold) return;
               const result = await mergeChosenTeams(keep.id, fold.id);
               setState(result);
-              if (!result.error) {
+              if (!result.error && !result.warning) {
                 setKeep(null);
                 setFold(null);
               }
@@ -144,6 +144,33 @@ export function ManualMerge() {
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
         {state.detail && <span className="text-sm text-muted">{state.detail}</span>}
       </div>
+      {/* The rules say two teams. Said here, before anything moves, with
+          the override one click away for the person who knows better. */}
+      {state.warning && (
+        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50/60 p-3 text-sm">
+          <p>
+            <span className="font-medium">These look like two teams:</span> {state.warning}.
+          </p>
+          <button
+            type="button"
+            disabled={!ready || pending}
+            onClick={() =>
+              startTransition(async () => {
+                if (!keep || !fold) return;
+                const result = await mergeChosenTeams(keep.id, fold.id, true);
+                setState(result);
+                if (!result.error && !result.warning) {
+                  setKeep(null);
+                  setFold(null);
+                }
+              })
+            }
+            className="mt-2 rounded-md border border-amber-400 px-3 py-1 text-xs font-medium hover:bg-amber-100 disabled:opacity-50"
+          >
+            Merge anyway
+          </button>
+        </div>
+      )}
     </div>
   );
 }

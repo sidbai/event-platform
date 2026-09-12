@@ -260,8 +260,8 @@ describe("reading a standings table", () => {
         ["3", "Eastside FC (WA) - GU8 White", "3", "0", "2", "1", "0", "14", "-14", "0.33", "1", "View Results"],
       ]),
     );
-    // team, gp, w, d, l, gf, ga, pts
-    expect(rows).toEqual(["Eastside FC (WA) - GU8 White\t3\t0\t1\t2\t0\t14\t1"]);
+    // team, gp, w, d, l, gf, ga, pts, group (none over a bare table)
+    expect(rows).toEqual(["Eastside FC (WA) - GU8 White\t3\t0\t1\t2\t0\t14\t1\t"]);
   });
 
   it("ignores a table that is not a standing", () => {
@@ -298,6 +298,7 @@ describe("reading a standings table", () => {
     expect(parsed).toEqual([
       {
         team: "Eastside FC - GU8 Red",
+        group: null,
         played: 3,
         won: 3,
         drawn: 0,
@@ -308,6 +309,7 @@ describe("reading a standings table", () => {
       },
       {
         team: "Seattle United - G18 Copa",
+        group: null,
         played: 3,
         won: 2,
         drawn: 1,
