@@ -158,3 +158,24 @@ export function playedAndNext<T extends { kickoffAt: Date | null; homeScore: num
 
   return matches.filter((m) => (!ahead(m) && !undated(m)) || soon.has(m) || m === someday);
 }
+
+/**
+ * The rest of the season: everything playedAndNext leaves out.
+ *
+ * Kept off the page by default for the reason above, and offered under a
+ * disclosure for the parent who does want May's date now. Latest first, to
+ * read as the list it sits above does — so opened, the far end of the season
+ * is at the top and the week after next is just above this weekend. The
+ * undated fixtures follow, since there is no place in time to put them.
+ */
+export function laterFixtures<T extends { kickoffAt: Date | null; homeScore: number | null }>(
+  matches: T[],
+  now: Date = new Date(),
+): T[] {
+  const shown = new Set(playedAndNext(matches, now));
+  const rest = matches.filter((m) => !shown.has(m) && m.homeScore === null);
+  const dated = rest
+    .filter((m) => m.kickoffAt !== null)
+    .sort((a, b) => b.kickoffAt!.getTime() - a.kickoffAt!.getTime());
+  return [...dated, ...rest.filter((m) => m.kickoffAt === null)];
+}
