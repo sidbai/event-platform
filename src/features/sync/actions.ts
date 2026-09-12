@@ -2,6 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { db } from "@/db";
 import { events } from "@/db/schema";
@@ -12,7 +13,8 @@ import { safeSourceUrl } from "@/features/events/listing";
 
 import { applyPastedText as importPastedText } from "./import-text";
 import { mayPoll, platformOf } from "./policy";
-import { detect, syncEvent } from "./run";
+import { READ_BUDGET_MS, detect, syncEvent } from "./run";
+import { advanceJob } from "./jobs";
 
 export type { ConnectResult } from "./result";
 import type { ConnectResult } from "./result";
@@ -128,7 +130,23 @@ export async function refreshNow(
   if (!user || !isAdmin(user)) return { error: "Not allowed." };
 
   const eventId = String(formData.get("eventId") ?? "");
-  const report = await syncEvent(eventId);
+  /*
+   * A short read answers here. A long one — a league read a page at a
+   * time — is queued and answered at once, and the pages are read after
+   * this response has gone, for as long as this invocation is allowed to
+   * run; whatever is left, the next cron tick picks up. The admin screen
+   * shows the count going up. Nobody sits on a spinner for five minutes to
+   * be told the function was killed at four.
+   */
+  const report = await syncEvent(eventId, new Date(), { budgetMs: 0, requestedBy: user.id });
+  if (report.jobId) {
+    const jobId = report.jobId;
+    after(async () => {
+      await advanceJob(jobId, READ_BUDGET_MS);
+    });
+    revalidatePath("/admin/sync");
+    return { detail: "Reading in the background — the count below goes up as pages come in." };
+  }
   revalidatePath("/admin/sync");
 
   return report.ok ? { detail: report.detail } : { error: report.detail };

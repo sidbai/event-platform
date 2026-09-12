@@ -33,7 +33,7 @@ export async function SiteHeader() {
     { href: "/events", label: "Events" },
     { href: "/teams", label: "Teams" },
     { href: "/community", label: "Community" },
-    { href: "/clubs", label: "Reviews" },
+    { href: "/clubs", label: "Clubs" },
     // No "Me": signed in, the front page is yours, and the logo is the way to
     // it. A link beside the logo that goes where the logo goes is a second
     // door in the same wall.

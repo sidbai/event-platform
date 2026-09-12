@@ -9,7 +9,7 @@ import { clubs, coaches } from "@/db/schema";
 import { sql } from "drizzle-orm";
 
 /**
- * One header for both halves of Reviews.
+ * One header for both halves of Clubs — the clubs, and the coaches at them.
  *
  * Clubs and coaches used to each render their own title, blurb and copy of the
  * nav, so switching tabs changed the page's identity and read as two pages
@@ -40,11 +40,12 @@ export async function ReviewsHeader({
   return (
     <header>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Reviews</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Clubs</h1>
         {action && <CreateLink href={action.href}>{action.label}</CreateLink>}
       </div>
       <p className="mt-1 text-sm text-muted">
-        What it&rsquo;s actually like at a club, and with the coaches there —
+        Seattle-area youth soccer clubs: the leagues and tiers they play in,
+        their teams and coaches — and what it&rsquo;s actually like there,
         written anonymously by local parents and players.
       </p>
 
@@ -63,7 +64,7 @@ export async function ReviewsHeader({
       {/* A single segmented control rather than two loose pills, so the two
           halves read as one switch instead of two unrelated links. */}
       <nav
-        aria-label="Reviews sections"
+        aria-label="Clubs sections"
         className="mt-5 inline-flex rounded-lg border border-line bg-elevated p-0.5 text-sm"
       >
         {tabs.map((t) => {

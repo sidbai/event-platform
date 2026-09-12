@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { TeamCrest } from "@/components/team-crest";
 import { listClubs } from "@/features/clubs/queries";
+import { leaguesByClub, teamCountsByClub } from "@/features/clubs/hub";
 import { Pager } from "@/features/pagination/pager";
 import { paginate, parsePage, PER_PAGE } from "@/features/pagination/paginate";
 import { ReviewsHeader } from "@/features/reviews/reviews-header";
@@ -10,9 +11,9 @@ import { Stars } from "@/features/clubs/stars";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Reviews",
+  title: "Clubs",
   description:
-    "Anonymous reviews of Seattle-area youth soccer clubs, from the families who play there.",
+    "Seattle-area youth soccer clubs: leagues, tiers, teams and coaches, with anonymous reviews from the families who play there.",
 };
 
 export default async function ClubsPage({
@@ -28,6 +29,8 @@ export default async function ClubsPage({
     pagination.offset === 0
       ? first
       : await listClubs(q, { limit: PER_PAGE, offset: pagination.offset });
+  const ids = clubs.map((c) => c.id);
+  const [leagues, teamCounts] = await Promise.all([leaguesByClub(ids), teamCountsByClub(ids)]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -60,6 +63,27 @@ export default async function ClubsPage({
                     <div className="text-xs text-muted">{club.city}</div>
                   )}
                 </div>
+
+                {/* What the club is, before what people think of it: the
+                    leagues its teams are entered in here, and how many. */}
+                {(() => {
+                  const inLeagues = leagues.get(club.id) ?? [];
+                  const n = teamCounts.get(club.id) ?? 0;
+                  return (
+                    <div className="text-xs text-muted">
+                      {inLeagues.length > 0 && (
+                        <ul className="flex flex-wrap justify-center gap-1">
+                          {inLeagues.slice(0, 4).map((l) => (
+                            <li key={l.slug} className="rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-soft-text">
+                              {l.label}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {n > 0 && <div className="mt-1">{n} team{n === 1 ? "" : "s"}</div>}
+                    </div>
+                  );
+                })()}
 
                 {/* Pushed to the bottom so ratings line up across a row even
                     when club names wrap to two lines. */}
