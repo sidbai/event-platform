@@ -953,6 +953,22 @@ export const rostersRelations = relations(rosters, ({ one }) => ({
   }),
 }));
 
+/**
+ * What the model thinks of each team, rebuilt nightly from every decided
+ * game (features/predict). Its own table and nothing else's: a rating is
+ * an estimate that changes with each result, never a fact about a game, and
+ * a rebuild replaces the lot rather than editing anything anybody entered.
+ */
+export const teamRatings = pgTable("team_ratings", {
+  teamId: uuid("team_id")
+    .primaryKey()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  rating: doublePrecision("rating").notNull(),
+  /** Decided games the rating was learned from. */
+  games: integer("games").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const matchesRelations = relations(matches, ({ one }) => ({
   event: one(events, { fields: [matches.eventId], references: [events.id] }),
   division: one(eventDivisions, {

@@ -23,6 +23,8 @@
     "har": "tsx scripts/har.ts",
     "leagues:snippet": "tsx scripts/league-snippet.ts",
     "demo:record": "tsx scripts/demo/record.mts",
+    "predict:eval": "NODE_OPTIONS=--conditions=react-server tsx scripts/predict-eval.ts",
+    "predict:rebuild": "NODE_OPTIONS=--conditions=react-server tsx scripts/predict-rebuild.ts",
     "db:clubs:short-name": "NODE_OPTIONS=--conditions=react-server tsx scripts/club-short-name.ts",
     "db:clubs:alias": "NODE_OPTIONS=--conditions=react-server tsx scripts/club-alias.ts",
     "db:clubs:merge": "NODE_OPTIONS=--conditions=react-server tsx scripts/merge-clubs.ts",

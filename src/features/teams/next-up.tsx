@@ -3,16 +3,20 @@ import Link from "next/link";
 import { TeamCrest } from "@/components/team-crest";
 import { kickoffLabel } from "@/features/events/kickoff";
 
+import type { Probs } from "@/features/predict/elo";
+import { Odds } from "@/features/predict/odds";
+
 import type { Outcome, Side } from "./preview";
 import type { NextUp } from "./queries";
 
 /**
  * The next game, and what both sides bring to it.
  *
- * A comparison, not a prediction. Every figure is one both columns are
- * measured by, and there is no probability anywhere: teams here average under
- * five recorded games, which is nowhere near enough to say who will win, and
- * a number that looks like a forecast would be read as one.
+ * A comparison first. Every figure is one both columns are measured by.
+ * The one forecast on the page — the bar under the names — appears only
+ * when both sides have enough results here for the model to have an opinion
+ * (features/predict), because a number that looks like a forecast is read
+ * as one. Most pairings still get none.
  *
  * Common opponents are the part worth reading. Two sides have played each
  * other 7.5% of the time here, but 80% of pairings share a third team — what
@@ -63,10 +67,13 @@ const played = (side: Side) => side.performance.played;
 
 export function NextUpPanel({
   nextUp,
+  odds,
   teamName,
   timezone,
 }: {
   nextUp: NextUp;
+  /** The model's forecast for the fixture, home side first, where it has one. */
+  odds?: { probs: Probs; home: string; away: string } | null;
   teamName: string;
   timezone: string | null;
 }) {
@@ -94,6 +101,17 @@ export function NextUpPanel({
           </Link>
           {when && <span className="ml-auto text-sm tabular-nums text-muted">{when}</span>}
         </div>
+        {/* Home side on the left of the bar, as in the header above it; the
+            names are already there, so the bar carries only the numbers. */}
+        {odds && (
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted">
+            <span>Forecast</span>
+            <Odds probs={odds.probs} home={odds.home} away={odds.away} />
+            <Link href="/predictions" className="ml-auto whitespace-nowrap text-brand-text hover:underline">
+              how it works
+            </Link>
+          </div>
+        )}
 
         {played(ours) + played(theirs) > 0 && (
           <dl className="mt-4 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-line pt-4 text-sm">

@@ -39,6 +39,8 @@ import { ClaimTeamForm } from "@/features/teams/claim-form";
 import { myTeamClaim } from "@/features/teams/claim-queries";
 import { canRequestClaim } from "@/features/teams/claim";
 import { shootout } from "@/features/events/score-label";
+import { forecast } from "@/features/predict/elo";
+import { ratingsFor } from "@/features/predict/queries";
 import { honoursByEvent, PLACE_LABEL } from "@/features/teams/honours";
 import { crestOf } from "@/features/teams/crest";
 
@@ -116,6 +118,25 @@ export default async function TeamPage({
   const events = await hostedEvents(team.id, member || admin);
   // Two queries, and only when there is a game to preview.
   const nextUp = await nextUpFor(team.id, team.matches);
+  /*
+   * A forecast for that game, where the model has enough on both sides.
+   * Home first, as the fixture has it: the panel says "us vs them", the
+   * bar says who the results so far favour.
+   */
+  const odds = await (async () => {
+    if (!nextUp) return null;
+    const fixture = team.matches.find((m) => m.id === nextUp.fixture.id);
+    if (!fixture?.homeTeamId || !fixture.awayTeamId) return null;
+    const ratings = await ratingsFor([fixture.homeTeamId, fixture.awayTeamId]);
+    const probs = forecast(ratings.get(fixture.homeTeamId), ratings.get(fixture.awayTeamId));
+    if (!probs) return null;
+    const weAreHome = fixture.homeTeamId === team.id;
+    return {
+      probs,
+      home: weAreHome ? team.name : nextUp.opponent.name,
+      away: weAreHome ? nextUp.opponent.name : team.name,
+    };
+  })();
 
   /*
    * Always the directory.
@@ -303,6 +324,7 @@ export default async function TeamPage({
       {nextUp && (
         <NextUpPanel
           nextUp={nextUp}
+          odds={odds}
           teamName={team.name}
           timezone={
             team.matches.find((m) => m.id === nextUp.fixture.id)?.event?.timezone ?? null
