@@ -42,6 +42,9 @@ import { shootout } from "@/features/events/score-label";
 import { forecast } from "@/features/predict/elo";
 import { ratingsFor } from "@/features/predict/queries";
 import { honoursByEvent, PLACE_LABEL } from "@/features/teams/honours";
+import { searchTeamsToMerge } from "@/features/teams/manual-merge-actions";
+import { splitTeamAction } from "@/features/teams/split-actions";
+import { SplitPanel } from "@/features/teams/split-panel";
 import { crestOf } from "@/features/teams/crest";
 
 export const dynamic = "force-dynamic";
@@ -485,6 +488,27 @@ export default async function TeamPage({
               </li>
             ))}
           </ul>
+        )}
+
+        {/* The way apart, for an admin who can see this row is two teams:
+            tick the events that are the other side's and say where they go. */}
+        {/* Rendered whenever an admin is looking, events or none, so the
+            panel stays mounted across the refresh a move causes and its
+            "moved to …" line is still there to read. */}
+        {admin && (
+          <SplitPanel
+            teamSlug={team.slug}
+            teamName={team.name}
+            entries={team.eventTeams.map((et) => ({
+              eventId: et.eventId,
+              title: et.event.title,
+              as: et.sourceName && et.sourceName !== team.name ? et.sourceName : null,
+              division: et.division?.label ?? et.division?.name ?? null,
+              games: team.matches.filter((m) => m.eventId === et.eventId).length,
+            }))}
+            action={splitTeamAction.bind(null, team.slug)}
+            search={searchTeamsToMerge}
+          />
         )}
       </section>
 
