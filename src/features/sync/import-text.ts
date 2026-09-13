@@ -5,6 +5,7 @@ import { applySync } from "./apply";
 import { datesLookWrong, mismatchMessage } from "./date-guard";
 import { holdsBothKinds } from "./merge-files";
 import { parsePastedSchedule, toSyncedEvent } from "./paste";
+import { describeGroups, inferGroupsForEvent } from "./groups-infer-apply";
 import { applyPastedStandings } from "./standings-apply";
 import { parsePastedStandings, readStandingsHeader } from "./standings-paste";
 
@@ -119,8 +120,17 @@ export async function applyPastedText(
     prune: false,
   });
 
+  /*
+   * The groups, which a fixture list from AthleteOne never carries. Read off
+   * the shape of the games where that is unambiguous, and the divisions it
+   * is not are named in the result so the person knows which standings
+   * pages to copy next. Six tournaments landed as single tables before this.
+   */
+  const groups = describeGroups(await inferGroupsForEvent(event.id, { apply: true }));
 
-  const detail = `${matches.length} fixtures, ${out.teams} new teams, ${out.divisions} divisions`;
+  const detail =
+    `${matches.length} fixtures, ${out.teams} new teams, ${out.divisions} divisions` +
+    (groups ? ` — ${groups}` : "");
   return {
     // Skipped lines are the headline when there are any: a row we could not
     // read looks exactly like a game that was never scheduled.
